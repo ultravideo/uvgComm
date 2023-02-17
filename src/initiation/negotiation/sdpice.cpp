@@ -15,6 +15,7 @@ void SDPICE::uninit()
   networkCandidates_->cleanupSession(sessionID_);
 }
 
+
 void SDPICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
   Logger::getLogger()->printNormal(this, "Processing outgoing request");
@@ -29,7 +30,7 @@ void SDPICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
        (peerSupportsICE_ && request.method == SIP_ACK))
       && request.message->contentType == MT_APPLICATION_SDP)
   {
-    addLocalCandidates(content);  
+    addLocalCandidatesToSDP(content);
   }
 
   emit outgoingRequest(request, content);
@@ -45,7 +46,7 @@ void SDPICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
 
   if (peerSupportsICE_ && response.message->contentType == MT_APPLICATION_SDP)
   {
-    addLocalCandidates(content);
+    addLocalCandidatesToSDP(content);
   }
 
   emit outgoingResponse(response, content);
@@ -88,57 +89,16 @@ void SDPICE::processIncomingResponse(SIPResponse& response, QVariant& content,
 }
 
 
-void SDPICE::addLocalCandidates(QVariant& content)
+void SDPICE::addLocalCandidatesToSDP(QVariant& content)
 {
   SDPMessageInfo sdp = content.value<SDPMessageInfo>();
-
-  int neededComponents = 0;
   for (auto& media: sdp.media)
   {
-    if (media.proto == "RTP/AVP")
+    if (media.candidates.empty())
     {
-      neededComponents += 2; // RTP and RTCP
-    }
-    else
-    {
-      neededComponents += 1;
+      addLocalCandidatesToMedia(media);
     }
   }
-
-  // remove the ready candidates
-  neededComponents -= sdp.candidates.size();
-
-  // here we generate new candidates addresses if we don't have any existing,
-  // or if the amount of components has changed
-  if (!existingLocalCandidates_ || existingLocalCandidates_->size() != neededComponents)
-  {
-    existingLocalCandidates_ = networkCandidates_->localCandidates(neededComponents, sessionID_);
-  }
-
-  if (!existingGlobalCandidates_ || existingGlobalCandidates_->size() != neededComponents)
-  {
-    existingGlobalCandidates_ = networkCandidates_->globalCandidates(neededComponents, sessionID_);
-  }
-
-  if (!existingStunCandidates_ || existingStunCandidates_->size() != neededComponents)
-  {
-    existingStunCandidates_ = networkCandidates_->stunCandidates(neededComponents);
-  }
-
-  if (!existingStunBindings_ || existingStunBindings_->size() != neededComponents)
-  {
-    existingStunBindings_ = networkCandidates_->stunBindings(neededComponents, sessionID_);
-  }
-
-  if (!existingturnCandidates_ || existingturnCandidates_->size() != neededComponents)
-  {
-    existingturnCandidates_ = networkCandidates_->turnCandidates(neededComponents, sessionID_);
-  }
-
-  // transform network addresses into ICE candidates
-  sdp.candidates += generateICECandidates(existingLocalCandidates_, existingGlobalCandidates_,
-                                          existingStunCandidates_,  existingStunBindings_,
-                                          existingturnCandidates_, neededComponents);
 
   content.setValue(sdp); // adds the candidates to outgoing message
   std::shared_ptr<SDPMessageInfo> local = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
@@ -146,6 +106,33 @@ void SDPICE::addLocalCandidates(QVariant& content)
 
   // we must give our final SDP to rest of the program
   emit localSDPWithCandidates(sessionID_, local);
+}
+
+
+void SDPICE::addLocalCandidatesToMedia(MediaInfo& media)
+{
+  int neededComponents = 1;
+  if (media.proto == "RTP/AVP")
+  {
+    neededComponents = 2; // RTP and RTCP
+  }
+
+  existingLocalCandidates_ = networkCandidates_->localCandidates(neededComponents, sessionID_);
+  existingGlobalCandidates_ = networkCandidates_->globalCandidates(neededComponents, sessionID_);
+  existingStunCandidates_ = networkCandidates_->stunCandidates(neededComponents);
+  existingStunBindings_ = networkCandidates_->stunBindings(neededComponents, sessionID_);
+  existingturnCandidates_ = networkCandidates_->turnCandidates(neededComponents, sessionID_);
+
+  // transform network addresses into ICE candidates
+  media.candidates += generateICECandidates(existingLocalCandidates_, existingGlobalCandidates_,
+                                            existingStunCandidates_,  existingStunBindings_,
+                                            existingturnCandidates_, neededComponents);
+
+  if (!media.candidates.empty())
+  {
+    media.receivePort = media.candidates.first()->port;
+
+  }
 }
 
 

@@ -70,7 +70,8 @@ private:
 
   // Adds local ICE candidates to SDP and starts nomination if we have
   // their candidates.
-  void addLocalCandidates(QVariant& content);
+  void addLocalCandidatesToSDP(QVariant& content);
+  void addLocalCandidatesToMedia(MediaInfo& media);
 
   void printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates);
 

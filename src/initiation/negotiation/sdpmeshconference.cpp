@@ -9,6 +9,7 @@ void SDPMeshConference::setConferenceMode(bool state)
   conferenceMode_ = state;
 }
 
+
 void SDPMeshConference::addP2PSDP(uint32_t sessionID, SDPMessageInfo& sdp)
 {
   std::shared_ptr<SDPMessageInfo> referenceSDP =
@@ -48,20 +49,16 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
           {
             components += 1;
           }
+
+          for (int i = 0; i < media.candidates.size(); ++i)
+          {
+            media.candidates[i] = updateICECandidate(media.candidates[i],
+                                                     components, foundation);
+          }
+
+          ++foundation;
+
           sdp->media.push_back(copyMedia(media));
-        }
-
-        for (int i = 0; i < session.second->candidates.size(); ++i)
-        {
-          session.second->candidates[i] = updateICECandidate(session.second->candidates[i],
-                                                             components, foundation);
-        }
-
-        ++foundation;
-
-        for (auto& candidate : session.second->candidates)
-        {
-          sdp->candidates.push_back(candidate);
         }
       }
     }

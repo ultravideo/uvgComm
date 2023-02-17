@@ -17,8 +17,5 @@ std::shared_ptr<SDPMessageInfo> generateDefaultSDP(QString username, QString loc
                                                    QList<uint8_t> staticAudioPayloadTypes = {},
                                                    QList<uint8_t> staticVideoPayloadTypes = {});
 
-void setSDPAddress(QString inAddress, QString& sdpAddress,
-                   QString& type, QString& addressType);
-
 void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp, QString localAddress, QString username);
 

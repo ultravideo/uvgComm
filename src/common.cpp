@@ -122,3 +122,20 @@ bool getReceiveAttribute(const MediaInfo &media, bool local)
   return receive;
 }
 
+
+void setSDPAddress(QString inAddress, QString& address, QString& nettype, QString& addressType)
+{
+  address = inAddress;
+  nettype = "IN";
+
+  // TODO: Improve the address detection
+  if (inAddress.front() == '[')
+  {
+    address = inAddress.mid(1, inAddress.size() - 2);
+    addressType = "IP6";
+  }
+  else
+  {
+    addressType = "IP4";
+  }
+}

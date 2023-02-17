@@ -24,3 +24,6 @@ QString getLocalUsername();
 
 bool getSendAttribute(const MediaInfo &media, bool local);
 bool getReceiveAttribute(const MediaInfo &media, bool local);
+
+void setSDPAddress(QString inAddress, QString& address,
+                   QString& nettype, QString& addressType);

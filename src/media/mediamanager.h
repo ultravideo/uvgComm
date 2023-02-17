@@ -90,18 +90,16 @@ signals:
   void updateAutomaticSettings();
 
 public slots:
-  void iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
-                           quint32 sessionID);
-  void iceFailed(quint32 sessionID);
+  void iceSucceeded(uint32_t sessionID, MediaInfo local, MediaInfo remote);
+  void iceFailed(uint32_t sessionID, MediaInfo local, MediaInfo remote);
 
 signals:
   void iceMediaFailed(uint32_t sessionID);
 
 private:
 
-  void createCall(uint32_t sessionID,
-                  std::shared_ptr<SDPMessageInfo> peerInfo,
-                  const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView, bool followOurSDP);
+  void createMediaPair(uint32_t sessionID, const MediaInfo &localMedia, const MediaInfo &remoteMedia,
+                       VideoInterface *videoView, bool followOurSDP);
 
   void createOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
                            QString peerAddress, const MediaInfo& remoteMedia, bool useOurSDP);
@@ -115,9 +113,6 @@ private:
   QString getMediaNettype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
   QString getMediaAddrtype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
   QString getMediaAddress(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
-
-  // update MediaInfo of SDP after ICE has finished
-  void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local);
 
   bool sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
                      const std::shared_ptr<SDPMessageInfo> localInfo) const;

@@ -34,7 +34,7 @@ IceSessionTester::~IceSessionTester()
 {}
 
 
-void IceSessionTester::init(QList<std::shared_ptr<ICEPair>> *pairs, uint8_t components)
+void IceSessionTester::init(std::vector<std::shared_ptr<ICEPair> > *pairs, uint8_t components)
 {
   Q_ASSERT(pairs != nullptr);
   pairs_ = pairs;
@@ -119,7 +119,7 @@ void IceSessionTester::run()
     Logger::getLogger()->printDebug(DEBUG_ERROR, this,
                                     "Invalid candidates, "
                                     "unable to perform ICE candidate negotiation!");
-    emit iceFailure();
+    emit iceFailure(pairs_);
     return;
   }
 
@@ -187,7 +187,7 @@ void IceSessionTester::run()
                                     "Time since start", QString::number(
                                       std::chrono::duration_cast<std::chrono::milliseconds>(
                                         std::chrono::system_clock::now() - startTime_).count()) + " ms");
-    emit iceFailure();
+    emit iceFailure(pairs_);
     nominated_mtx.unlock();
     return;
   }
@@ -199,7 +199,7 @@ void IceSessionTester::run()
     ICECandidateTester tester;
     if (!tester.performNomination(nominated_))
     {
-      emit iceFailure();
+      emit iceFailure(pairs_);
       nominated_mtx.unlock();
       return;
     }

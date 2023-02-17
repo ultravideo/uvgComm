@@ -87,13 +87,13 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
         Logger::getLogger()->printError("SipContent", "Missing global and media address. The SDP is not good");
         return false;
       }
-    }
-  }
 
-  if (sdpInfo.candidates.isEmpty())
-  {
-    Logger::getLogger()->printError("SipContent", "Didn't receive any ICE candidates!");
-    return false;
+      if (media.candidates.isEmpty())
+      {
+        Logger::getLogger()->printError("SipContent", "Didn't receive any ICE candidates for media!");
+        return false;
+      }
+    }
   }
 
   return true;
@@ -178,56 +178,58 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
     {
       switch (flag)
       {
-      case A_SENDRECV:
+        case A_SENDRECV:
+        {
+          sdp += "a=sendrecv"  + lineEnd;
+          break;
+        }
+        case A_SENDONLY:
+        {
+          sdp += "a=sendonly"  + lineEnd;
+          break;
+        }
+        case A_RECVONLY:
+        {
+          sdp += "a=recvonly"  + lineEnd;
+          break;
+        }
+        case A_INACTIVE:
+        {
+          sdp += "a=inactive"  + lineEnd;
+          break;
+        }
+        case A_NO_ATTRIBUTE:
+        {
+          break;
+        }
+        default:
+        {
+          Logger::getLogger()->printProgramError("SipContent",
+                                                 "Trying to compose SDP flag attribute with unimplemented flag");
+          break;
+        }
+      }
+    }
+
+    for (auto& info : mediaStream.candidates)
+    {
+      sdp += "a=candidate:"
+          + info->foundation + " " + QString::number(info->component) + " "
+          + info->transport  + " " + QString::number(info->priority)  + " "
+          + info->address    + " " + QString::number(info->port)      + " "
+          + "typ " + info->type;
+
+      if (info->rel_address != "" && info->rel_port != 0)
       {
-        sdp += "a=sendrecv"  + lineEnd;
-        break;
+        sdp += " raddr " + info->rel_address +
+            " rport " + QString::number(info->rel_port);
       }
-      case A_SENDONLY:
-      {
-        sdp += "a=sendonly"  + lineEnd;
-        break;
-      }
-      case A_RECVONLY:
-      {
-        sdp += "a=recvonly"  + lineEnd;
-        break;
-      }
-      case A_INACTIVE:
-      {
-        sdp += "a=inactive"  + lineEnd;
-        break;
-      }
-      case A_NO_ATTRIBUTE:
-      {
-        break;
-      }
-      default:
-      {
-        Logger::getLogger()->printProgramError("SipContent",
-                                               "Trying to compose SDP flag attribute with unimplemented flag");
-        break;
-      }
-      }
+
+      sdp += lineEnd;
     }
   }
 
-  for (auto& info : sdpInfo.candidates)
-  {
-    sdp += "a=candidate:"
-        + info->foundation + " " + QString::number(info->component) + " "
-        + info->transport  + " " + QString::number(info->priority)  + " "
-        + info->address    + " " + QString::number(info->port)      + " "
-        + "typ " + info->type;
 
-    if (info->rel_address != "" && info->rel_port != 0)
-    {
-      sdp += " raddr " + info->rel_address +
-          " rport " + QString::number(info->rel_port);
-    }
-
-    sdp += lineEnd;
-  }  
 
   return sdp;
 }
@@ -519,7 +521,8 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   }
 
   QList<RTPMap> noCodecs;
-  if(!parseAttributes(lineIterator, type, words, sdp.flagAttributes, sdp.valueAttributes, noCodecs, sdp.candidates))
+  QList<std::shared_ptr<ICEInfo>> noCandidates;
+  if(!parseAttributes(lineIterator, type, words, sdp.flagAttributes, sdp.valueAttributes, noCodecs, noCandidates))
   {
     Logger::getLogger()->printError("SipContent", "Failed to parse attributes");
     return false;
@@ -528,6 +531,12 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   if(!noCodecs.empty())
   {
     Logger::getLogger()->printError("SipContent", "Found rtpmap outside media");
+    return false;
+  }
+
+  if (!noCandidates.empty())
+  {
+    Logger::getLogger()->printError("SipContent", "Found ICE candidates outside media, not allowed");
     return false;
   }
 
@@ -580,7 +589,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
                            sdp.media.back().flagAttributes,
                            sdp.media.back().valueAttributes,
                            sdp.media.back().codecs,
-                           sdp.candidates))
+                           sdp.media.back().candidates))
     {
       Logger::getLogger()->printError("SipContent", "Failed to parse some media fields");
       return false;

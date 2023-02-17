@@ -76,6 +76,7 @@ struct MediaInfo
   QList<RTPMap> codecs; // mandatory if not preset rtpnumber
   QList<SDPAttributeType> flagAttributes; // optional
   QList<SDPAttribute> valueAttributes; // optional
+  QList<std::shared_ptr<ICEInfo>> candidates;
 };
 
 struct TimeInfo
@@ -136,9 +137,6 @@ struct SDPMessageInfo
   QList<SDPAttribute> valueAttributes;
 
   QList<MediaInfo> media;// m=, zero or more
-
-  // TODO: Candidate is a media-level attribute only
-  QList<std::shared_ptr<ICEInfo>> candidates;
 };
 
 Q_DECLARE_METATYPE(SDPMessageInfo); // used in qvariant for content

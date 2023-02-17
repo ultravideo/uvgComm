@@ -115,10 +115,10 @@ void MediaManager::addParticipant(uint32_t sessionID,
     participants_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID));
 
     // connect signals so we get information when ice is ready
-    QObject::connect(participants_[sessionID].ice.get(), &ICE::nominationSucceeded,
+    QObject::connect(participants_[sessionID].ice.get(), &ICE::mediaNominationSucceeded,
                      this, &MediaManager::iceSucceeded);
 
-    QObject::connect(participants_[sessionID].ice.get(), &ICE::nominationFailed,
+    QObject::connect(participants_[sessionID].ice.get(), &ICE::mediaNominationFailed,
                      this, &MediaManager::iceFailed);
   }
 
@@ -138,58 +138,72 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
   }
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
+  QList<std::shared_ptr<ICEInfo>> localCandidates;
+  QList<std::shared_ptr<ICEInfo>> remoteCandidates;
+
+  for (auto& media : localInfo->media)
+  {
+    localCandidates += media.candidates;
+  }
+
+  for (auto& media : peerInfo->media)
+  {
+    remoteCandidates += media.candidates;
+  }
 
   // perform ICE
-  if (!localInfo->candidates.empty() && !peerInfo->candidates.empty())
+  if (!localCandidates.empty() && !remoteCandidates.empty())
   {
     participants_[sessionID].localInfo = localInfo;
     participants_[sessionID].peerInfo = peerInfo;
     participants_[sessionID].videoView = videoView;
     participants_[sessionID].followOurSDP = iceController;
 
-    participants_[sessionID].ice->startNomination(localInfo->media.count()*2,
-                                                  localInfo->candidates,
-                                                  peerInfo->candidates, iceController);
+    // each media has its own separate ICE
+    for (unsigned int i = 0; i < localInfo->media.size(); ++i)
+    {
+      participants_[sessionID].ice->startNomination(localInfo->media.at(i),
+                                                    peerInfo->media.at(i),
+                                                    iceController);
+    }
   }
   else
   {
+    /* Not really used or tested branch, but its not much of a hassle to
+     * attempt to support non-ICE implementations */
     Logger::getLogger()->printWarning(this, "Did not find any ICE candidates, not performing ICE");
-    createCall(sessionID, peerInfo, localInfo, videoView, iceController);
+    for (unsigned int i = 0; i < localInfo->media.size(); ++i)
+    {
+      createMediaPair(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
+                      videoView, iceController);
+    }
   }
 }
 
 
-void MediaManager::createCall(uint32_t sessionID,
-                std::shared_ptr<SDPMessageInfo> peerInfo,
-                const std::shared_ptr<SDPMessageInfo> localInfo,
-                VideoInterface* videoView, bool followOurSDP)
+void MediaManager::createMediaPair(uint32_t sessionID, const MediaInfo &localMedia, const MediaInfo &remoteMedia,
+                                   VideoInterface *videoView, bool followOurSDP)
 {
   if(!streamer_->addPeer(sessionID,
-                         getMediaAddrtype(peerInfo, 0),
-                         getMediaAddress(peerInfo, 0),
-                         getMediaAddrtype(localInfo, 0),
-                         getMediaAddress(localInfo, 0)))
+                         remoteMedia.connection_addrtype,
+                         remoteMedia.connection_address,
+                         localMedia.connection_addrtype,
+                         localMedia.connection_address))
   {
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
                "Error creating RTP peer");
     return;
   }
 
-  // create each agreed media stream
-  for(int i = 0; i < peerInfo->media.size(); ++i)
-  {
-    createOutgoingMedia(sessionID,
-                        localInfo->media.at(i),
-                        getMediaAddress(peerInfo, i),
-                        peerInfo->media.at(i), followOurSDP);
-  }
+  createOutgoingMedia(sessionID,
+                      localMedia,
+                      remoteMedia.connection_address,
+                      remoteMedia, followOurSDP);
 
-  for (int i = 0; i < localInfo->media.size(); ++i)
-  {
-    createIncomingMedia(sessionID, localInfo->media.at(i),
-                        getMediaAddress(localInfo, i),
-                        peerInfo->media.at(i), videoView, followOurSDP);
-  }
+  createIncomingMedia(sessionID, localMedia,
+                      localMedia.connection_address,
+                      remoteMedia, videoView, followOurSDP);
+
 }
 
 
@@ -345,6 +359,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
   }
 }
 
+
 void MediaManager::removeParticipant(uint32_t sessionID)
 {
   if (participants_.find(sessionID) != participants_.end())
@@ -360,8 +375,8 @@ void MediaManager::removeParticipant(uint32_t sessionID)
             {"SessionID"}, {QString::number(sessionID)});
 }
 
-void MediaManager::iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
-                                quint32 sessionID)
+
+void MediaManager::iceSucceeded(uint32_t sessionID, MediaInfo local, MediaInfo remote)
 {
   if (participants_.find(sessionID) == participants_.end())
   {
@@ -372,29 +387,13 @@ void MediaManager::iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
   Logger::getLogger()->printNormal(this, "ICE nomination has succeeded", {"SessionID"},
                                    {QString::number(sessionID)});
 
-  // Video. 0 is RTP, 1 is RTCP
-  if (streams.at(0) != nullptr && streams.at(1) != nullptr)
-  {
-    setMediaPair(participants_[sessionID].localInfo->media[1],  streams.at(0)->local, true);
-    setMediaPair(participants_[sessionID].peerInfo->media[1], streams.at(0)->remote, false);
-  }
-
-  // Audio. 2 is RTP, 3 is RTCP
-  if (streams.at(2) != nullptr && streams.at(3) != nullptr)
-  {
-    setMediaPair(participants_[sessionID].localInfo->media[0],  streams.at(2)->local, true);
-    setMediaPair(participants_[sessionID].peerInfo->media[0], streams.at(2)->remote, false);
-  }
-
-  createCall(sessionID,
-             participants_[sessionID].peerInfo,
-             participants_[sessionID].localInfo,
-             participants_[sessionID].videoView,
-             participants_[sessionID].followOurSDP);
+  createMediaPair(sessionID, local, remote,
+                  participants_[sessionID].videoView,
+                  participants_[sessionID].followOurSDP);
 }
 
 
-void MediaManager::iceFailed(uint32_t sessionID)
+void MediaManager::iceFailed(uint32_t sessionID, MediaInfo local, MediaInfo remote)
 {
   Logger::getLogger()->printError(this, "ICE failed, removing participant");
 
@@ -463,29 +462,7 @@ void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo
 }
 
 
-void MediaManager::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local)
-{
-  if (mediaInfo == nullptr)
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
-                                    "Null mediainfo in setMediaPair");
-    return;
-  }
 
-  // for local address, we bind to our rel-address if using non-host connection type
-  if (local &&
-      mediaInfo->type != "host" &&
-      mediaInfo->rel_address != "" && mediaInfo->rel_port != 0)
-  {
-    media.connection_address = mediaInfo->rel_address;
-    media.receivePort        = mediaInfo->rel_port;
-  }
-  else
-  {
-    media.connection_address = mediaInfo->address;
-    media.receivePort        = mediaInfo->port;
-  }
-}
 
 
 QString MediaManager::getMediaNettype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex)

@@ -2,6 +2,7 @@
 
 #include "icesessiontester.h"
 #include "logger.h"
+#include "common.h"
 
 #include <QNetworkInterface>
 #include <QSettings>
@@ -14,15 +15,10 @@
 
 ICE::ICE(uint32_t sessionID):
   sessionID_(sessionID),
-  agent_(nullptr),
-  candidatePairs_(),
-  succeededPairs_(),
-  connectionNominated_(false),
-  components_(0),
-  localSDP_(),
-  remoteSDP_()
+  mediaNominations_()
 {
-  qRegisterMetaType<QVector<int> >("QList<std::shared_ptr<ICEPair> >&");
+  qRegisterMetaType<uint32_t>("uint32_t");
+  qRegisterMetaType<MediaInfo>("MediaInfo");
 }
 
 
@@ -32,58 +28,60 @@ ICE::~ICE()
 }
 
 
-void ICE::startNomination(int components, QList<std::shared_ptr<ICEInfo>>& local,
-                          QList<std::shared_ptr<ICEInfo>>& remote, bool controller)
+void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool controller)
 {
   if (controller)
   {
-    Logger::getLogger()->printImportant(this, "Starting ICE nomination as controller");
+    Logger::getLogger()->printImportant(this, "Starting ICE Media nomination as controller");
   }
   else
   {
-    Logger::getLogger()->printImportant(this, "Starting ICE nomination as controllee");
+    Logger::getLogger()->printImportant(this, "Starting ICE Media nomination as controllee");
   }
 
-  components_ = components;
+  std::vector<std::shared_ptr<ICEPair>> newCandidates = makeCandidatePairs(local.candidates,
+                                                                           remote.candidates, controller);
 
-  QList<std::shared_ptr<ICEPair>> newCandidates = makeCandidatePairs(local, remote, controller);
-
-  // see if we our old results are good enough
-  if (!succeededPairs_.empty() && sameCandidates(newCandidates, candidatePairs_))
+  int matchIndex = 0;
+  if (matchNominationList(ICE_FINISHED, matchIndex, mediaNominations_, newCandidates))
   {
-    // use old results
     Logger::getLogger()->printNormal(this, "Found existing ICE results, using those");
-    emit nominationSucceeded(succeededPairs_, sessionID_);
+    //emit nominationSucceeded(succeededPairs_, sessionID_);
   }
-  else if (!candidatePairs_.empty() && sameCandidates(newCandidates, candidatePairs_))
+  else if (matchNominationList(ICE_RUNNING, matchIndex, mediaNominations_, newCandidates))
   {
     Logger::getLogger()->printNormal(this, "Already running ICE with these candidates, not doing anything");
   }
+  else if (matchNominationList(ICE_FAILED, matchIndex, mediaNominations_, newCandidates))
+  {
+    Logger::getLogger()->printError(this, "These ICE candidates have failed before, no sense in running them again");
+  }
   else
   {
-    // wait for previous nomination to finish so we don't delete a running thread
-    if (agent_ != nullptr)
+    int components = 1;
+
+    if (local.proto == "RTP/AVP" ||
+        local.proto == "RTP/AVPF" ||
+        local.proto == "RTP/SAVP" ||
+        local.proto == "RTP/SAVPF")
     {
-      Logger::getLogger()->printProgramWarning(this, "Deleting previous ICE while it is running");
-      uninit();
+      components = 2; // RTP + RTCP
     }
 
-    agent_ = std::unique_ptr<IceSessionTester> (new IceSessionTester(controller));
-
+    mediaNominations_.push_back({ICE_RUNNING, local, remote,
+                                 newCandidates, {},
+                                 std::unique_ptr<IceSessionTester> (new IceSessionTester(controller)),
+                                 components});
 
     Logger::getLogger()->printNormal(this, "No previous matching ICE results, performing nomination");
+
     // perform connection testing and use those instead
-    succeededPairs_.clear();
-    candidatePairs_ = newCandidates;
-
-    connectionNominated_ = false;
-
-    QObject::connect(agent_.get(),
+    QObject::connect(mediaNominations_.back().iceTester.get(),
                      &IceSessionTester::iceSuccess,
                      this,
                      &ICE::handeICESuccess,
                      Qt::DirectConnection);
-    QObject::connect(agent_.get(),
+    QObject::connect(mediaNominations_.back().iceTester.get(),
                      &IceSessionTester::iceFailure,
                      this,
                      &ICE::handleICEFailure,
@@ -91,54 +89,128 @@ void ICE::startNomination(int components, QList<std::shared_ptr<ICEInfo>>& local
 
     /* Starts a SessionTester which is responsible for handling connectivity checks and nomination.
      * When testing is finished it is connected tonominationSucceeded/nominationFailed */
-    agent_->init(&candidatePairs_, components_);
-    agent_->start();
+    mediaNominations_.back().iceTester.get()->init(&mediaNominations_.back().candidatePairs, components);
+    mediaNominations_.back().iceTester.get()->start();
   }
 }
 
 
-void ICE::handeICESuccess(QList<std::shared_ptr<ICEPair>> &streams)
+bool ICE:: matchNominationList(ICEState state, int& index, const std::vector<MediaNomination> &list,
+                               const std::vector<std::shared_ptr<ICEPair> > pairs)
 {
-  // check that results make sense. They should always.
-  if (streams.at(0) == nullptr ||
-      streams.at(1) == nullptr ||
-      streams.size() != components_)
+  for (int i = 0; i < list.size(); ++i)
   {
-    Logger::getLogger()->printProgramError(this,  "The ICE results don't make " 
-                                                  "sense even though they should");
-    handleICEFailure();
-  }
-  else 
-  {
-    QStringList names;
-    QStringList values;
-    for(auto& component : streams)
+    if (sameCandidates(pairs, list[i].candidatePairs))
     {
-      names.append("Component " + QString::number(component->local->component));
-      values.append(component->local->address + ":" + QString::number(component->local->port)
-                    + " <-> " +
-                    component->remote->address + ":" + QString::number(component->remote->port));
+      index = i;
+      return true;
     }
-
-    Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this, "ICE succeeded", names, values);
-
-    // end other tests. We have a winner.
-    agent_->quit();
-    connectionNominated_ = true;
-    succeededPairs_ += streams;
-
-    emit nominationSucceeded(succeededPairs_, sessionID_);
   }
+
+  index = -1;
+  return false;
 }
 
 
-QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
-    QList<std::shared_ptr<ICEInfo>>& local,
-    QList<std::shared_ptr<ICEInfo>>& remote,
+void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair> > &streams)
+{
+  // find the media these streams belong to
+  for (auto& media : mediaNominations_)
+  {
+    // change state of media nomination and emit signal for ICE completion
+    if (containCandidates(streams, media.candidatePairs))
+    {
+      Logger::getLogger()->printNormal(this, "ICE succeeded", "Components",
+                                       QString::number(streams.size()));
+      media.state = ICE_FINISHED;
+      media.succeededPairs = media.candidatePairs;
+      media.candidatePairs.clear();
+      media.iceTester->quit();
+
+      printSuccessICEPairs(streams);
+
+      // TODO: Improve this (probably need to add RTCP to SDP message)
+
+      // 0 is RTP, 1 is RTCP
+      if (streams.at(0) != nullptr && streams.at(1) != nullptr)
+      {
+        setMediaPair(media.localMedia,  streams.at(0)->local, true);
+        setMediaPair(media.remoteMedia, streams.at(0)->remote, false);
+      }
+
+      emit mediaNominationSucceeded(sessionID_, media.localMedia, media.remoteMedia);
+
+      return;
+    }
+  }
+
+  Logger::getLogger()->printProgramError(this, "Did not find the media the successful ICE belongs to");
+}
+
+
+void ICE::handleICEFailure(std::vector<std::shared_ptr<ICEPair> > *candidates)
+{
+  Logger::getLogger()->printDebug(DEBUG_ERROR, "ICE",
+                                  "Failed to nominate RTP/RTCP candidates!");
+
+  for (auto& media : mediaNominations_)
+  {
+    // change state of media nomination and emit signal for ICE completion
+    if (sameCandidates(*candidates, media.candidatePairs))
+    {
+      media.state = ICE_FAILED;
+      media.iceTester->quit();
+
+      emit mediaNominationFailed(sessionID_, media.localMedia, media.remoteMedia);
+    }
+  }
+
+  Logger::getLogger()->printProgramError(this, "Did not find the media ICE failure belongs to");
+}
+
+
+bool ICE::containCandidates(std::vector<std::shared_ptr<ICEPair>> &streams,
+                            std::vector<std::shared_ptr<ICEPair>> allCandidates)
+{
+  int matchingStreams = 0;
+  for (auto& candidatePair : allCandidates)
+  {
+    for (auto& readyConnection : streams)
+    {
+      if (sameCandidate(readyConnection->local, candidatePair->local) &&
+          sameCandidate(readyConnection->remote, candidatePair->remote))
+      {
+        ++matchingStreams;
+      }
+    }
+  }
+
+  return streams.size() == matchingStreams;
+}
+
+void ICE::printSuccessICEPairs(std::vector<std::shared_ptr<ICEPair> > &streams) const
+{
+  QStringList names;
+  QStringList values;
+  for(auto& component : streams)
+  {
+    names.append("Component " + QString::number(component->local->component));
+    values.append(component->local->address + ":" + QString::number(component->local->port)
+                  + " <-> " +
+                  component->remote->address + ":" + QString::number(component->remote->port));
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this, "ICE succeeded", names, values);
+}
+
+
+std::vector<std::shared_ptr<ICEPair> > ICE::makeCandidatePairs(
+    const QList<std::shared_ptr<ICEInfo>>& local,
+    const QList<std::shared_ptr<ICEInfo>>& remote,
     bool controller
 )
 {
-  QList<std::shared_ptr<ICEPair>> pairs;
+  std::vector<std::shared_ptr<ICEPair>> pairs;
 
   // TODO: Check if local are actually local interfaces
 
@@ -181,32 +253,23 @@ QList<std::shared_ptr<ICEPair>> ICE::makeCandidatePairs(
 }
 
 
-void ICE::handleICEFailure()
-{
-  Logger::getLogger()->printDebug(DEBUG_ERROR, "ICE",  
-                                  "Failed to nominate RTP/RTCP candidates!");
-
-  agent_->quit();
-  connectionNominated_ = false; // TODO: crash here with debugger
-  emit nominationFailed(sessionID_);
-}
-
-
 void ICE::uninit()
 {
-  if (agent_ != nullptr)
+  for (auto& media : mediaNominations_)
   {
-    agent_->exit(0);
-    uint8_t waits = 0;
-    while (agent_->isRunning() && waits <= 10)
+    if (media.state == ICE_RUNNING)
     {
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      ++waits;
+      media.iceTester->exit(0);
+      uint8_t waits = 0;
+      while (media.iceTester->isRunning() && waits <= 50)
+      {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        ++waits;
+      }
     }
   }
 
-  agent_ = nullptr;
-  connectionNominated_ = false;
+  mediaNominations_.clear();
 }
 
 
@@ -219,8 +282,8 @@ int ICE::pairPriority(int controllerCandidatePriority, int controlleeCandidatePr
 }
 
 
-bool ICE::sameCandidates(QList<std::shared_ptr<ICEPair>> newCandidates,
-                         QList<std::shared_ptr<ICEPair>> oldCandidates)
+bool ICE::sameCandidates(std::vector<std::shared_ptr<ICEPair> > newCandidates,
+                         std::vector<std::shared_ptr<ICEPair> > oldCandidates)
 {
   if (newCandidates.empty() || oldCandidates.empty())
   {
@@ -263,4 +326,33 @@ bool ICE::sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
       firstCandidate->type == secondCandidate->type &&
       firstCandidate->rel_address == secondCandidate->rel_address &&
       firstCandidate->rel_port == secondCandidate->rel_port;
+}
+
+
+void ICE::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local)
+{
+  if (mediaInfo == nullptr)
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
+                                    "Null mediainfo in setMediaPair");
+    return;
+  }
+
+  // for local address, we bind to our rel-address if using non-host connection type
+  if (local &&
+      mediaInfo->type != "host" &&
+      mediaInfo->rel_address != "" && mediaInfo->rel_port != 0)
+  {
+    setSDPAddress(mediaInfo->rel_address, media.connection_address,
+                  media.connection_nettype,
+                  media.connection_addrtype);
+    media.receivePort        = mediaInfo->rel_port;
+  }
+  else
+  {
+    setSDPAddress(mediaInfo->address, media.connection_address,
+                  media.connection_nettype,
+                  media.connection_addrtype);
+    media.receivePort        = mediaInfo->port;
+  }
 }
