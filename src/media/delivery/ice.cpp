@@ -30,22 +30,12 @@ ICE::~ICE()
 
 void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool controller)
 {
-  if (controller)
-  {
-    Logger::getLogger()->printImportant(this, "Starting ICE Media nomination as controller");
-  }
-  else
-  {
-    Logger::getLogger()->printImportant(this, "Starting ICE Media nomination as controllee");
-  }
-
   std::vector<std::shared_ptr<ICEPair>> newCandidates = makeCandidatePairs(local.candidates,
                                                                            remote.candidates, controller);
-
   int matchIndex = 0;
   if (matchNominationList(ICE_FINISHED, matchIndex, mediaNominations_, newCandidates))
   {
-    Logger::getLogger()->printNormal(this, "Found existing ICE results, using those");
+    Logger::getLogger()->printImportant(this, "Found existing ICE results, using those");
 
     updateMedia(mediaNominations_[matchIndex].localMedia, local);
     updateMedia(mediaNominations_[matchIndex].remoteMedia, remote);
@@ -55,11 +45,11 @@ void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool 
   }
   else if (matchNominationList(ICE_RUNNING, matchIndex, mediaNominations_, newCandidates))
   {
-    Logger::getLogger()->printNormal(this, "Already running ICE with these candidates, not doing anything");
+    Logger::getLogger()->printImportant(this, "Already running ICE with these candidates, not doing anything");
   }
   else if (matchNominationList(ICE_FAILED, matchIndex, mediaNominations_, newCandidates))
   {
-    Logger::getLogger()->printError(this, "These ICE candidates have failed before, no sense in running them again");
+    Logger::getLogger()->printImportant(this, "These ICE candidates have failed before, no sense in running them again");
   }
   else
   {
@@ -73,12 +63,15 @@ void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool 
       components = 2; // RTP + RTCP
     }
 
-    mediaNominations_.push_back({ICE_RUNNING, local, remote,
-                                 newCandidates, {},
+    mediaNominations_.push_back({ICE_RUNNING,
+                                 local,
+                                 remote,
+                                 newCandidates,
+                                 {},
                                  std::unique_ptr<IceSessionTester> (new IceSessionTester(controller)),
                                  components});
 
-    Logger::getLogger()->printNormal(this, "No previous matching ICE results, performing nomination");
+
 
     // perform connection testing and use those instead
     QObject::connect(mediaNominations_.back().iceTester.get(),
@@ -92,9 +85,26 @@ void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool 
                      &ICE::handleICEFailure,
                      Qt::DirectConnection);
 
+    QString role = "Controllee";
+    if (controller)
+    {
+      role = "Controller";
+    }
+
+    Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this,
+                                    "No previous matching ICE results, performing nomination",
+                                    {"Role", "Pairs"}, {role,
+                                    QString::number(mediaNominations_.back().candidatePairs.size())});
+
+    if (mediaNominations_.back().candidatePairs.empty())
+    {
+      Logger::getLogger()->printProgramError(this, "No candidate pairs to start negotiation with");
+      return;
+    }
+
     /* Starts a SessionTester which is responsible for handling connectivity checks and nomination.
      * When testing is finished it is connected tonominationSucceeded/nominationFailed */
-    mediaNominations_.back().iceTester.get()->init(&mediaNominations_.back().candidatePairs, components);
+    mediaNominations_.back().iceTester.get()->init(mediaNominations_.back().candidatePairs, components);
     mediaNominations_.back().iceTester.get()->start();
   }
 }
@@ -105,7 +115,8 @@ bool ICE:: matchNominationList(ICEState state, int& index, const std::vector<Med
 {
   for (int i = 0; i < list.size(); ++i)
   {
-    if (sameCandidates(pairs, list[i].candidatePairs))
+    if (list[i].state == state &&
+        sameCandidates(pairs, list[i].candidatePairs))
     {
       index = i;
       return true;
@@ -153,7 +164,7 @@ void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair> > &streams)
 }
 
 
-void ICE::handleICEFailure(std::vector<std::shared_ptr<ICEPair> > *candidates)
+void ICE::handleICEFailure(std::vector<std::shared_ptr<ICEPair> > &candidates)
 {
   Logger::getLogger()->printDebug(DEBUG_ERROR, "ICE",
                                   "Failed to nominate RTP/RTCP candidates!");
@@ -161,7 +172,7 @@ void ICE::handleICEFailure(std::vector<std::shared_ptr<ICEPair> > *candidates)
   for (auto& media : mediaNominations_)
   {
     // change state of media nomination and emit signal for ICE completion
-    if (sameCandidates(*candidates, media.candidatePairs))
+    if (sameCandidates(candidates, media.candidatePairs))
     {
       media.state = ICE_FAILED;
       media.iceTester->quit();

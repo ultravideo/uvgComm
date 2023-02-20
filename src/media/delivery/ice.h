@@ -45,7 +45,7 @@ private slots:
   void handeICESuccess(std::vector<std::shared_ptr<ICEPair>> &streams);
 
   // ends testing and emits nominationFailed
-  void handleICEFailure(std::vector<std::shared_ptr<ICEPair>> *candidates);
+  void handleICEFailure(std::vector<std::shared_ptr<ICEPair>> &candidates);
 
 signals:
 

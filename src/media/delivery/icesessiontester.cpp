@@ -14,7 +14,7 @@ const uint32_t NONCONTROLLER_SESSION_TIMEOUT_MS = 20000;
 
 
 IceSessionTester::IceSessionTester(bool controller):
-  pairs_(nullptr),
+  pairs_(),
   isController_(controller),
   timeoutMs_(0),
   components_(0)
@@ -34,11 +34,11 @@ IceSessionTester::~IceSessionTester()
 {}
 
 
-void IceSessionTester::init(std::vector<std::shared_ptr<ICEPair> > *pairs, uint8_t components)
+void IceSessionTester::init(std::vector<std::shared_ptr<ICEPair> > &pairs, uint8_t components)
 {
-  Q_ASSERT(pairs != nullptr);
   pairs_ = pairs;
   components_ = components;
+  Logger::getLogger()->printNormal(this, "Set candidate pairs");
 }
 
 
@@ -114,14 +114,13 @@ void IceSessionTester::waitForEndOfTesting(unsigned long timeoutMs)
 
 void IceSessionTester::run()
 {
-  if (pairs_ == nullptr || pairs_->size() == 0)
+  if ( pairs_.empty())
   {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, this,
-                                    "Invalid candidates, "
-                                    "unable to perform ICE candidate negotiation!");
+    Logger::getLogger()->printError(this,"Cannot perform ICE with zero candidate pairs");
     emit iceFailure(pairs_);
     return;
   }
+
 
   QVector<std::shared_ptr<ICECandidateTester>> candidates;
 
@@ -133,7 +132,7 @@ void IceSessionTester::run()
 
   // the candidates should be in order at this point because of how the pairs
   // are formed
-  for (auto& pair : *pairs_)
+  for (auto& pair : pairs_)
   {
     // move to next candidate
     if (pair->local->address != prevAddr ||
