@@ -140,7 +140,6 @@ void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair> > &streams)
                                        QString::number(streams.size()));
       media.state = ICE_FINISHED;
       media.succeededPairs = media.candidatePairs;
-      media.candidatePairs.clear();
       media.iceTester->quit();
 
       printSuccessICEPairs(streams);
