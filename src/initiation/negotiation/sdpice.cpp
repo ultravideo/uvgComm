@@ -205,6 +205,9 @@ void SDPICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_
     return;
   }
 
+  // map sorts candidates by priority if we add them here
+  std::map<int, std::shared_ptr<ICEInfo>> sorted;
+
   // got through sets of STREAMS addresses
   for (int i = 0; i + components <= addresses->size(); i += components)
   {
@@ -223,14 +226,20 @@ void SDPICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_
       }
       uint8_t component = j - i + 1;
 
-      candidates.push_back(makeCandidate(foundation, type, component,
-                                         addresses->at(j).first,
-                                         addresses->at(j).second,
-                                         relayAddress, relayPort, localPriority));
+      std::shared_ptr<ICEInfo> candidate = makeCandidate(foundation, type, component,
+                                                         addresses->at(j).first,
+                                                         addresses->at(j).second,
+                                                         relayAddress, relayPort, localPriority);
+      sorted[candidate->priority] = candidate;
     }
 
     ++foundation;
+  }
 
+  // add candidates from largest to smallest priority
+  for (auto candidate = sorted.rbegin(); candidate != sorted.rend(); candidate++)
+  {
+    candidates.push_back(candidate->second);
   }
 }
 
