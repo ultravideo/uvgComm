@@ -102,9 +102,9 @@ private:
                        VideoInterface *videoView, bool followOurSDP);
 
   void createOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           QString peerAddress, const MediaInfo& remoteMedia, bool useOurSDP);
+                           const MediaInfo& remoteMedia, bool useOurSDP);
   void createIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           QString localAddress, const MediaInfo& remoteMedia, VideoInterface *videoView, bool useOurSDP);
+                           const MediaInfo& remoteMedia, VideoInterface *videoView, bool useOurSDP);
 
   QString rtpNumberToCodec(const MediaInfo& info);
 
