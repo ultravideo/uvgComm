@@ -112,7 +112,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
   if (participants_.find(sessionID) == participants_.end())
   {
-    participants_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID));
+    participants_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID, stats_));
 
     // connect signals so we get information when ice is ready
     QObject::connect(participants_[sessionID].ice.get(), &ICE::mediaNominationSucceeded,
@@ -421,48 +421,18 @@ QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
 
 void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool local)
 {
-  // TODO: This feels like a hack to do this here. Instead we should give stats the whole SDP
-  QStringList ipList;
-  QStringList audioPorts;
-  QStringList videoPorts;
-
-  // create each agreed media stream
-  for (auto& media : sdp->media)
-  {
-    if (media.type == "audio")
-    {
-      audioPorts.append(QString::number(media.receivePort));
-    }
-    else if (media.type == "video")
-    {
-      videoPorts.append(QString::number(media.receivePort));
-    }
-
-    if (media.connection_address != "")
-    {
-      ipList.append(media.connection_address);
-    }
-    else
-    {
-      ipList.append(sdp->connection_address);
-    }
-  }
-
   if (stats_)
   {
     if (local)
     {
-      stats_->outgoingMedia(sessionID, sdp->originator_username, ipList, audioPorts, videoPorts);
+      stats_->outgoingMedia(sessionID, sdp->originator_username);
     }
     else
     {
-      stats_->incomingMedia(sessionID, sdp->originator_username, ipList, audioPorts, videoPorts);
+      stats_->incomingMedia(sessionID, sdp->originator_username);
     }
   }
 }
-
-
-
 
 
 QString MediaManager::getMediaNettype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex)

@@ -3,6 +3,7 @@
 #include "icesessiontester.h"
 #include "logger.h"
 #include "common.h"
+#include "statisticsinterface.h"
 
 #include <QNetworkInterface>
 #include <QSettings>
@@ -13,9 +14,10 @@
 #include <thread>
 #include <math.h>       /* pow */
 
-ICE::ICE(uint32_t sessionID):
+ICE::ICE(uint32_t sessionID, StatisticsInterface *stats):
   sessionID_(sessionID),
-  mediaNominations_()
+  mediaNominations_(),
+  stats_(stats)
 {
   qRegisterMetaType<uint32_t>("uint32_t");
   qRegisterMetaType<MediaInfo>("MediaInfo");
@@ -67,6 +69,7 @@ void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool 
     mediaNominations_.push_back({ICE_RUNNING,
                                  local,
                                  remote,
+                                 false,
                                  newCandidates,
                                  {},
                                  std::unique_ptr<IceSessionTester> (new IceSessionTester(controller)),
@@ -130,7 +133,7 @@ bool ICE:: matchNominationList(ICEState state, int& index, const std::vector<Med
 }
 
 
-void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair> > &streams)
+void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair>> &streams)
 {
   // find the media these streams belong to
   for (auto& media : mediaNominations_)
@@ -153,6 +156,15 @@ void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair> > &streams)
       {
         setMediaPair(media.localMedia,  streams.at(0)->local, true);
         setMediaPair(media.remoteMedia, streams.at(0)->remote, false);
+      }
+
+      if (!media.addedToStats)
+      {
+        media.addedToStats = true;
+        for (auto& stream : streams)
+        {
+          stats_->selectedICEPair(sessionID_, stream);
+        }
       }
 
       emit mediaNominationSucceeded(sessionID_, media.localMedia, media.remoteMedia);

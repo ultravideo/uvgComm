@@ -176,7 +176,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Outgoing Streams</string>
+          <string>Selected Remote ICE Candidates</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -242,7 +242,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Incoming Streams</string>
+          <string>Selected Local ICE Candidates</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>

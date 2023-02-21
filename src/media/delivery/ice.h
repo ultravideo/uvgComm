@@ -16,6 +16,7 @@
  * both parties have received the parameters, the tests begin. */
 
 class IceSessionTester;
+class StatisticsInterface;
 
 enum ICEState{
   ICE_RUNNING,
@@ -28,7 +29,7 @@ class ICE : public QObject
   Q_OBJECT
 
 public:
-  ICE(uint32_t sessionID);
+  ICE(uint32_t sessionID, StatisticsInterface* stats);
   ~ICE();
 
   // Call this function to start the connectivity check/nomination process.
@@ -83,6 +84,7 @@ private:
     ICEState state;
     MediaInfo localMedia;
     MediaInfo remoteMedia;
+    bool addedToStats;
 
     std::vector<std::shared_ptr<ICEPair>> candidatePairs;
     std::vector<std::shared_ptr<ICEPair>> succeededPairs;
@@ -96,4 +98,6 @@ private:
 
   uint32_t sessionID_;
   std::vector<MediaNomination> mediaNominations_;
+
+  StatisticsInterface* stats_;
 };
