@@ -183,12 +183,15 @@ void KvazzupController::createSIPDialog(QString name, QString username, QString 
   // first we must renegotiates this call, so we get all their media parameters
   renegotiateCall(sessionID);
 
-  // then we renegotiates rest of the calls with the previous calls parameters included
-  for (auto& state : states_)
+  if (settingEnabled(SettingsKey::sipP2PConferencing))
   {
-    if (state.first != sessionID)
+    // then we renegotiates rest of the calls with the previous calls parameters included
+    for (auto& state : states_)
     {
-      renegotiateCall(state.first);
+      if (state.first != sessionID)
+      {
+        renegotiateCall(state.first);
+      }
     }
   }
 

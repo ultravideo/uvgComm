@@ -52,7 +52,7 @@ SIPManager::SIPManager():
   delayTimer_.setSingleShot(true);
   QObject::connect(&delayTimer_, &QTimer::timeout,
                    this, &SIPManager::delayedMessage);
-  sdpConf_->setConferenceMode(true);
+  sdpConf_->setConferenceMode(settingEnabled(SettingsKey::sipP2PConferencing));
 }
 
 
@@ -220,6 +220,7 @@ uint32_t SIPManager::reserveSessionID()
 void SIPManager::updateCallSettings()
 {
   nCandidates_->init();
+  sdpConf_->setConferenceMode(settingEnabled(SettingsKey::sipP2PConferencing));
 }
 
 
