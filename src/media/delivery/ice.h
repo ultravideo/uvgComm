@@ -60,7 +60,7 @@ private:
                                                            const QList<std::shared_ptr<ICEInfo> > &remote,
                                                            bool controller);
 
-  int pairPriority(int controllerCandidatePriority, int controlleeCandidatePriority) const;
+  uint64_t pairPriority(int controllerCandidatePriority, int controlleeCandidatePriority) const;
 
   bool sameCandidates(std::vector<std::shared_ptr<ICEPair>> newCandidates,
                       std::vector<std::shared_ptr<ICEPair>> oldCandidates);

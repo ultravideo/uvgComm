@@ -35,7 +35,8 @@ void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool 
   int matchIndex = 0;
   if (matchNominationList(ICE_FINISHED, matchIndex, mediaNominations_, newCandidates))
   {
-    Logger::getLogger()->printImportant(this, "Found existing ICE results, using those");
+    Logger::getLogger()->printNormal(this, "Found existing ICE results, using those");
+    printSuccessICEPairs(mediaNominations_[matchIndex].succeededPairs);
 
     updateMedia(mediaNominations_[matchIndex].localMedia, local);
     updateMedia(mediaNominations_[matchIndex].remoteMedia, remote);
@@ -93,8 +94,9 @@ void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool 
 
     Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this,
                                     "No previous matching ICE results, performing nomination",
-                                    {"Role", "Pairs"}, {role,
-                                    QString::number(mediaNominations_.back().candidatePairs.size())});
+                                    {"Role", "Pairs", "Existing media nominations"}, {role,
+                                    QString::number(mediaNominations_.back().candidatePairs.size()),
+                                    QString::number(mediaNominations_.size())});
 
     if (mediaNominations_.back().candidatePairs.empty())
     {
@@ -203,6 +205,7 @@ bool ICE::containCandidates(std::vector<std::shared_ptr<ICEPair>> &streams,
   return streams.size() == matchingStreams;
 }
 
+
 void ICE::printSuccessICEPairs(std::vector<std::shared_ptr<ICEPair> > &streams) const
 {
   QStringList names;
@@ -288,12 +291,12 @@ void ICE::uninit()
 }
 
 
-int ICE::pairPriority(int controllerCandidatePriority, int controlleeCandidatePriority) const
+uint64_t ICE::pairPriority(int controllerCandidatePriority, int controlleeCandidatePriority) const
 {
   // see RFC 8445 section 6.1.2.3
-  return ((int)pow(2, 32) * qMin(controllerCandidatePriority, controlleeCandidatePriority)) +
-         ((int)2 * qMax(controllerCandidatePriority, controlleeCandidatePriority)) +
-         controllerCandidatePriority > controlleeCandidatePriority ? 1 : 0;
+  return (uint64_t)((uint64_t)pow(2, 32) * qMin(controllerCandidatePriority, controlleeCandidatePriority)) +
+         (uint64_t)((uint64_t)2 * qMax(controllerCandidatePriority, controlleeCandidatePriority)) +
+         (uint64_t)(controllerCandidatePriority > controlleeCandidatePriority ? 1 : 0);
 }
 
 
