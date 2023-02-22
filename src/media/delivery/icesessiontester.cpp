@@ -2,7 +2,6 @@
 
 #include "icecandidatetester.h"
 
-#include "common.h"
 #include "logger.h"
 
 #include <QEventLoop>
@@ -114,22 +113,20 @@ void IceSessionTester::waitForEndOfTesting(unsigned long timeoutMs)
 
 void IceSessionTester::run()
 {
-  if ( pairs_.empty())
+  if (pairs_.empty())
   {
-    Logger::getLogger()->printError(this,"Cannot perform ICE with zero candidate pairs");
+    Logger::getLogger()->printError(this, "Cannot perform ICE with zero candidate pairs");
     emit iceFailure(pairs_);
     return;
   }
 
-
-  QVector<std::shared_ptr<ICECandidateTester>> candidates;
+  QVector<std::shared_ptr<ICECandidateTester>> testers;
 
   QString prevAddr  = "";
   uint16_t prevPort = 0;
 
   // because we can only bind to a port once (no multithreaded access), we must
   // do the testing based on candidates we gave to peer
-
   // the candidates should be in order at this point because of how the pairs
   // are formed
   for (auto& pair : pairs_)
@@ -138,42 +135,41 @@ void IceSessionTester::run()
     if (pair->local->address != prevAddr ||
         pair->local->port != prevPort)
     {
-      candidates.push_back(createCandidateTester(pair->local));
+      testers.push_back(createCandidateTester(pair->local));
     }
 
-    candidates.back()->addCandidate(pair);
+    testers.back()->addCandidate(pair);
 
     prevAddr = pair->local->address;
     prevPort = pair->local->port;
-  }
 
-  // start testing for this interface/port combination
-  for (auto& interface : candidates)
-  {
+    // TODO RFC 8445: Unfreeze only one candidate pair per foundation at a time
+
     if (isController_)
     {
       QObject::connect(
-          interface.get(), &ICECandidateTester::controllerPairFound,
+          testers.back().get(), &ICECandidateTester::controllerPairFound,
           this,            &IceSessionTester::componentSucceeded,
           Qt::DirectConnection);
     }
     else
     {
       QObject::connect(
-          interface.get(), &ICECandidateTester::controlleeNominationDone,
+          testers.back().get(), &ICECandidateTester::controlleeNominationDone,
           this,            &IceSessionTester::componentSucceeded,
           Qt::DirectConnection);
     }
 
-    interface->startTestingPairs(isController_);
+    // start testing for this interface/port combination
+    testers.back()->startTestingPairs(isController_);
   }
 
   // now we wait until the connection tests have ended. Wait at most timeout_
   waitForEndOfTesting(timeoutMs_);
 
-  for (auto& interface : candidates)
+  for (auto& tester : testers)
   {
-    interface->endTests();
+    tester->endTests();
   }
 
   nominated_mtx.lock();
