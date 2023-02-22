@@ -221,13 +221,14 @@ void StatisticsWindow::outgoingMedia(uint32_t sessionID, QString name)
 void StatisticsWindow::selectedICEPair(uint32_t sessionID, std::shared_ptr<ICEPair> pair)
 {
   // TODO: Find a way to delete these (add sessionID as variable to rows?)
-  selectedICECandidate(sessionID, ui_->table_incoming, pair->local);
-  selectedICECandidate(sessionID, ui_->table_outgoing, pair->remote);
+  selectedICECandidate(sessionID, ui_->table_incoming, pair->local, true);
+  selectedICECandidate(sessionID, ui_->table_outgoing, pair->remote, false);
 }
 
 
-void StatisticsWindow::selectedICECandidate(uint32_t sessionID,
-                                            QTableWidget* table, std::shared_ptr<ICEInfo> candidate)
+void StatisticsWindow::selectedICECandidate(uint32_t sessionID, QTableWidget* table,
+                                            std::shared_ptr<ICEInfo> candidate,
+                                            bool keepTrack)
 {
   QString address = candidate->address;
   QString port = QString::number(candidate->port);
@@ -244,9 +245,12 @@ void StatisticsWindow::selectedICECandidate(uint32_t sessionID,
                            candidate->type,
                            address, port});
 
-  sessionMutex_.lock();
-  sessions_[sessionID].iceIndexes.push_back(index);
-  sessionMutex_.unlock();
+  if (keepTrack)
+  {
+    sessionMutex_.lock();
+    sessions_[sessionID].iceIndexes.push_back(index);
+    sessionMutex_.unlock();
+  }
 }
 
 
@@ -338,6 +342,12 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
     return;
   }
 
+  Logger::getLogger()->printNormal(this, "Removing session from statistics",
+                                   "SessionID", QString::number(sessionID));
+
+  Logger::getLogger()->printNormal(this, "Removing ICE in/out table rows for this session",
+                                   "Amount of rows", QString::number(sessions_[sessionID].iceIndexes.size()));
+
   sessionMutex_.lock();
   // remove rows from ICE results
   for (auto& index : sessions_[sessionID].iceIndexes)
@@ -345,8 +355,10 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
     if (ui_->table_incoming->rowCount() <= index ||
         ui_->table_outgoing->rowCount() <= index)
     {
-      Logger::getLogger()->printProgramWarning(this, "Invalid ICE index in stats",
-                                               "Index", QString::number(index));
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, this, "Invalid ICE index in stats",
+                                               {"Index", "Table size"},
+                                      {QString::number(index),
+                                       QString::number(ui_->table_incoming->rowCount())});
     }
     else
     {

@@ -117,7 +117,8 @@ private:
   int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields,
                   QString tooltip = "");
 
-  void selectedICECandidate(uint32_t sessionID, QTableWidget* table, std::shared_ptr<ICEInfo> candidate);
+  void selectedICECandidate(uint32_t sessionID, QTableWidget* table,
+                            std::shared_ptr<ICEInfo> candidate, bool keepTrack);
 
   QString combineList(QStringList& list);
 
