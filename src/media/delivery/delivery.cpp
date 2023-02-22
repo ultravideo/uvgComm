@@ -63,24 +63,15 @@ bool Delivery::addSession(uint32_t sessionID,
   uint32_t index = 0;
   if (findSession(sessionID, index, localAddress, peerAddress))
   {
-    Logger::getLogger()->printNormal(this, "Reusing existing peer", "Connection", connection);
+    Logger::getLogger()->printNormal(this, "Reusing existing session", "Connection", connection);
     return true;
   }
   else if (peerAddressType == "IP4" && localAddressType == "IP4")
   {
-    if (peers_.find(sessionID) == peers_.end() || peers_[sessionID] == nullptr)
-    {
-      Logger::getLogger()->printNormal(this, "Adding a new peer", "Connection", connection);
-    }
-    else
-    {
-      Logger::getLogger()->printWarning(this, "Peer address has changed, adding new peer",
-                                        "Connection", connection);
-    }
+    Logger::getLogger()->printNormal(this, "Adding a new session for peer since we use different route",
+                                      "Connection", connection);
 
     ipv6to4(peerAddress);
-
-
     peers_[sessionID]->sessions.push_back({rtp_ctx_->create_session(peerAddress.toStdString(), localAddress.toStdString()),
                                            localAddress, peerAddress, {}, false});
   }
