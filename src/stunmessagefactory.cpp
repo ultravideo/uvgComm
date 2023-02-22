@@ -23,6 +23,17 @@ StunMessageFactory::StunMessageFactory()
 
 StunMessageFactory::~StunMessageFactory()
 {
+  for (auto& address : expectedResponses_)
+  {
+    for (auto& transactionID : address)
+    {
+      if (transactionID != nullptr)
+      {
+        delete[] transactionID;
+        transactionID = nullptr;
+      }
+    }
+  }
 }
 
 STUNMessage StunMessageFactory::createRequest()
@@ -61,7 +72,7 @@ bool StunMessageFactory::validateStunMessage(STUNMessage& message, int type)
   if (message.getCookie() != STUN_MAGIC_COOKIE)
   {
     Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory", 
-                                    "Did not include magic cookie");
+                                    "Magic cookie does not mathc, not a STUN Message");
     return false;
   }
 
@@ -73,6 +84,36 @@ bool StunMessageFactory::validateStunMessage(STUNMessage& message, int type)
   }
 
   return true;
+}
+
+bool StunMessageFactory::sameTransactionID(uint8_t* expected, uint8_t* received)
+{
+  for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
+  {
+      if (expected[i] != received[i])
+      {
+        Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
+                                        "Incorrect response transaction ID!",
+                                        {"Expected", "Received"},
+                                        {transactionIDtoString(expected),
+                                         transactionIDtoString(received)});
+        return false;
+      }
+  }
+
+  return true;
+}
+
+QString StunMessageFactory::transactionIDtoString(uint8_t* transactionID)
+{
+  QString string = "";
+
+  for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
+  {
+    string += QString::number(transactionID[i]) + " ";
+  }
+
+  return string;
 }
 
 bool StunMessageFactory::validateStunRequest(STUNMessage& message)
@@ -88,18 +129,8 @@ bool StunMessageFactory::validateStunResponse(STUNMessage& response,
   {
     if (expectedResponses_[sender.toString()].contains(port))
     {
-        auto cached = expectedResponses_[sender.toString()][port];
-
-        for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
-        {
-            if (cached[i] != response.getTransactionIDAt(i))
-            {
-              Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
-                                             "Incorrect response transaction ID!");
-              return false;
-            }
-        }
-        return true;
+        uint8_t* cached = expectedResponses_[sender.toString()][port];
+        return sameTransactionID(cached, response.getTransactionID());
     }
     else
     {
@@ -115,25 +146,8 @@ bool StunMessageFactory::validateStunResponse(STUNMessage& response,
 
 bool StunMessageFactory::validateStunResponse(STUNMessage& response)
 {
-  if (this->validateStunMessage(response, STUN_RESPONSE))
-  {
-    uint8_t *responseTID = response.getTransactionID();
-    uint8_t *requestTID  = latestRequest_.getTransactionID();
-
-    for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
-    {
-      if (responseTID[i] != requestTID[i])
-      {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
-                   "Incorrect response transaction ID!");
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  return false;
+  return this->validateStunMessage(response, STUN_RESPONSE) &&
+      sameTransactionID(latestRequest_.getTransactionID(), response.getTransactionID());
 }
 
 void StunMessageFactory::expectReplyFrom(
@@ -146,14 +160,14 @@ void StunMessageFactory::expectReplyFrom(
   {
     if (expectedResponses_[address].contains(port))
     {
-      expectedResponses_[address][port].clear();
+      delete[] expectedResponses_[address][port];
+      expectedResponses_[address][port] = nullptr;
     }
   }
 
-  for (int i = 0; i < TRANSACTION_ID_SIZE; ++i)
-  {
-    expectedResponses_[address][port].push_back(request.getTransactionIDAt(i));
-  }
+  uint8_t* transactionID = new uint8_t[TRANSACTION_ID_SIZE];
+  memcpy(transactionID, request.getTransactionID(), TRANSACTION_ID_SIZE);
+  expectedResponses_[address][port] = transactionID;
 }
 
 void StunMessageFactory::cacheRequest(STUNMessage request)
@@ -200,7 +214,8 @@ bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN
   if (message.size() < 20)
   {
     Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
-                                    "Received too small packet to be a STUN message");
+                                    "Received too small packet to be a STUN message",
+                                    {"Size"}, {QString::number(message.size())});
     return false;
   }
 
@@ -210,9 +225,18 @@ bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN
   outSTUN.setLength(qFromBigEndian(*((uint16_t *)&raw_data[2])));
   outSTUN.setCookie(qFromBigEndian(*((uint32_t *)&raw_data[4])));
 
+  if (outSTUN.getCookie() != STUN_MAGIC_COOKIE)
+  {
+    Logger::getLogger()->printWarning("StunMessageFactory", "Received non-STUN message, discarding");
+    return false;
+  }
+
+  // transactionID
   memcpy(outSTUN.getTransactionID(), (uint8_t *)raw_data + 8, TRANSACTION_ID_SIZE);
 
-  if (outSTUN.getLength() + 8 + TRANSACTION_ID_SIZE == message.size())
+  uint16_t expectedLength = outSTUN.getLength() + 8 + TRANSACTION_ID_SIZE;
+
+  if (expectedLength == message.size())
   {
     uint32_t *payload  = (uint32_t *)((uint8_t *)raw_data + 8 + TRANSACTION_ID_SIZE);
     uint32_t length    = outSTUN.getLength();
@@ -269,7 +293,10 @@ bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN
   else
   {
     Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
-                                    "STUN message length does not match packet size");
+                                    "STUN message length does not match packet size",
+                                    {"Expected size", "Received size"},
+                                    {QString::number(expectedLength),
+                                     QString::number(message.size())});
     return false;
   }
 

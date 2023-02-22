@@ -52,12 +52,16 @@ private:
   // return true if message is valid, otherwise false
   bool validateStunMessage(STUNMessage& message, int type);
 
+  bool sameTransactionID(uint8_t* expected, uint8_t* received);
+
+  QString transactionIDtoString(uint8_t* transactionID);
+
   // extract host address and port learned from STUN binding request to google server
   // this is just to make the code look nicer
   std::pair<QHostAddress, uint16_t> extractXorMappedAddress(uint16_t payloadLen, uint8_t *payload);
 
   // save transactionIDs by address and port
-  QMap<QString, QMap<uint16_t, std::vector<uint8_t>>> expectedResponses_;
+  QMap<QString, QMap<uint16_t, uint8_t*>> expectedResponses_;
 
   STUNMessage latestRequest_;
 };
