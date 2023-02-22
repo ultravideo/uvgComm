@@ -118,7 +118,8 @@ private:
 
   UDPServer *udp_;
 
-  StunMessageFactory stunmsg_;
+  StunMessageFactory stunOutTransaction_;
+  StunMessageFactory stunInTransaction_;
 
   // When waitFor(Stun|Nomination)(Request|Response) returns, the calling code should
   // check whether interrupt flag has been set. It means that the running thread has
