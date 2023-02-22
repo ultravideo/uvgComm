@@ -478,8 +478,8 @@ void ICEPairTester::recvStunMessage(QNetworkDatagram message)
       {
         if (pair_->state != PAIR_SUCCEEDED)
         {
-          Logger::getLogger()->printError(this, "Pair in wrong state "
-                                                "when receiving nomination request");
+          Logger::getLogger()->printWarning(this, "Pair is not in succeeded state when receiving nomination request",
+                                                  "State", stateToString(pair_->state));
           return; // fail
         }
 
@@ -489,8 +489,9 @@ void ICEPairTester::recvStunMessage(QNetworkDatagram message)
       {
         if (pair_->state != PAIR_IN_PROGRESS)
         {
-          Logger::getLogger()->printError(this, "Pair in wrong state "
-                                                "when receiving binding request");
+          Logger::getLogger()->printWarning(this, "Pair is not in progress state "
+                                                  "when receiving binding request",
+                                            "State", stateToString(pair_->state));
           return; // fail
         }
 
@@ -561,4 +562,50 @@ bool ICEPairTester::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
   }
 
   return msgReceived;
+}
+
+
+QString ICEPairTester::stateToString(PairState state)
+{
+  QString string = "";
+  switch (state)
+  {
+    case PAIR_WAITING:
+    {
+      string = "Waiting";
+      break;
+    }
+    case PAIR_IN_PROGRESS:
+    {
+      string = "In Progress";
+      break;
+    }
+    case PAIR_SUCCEEDED:
+    {
+      string = "Succeeded";
+      break;
+    }
+    case PAIR_FAILED:
+    {
+      string = "Failed";
+      break;
+    }
+    case PAIR_FROZEN:
+    {
+      string = "Frozen";
+      break;
+    }
+    case PAIR_NOMINATED:
+    {
+      string = "Nominated";
+      break;
+    }
+    default:
+    {
+      string = "Unknown";
+      break;
+    }
+  }
+
+  return string;
 }

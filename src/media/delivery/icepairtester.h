@@ -110,6 +110,8 @@ private:
 
   bool sendRequestWaitResponse(ICEPair *pair, QByteArray &request, int retries, int baseTimeout);
 
+  QString stateToString(PairState state);
+
 
   std::shared_ptr<ICEPair> pair_;
   QString debugPair_;
