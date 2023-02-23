@@ -233,12 +233,6 @@ void StatisticsWindow::selectedICECandidate(uint32_t sessionID, QTableWidget* ta
   QString address = candidate->address;
   QString port = QString::number(candidate->port);
 
-  if (candidate->rel_address != "")
-  {
-    address = candidate->rel_address;
-    port = QString::number(candidate->rel_port);
-  }
-
   int index = addTableRow(table, sessionMutex_,
                           {candidate->foundation,
                            QString::number(candidate->component),
