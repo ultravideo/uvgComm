@@ -139,3 +139,81 @@ void setSDPAddress(QString inAddress, QString& address, QString& nettype, QStrin
     addressType = "IP4";
   }
 }
+
+
+bool areMediasEqual(const MediaInfo first, const MediaInfo second)
+{
+  return first.type == second.type &&
+      first.receivePort == second.receivePort &&
+      first.proto == second.proto &&
+      first.connection_nettype == second.connection_nettype &&
+      first.connection_addrtype == second.connection_addrtype &&
+      first.connection_address == second.connection_address;
+}
+
+
+bool containCandidates(std::vector<std::shared_ptr<ICEPair>> &streams,
+                            std::vector<std::shared_ptr<ICEPair>> allCandidates)
+{
+  int matchingStreams = 0;
+  for (auto& candidatePair : allCandidates)
+  {
+    for (auto& readyConnection : streams)
+    {
+      if (sameCandidate(readyConnection->local, candidatePair->local) &&
+          sameCandidate(readyConnection->remote, candidatePair->remote))
+      {
+        ++matchingStreams;
+      }
+    }
+  }
+
+  return streams.size() == matchingStreams;
+}
+
+
+bool sameCandidates(std::vector<std::shared_ptr<ICEPair> > newCandidates,
+                         std::vector<std::shared_ptr<ICEPair> > oldCandidates)
+{
+  if (newCandidates.empty() || oldCandidates.empty())
+  {
+    return false;
+  }
+
+  for (auto& newCandidate: newCandidates)
+  {
+    bool candidatesFound = false;
+
+    for (auto& oldCandidate: oldCandidates)
+    {
+      if (sameCandidate(newCandidate->local, oldCandidate->local) &&
+          sameCandidate(newCandidate->remote, oldCandidate->remote))
+      {
+        // we have a match!
+        candidatesFound = true;
+      }
+    }
+
+    if(!candidatesFound)
+    {
+      // could not find a match for this candidate, which means we have to perform ICE
+      return false;
+    }
+  }
+
+  return true;
+}
+
+
+bool sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
+                        std::shared_ptr<ICEInfo> secondCandidate)
+{
+  return firstCandidate->foundation == secondCandidate->foundation &&
+      firstCandidate->component == secondCandidate->component &&
+      firstCandidate->transport == secondCandidate->transport &&
+      firstCandidate->address == secondCandidate->address &&
+      firstCandidate->port == secondCandidate->port &&
+      firstCandidate->type == secondCandidate->type &&
+      firstCandidate->rel_address == secondCandidate->rel_address &&
+      firstCandidate->rel_port == secondCandidate->rel_port;
+}

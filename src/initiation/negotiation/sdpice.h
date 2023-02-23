@@ -15,6 +15,8 @@ public:
 
   SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID);
 
+  void limitMediaCandidates(int limit);
+
   virtual void uninit();
 
 public slots:
@@ -78,15 +80,15 @@ private:
   void addICEToSupported(std::shared_ptr<QStringList> &supported);
   bool isICEToSupported(std::shared_ptr<QStringList> supported);
 
-  bool areMediasEqual(const MediaInfo first, const MediaInfo second) const;
-
   uint32_t sessionID_;
 
   std::shared_ptr<NetworkCandidates> networkCandidates_;
 
   bool peerSupportsICE_;
 
-
+  // In joint RTP session, we want to limit the dfferent ports in candidates,
+  // since we always have just one per media.
+  int mediaLimit_;
 
   // these are saved so that when we want to renegotiate call parameters,
   // we don't have to redo ICE

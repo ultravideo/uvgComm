@@ -241,7 +241,7 @@ bool SDPNegotiation::processOfferSDP(QVariant& content)
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
- sdpConf_->addP2PSDP(sessionID_, retrieved);
+ sdpConf_->addRemoteSDP(sessionID_, retrieved);
 
   // get our final SDP, which is later sent to them
   localSDP_ = findCommonSDP(*localbaseSDP_.get(), retrieved);
@@ -277,7 +277,7 @@ bool SDPNegotiation::processAnswerSDP(QVariant &content)
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation",
                                   "Starting to process answer SDP.");
 
-  sdpConf_->addP2PSDP(sessionID_, retrieved);
+  sdpConf_->addRemoteSDP(sessionID_, retrieved);
 
   /* Get our final SDP based on their answer, should succeed if they did everything correctly,
    * but good to check */

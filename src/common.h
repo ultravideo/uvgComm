@@ -1,10 +1,13 @@
 #pragma once
 
+#include "icetypes.h"
+
 #include <QString>
 
 #include <stdint.h>
 
 #include <memory>
+#include <vector>
 
 struct MediaInfo;
 
@@ -27,3 +30,13 @@ bool getReceiveAttribute(const MediaInfo &media, bool local);
 
 void setSDPAddress(QString inAddress, QString& address,
                    QString& nettype, QString& addressType);
+bool areMediasEqual(const MediaInfo first, const MediaInfo second);
+
+bool sameCandidates(std::vector<std::shared_ptr<ICEPair>> newCandidates,
+                    std::vector<std::shared_ptr<ICEPair>> oldCandidates);
+
+bool containCandidates(std::vector<std::shared_ptr<ICEPair> > &streams,
+                       std::vector<std::shared_ptr<ICEPair>> allCandidates);
+
+bool sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
+                   std::shared_ptr<ICEInfo> secondCandidate);

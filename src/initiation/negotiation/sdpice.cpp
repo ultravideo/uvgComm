@@ -7,7 +7,8 @@
 SDPICE::SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID):
   sessionID_(sessionID),
   networkCandidates_(candidates),
-  peerSupportsICE_(false)
+  peerSupportsICE_(false),
+  mediaLimit_(-1)
 {}
 
 void SDPICE::uninit()
@@ -15,6 +16,12 @@ void SDPICE::uninit()
   networkCandidates_->cleanupSession(sessionID_);
 }
 
+
+void SDPICE::limitMediaCandidates(int limit)
+{
+  Logger::getLogger()->printNormal(this, "Limiting media", "Limit", QString::number(limit));
+  mediaLimit_ = limit;
+}
 
 void SDPICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
@@ -96,7 +103,14 @@ void SDPICE::addLocalCandidatesToSDP(QVariant& content)
   {
     if (sdp.media.at(i).candidates.empty())
     {
-      addLocalCandidatesToMedia(sdp.media[i], i);
+      if (mediaLimit_ > 0)
+      {
+        addLocalCandidatesToMedia(sdp.media[i], i%mediaLimit_);
+      }
+      else
+      {
+        addLocalCandidatesToMedia(sdp.media[i], i);
+      }
     }
   }
 
@@ -111,6 +125,7 @@ void SDPICE::addLocalCandidatesToSDP(QVariant& content)
 
 void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
 {
+  Logger::getLogger()->printNormal(this, "Media limit", "index", QString::number(mediaIndex));
   int neededComponents = 1;
   if (media.proto == "RTP/AVP")
   {
@@ -338,12 +353,3 @@ int SDPICE::candidateTypePriority(CandidateType type, quint16 local, uint8_t com
          256 - component;
 }
 
-bool SDPICE::areMediasEqual(const MediaInfo first, const MediaInfo second) const
-{
-  return first.type == second.type &&
-      first.receivePort == second.receivePort &&
-      first.proto == second.proto &&
-      first.connection_nettype == second.connection_nettype &&
-      first.connection_addrtype == second.connection_addrtype &&
-      first.connection_address == second.connection_address;
-}

@@ -40,6 +40,8 @@ const int MAX_RANDOM_DELAY_MS = 75;
 // default for SIP, use 5061 for tls encrypted
 const uint16_t SIP_PORT = 5060;
 
+const MeshType CONFERENCE_MODE = MESH_NO_CONFERENCE;
+
 SIPManager::SIPManager():
   tcpServer_(),
   transports_(),
@@ -47,12 +49,16 @@ SIPManager::SIPManager():
   dialogs_(),
   ourSDP_(nullptr),
   delayTimer_(),
-  sdpConf_(std::shared_ptr<SDPMeshConference>(new SDPMeshConference))
+  sdpConf_(std::shared_ptr<SDPMeshConference>(new SDPMeshConference()))
 {
   delayTimer_.setSingleShot(true);
   QObject::connect(&delayTimer_, &QTimer::timeout,
                    this, &SIPManager::delayedMessage);
-  sdpConf_->setConferenceMode(settingEnabled(SettingsKey::sipP2PConferencing));
+
+  if (settingEnabled(SettingsKey::sipP2PConferencing))
+  {
+    sdpConf_->setConferenceMode(CONFERENCE_MODE);
+  }
 }
 
 
@@ -220,7 +226,14 @@ uint32_t SIPManager::reserveSessionID()
 void SIPManager::updateCallSettings()
 {
   nCandidates_->init();
-  sdpConf_->setConferenceMode(settingEnabled(SettingsKey::sipP2PConferencing));
+  if (settingEnabled(SettingsKey::sipP2PConferencing))
+  {
+    sdpConf_->setConferenceMode(CONFERENCE_MODE);
+  }
+  else
+  {
+    sdpConf_->setConferenceMode(MESH_NO_CONFERENCE);
+  }
 }
 
 
@@ -876,6 +889,11 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   // we need a way to get our final SDP to the SIP user
   QObject::connect(ice.get(), &SDPICE::localSDPWithCandidates,
                    this, &SIPManager::finalLocalSDP);
+
+  if (settingEnabled(SettingsKey::sipP2PConferencing) && CONFERENCE_MODE == MESH_JOINT_RTP_SESSION)
+  {
+    ice->limitMediaCandidates(ourSDP_->media.size());
+  }
 
   dialog->client = std::shared_ptr<SIPClient> (new SIPClient);
   dialog->server = std::shared_ptr<SIPServer> (new SIPServer);

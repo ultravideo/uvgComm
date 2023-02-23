@@ -198,26 +198,6 @@ void ICE::handleICEFailure(std::vector<std::shared_ptr<ICEPair> > &candidates)
 }
 
 
-bool ICE::containCandidates(std::vector<std::shared_ptr<ICEPair>> &streams,
-                            std::vector<std::shared_ptr<ICEPair>> allCandidates)
-{
-  int matchingStreams = 0;
-  for (auto& candidatePair : allCandidates)
-  {
-    for (auto& readyConnection : streams)
-    {
-      if (sameCandidate(readyConnection->local, candidatePair->local) &&
-          sameCandidate(readyConnection->remote, candidatePair->remote))
-      {
-        ++matchingStreams;
-      }
-    }
-  }
-
-  return streams.size() == matchingStreams;
-}
-
-
 void ICE::printSuccessICEPairs(std::vector<std::shared_ptr<ICEPair> > &streams) const
 {
   QStringList names;
@@ -309,53 +289,6 @@ uint64_t ICE::pairPriority(int controllerCandidatePriority, int controlleeCandid
   return (uint64_t)((uint64_t)pow(2, 32) * qMin(controllerCandidatePriority, controlleeCandidatePriority)) +
          (uint64_t)((uint64_t)2 * qMax(controllerCandidatePriority, controlleeCandidatePriority)) +
          (uint64_t)(controllerCandidatePriority > controlleeCandidatePriority ? 1 : 0);
-}
-
-
-bool ICE::sameCandidates(std::vector<std::shared_ptr<ICEPair> > newCandidates,
-                         std::vector<std::shared_ptr<ICEPair> > oldCandidates)
-{
-  if (newCandidates.empty() || oldCandidates.empty())
-  {
-    return false;
-  }
-
-  for (auto& newCandidate: newCandidates)
-  {
-    bool candidatesFound = false;
-
-    for (auto& oldCandidate: oldCandidates)
-    {
-      if (sameCandidate(newCandidate->local, oldCandidate->local) &&
-          sameCandidate(newCandidate->remote, oldCandidate->remote))
-      {
-        // we have a match!
-        candidatesFound = true;
-      }
-    }
-
-    if(!candidatesFound)
-    {
-      // could not find a match for this candidate, which means we have to perform ICE
-      return false;
-    }
-  }
-
-  return true;
-}
-
-
-bool ICE::sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
-                        std::shared_ptr<ICEInfo> secondCandidate)
-{
-  return firstCandidate->foundation == secondCandidate->foundation &&
-      firstCandidate->component == secondCandidate->component &&
-      firstCandidate->transport == secondCandidate->transport &&
-      firstCandidate->address == secondCandidate->address &&
-      firstCandidate->port == secondCandidate->port &&
-      firstCandidate->type == secondCandidate->type &&
-      firstCandidate->rel_address == secondCandidate->rel_address &&
-      firstCandidate->rel_port == secondCandidate->rel_port;
 }
 
 

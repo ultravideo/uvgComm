@@ -63,15 +63,6 @@ private:
 
   uint64_t pairPriority(int controllerCandidatePriority, int controlleeCandidatePriority) const;
 
-  bool sameCandidates(std::vector<std::shared_ptr<ICEPair>> newCandidates,
-                      std::vector<std::shared_ptr<ICEPair>> oldCandidates);
-
-  bool containCandidates(std::vector<std::shared_ptr<ICEPair> > &streams,
-                         std::vector<std::shared_ptr<ICEPair>> allCandidates);
-
-  bool sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
-                     std::shared_ptr<ICEInfo> secondCandidate);
-
   void printSuccessICEPairs(std::vector<std::shared_ptr<ICEPair> > &streams) const;
 
   // update MediaInfo of SDP after ICE has finished

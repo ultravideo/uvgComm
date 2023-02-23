@@ -4,27 +4,45 @@
 
 #include <cstdint>
 
+enum MeshType
+{
+  MESH_NO_CONFERENCE,
+  MESH_JOINT_RTP_SESSION,
+  MESH_INDEPENDENT_RTP_SESSION
+};
+
 class SDPMeshConference
 {
 public:
   SDPMeshConference();
 
-  void setConferenceMode(bool state);
+  void setConferenceMode(MeshType type);
 
-  void addP2PSDP(uint32_t sessionID, SDPMessageInfo& sdp);
-  void removeP2PSDP(uint32_t sessionID);
+  void addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp);
+  void removeRemoteSDP(uint32_t sessionID);
 
   std::shared_ptr<SDPMessageInfo> getMeshSDP(uint32_t sessionID,
                                              std::shared_ptr<SDPMessageInfo> sdp);
 
 private:
 
+  std::shared_ptr<SDPMessageInfo> getTemplateSDP(SDPMessageInfo& sdp);
+  void updateGeneratedSDPs(SDPMessageInfo& sdp);
+
   MediaInfo copyMedia(MediaInfo& media);
 
   std::shared_ptr<ICEInfo> updateICECandidate(std::shared_ptr<ICEInfo> candidate, int components, int foundation);
 
-  bool conferenceMode_;
+  MeshType type_;
 
-  std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> singleSDPs_;
+  /* Collection of SDPs that can be used to form the next SDP,
+   * the ports are update whenever a new participant joins.
+   * Key: sessionID */
+  std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> singleSDPTemplates_;
 
+
+  /* Collection of SDPs ready to be sent. Each new participant both adds
+   * their conference SDP here and also adds their media to existing ones.
+   * Key: sessionID */
+  std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> generatedSDPs_;
 };
