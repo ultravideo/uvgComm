@@ -169,7 +169,7 @@ void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mi
   settings_.setValue(SettingsKey::audioAECDelay,        120);
   settings_.setValue(SettingsKey::audioAECFilterLength, 250);
   settings_.setValue(SettingsKey::audioMutingPeriod,    350);
-  settings_.setValue(SettingsKey::audioMutingThreshold, 10);
+  settings_.setValue(SettingsKey::audioMutingThreshold, 15);
   settings_.setValue(SettingsKey::audioSelectiveMuting, 1);
 
   settings_.setValue(SettingsKey::audioDenoise,         1);
