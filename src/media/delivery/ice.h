@@ -70,6 +70,8 @@ private:
 
   void updateMedia(MediaInfo& oldMedia, const MediaInfo& newMedia);
 
+  bool isLocalAddress(std::shared_ptr<ICEInfo> info);
+
   struct MediaNomination
   {
     ICEState state;

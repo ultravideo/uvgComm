@@ -227,39 +227,68 @@ std::vector<std::shared_ptr<ICEPair> > ICE::makeCandidatePairs(
   // match all host candidates with remote (remote does the same)
   for (int i = 0; i < local.size(); ++i)
   {
-    for (int k = 0; k < remote.size(); ++k)
+    if (isLocalAddress(local[i]))
     {
-      // component has to match
-      if (local[i]->component == remote[k]->component)
+      for (int k = 0; k < remote.size(); ++k)
       {
-        std::shared_ptr<ICEPair> pair = std::make_shared<ICEPair>();
-
-        // we copy local because we modify it later with stun bindings and
-        // we don't want to modify our sent candidates
-        pair->local = std::shared_ptr<ICEInfo> (new ICEInfo);
-        *(pair->local)    = *local[i];
-
-        pair->remote   = remote[k];
-
-        if (controller)
+        // component has to match
+        if (local[i]->component == remote[k]->component)
         {
-          pair->priority = pairPriority(local[i]->priority, remote[k]->priority);
-        }
-        else
-        {
-          pair->priority = pairPriority(remote[k]->priority, local[i]->priority);
-        }
+          std::shared_ptr<ICEPair> pair = std::make_shared<ICEPair>();
 
-        pair->state    = PAIR_FROZEN;
+          // we copy local because we modify it later with stun bindings and
+          // we don't want to modify our sent candidates
+          pair->local = std::shared_ptr<ICEInfo> (new ICEInfo);
+          *(pair->local)    = *local[i];
 
-        pairs.push_back(pair);
+          pair->remote   = remote[k];
+
+          if (controller)
+          {
+            pair->priority = pairPriority(local[i]->priority, remote[k]->priority);
+          }
+          else
+          {
+            pair->priority = pairPriority(remote[k]->priority, local[i]->priority);
+          }
+
+          pair->state    = PAIR_FROZEN;
+
+          pairs.push_back(pair);
+        }
       }
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Found ICE candidates that is not found on local machine,"
+                                             " ignoring");
     }
   }
 
   Logger::getLogger()->printNormal(this, "Created " + QString::number(pairs.size()) +
                                          " candidate pairs");
   return pairs;
+}
+
+
+bool ICE::isLocalAddress(std::shared_ptr<ICEInfo> info)
+{
+  QString candidateAddress = info->address;
+
+  if (info->rel_address != "")
+  {
+    candidateAddress = info->rel_address;
+  }
+
+  for (const QHostAddress& address : QNetworkInterface::allAddresses())
+  {
+    if (address.toString() == candidateAddress)
+    {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 
