@@ -102,10 +102,8 @@ StatisticsInterface(),
 
   fillTableHeaders(ui_->filterTable, filterMutex_,
                           {"Filter", "Info", "TID", "Buffer Size", "Dropped"});
-  fillTableHeaders(ui_->sent_list, sipMutex_,
-                          {"Header", "Body"});
-  fillTableHeaders(ui_->received_list, sipMutex_,
-                          {"Header", "Body"});
+  fillTableHeaders(ui_->sip_list, sipMutex_,
+                          {"Direction", "Header", "Body"});
 }
 
 
@@ -855,21 +853,14 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 void StatisticsWindow::addSentSIPMessage(const QString& headerType, const QString& header,
                                          const QString& bodyType, const QString& body)
 {
-  addTableRow(ui_->sent_list, sipMutex_, {headerType, bodyType}, {header, body});
+  addTableRow(ui_->sip_list, sipMutex_, {"Out", headerType, bodyType}, {"", header, body});
 }
 
 
 void StatisticsWindow::addReceivedSIPMessage(const QString& headerType, const QString& header,
                                              const QString& bodyType, const QString& body)
 {
-  int row = addTableRow(ui_->received_list, sipMutex_, {headerType, bodyType}, {header, body});
-
-  sipMutex_.lock();
-  ui_->received_list->itemAt(0, row);
-  //first->setBackground(QColor(235,235,235));
-  ui_->received_list->itemAt(1, row);
-  //second->setBackground(QColor(235,235,235));
-  sipMutex_.unlock();
+  addTableRow(ui_->sip_list, sipMutex_, {"In", headerType, bodyType}, {"", header, body});
 }
 
 
@@ -1021,8 +1012,7 @@ void StatisticsWindow::on_save_button_clicked()
 {
   Logger::getLogger()->printNormal(this, "Saving SIP messages");
 
-  if (ui_->sent_list->columnCount() == 0 ||
-      ui_->received_list->columnCount() == 0)
+  if (ui_->sip_list->columnCount() == 0)
   {
     Logger::getLogger()->printProgramWarning(this, "The column count was too low to read tooltip");
     return;
@@ -1031,21 +1021,12 @@ void StatisticsWindow::on_save_button_clicked()
   QString lineEnd = "\r\n";
 
   QString text;
-  text += "Sent SIP Messages" + lineEnd + lineEnd;
+  text += "SIP Messages" + lineEnd + lineEnd;
 
   sipMutex_.lock();
-  for (int i = 0; i < ui_->sent_list->rowCount(); ++i)
+  for (int i = 0; i < ui_->sip_list->rowCount(); ++i)
   {
-    text += ui_->sent_list->item(i, 1)->toolTip() + lineEnd;
-  }
-  sipMutex_.unlock();
-
-  text += "Received SIP Messages" + lineEnd + lineEnd;
-
-  sipMutex_.lock();
-  for (int i = 0; i < ui_->received_list->rowCount(); ++i)
-  {
-    text += ui_->received_list->item(i, 1)->toolTip() + lineEnd;
+    text += ui_->sip_list->item(i, 1)->toolTip() + lineEnd;
   }
   sipMutex_.unlock();
 
@@ -1059,11 +1040,7 @@ void StatisticsWindow::on_clear_button_clicked()
   Logger::getLogger()->printNormal(this, "Clearing SIP messages");
 
   sipMutex_.lock();
-
-  //ui_->sent_list->clearContents();
-  ui_->sent_list->setRowCount(0);
-  //ui_->received_list->clearContents();
-  ui_->received_list->setRowCount(0);
+  ui_->sip_list->setRowCount(0);
   sipMutex_.unlock();
 }
 
