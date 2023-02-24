@@ -162,9 +162,13 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     // each media has its own separate ICE
     for (unsigned int i = 0; i < localInfo->media.size(); ++i)
     {
-      participants_[sessionID].ice->startNomination(localInfo->media.at(i),
-                                                    peerInfo->media.at(i),
-                                                    iceController);
+      // only test if this is a local candidate
+      if (participants_[sessionID].ice->isLocalAddress(localInfo->media.at(i).candidates.first()))
+      {
+        participants_[sessionID].ice->startNomination(localInfo->media.at(i),
+                                                      peerInfo->media.at(i),
+                                                      iceController);
+      }
     }
   }
   else

@@ -271,7 +271,7 @@ std::vector<std::shared_ptr<ICEPair> > ICE::makeCandidatePairs(
 }
 
 
-bool ICE::isLocalAddress(std::shared_ptr<ICEInfo> info)
+bool ICE::isLocalAddress(std::shared_ptr<ICEInfo> info) const
 {
   QString candidateAddress = info->address;
 
