@@ -3,6 +3,8 @@
 #include "logger.h"
 #include "common.h"
 
+const int LOCAL_MEDIAS = 2;
+
 SDPMeshConference::SDPMeshConference():
   type_(MESH_NO_CONFERENCE)
 {}
@@ -21,6 +23,17 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp)
   *referenceSDP = sdp;
   singleSDPTemplates_[sessionID] = referenceSDP;
 
+  if (singleSDPTemplates_[sessionID]->media.size() > 2)
+  {
+    for(int i = 0;  i < LOCAL_MEDIAS; ++i)
+    {
+      // remove media meant for us
+      singleSDPTemplates_[sessionID]->media.pop_front();
+    }
+  }
+
+  // we remove medias that are duplicates, duplicates happen in joint RTP sessions
+  // since all media will use the same address/port combination
   std::vector<int> toDelete;
   for (unsigned int i = 1; i < singleSDPTemplates_[sessionID]->media.size(); ++i)
   {
@@ -90,31 +103,24 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
     {
     // TODO: Add all required medias (non-sessionID) and add suitable ICE candidates for those medias
 
-      int foundation = 1;
       for (auto& session : singleSDPTemplates_)
       {
+        int components = 4;
+
         // do not add their own media to the message
         if (session.first != sessionID)
         {
-          int components = 0;
           for (auto& media : session.second->media)
           {
-            if (media.proto == "RTP/AVP")
+            // if this is the outgoing extrapolated message, we increase candidate ports
+            if (singleSDPTemplates_.find(sessionID) == singleSDPTemplates_.end())
             {
-              components += 2; // RTP and RTCP
+              for (int i = 0; i < media.candidates.size(); ++i)
+              {
+                media.candidates[i] = updateICECandidate(media.candidates[i],
+                                                         components);
+              }
             }
-            else
-            {
-              components += 1;
-            }
-
-            for (int i = 0; i < media.candidates.size(); ++i)
-            {
-              media.candidates[i] = updateICECandidate(media.candidates[i],
-                                                       components, foundation);
-            }
-
-            ++foundation;
 
             sdp->media.push_back(copyMedia(media));
           }
@@ -140,8 +146,9 @@ MediaInfo SDPMeshConference::copyMedia(MediaInfo& media)
 
 
 std::shared_ptr<ICEInfo> SDPMeshConference::updateICECandidate(std::shared_ptr<ICEInfo> candidate,
-                                                               int components, int foundation)
+                                                               int components)
 {
+  Logger::getLogger()->printNormal("SDPMeshConference", "Updating candidate");
   std::shared_ptr<ICEInfo> newCandidate = std::shared_ptr<ICEInfo>(new ICEInfo);
   *newCandidate = *candidate;
   if (newCandidate->port != 0)
@@ -154,7 +161,5 @@ std::shared_ptr<ICEInfo> SDPMeshConference::updateICECandidate(std::shared_ptr<I
     newCandidate->rel_port += components;
   }
 
-  newCandidate->foundation = foundation;
-
-  return candidate;
+  return newCandidate;
 }

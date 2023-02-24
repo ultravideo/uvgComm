@@ -31,7 +31,7 @@ private:
 
   MediaInfo copyMedia(MediaInfo& media);
 
-  std::shared_ptr<ICEInfo> updateICECandidate(std::shared_ptr<ICEInfo> candidate, int components, int foundation);
+  std::shared_ptr<ICEInfo> updateICECandidate(std::shared_ptr<ICEInfo> candidate, int components);
 
   MeshType type_;
 
