@@ -19,6 +19,28 @@ Currently Kvazzup has the following features:
 - Automatic selection of best media settings with option for live manual adjustment
 - A statistics window for monitoring call quality
 
+## Used Request for Comments (RFC) specifications
+
+**Signaling**
+- [RFC 3261 SIP: Session Initiation Protocol](https://www.rfc-editor.org/rfc/rfc3261)
+- [RFC 5626 Managing Client-Initiated Connections in the Session Initiation Protocol (SIP)](https://www.rfc-editor.org/rfc/rfc5626)
+- [RFC 5627 Obtaining and Using Globally Routable User Agent URIs (GRUUs) in the Session Initiation Protocol (SIP)](https://www.rfc-editor.org/rfc/rfc5627)
+- [RFC 5923 Connection Reuse in the Session Initiation Protocol (SIP)](https://www.rfc-editor.org/rfc/rfc5923)
+- [RFC 2617 HTTP Authentication: Basic and Digest Access Authentication](https://www.rfc-editor.org/rfc/rfc2617)
+
+**Negotiation**
+- [RFC 8866 SDP: Session Description Protocol](https://datatracker.ietf.org/doc/html/rfc8866)
+- [RFC 3264 An Offer/Answer Model with the Session Description Protocol (SDP)](https://www.rfc-editor.org/rfc/rfc3264.html)
+- [RFC 3551 RTP Profile for Audio and Video Conferences with Minimal Control](https://www.rfc-editor.org/rfc/rfc3551)
+
+**Connectivity**
+- [RFC 8445 Interactive Connectivity Establishment (ICE): A Protocol for Network Address Translator (NAT) Traversal](https://www.rfc-editor.org/rfc/rfc8445)
+- [RFC 5389 Session Traversal Utilities for NAT (STUN)](https://www.rfc-editor.org/rfc/rfc5389)
+
+**Delivery**
+
+See [uvgRTP](https://github.com/ultravideo/uvgRTP).
+
 ## Compile Kvazzup
 
 Kvazzup requires the following external libraries to operate: 
