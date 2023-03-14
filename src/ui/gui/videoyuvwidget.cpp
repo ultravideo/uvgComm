@@ -38,9 +38,9 @@ void VideoYUVWidget::drawMicOffIcon(bool status)
 }
 
 void VideoYUVWidget::enableOverlay(int roiQP, int backgroundQP, int brushSize, 
-                                   bool showGrid, bool pixelBased)
+                                   bool showGrid, bool pixelBased, QSize videoResolution)
 {
-  helper_.enableOverlay(roiQP, backgroundQP, brushSize, showGrid, pixelBased);
+  helper_.enableOverlay(roiQP, backgroundQP, brushSize, showGrid, pixelBased, videoResolution);
 }
 
 

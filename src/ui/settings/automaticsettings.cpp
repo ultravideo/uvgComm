@@ -39,7 +39,7 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
                    this,         &AutomaticSettings::updateConfig);
 
   QObject::connect(ui_->ctu_based, &QCheckBox::stateChanged,
-                   this,             &AutomaticSettings::updateConfigAndReset);
+                   this,           &AutomaticSettings::updateConfigAndReset);
 
   settings_.setValue(SettingsKey::manualROIStatus,          "0");
 
@@ -47,7 +47,8 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
                                   ui_->background_qp->value(),
                                   ui_->brush_size->value(),
                                   ui_->show_grid->isChecked(),
-                                  !ui_->ctu_based->isChecked());
+                                  !ui_->ctu_based->isChecked(),
+                                  getSettingsResolution());
 }
 
 
@@ -56,19 +57,19 @@ AutomaticSettings::~AutomaticSettings()
   delete ui_;
 }
 
-
-void AutomaticSettings::updateConfigAndReset(int i)
+void AutomaticSettings::updateVideoConfig()
 {
-  ui_->roi_surface->enableOverlay(ui_->roi_qp->value(),
-                                  ui_->background_qp->value(),
-                                  ui_->brush_size->value(),
-                                  ui_->show_grid->isChecked(),
-                                  !ui_->ctu_based->isChecked());
+  updateConfig(0);
 
   // reset the whole ROI map because changing config benefits from it
   ui_->roi_surface->resetOverlay();
 }
 
+
+void AutomaticSettings::updateConfigAndReset(int i)
+{
+  updateVideoConfig();
+}
 
 void AutomaticSettings::updateConfig(int i)
 {
@@ -76,7 +77,8 @@ void AutomaticSettings::updateConfig(int i)
                                   ui_->background_qp->value(),
                                   ui_->brush_size->value(),
                                   ui_->show_grid->isChecked(),
-                                  !ui_->ctu_based->isChecked());
+                                  !ui_->ctu_based->isChecked(),
+                                  getSettingsResolution());
 }
 
 
@@ -121,7 +123,6 @@ void AutomaticSettings::reset()
     ui_->roi_surface->resetOverlay();
   }
 }
-
 
 
 void AutomaticSettings::tabChanged(int index)
@@ -181,4 +182,14 @@ void AutomaticSettings::disableROI()
 VideoWidget* AutomaticSettings::getRoiSelfView()
 {
   return ui_->roi_surface;
+}
+
+
+QSize AutomaticSettings::getSettingsResolution()
+{
+  QSize resolution;
+  resolution.setWidth(settings_.value(SettingsKey::videoResultionWidth).toInt());
+  resolution.setHeight(settings_.value(SettingsKey::videoResultionHeight).toInt());
+
+  return resolution;
 }

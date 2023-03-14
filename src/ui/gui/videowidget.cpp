@@ -38,9 +38,9 @@ void VideoWidget::drawMicOffIcon(bool status)
 
 
 void VideoWidget::enableOverlay(int roiQP, int backgroundQP,
-                                int brushSize, bool showGrid, bool pixelBased)
+                                int brushSize, bool showGrid, bool pixelBased, QSize videoResolution)
 {
-  helper_.enableOverlay(roiQP, backgroundQP, brushSize, showGrid, pixelBased);
+  helper_.enableOverlay(roiQP, backgroundQP, brushSize, showGrid, pixelBased, videoResolution);
 }
 
 

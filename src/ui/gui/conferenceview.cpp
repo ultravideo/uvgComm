@@ -327,16 +327,19 @@ void ConferenceView::callStarted(uint32_t sessionID, QWidget* video,
   {
     if (video != nullptr)
     {
-      activeViews_[sessionID]->video = video;
-      updateSessionState(VIEW_VIDEO, video, sessionID);
+      if (activeViews_[sessionID]->state != VIEW_VIDEO)
+      {
+        activeViews_[sessionID]->video = video;
+        updateSessionState(VIEW_VIDEO, video, sessionID);
 
-      // signals for double click attach/detach
-      QObject::connect(video, SIGNAL(reattach(uint32_t)),
-                       this,  SLOT(reattachWidget(uint32_t)));
-      QObject::connect(video, SIGNAL(detach(uint32_t)),
-                       this,  SLOT(detachWidget(uint32_t)));
+        // signals for double click attach/detach
+        QObject::connect(video, SIGNAL(reattach(uint32_t)),
+                         this,  SLOT(reattachWidget(uint32_t)));
+        QObject::connect(video, SIGNAL(detach(uint32_t)),
+                         this,  SLOT(detachWidget(uint32_t)));
 
-      video->show();
+        video->show();
+      }
     }
     else
     {

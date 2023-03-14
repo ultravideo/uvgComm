@@ -34,7 +34,8 @@ public:
 
   void initWidget(QWidget* widget);
 
-  void enableOverlay(int roiQP, int backgroundQP, int brushSize, bool showGrid, bool pixelBased);
+  void enableOverlay(int roiQP, int backgroundQP, int brushSize, bool showGrid, bool pixelBased,
+                     QSize videoResolution);
   void resetOverlay();
   void updateROIMask();
 
@@ -126,6 +127,8 @@ private:
   int roiQP_;
   int backgroundQP_;
   int brushSize_;
+
+  QSize videoResolution_;
 
   bool showGrid_;
   bool pixelBasedDrawing_;

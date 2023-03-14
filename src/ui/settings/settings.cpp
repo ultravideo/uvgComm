@@ -77,6 +77,8 @@ void Settings::init()
 
   // video settings
   QObject::connect(&videoSettings_, &VideoSettings::updateVideoSettings,
+                   &autoSettings_,  &AutomaticSettings::updateVideoConfig);
+  QObject::connect(&videoSettings_, &VideoSettings::updateVideoSettings,
                    this, &Settings::updateVideoSettings);
   QObject::connect(&videoSettings_, &VideoSettings::hidden, this, &Settings::show);
   QObject::connect(basicUI_->video_settings_button, &QCheckBox::clicked,
@@ -290,6 +292,7 @@ void Settings::on_save_clicked()
   saveSettings();
   setScreenShareState(settingEnabled(SettingsKey::screenShareStatus));
 
+  autoSettings_.updateVideoConfig();
   emit updateCallSettings();
   emit updateVideoSettings();
   emit updateAudioSettings();

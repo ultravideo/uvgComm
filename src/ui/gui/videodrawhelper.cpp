@@ -29,6 +29,7 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint8_t borderSize):
   roiQP_(22),
   backgroundQP_(47),
   brushSize_(2),
+  videoResolution_(QSize(0,0)),
   showGrid_(false),
   pixelBasedDrawing_(false),
   micIcon_(QString("icons/mic_off.svg")),
@@ -72,10 +73,12 @@ void VideoDrawHelper::setDrawMicOff(bool state)
 
 
 void VideoDrawHelper::enableOverlay(int roiQP, int backgroundQP,
-                                    int brushSize, bool showGrid, bool pixelBased)
+                                    int brushSize, bool showGrid, bool pixelBased,
+                                    QSize videoResolution)
 {
   roiMutex_.lock();
 
+  videoResolution_ = videoResolution;
   drawOverlay_ = true;
 
   roiQP_ = roiQP;
@@ -344,8 +347,8 @@ void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, 
     }
     else
     {
-      QSizeF viewMultiplier = getSizeMultipliers(previousSize_.width(),
-                                                 previousSize_.height());
+      QSizeF viewMultiplier = getSizeMultipliers(videoResolution_.width(),
+                                                 videoResolution_.height());
       QPointF viewCTUSize = {CTU_SIZE*viewMultiplier.width(), CTU_SIZE*viewMultiplier.height()};
       QPointF viewPosition = (position - imageRect_.topLeft());
 
@@ -427,13 +430,13 @@ void VideoDrawHelper::drawGrid()
 
     if (showGrid_)
     {
-      QSizeF multiplier = getSizeMultipliers(previousSize_.width(), previousSize_.height());
+      QSizeF multiplier = getSizeMultipliers(videoResolution_.width(), videoResolution_.height());
 
       // first we generate the lines for drawing
       QVector<QLine> lines;
 
       // specify vertical lines
-      for (unsigned int i = 0; i < previousSize_.width(); ++i)
+      for (unsigned int i = 0; i < videoResolution_.width(); ++i)
       {
         if (i%64 == 0 || i%64 == 63)
         {
@@ -447,7 +450,7 @@ void VideoDrawHelper::drawGrid()
       }
 
       // specify horizontal lines
-      for (unsigned int j = 0; j < previousSize_.height(); ++j)
+      for (unsigned int j = 0; j < videoResolution_.height(); ++j)
       {
         if (j%CTU_SIZE == 0 || j%CTU_SIZE == 63)
         {

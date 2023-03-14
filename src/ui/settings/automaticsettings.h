@@ -28,6 +28,7 @@ public slots:
 
   void reset();
 
+  void updateVideoConfig();
   void updateConfigAndReset(int i);
   void updateConfig(int i);
 
@@ -43,6 +44,7 @@ protected:
   void closeEvent(QCloseEvent *event);
 
 private:
+  QSize getSettingsResolution();
 
   void activateROI();
   void disableROI();
