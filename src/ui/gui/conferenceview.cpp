@@ -357,6 +357,11 @@ void ConferenceView::callStarted(uint32_t sessionID, QWidget* video,
   }
   else
   {
+    if (activeViews_[sessionID]->item == nullptr)
+    {
+      reattachWidget(sessionID);
+    }
+
     attachAvatarWidget(name, sessionID);
   }
 }
