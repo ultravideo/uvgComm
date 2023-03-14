@@ -15,6 +15,7 @@
 // sendrecv is default, if none present.
 // Note that RTCP is still sent in case of RECVONLY, SENDONLY and INACTIVE
 enum SDPAttributeType{A_NO_ATTRIBUTE,
+                      A_UNKNOWN_ATTRIBUTE,
                       A_INACTIVE,
                       A_SENDONLY,
                       A_RECVONLY,
@@ -25,6 +26,8 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_PTIME,
                       A_MAXPTIME,
                       A_RTPMAP,
+                      A_GROUP,
+                      A_MID,
                       A_ORIENT,
                       A_TYPE,
                       A_CHARSET,
@@ -98,6 +101,14 @@ struct TimezoneInfo
   QString offset;
 };
 
+enum GroupType {G_LS, G_FID, G_UNRECOGNIZED};
+
+struct MediaGroup
+{
+  GroupType type;
+  QStringList identificationTags;
+};
+
 // Session Description Protocol message data
 struct SDPMessageInfo
 {
@@ -133,6 +144,7 @@ struct SDPMessageInfo
   QString encryptionKey; // k=, optional
 
   // a=, optional, global
+  QList<MediaGroup> groupings; // a=group:<identification tags>
   QList<SDPAttributeType> flagAttributes;
   QList<SDPAttribute> valueAttributes;
 
