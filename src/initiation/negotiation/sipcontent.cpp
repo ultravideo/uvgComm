@@ -19,7 +19,6 @@ bool nextLine(QStringListIterator &lineIterator, QStringList& words, char& lineT
 void gatherLine(QString& target, QStringList& words);
 
 
-
 // c=
 bool parseConnection(QStringListIterator& lineIterator, char& type, QStringList& words,
                      QString& nettype, QString& addrtype, QString& address);
@@ -37,7 +36,9 @@ bool parseFlagAttribute(SDPAttributeType type, QString value, QList<SDPAttribute
 bool parseValueAttribute(SDPAttributeType type, QString value, QList<SDPAttribute>& valueAttributes);
 bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
                          QList<SDPAttributeType> &flags, QList<SDPAttribute> &parsedValues,
-                         QList<RTPMap> &parsedCodecs, QList<std::shared_ptr<ICEInfo> > &candidates);
+                         QList<RTPMap> &parsedCodecs,
+                         std::unordered_map<uint8_t, std::vector<FormatParameter> > &parsedParameters,
+                         QList<std::shared_ptr<ICEInfo> > &candidates);
 bool parseSessionAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
                            QList<SDPAttributeType> &flags, QList<SDPAttribute> &parsedValues,
                            QList<MediaGroup> &groupings);
@@ -45,6 +46,8 @@ bool parseSessionAtributes(QStringListIterator &lineIterator, char &type, QStrin
 void parseRTPMap(QString value, QString secondWord, QList<RTPMap>& codecs);
 void parseGroup(QString value, QStringList& words, QList<MediaGroup>& groups);
 bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& candidates);
+void parseFormatParameters(QString value, QString secondWord,
+                           std::unordered_map<uint8_t, std::vector<FormatParameter>>& parsedParameters);
 
 bool parseAttributeTypeValue(QString word, SDPAttributeType& type, QString &value);
 
@@ -584,6 +587,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
                                sdp.media.back().flagAttributes,
                                sdp.media.back().valueAttributes,
                                sdp.media.back().codecs,
+                               sdp.media.back().fmtpAttributes,
                                sdp.media.back().candidates))
     {
       Logger::getLogger()->printError("SipContent", "Failed to parse some media fields");
@@ -610,7 +614,9 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
 bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
                          QList<SDPAttributeType>& flags, QList<SDPAttribute>& parsedValues,
-                         QList<RTPMap>& parsedCodecs, QList<std::shared_ptr<ICEInfo>>& candidates)
+                         QList<RTPMap>& parsedCodecs,
+                         std::unordered_map<uint8_t, std::vector<FormatParameter>>& parsedParameters,
+                         QList<std::shared_ptr<ICEInfo>>& candidates)
 {
   while(type == 'a')
   {
@@ -657,7 +663,7 @@ bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringL
       }
       case A_FMTP:
       {
-        // TODO
+        parseFormatParameters(value, words.at(1), parsedParameters);
         break;
       }
       case A_CANDIDATE: // RFC 8445
@@ -882,8 +888,6 @@ bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringLi
     }
 
     key = words.at(0);
-    Logger::getLogger()->printError("SipContent", "Received a encryption key field, "
-                                                  "which is unsupported by us");
 
     // a=, m= or nothing
     if(!nextLine(lineIterator, words, type))
@@ -940,6 +944,42 @@ bool parseAttributeTypeValue(QString word, SDPAttributeType& type, QString& valu
   }
 
   return false;
+}
+
+
+void parseFormatParameters(QString value, QString secondWord,
+                           std::unordered_map<uint8_t, std::vector<FormatParameter>>& parsedParameters)
+{
+  if (value != "" && secondWord != "")
+  {
+    uint8_t fmt = value.toUInt();
+    std::vector<FormatParameter> parameters;
+
+    QStringList parameterStrings;
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    parameterStrings = secondWord.split(";", QString::SkipEmptyParts);
+#else
+    parameterStrings = secondWord.split(";", Qt::SkipEmptyParts);
+#endif
+
+    for (auto& parameter : parameterStrings)
+    {
+      QRegularExpression re_attribute("(?:([\\w-]+)=(\\w+))");
+      QRegularExpressionMatch match = re_attribute.match(parameter);
+
+      if (match.hasMatch() && match.lastCapturedIndex() == 2)
+      {
+        parameters.push_back({match.captured(1), match.captured(2)});
+      }
+
+    }
+    parsedParameters[fmt] = parameters;
+  }
+  else
+  {
+    Logger::getLogger()->printError("SipContent", "Invalid format parameter attribute");
+  }
 }
 
 

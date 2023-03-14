@@ -7,6 +7,7 @@
 #include <QMetaType>
 
 #include <memory>
+#include <unordered_map>
 #include <stdint.h>
 
 
@@ -44,7 +45,11 @@ struct SDPAttribute
   QString value;
 };
 
-/* SDP message info structs */
+struct FormatParameter
+{
+  QString name;
+  QString value;
+};
 
 // RTP stream info
 struct RTPMap
@@ -79,6 +84,7 @@ struct MediaInfo
   QList<RTPMap> codecs; // mandatory if not preset rtpnumber
   QList<SDPAttributeType> flagAttributes; // optional
   QList<SDPAttribute> valueAttributes; // optional
+  std::unordered_map<uint8_t, std::vector<FormatParameter>> fmtpAttributes; // optional
   QList<std::shared_ptr<ICEInfo>> candidates;
 };
 
