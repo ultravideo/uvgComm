@@ -180,47 +180,6 @@ void ConferenceView::attachAvatarWidget(QString name, uint32_t sessionID)
 }
 
 
-void ConferenceView::removeWithMessage(uint32_t sessionID, QString text, int timeout)
-{
-  if (activeViews_.find(sessionID) != activeViews_.end() && activeViews_[sessionID] != nullptr)
-  {
-    QFrame* holder = new QFrame;
-    Ui::MessageWidget *message = new Ui::MessageWidget;
-    message->setupUi(holder);
-    message->message_text->setText(text);
-
-    if (timeout > 0)
-    {
-      if (!expiringSessions_.contains(sessionID))
-      {
-        expiringSessions_.push_back(sessionID);
-      }
-      message->ok_button->hide();
-      removeSessionTimer_.setSingleShot(true);
-      removeSessionTimer_.start(timeout);
-
-      connect(&removeSessionTimer_, &QTimer::timeout,
-              this, &ConferenceView::expireSessions);
-    }
-    else
-    {
-      message->ok_button->setProperty("sessionID", QVariant(sessionID));
-      connect(message->ok_button, SIGNAL(clicked()), this, SLOT(removeSessionFromProperty()));
-    }
-
-    updateSessionState(VIEW_MESSAGE, holder, sessionID);
-
-    activeViews_[sessionID]->message = message;
-
-    holder->show();
-  }
-  else
-  {
-    Logger::getLogger()->printProgramWarning(this, "Tried to remove non-existing view from conference view");
-  }
-}
-
-
 void ConferenceView::removeSessionFromProperty()
 {
   QVariant sessionID = sender()->property("sessionID");
@@ -396,17 +355,68 @@ void ConferenceView::removeCaller(uint32_t sessionID)
 {
   if(activeViews_.find(sessionID) == activeViews_.end())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
                                     "Tried to remove the view of non-existing sessionID!");
   }
   else
   {
+    if (activeViews_[sessionID]->item == nullptr)
+    {
+      reattachWidget(sessionID);
+    }
+
     unitializeSession(sessionID);
   }
 
   if (activeViews_.empty())
   {
     emit lastSessionRemoved();
+  }
+}
+
+
+void ConferenceView::removeWithMessage(uint32_t sessionID, QString text, int timeout)
+{
+  if (activeViews_.find(sessionID) != activeViews_.end() && activeViews_[sessionID] != nullptr)
+  {
+    if (activeViews_[sessionID]->item == nullptr)
+    {
+      reattachWidget(sessionID);
+    }
+
+    QFrame* holder = new QFrame;
+    Ui::MessageWidget *message = new Ui::MessageWidget;
+    message->setupUi(holder);
+    message->message_text->setText(text);
+
+    if (timeout > 0)
+    {
+      if (!expiringSessions_.contains(sessionID))
+      {
+        expiringSessions_.push_back(sessionID);
+      }
+      message->ok_button->hide();
+      removeSessionTimer_.setSingleShot(true);
+      removeSessionTimer_.start(timeout);
+
+      connect(&removeSessionTimer_, &QTimer::timeout,
+              this, &ConferenceView::expireSessions);
+    }
+    else
+    {
+      message->ok_button->setProperty("sessionID", QVariant(sessionID));
+      connect(message->ok_button, SIGNAL(clicked()), this, SLOT(removeSessionFromProperty()));
+    }
+
+    updateSessionState(VIEW_MESSAGE, holder, sessionID);
+
+    activeViews_[sessionID]->message = message;
+
+    holder->show();
+  }
+  else
+  {
+    Logger::getLogger()->printProgramWarning(this, "Tried to remove non-existing view from conference view");
   }
 }
 
