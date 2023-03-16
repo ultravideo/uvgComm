@@ -40,7 +40,7 @@ const int MAX_RANDOM_DELAY_MS = 75;
 // default for SIP, use 5061 for tls encrypted
 const uint16_t SIP_PORT = 5060;
 
-const MeshType CONFERENCE_MODE = MESH_NO_CONFERENCE;
+const MeshType CONFERENCE_MODE = MESH_INDEPENDENT_RTP_SESSION;
 
 SIPManager::SIPManager():
   tcpServer_(),
