@@ -650,6 +650,7 @@ bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringL
       case A_FRAMERATE:
       case A_QUALITY:
       case A_MID: // media stream identification, see RFC 5888
+      case A_LABEL: // RFC 4574
       {
         parseValueAttribute(attribute, value, parsedValues);
         break;
@@ -1024,7 +1025,8 @@ SDPAttributeType stringToAttributeType(QString attribute)
 
     // attributes with (possibly) more than one value
     {"rtpmap",    A_RTPMAP},
-    {"group",     A_GROUP} // see RFC 5888
+    {"group",     A_GROUP}, // see RFC 5888
+    {"label",     A_LABEL}
   };
 
   if (xmap.find(attribute) == xmap.end())
@@ -1062,7 +1064,8 @@ QString attributeTypeToString(SDPAttributeType type)
     {A_QUALITY,   "quality"},
     {A_PTIME,     "ptime"},
     {A_FMTP,      "fmtp"},
-    {A_CANDIDATE, "candidate"}
+    {A_CANDIDATE, "candidate"},
+    {A_LABEL,     "label"}
   };
 
   if (xmap.find(type) == xmap.end())

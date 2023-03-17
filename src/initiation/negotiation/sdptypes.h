@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 
-// see RFC 4566 for details.
+// see RFC 8866 for details.
 
 // sendrecv is default, if none present.
 // Note that RTCP is still sent in case of RECVONLY, SENDONLY and INACTIVE
@@ -37,7 +37,8 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_FRAMERATE,
                       A_QUALITY,
                       A_FMTP,
-                      A_CANDIDATE};
+                      A_CANDIDATE,
+                      A_LABEL}; // RFC 4574
 
 struct SDPAttribute
 {
