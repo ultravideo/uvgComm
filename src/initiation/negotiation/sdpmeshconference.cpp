@@ -32,7 +32,7 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp)
     }
   }
 
-  // we remove medias that are duplicates, duplicates happen in joint RTP sessions
+  // we remove medias that are duplicates, duplicates happen in multiplexed RTP sessions
   // since all media will use the same address/port combination
   std::vector<int> toDelete;
   for (unsigned int i = 1; i < singleSDPTemplates_[sessionID]->media.size(); ++i)
@@ -85,7 +85,7 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
     {
       break;
     }
-    case MESH_JOINT_RTP_SESSION:
+    case MESH_WITH_RTP_MULTIPLEXING:
     {
       meshSDP = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
       *meshSDP = *sdp;
@@ -99,7 +99,7 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
       }
       break;
     }
-    case MESH_INDEPENDENT_RTP_SESSION:
+    case MESH_WITHOUT_RTP_MULTIPLEXING:
     {
     // TODO: Add all required medias (non-sessionID) and add suitable ICE candidates for those medias
 

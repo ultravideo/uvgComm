@@ -40,7 +40,7 @@ const int MAX_RANDOM_DELAY_MS = 75;
 // default for SIP, use 5061 for tls encrypted
 const uint16_t SIP_PORT = 5060;
 
-const MeshType CONFERENCE_MODE = MESH_INDEPENDENT_RTP_SESSION;
+const MeshType CONFERENCE_MODE = MESH_WITHOUT_RTP_MULTIPLEXING;
 
 SIPManager::SIPManager():
   tcpServer_(),
@@ -890,7 +890,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   QObject::connect(ice.get(), &SDPICE::localSDPWithCandidates,
                    this, &SIPManager::finalLocalSDP);
 
-  if (settingEnabled(SettingsKey::sipP2PConferencing) && CONFERENCE_MODE == MESH_JOINT_RTP_SESSION)
+  if (settingEnabled(SettingsKey::sipP2PConferencing) && CONFERENCE_MODE == MESH_WITH_RTP_MULTIPLEXING)
   {
     ice->limitMediaCandidates(ourSDP_->media.size());
   }
