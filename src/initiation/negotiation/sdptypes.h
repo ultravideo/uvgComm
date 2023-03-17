@@ -81,7 +81,7 @@ struct MediaInfo
   QString encryptionKey;        // k=, optional
 
   // a=
-  QList<RTPMap> codecs; // mandatory if not preset rtpnumber
+  QList<RTPMap> rtpMaps; // mandatory if not preset rtpnumber
   QList<SDPAttributeType> flagAttributes; // optional
   QList<SDPAttribute> valueAttributes; // optional
   std::unordered_map<uint8_t, std::vector<FormatParameter>> fmtpAttributes; // optional
@@ -150,7 +150,7 @@ struct SDPMessageInfo
   QString encryptionKey; // k=, optional
 
   // a=, optional, global
-  QList<MediaGroup> groupings; // a=group:<identification tags>
+  QList<MediaGroup> groupings;
   QList<SDPAttributeType> flagAttributes;
   QList<SDPAttribute> valueAttributes;
 

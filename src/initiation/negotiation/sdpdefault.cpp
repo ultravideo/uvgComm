@@ -242,10 +242,10 @@ void generateMedia(QString type, QList<MediaInfo>& medias,
 
   for (auto& type : dynamicSubtypes)
   {
-    media.codecs.push_back(createMapping(dynamicPayloadType, type, clockFrequencies));
+    media.rtpMaps.push_back(createMapping(dynamicPayloadType, type, clockFrequencies));
   }
 
-  for(RTPMap& codec : media.codecs)
+  for(RTPMap& codec : media.rtpMaps)
   {
     media.rtpNums.push_back(codec.rtpNum);
   }

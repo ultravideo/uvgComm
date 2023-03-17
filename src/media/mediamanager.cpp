@@ -418,10 +418,10 @@ QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
   // but its unlikely that we will support any besides raw pcmu.
   if(info.rtpNums.at(0) != 0)
   {
-    Q_ASSERT(!info.codecs.empty());
-    if(!info.codecs.empty())
+    Q_ASSERT(!info.rtpMaps.empty());
+    if(!info.rtpMaps.empty())
     {
-      return info.codecs.at(0).codec;
+      return info.rtpMaps.at(0).codec;
     }
   }
   return "PCMU";

@@ -9,6 +9,8 @@
 
 
 
+// PARSING
+
 // called for every new line in SDP parsing. Parses out the two first characters
 // and gives the first value in first element of words, and the rest of the values are divided to separate words.
 // The first character is recorded to lineType.
@@ -51,8 +53,21 @@ void parseFormatParameters(QString value, QString secondWord,
 
 bool parseAttributeTypeValue(QString word, SDPAttributeType& type, QString &value);
 
+
+// COMPOSING
+void composeFlagAttributes(QString& sdp, const QList<SDPAttributeType>& flags);
+void composeValueAttributes(QString& sdp, const QList<SDPAttribute>& values);
+
+
+// CONVERSION HELPER FUNCTIONS
 SDPAttributeType stringToAttributeType(QString attribute);
-GroupType stringToGroupType(QString group);
+GroupType        stringToGroupType(QString group);
+
+QString          groupTypeToString(GroupType type);
+QString          attributeTypeToString(SDPAttributeType type);
+
+
+const QString LINE_END = "\r\n";
 
 bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
 {
@@ -128,18 +143,32 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   }
 
   QString sdp = "";
-  QString lineEnd = "\r\n";
-  sdp += "v=" + QString::number(sdpInfo.version) + lineEnd;
+  sdp += "v=" + QString::number(sdpInfo.version) + LINE_END;
   sdp += "o=" + sdpInfo.originator_username + " " + QString::number(sdpInfo.sess_id)  + " "
       + QString::number(sdpInfo.sess_v) + " " + sdpInfo.host_nettype + " "
-      + sdpInfo.host_addrtype + " " + sdpInfo.host_address + lineEnd;
+      + sdpInfo.host_addrtype + " " + sdpInfo.host_address + LINE_END;
 
-  sdp += "s=" + sdpInfo.sessionName + lineEnd;
+  sdp += "s=" + sdpInfo.sessionName + LINE_END;
   sdp += "c=" + sdpInfo.connection_nettype + " " + sdpInfo.connection_addrtype +
-      + " " + sdpInfo.connection_address + " " + lineEnd;
+      + " " + sdpInfo.connection_address + " " + LINE_END;
 
   sdp += "t=" + QString::number(sdpInfo.timeDescriptions.at(0).startTime) + " "
-      + QString::number(sdpInfo.timeDescriptions.at(0).stopTime) + lineEnd;
+      + QString::number(sdpInfo.timeDescriptions.at(0).stopTime) + LINE_END;
+
+  for (auto& grouping : sdpInfo.groupings)
+  {
+    sdp += "a=" + groupTypeToString(grouping.type);
+
+    for (auto& id : grouping.identificationTags)
+    {
+      sdp += " " + id;
+    }
+
+    sdp += LINE_END;
+  }
+
+  composeFlagAttributes(sdp, sdpInfo.flagAttributes);
+  composeValueAttributes(sdp, sdpInfo.valueAttributes);
 
   for(auto& mediaStream : sdpInfo.media)
   {
@@ -157,7 +186,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
     {
       sdp += " " + QString::number(rtpNum);
     }
-    sdp += lineEnd;
+    sdp += LINE_END;
 
     if(!mediaStream.title.isEmpty())
     {
@@ -167,12 +196,12 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
     if(!mediaStream.connection_nettype.isEmpty())
     {
       sdp += "c=" + mediaStream.connection_nettype + " " + mediaStream.connection_addrtype + " "
-          + mediaStream.connection_address + lineEnd;
+          + mediaStream.connection_address + LINE_END;
     }
 
     for (auto& bitrate: mediaStream.bitrate)
     {
-      sdp += "b=" + bitrate + lineEnd;
+      sdp += "b=" + bitrate + LINE_END;
     }
 
     if (!mediaStream.encryptionKey.isEmpty())
@@ -180,47 +209,13 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
       sdp += "k=" + mediaStream.encryptionKey;
     }
 
-    for (auto& rtpmap : mediaStream.codecs)
+    composeFlagAttributes(sdp, mediaStream.flagAttributes);
+    composeValueAttributes(sdp, mediaStream.valueAttributes);
+
+    for (auto& rtpmap : mediaStream.rtpMaps)
     {
       sdp += "a=rtpmap:" + QString::number(rtpmap.rtpNum) + " "
-          + rtpmap.codec + "/" + QString::number(rtpmap.clockFrequency) + lineEnd;
-    }
-
-    for (SDPAttributeType flag : mediaStream.flagAttributes)
-    {
-      switch (flag)
-      {
-        case A_SENDRECV:
-        {
-          sdp += "a=sendrecv"  + lineEnd;
-          break;
-        }
-        case A_SENDONLY:
-        {
-          sdp += "a=sendonly"  + lineEnd;
-          break;
-        }
-        case A_RECVONLY:
-        {
-          sdp += "a=recvonly"  + lineEnd;
-          break;
-        }
-        case A_INACTIVE:
-        {
-          sdp += "a=inactive"  + lineEnd;
-          break;
-        }
-        case A_NO_ATTRIBUTE:
-        {
-          break;
-        }
-        default:
-        {
-          Logger::getLogger()->printProgramError("SipContent",
-                                                 "Trying to compose SDP flag attribute with unimplemented flag");
-          break;
-        }
-      }
+          + rtpmap.codec + "/" + QString::number(rtpmap.clockFrequency) + LINE_END;
     }
 
     for (auto& info : mediaStream.candidates)
@@ -237,14 +232,31 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
             " rport " + QString::number(info->rel_port);
       }
 
-      sdp += lineEnd;
+      sdp += LINE_END;
     }
   }
 
-
-
   return sdp;
 }
+
+
+void composeFlagAttributes(QString& sdp, const QList<SDPAttributeType> &flags)
+{
+  for (const SDPAttributeType& flag : flags)
+  {
+    sdp += attributeTypeToString(flag) + LINE_END;
+  }
+}
+
+
+void composeValueAttributes(QString& sdp, const QList<SDPAttribute>& values)
+{
+  for (const SDPAttribute& valueAttribute : values)
+  {
+    sdp += "a=" + attributeTypeToString(valueAttribute.type) + ":" + valueAttribute.value + LINE_END;
+  }
+}
+
 
 bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineType)
 {
@@ -586,7 +598,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
        || !parseMediaAtributes(lineIterator, type, words,
                                sdp.media.back().flagAttributes,
                                sdp.media.back().valueAttributes,
-                               sdp.media.back().codecs,
+                               sdp.media.back().rtpMaps,
                                sdp.media.back().fmtpAttributes,
                                sdp.media.back().candidates))
     {
@@ -986,18 +998,34 @@ void parseFormatParameters(QString value, QString secondWord,
 SDPAttributeType stringToAttributeType(QString attribute)
 {
   // see RFC 8866
-  // see RFC 5888 for mid and group
-
   std::map<QString, SDPAttributeType> xmap = {
-         {"cat",       A_CAT},      {"keywds",    A_KEYWDS},   {"tool",      A_TOOL},
-         {"maxptime",  A_MAXPTIME}, {"rtpmap",    A_RTPMAP},
-         {"group",     A_GROUP},    {"mid",       A_MID},
-         {"recvonly",  A_RECVONLY}, {"sendrecv",  A_SENDRECV},
-         {"sendonly",  A_SENDONLY}, {"inactive",  A_INACTIVE},
-         {"orient",    A_ORIENT},   {"type",      A_TYPE},     {"charset",   A_CHARSET},
-         {"sdplang",   A_SDPLANG},  {"lang",      A_LANG},     {"framerate", A_FRAMERATE},
-         {"quality",   A_QUALITY},  {"ptime",     A_PTIME},    {"fmtp",      A_FMTP},
-         {"candidate", A_CANDIDATE}};
+    // flags without value
+    {"recvonly",  A_RECVONLY},
+    {"sendrecv",  A_SENDRECV},
+    {"sendonly",  A_SENDONLY},
+    {"inactive",  A_INACTIVE},
+
+    // attribute with type and value
+    {"cat",       A_CAT},
+    {"keywds",    A_KEYWDS},
+    {"tool",      A_TOOL},
+    {"maxptime",  A_MAXPTIME},
+    {"orient",    A_ORIENT},
+    {"type",      A_TYPE},
+    {"charset",   A_CHARSET},
+    {"sdplang",   A_SDPLANG},
+    {"lang",      A_LANG},
+    {"framerate", A_FRAMERATE},
+    {"quality",   A_QUALITY},
+    {"ptime",     A_PTIME},
+    {"fmtp",      A_FMTP},
+    {"candidate", A_CANDIDATE},
+    {"mid",       A_MID}, // see RFC 5888
+
+    // attributes with (possibly) more than one value
+    {"rtpmap",    A_RTPMAP},
+    {"group",     A_GROUP} // see RFC 5888
+  };
 
   if (xmap.find(attribute) == xmap.end())
   {
@@ -1007,6 +1035,43 @@ SDPAttributeType stringToAttributeType(QString attribute)
   }
 
   return xmap[attribute];
+}
+
+
+QString attributeTypeToString(SDPAttributeType type)
+{
+  // see RFC 8866
+  std::map<SDPAttributeType, QString> xmap = {
+    {A_CAT,       "cat"},
+    {A_KEYWDS,    "keywds"},
+    {A_TOOL,      "tool"},
+    {A_MAXPTIME,  "maxptime"},
+    {A_RTPMAP,    "rtpmap"},
+    {A_GROUP,     "group" }, // see RFC 5888
+    {A_MID,       "mid" },   // see RFC 5888
+    {A_RECVONLY,  "recvonly"},
+    {A_SENDRECV,  "sendrecv"},
+    {A_SENDONLY,  "sendonly"},
+    {A_INACTIVE,  "inactive"},
+    {A_ORIENT,    "orient"},
+    {A_TYPE,      "type"},
+    {A_CHARSET,   "charset"},
+    {A_SDPLANG,   "sdplang"},
+    {A_LANG,      "lang"},
+    {A_FRAMERATE, "framerate"},
+    {A_QUALITY,   "quality"},
+    {A_PTIME,     "ptime"},
+    {A_FMTP,      "fmtp"},
+    {A_CANDIDATE, "candidate"}
+  };
+
+  if (xmap.find(type) == xmap.end())
+  {
+    Logger::getLogger()->printWarning("SIPContent", "Unrecognized attribute");
+    return "unknown_attribute";
+  }
+
+  return xmap[type];
 }
 
 
@@ -1022,4 +1087,28 @@ GroupType stringToGroupType(QString group)
   }
 
   return G_UNRECOGNIZED;
+}
+
+
+QString groupTypeToString(GroupType type)
+{
+  QString string = "Token";
+  switch(type)
+  {
+    case G_LS:
+    {
+      string = "LS";
+      break;
+    }
+    case G_FID:
+    {
+      string = "FID";
+      break;
+    }
+    default:
+      break;
+  }
+
+
+  return string;
 }

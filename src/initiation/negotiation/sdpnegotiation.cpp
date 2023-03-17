@@ -440,9 +440,9 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
           return nullptr;
         }
 
-        selectBestCodec(comparedSDP.media.at(i).rtpNums,         comparedSDP.media.at(i).codecs,
-                        baseSDP.media.at(matches.at(i)).rtpNums, baseSDP.media.at(matches.at(i)).codecs,
-                        resultMedia.rtpNums,                     resultMedia.codecs);
+        selectBestCodec(comparedSDP.media.at(i).rtpNums,         comparedSDP.media.at(i).rtpMaps,
+                        baseSDP.media.at(matches.at(i)).rtpNums, baseSDP.media.at(matches.at(i)).rtpMaps,
+                        resultMedia.rtpNums,                     resultMedia.rtpMaps);
       }
 
       newInfo->media.append(resultMedia);
