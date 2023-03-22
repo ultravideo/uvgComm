@@ -244,7 +244,10 @@ void composeFlagAttributes(QString& sdp, const QList<SDPAttributeType> &flags)
 {
   for (const SDPAttributeType& flag : flags)
   {
-    sdp += attributeTypeToString(flag) + LINE_END;
+    if (flag != A_NO_ATTRIBUTE)
+    {
+      sdp += "a=" + attributeTypeToString(flag) + LINE_END;
+    }
   }
 }
 
@@ -253,7 +256,10 @@ void composeValueAttributes(QString& sdp, const QList<SDPAttribute>& values)
 {
   for (const SDPAttribute& valueAttribute : values)
   {
-    sdp += "a=" + attributeTypeToString(valueAttribute.type) + ":" + valueAttribute.value + LINE_END;
+    if (valueAttribute.type != A_NO_ATTRIBUTE)
+    {
+      sdp += "a=" + attributeTypeToString(valueAttribute.type) + ":" + valueAttribute.value + LINE_END;
+    }
   }
 }
 
