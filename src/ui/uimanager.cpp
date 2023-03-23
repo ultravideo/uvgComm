@@ -131,10 +131,10 @@ void UIManager::displayIncomingCall(uint32_t sessionID, QString caller)
 
 
 // adds video stream to view
-VideoInterface* UIManager::callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled,
-                                      QString name)
+VideoInterface* UIManager::callStarted(uint32_t sessionID,
+                                       QList<SDPMediaParticipant> &medias)
 {
-  return window_.callStarted(sessionID, videoEnabled, audioEnabled, name);
+  return window_.callStarted(sessionID, medias);
 }
 
 

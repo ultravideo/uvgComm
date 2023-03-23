@@ -6,6 +6,8 @@
 #include "settingskeys.h"
 #include "logger.h"
 
+#include "global.h"
+
 #include <QSettings>
 #include <QHostAddress>
 
@@ -445,57 +447,18 @@ void KvazzupController::createCall(uint32_t sessionID)
     return;
   }
 
-  bool videoEnabled = false;
-  bool audioEnabled = false;
+  QList<SDPMediaParticipant> uiMedias;
 
   if (states_[sessionID].followOurSDP)
   {
-    for (auto& media : localSDP->media)
-    {
-      if (media.type == "audio")
-      {
-        audioEnabled = getReceiveAttribute(media, true);
-      }
-      else if (media.type == "video")
-      {
-        videoEnabled = getReceiveAttribute(media, true);
-      }
-    }
+    uiMedias = formUIMedias(localSDP->media, sessionID);
   }
   else
   {
-    for (auto& media : remoteSDP->media)
-    {
-      if (media.type == "audio")
-      {
-        audioEnabled = getReceiveAttribute(media, false);
-      }
-      else if (media.type == "video")
-      {
-        videoEnabled = getReceiveAttribute(media, false);
-      }
-    }
+    uiMedias = formUIMedias(remoteSDP->media, sessionID);
   }
 
-  QString videoState = "no";
-  QString audioState = "no";
-
-  if (videoEnabled)
-  {
-    videoState = "yes";
-  }
-
-  if (audioEnabled)
-  {
-    audioState = "yes";
-  }
-
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating call media",
-                                  {"Video Enabled", "Audio Enabled"},
-                                  {videoState, audioState});
-
-  VideoInterface* video = userInterface_.callStarted(sessionID, videoEnabled, audioEnabled,
-                                                     states_[sessionID].name);
+  VideoInterface* video = userInterface_.callStarted(sessionID, uiMedias);
 
   if (!states_[sessionID].sessionRunning)
   {
@@ -518,6 +481,58 @@ void KvazzupController::createCall(uint32_t sessionID)
   // lastly we delete our saved SDP messages when they are no longer needed
   states_[sessionID].localSDP = nullptr;
   states_[sessionID].remoteSDP = nullptr;
+}
+
+
+QList<SDPMediaParticipant> KvazzupController::formUIMedias(QList<MediaInfo>& media, uint32_t sessionID)
+{
+  bool videoEnabled = false;
+  bool audioEnabled = false;
+
+  QList<SDPMediaParticipant> uiMedias;
+
+  // TODO: Use lipsync to determine pairs
+  for (int i = 0; i < media.size(); i += 2)
+  {
+    if (media.at(i).type == "audio")
+    {
+      audioEnabled = getReceiveAttribute(media.at(i), true);
+    }
+    else if (media.at(i).type == "video")
+    {
+      videoEnabled = getReceiveAttribute(media.at(i), true);
+    }
+
+    if (media.at(i + 1).type == "audio")
+    {
+      audioEnabled = getReceiveAttribute(media.at(i + 1), true);
+    }
+    else if (media.at(i + 1).type == "video")
+    {
+      videoEnabled = getReceiveAttribute(media.at(i + 1), true);
+    }
+
+    uiMedias.push_back({videoEnabled, audioEnabled, states_[sessionID].name});
+  }
+
+  QString videoState = "no";
+  QString audioState = "no";
+
+  if (videoEnabled)
+  {
+    videoState = "yes";
+  }
+
+  if (audioEnabled)
+  {
+    audioState = "yes";
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating call media",
+                                  {"Video Enabled", "Audio Enabled"},
+                                  {videoState, audioState});
+
+  return uiMedias;
 }
 
 

@@ -1,5 +1,6 @@
 #include "callwindow.h"
 
+#include "global.h"
 #include "videoviewfactory.h"
 
 #include "common.h"
@@ -227,29 +228,34 @@ void CallWindow::closeEvent(QCloseEvent *event)
 }
 
 
-VideoInterface* CallWindow::callStarted(uint32_t sessionID,
-                                        bool videoEnabled, bool audioEnabled,
-                                        QString name)
+VideoInterface *CallWindow::callStarted(uint32_t sessionID,
+                                        QList<SDPMediaParticipant>& medias)
 {
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
 
   checkID(sessionID);
 
-  viewFactory_->getVideo(sessionID)->drawMicOffIcon(!audioEnabled);
-
-  for (auto& layoutID : layoutIDs_.at(sessionID))
+  // create the needed amount of layoutIDs
+  for (unsigned int i = layoutIDs_[sessionID].size(); i < medias.size(); ++i)
   {
-    // TODO: Multiple medias in same session
+    layoutIDs_[sessionID].push_back(conference_.createLayoutID());
+  }
 
-    if (videoEnabled)
+  // change the contents of layouts to medias
+  for (unsigned int i = 0; i < medias.size(); ++i)
+  {
+    uint32_t layoutID = layoutIDs_[sessionID].at(i);
+    if (medias.at(i).videoEnabled)
     {
       conference_.attachVideoWidget(layoutID, viewFactory_->getView(layoutID));
     }
     else
     {
-      conference_.attachAvatarWidget(layoutID, name);
+      conference_.attachAvatarWidget(layoutID, medias.at(i).name);
     }
+
+    viewFactory_->getVideo(layoutID)->drawMicOffIcon(!medias.at(i).audioEnabled);
   }
 
   return viewFactory_->getVideo(sessionID); // TODO: LayoutID

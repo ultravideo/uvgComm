@@ -103,6 +103,8 @@ private:
 
   void checkBinding();
 
+  QList<SDPMediaParticipant> formUIMedias(QList<MediaInfo>& media, uint32_t sessionID);
+
   // call state is used to make sure everything is going according to plan,
   // no surprise ACK messages etc
   enum INVITETransactionState {

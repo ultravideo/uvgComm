@@ -7,6 +7,7 @@
 class StatisticsWindow;
 class StatisticsInterface;
 class VideoviewFactory;
+class SDPMediaParticipant;
 
 namespace Ui {
 class AboutWidget;
@@ -36,8 +37,8 @@ public:
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  VideoInterface* callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled,
-                              QString name);
+  VideoInterface* callStarted(uint32_t sessionID,
+                              QList<SDPMediaParticipant>& medias);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);

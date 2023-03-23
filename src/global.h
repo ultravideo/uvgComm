@@ -45,3 +45,10 @@ const uint16_t MAX_ICE_PORT   = 24000;
 #error A C++ compiler is required!
 #endif
 
+
+struct SDPMediaParticipant
+{
+  bool videoEnabled;
+  bool audioEnabled;
+  QString name;
+};
