@@ -19,8 +19,8 @@ enum SessionViewState {VIEW_INACTIVE,
                        VIEW_ASKING,
                        VIEW_WAITING_PEER,
                        VIEW_RINGING,
-                       VIEW_AVATAR,
                        VIEW_MESSAGE,
+                       VIEW_AVATAR,
                        VIEW_VIDEO};
 
 class QGridLayout;
@@ -46,41 +46,43 @@ public:
   // init layout
   void init(QGridLayout* conferenceLayout, QWidget* layoutwidget);
 
-  // showing information to user and reserving the slot in view.
-  void callingTo(uint32_t sessionID, QString name);
-  void ringing(uint32_t sessionID);
-  void incomingCall(uint32_t sessionID, QString name);
+  uint32_t createLayoutID();
 
-  uint32_t acceptNewest();
-  uint32_t rejectNewest();
+  // attach widget to display that someone is calling us
+  void attachIncomingCallWidget(uint32_t layoutID, QString name);
 
-  // if our call is accepted or we accepted their call
-  void callStarted(uint32_t sessionID, QWidget *video,
-                   bool videoEnabled, bool audioEnabled, QString name);
+  // attach widget to display that we are calling somebody
+  void attachOutgoingCallWidget(uint32_t layoutID, QString name);
 
-  // return whether there are still participants left in call view
-  void removeCaller(uint32_t sessionID);
+  // attach widget to display that we are calling somebody
+  void attachRingingWidget(uint32_t layoutID);
 
-  void removeWithMessage(uint32_t sessionID, QString text, int timeout);
+  void attachAvatarWidget(uint32_t layoutID, QString name);
+
+  void attachVideoWidget(uint32_t layoutID, QWidget* widget);
+
+  void attachMessageWidget(uint32_t layoutID, QString text, bool confirmButton);
+
+  void removeWidget(uint32_t layoutID);
 
   void close();
 
 signals:
 
   // user clicks a button in view.
-  void acceptCall(uint32_t sessionID);
-  void rejectCall(uint32_t sessionID);
-  void cancelCall(uint32_t sessionID);
+  void acceptCall(uint32_t layoutID);
+  void rejectCall(uint32_t layoutID);
+  void cancelCall(uint32_t layoutID);
 
-  void lastSessionRemoved();
+  void messageConfirmed(uint32_t layoutID);
 
 public slots:
 
   // this is currently connected by videoviewfactory
   // slots for attaching and detaching view to/from layout
   // Currently only one widget can be detached for one sessionID
-  void reattachWidget(uint32_t sessionID);
-  void detachWidget(uint32_t sessionID);
+  void reattachWidget(uint32_t layoutID);
+  void detachWidget(uint32_t layoutID);
 
 private slots:
 
@@ -91,8 +93,7 @@ private slots:
 
   void updateTimes();
 
-  void expireSessions();
-  void removeSessionFromProperty();
+  void getConfirmID();
 
 private:
 
@@ -109,27 +110,19 @@ private:
   void resetSlots();
 
   // attach widget to layout
-  void attachWidget(uint32_t sessionID, QLayoutItem *item, LayoutLoc loc, QWidget *view);
-
-  // attach widget to display that someone is calling us
-  void attachIncomingCallWidget(QString name, uint32_t sessionID);
-
-  // attach widget to display that we are calling somebody
-  void attachOutgoingCallWidget(QString name, uint32_t sessionID);
-
-
-  void attachAvatarWidget(QString name, uint32_t sessionID);
+  void attachWidget(uint32_t layoutID, QLayoutItem *item, LayoutLoc loc, QWidget *view);
 
   // update session state and attach widget.
-  void updateSessionState(SessionViewState state, QWidget* widget,
-                          uint32_t sessionID, QString name = "");
+  void updateLayoutState(SessionViewState state, QWidget* widget,
+                          uint32_t layoutID, QString name = "");
 
   QLayoutItem* getSessionItem();
 
-  struct SessionViews
+  void checkLayout(uint32_t layoutID);
+
+  struct LayoutView
   {
     SessionViewState state;
-    QString name;
     QLayoutItem* item;
     LayoutLoc loc;
 
@@ -142,19 +135,15 @@ private:
     QWidget* video;
   };
 
-
   void removeItemFromLayout(QLayoutItem* item);
 
-  void removeWidget(LayoutLoc& location);
+  void initializeLayout(uint32_t layoutID);
+  void unitializeSession(uint32_t layoutID);
+  void unitializeSession(std::unique_ptr<LayoutView> peer);
 
-  void initializeSession(uint32_t sessionID, QString name);
-  void unitializeSession(uint32_t sessionID);
-  void unitializeSession(std::unique_ptr<SessionViews> peer);
+  uint32_t nextLayoutID_;
 
   QTimer timeoutTimer_;
-  QTimer removeSessionTimer_;
-
-  QList<uint32_t> expiringSessions_;
 
   QWidget *parent_;
 
@@ -163,8 +152,8 @@ private:
   QGridLayout* layout_;
   QWidget* layoutWidget_;
 
-  // key is sessionID
-  std::map<uint32_t, std::unique_ptr<SessionViews>> activeViews_;
+  // key is layoutID
+  std::map<uint32_t, std::unique_ptr<LayoutView>> activeViews_;
 
   // keeping track of freed places
   // TODO: update the whole layout with each added and removed participant. Use window width.

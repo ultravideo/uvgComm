@@ -75,6 +75,15 @@ public slots:
 
   void restoreCallUI();
 
+  void removeLayout(uint32_t layoutID);
+
+  void layoutAccepts(uint32_t layoutID);
+  void layoutRejects(uint32_t layoutID);
+  void layoutCancels(uint32_t layoutID);
+
+private slots:
+  void expireLayouts();
+
 protected:
 
   // if user closes the window
@@ -91,10 +100,23 @@ private:
   void initButton(QString iconPath, QSize size, QSize iconSize,
                   QPushButton* button);
 
+  void checkID(uint32_t sessionID);
+  bool layoutExists(uint32_t sessionID);
+
+  uint32_t layoutIDToSessionID(uint32_t layoutID);
+
+  void cleanUp();
+
   Ui::CallWindow *ui_;
 
   ConferenceView conference_;
 
   ContactList contacts_;
   ParticipantInterface* partInt_;
+
+  QTimer removeLayoutTimer_;
+  QList<uint32_t> expiringLayouts_;
+
+  // key is sessionID and vector contains all layoutIDs belonging to this sessionID
+  std::map<uint32_t, std::vector<uint32_t>> layoutIDs_;
 };

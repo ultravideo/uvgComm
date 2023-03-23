@@ -11,7 +11,10 @@
 #include <QGridLayout>
 #include <QDir>
 
+const uint32_t INITIAL_LAYOUT_ID = 1;
+
 ConferenceView::ConferenceView(QWidget *parent):
+  nextLayoutID_(INITIAL_LAYOUT_ID),
   parent_(parent),
   layout_(nullptr),
   layoutWidget_(nullptr),
@@ -31,64 +34,51 @@ void ConferenceView::init(QGridLayout* conferenceLayout, QWidget* layoutwidget)
 }
 
 
-void ConferenceView::callingTo(uint32_t sessionID, QString name)
+uint32_t ConferenceView::createLayoutID()
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
-             "Adding widget to display that we are calling someone.",
-              {"SessionID"}, {QString::number(sessionID)});
-
-  Q_ASSERT(sessionID);
-  if(activeViews_.find(sessionID) != activeViews_.end())
-  {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
-                                    "Outgoing call already has an allocated view.");
-    return;
-  }
-  attachOutgoingCallWidget(name, sessionID);
+  ++nextLayoutID_;
+  return nextLayoutID_ - 1;
 }
 
 
-void ConferenceView::updateSessionState(SessionViewState state,
+void ConferenceView::removeWidget(uint32_t layoutID)
+{
+  if(activeViews_.find(layoutID) != activeViews_.end())
+  {
+    if (activeViews_[layoutID]->item == nullptr)
+    {
+      reattachWidget(layoutID);
+    }
+
+    unitializeSession(layoutID);
+
+    if (activeViews_.empty())
+    {
+      nextLayoutID_ = INITIAL_LAYOUT_ID;
+    }
+  }
+}
+
+
+void ConferenceView::updateLayoutState(SessionViewState state,
                                         QWidget* widget,
-                                        uint32_t sessionID,
+                                        uint32_t layoutID,
                                         QString name)
 {
-  if (activeViews_[sessionID]->state != VIEW_INACTIVE)
+  if (activeViews_[layoutID]->state != VIEW_INACTIVE)
   {
-    removeItemFromLayout(activeViews_[sessionID]->item);
-    activeViews_[sessionID]->item = nullptr;
+    removeItemFromLayout(activeViews_[layoutID]->item);
+    activeViews_[layoutID]->item = nullptr;
   }
 
-  attachWidget(sessionID, activeViews_[sessionID]->item, activeViews_[sessionID]->loc, widget);
-  activeViews_[sessionID]->state = state;
+  attachWidget(layoutID, activeViews_[layoutID]->item, activeViews_[layoutID]->loc, widget);
+  activeViews_[layoutID]->state = state;
 }
 
 
-void ConferenceView::incomingCall(uint32_t sessionID, QString name)
+void ConferenceView::attachIncomingCallWidget(uint32_t layoutID, QString name)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
-             "Adding widget to display that someone is calling us.",
-              {"SessionID"}, {QString::number(sessionID)});
-
-  if(activeViews_.find(sessionID) != activeViews_.end())
-  {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
-                                    "Incoming call already has an allocated view.",
-                                    {"SessionID"}, {QString::number(sessionID)});
-    return;
-  }
-
-  Logger::getLogger()->printNormal(this, "Displaying pop-up for incoming call", "Location",
-                                   QString::number(nextLocation_.row) + "," +
-                                   QString::number(nextLocation_.column));
-
-  attachIncomingCallWidget(name, sessionID);
-}
-
-
-void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
-{
-  initializeSession(sessionID, name);
+  checkLayout(layoutID);
 
   QFrame* frame = new QFrame;
   Ui::IncomingCall *in = new Ui::IncomingCall;
@@ -105,12 +95,12 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
   in->NameLabel->setText(name);
   in->StatusLabel->setText("is calling ...");
 
-  updateSessionState(VIEW_ASKING, frame, sessionID, name);
+  updateLayoutState(VIEW_ASKING, frame, layoutID, name);
 
-  activeViews_[sessionID]->in = in;
+  activeViews_[layoutID]->in = in;
 
-  in->acceptButton->setProperty("sessionID", QVariant(sessionID));
-  in->declineButton->setProperty("sessionID", QVariant(sessionID));
+  in->acceptButton->setProperty("layoutID", QVariant(layoutID));
+  in->declineButton->setProperty("layoutID", QVariant(layoutID));
 
   QPixmap pixmap(QDir::currentPath() + "/icons/end_call.svg");
   QIcon ButtonIcon(pixmap);
@@ -128,9 +118,9 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
 }
 
 
-void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
+void ConferenceView::attachOutgoingCallWidget(uint32_t layoutID, QString name)
 {
-  initializeSession(sessionID, name);
+  checkLayout(layoutID);
 
   QFrame* holder = new QFrame;
   Ui::OutgoingCall *out = new Ui::OutgoingCall;
@@ -143,11 +133,11 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
     timeoutTimer_.start(1000);
   }
 
-  updateSessionState(VIEW_WAITING_PEER, holder, sessionID, name);
+  updateLayoutState(VIEW_WAITING_PEER, holder, layoutID, name);
 
-  activeViews_[sessionID]->out = out;
+  activeViews_[layoutID]->out = out;
 
-  out->cancelCall->setProperty("sessionID", QVariant(sessionID));
+  out->cancelCall->setProperty("layoutID", QVariant(layoutID));
   connect(out->cancelCall, SIGNAL(clicked()), this, SLOT(cancel()));
 
   QPixmap pixmap(QDir::currentPath() + "/icons/end_call.svg");
@@ -160,8 +150,20 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
 }
 
 
-void ConferenceView::attachAvatarWidget(QString name, uint32_t sessionID)
+void ConferenceView::attachRingingWidget(uint32_t layoutID)
 {
+  activeViews_[layoutID]->out->StatusLabel->setText("Call is ringing ...");
+}
+
+
+void ConferenceView::attachAvatarWidget(uint32_t layoutID, QString name)
+{
+  checkLayout(layoutID);
+  if (activeViews_[layoutID]->item == nullptr)
+  {
+    reattachWidget(layoutID);
+  }
+
   QFrame* holder = new QFrame;
   Ui::AvatarHolder *avatar = new Ui::AvatarHolder;
   avatar->setupUi(holder);
@@ -172,56 +174,81 @@ void ConferenceView::attachAvatarWidget(QString name, uint32_t sessionID)
     timeoutTimer_.start(1000);
   }
 
-  updateSessionState(VIEW_AVATAR, holder, sessionID, name);
+  updateLayoutState(VIEW_AVATAR, holder, layoutID, name);
 
-  activeViews_[sessionID]->avatar = avatar;
+  activeViews_[layoutID]->avatar = avatar;
 
   holder->show();
 }
 
 
-void ConferenceView::removeSessionFromProperty()
+// if our call is accepted or we accepted their call
+void ConferenceView::attachVideoWidget(uint32_t layoutID, QWidget* widget)
 {
-  QVariant sessionID = sender()->property("sessionID");
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                  "Adding Videostream.", {"layoutID"}, {QString::number(layoutID)});
 
-  if (sessionID.isValid())
+  checkLayout(layoutID);
+
+  QWidget* video = activeViews_.at(layoutID)->video;
+
+  if (video != nullptr)
   {
-    unitializeSession(sessionID.toUInt());
+    activeViews_[layoutID]->video = video;
+    updateLayoutState(VIEW_VIDEO, video, layoutID);
+
+    // signals for double click attach/detach
+    QObject::connect(video, SIGNAL(reattach(uint32_t)),
+                     this,  SLOT(reattachWidget(uint32_t)));
+    QObject::connect(video, SIGNAL(detach(uint32_t)),
+                     this,  SLOT(detachWidget(uint32_t)));
+
+    video->show();
+  }
+  else
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "Video view not provided");
+    return;
   }
 }
 
 
-void ConferenceView::expireSessions()
+void ConferenceView::attachMessageWidget(uint32_t layoutID, QString text, bool confirmButton)
 {
-  for (auto& sessionID : expiringSessions_)
+  if (activeViews_.find(layoutID) != activeViews_.end() && activeViews_[layoutID] != nullptr)
   {
-    unitializeSession(sessionID);
-  }
-  expiringSessions_.clear();
+    if (activeViews_[layoutID]->item == nullptr)
+    {
+      reattachWidget(layoutID);
+    }
 
-  if (activeViews_.empty())
-  {
-    emit lastSessionRemoved();
+    QFrame* holder = new QFrame;
+    Ui::MessageWidget *message = new Ui::MessageWidget;
+    message->setupUi(holder);
+    message->message_text->setText(text);
+
+    if (confirmButton)
+    {
+      message->ok_button->setProperty("layoutID", QVariant(layoutID));
+      connect(message->ok_button, &QPushButton::clicked, this, &ConferenceView::getConfirmID);
+    }
+    else
+    {
+      message->ok_button->hide();
+    }
+
+    updateLayoutState(VIEW_MESSAGE, holder, layoutID);
+    activeViews_[layoutID]->message = message;
+    holder->show();
   }
 }
 
 
-void ConferenceView::removeWidget(LayoutLoc& location)
-{
-  QLayoutItem* item = layout_->itemAtPosition(location.row, location.column);
-  QWidget* widget = item->widget();
-  widget->hide();
-  layout_->removeItem(item);
-  freeSlot(location);
-  delete item;
-  delete widget;
-}
-
-
-void ConferenceView::attachWidget(uint32_t sessionID, QLayoutItem* item, LayoutLoc loc, QWidget *view)
+void ConferenceView::attachWidget(uint32_t layoutID, QLayoutItem* item, LayoutLoc loc, QWidget *view)
 {
   Q_ASSERT(view != nullptr);
-  Q_ASSERT(sessionID != 0);
+  Q_ASSERT(layoutID != 0);
 
   // remove this item from previous position if it has one
   if(item != nullptr)
@@ -233,190 +260,53 @@ void ConferenceView::attachWidget(uint32_t sessionID, QLayoutItem* item, LayoutL
   layout_->addWidget(view, loc.row, loc.column);
 
   // get the layoutitem
-  activeViews_[sessionID]->item = layout_->itemAtPosition(loc.row, loc.column);
+  activeViews_[layoutID]->item = layout_->itemAtPosition(loc.row, loc.column);
 }
 
 
-void ConferenceView::reattachWidget(uint32_t sessionID)
+void ConferenceView::reattachWidget(uint32_t layoutID)
 {
-  Q_ASSERT(sessionID != 0);
+  Q_ASSERT(layoutID != 0);
 
   Logger::getLogger()->printNormal(this, "Reattaching widget");
 
-  if (activeViews_.find(sessionID) == activeViews_.end() ||
-      activeViews_[sessionID]->video == nullptr)
+  if (activeViews_.find(layoutID) == activeViews_.end() ||
+      activeViews_[layoutID]->video == nullptr)
   {
     Logger::getLogger()->printProgramError(this, "Invalid state when reattaching widget");
     return;
   }
   parent_->show();
-  attachWidget(sessionID,
-               activeViews_[sessionID]->item,
-               activeViews_[sessionID]->loc,
-               activeViews_[sessionID]->video);
+  attachWidget(layoutID,
+               activeViews_[layoutID]->item,
+               activeViews_[layoutID]->loc,
+               activeViews_[layoutID]->video);
 }
 
 
-void ConferenceView::detachWidget(uint32_t sessionID)
+void ConferenceView::detachWidget(uint32_t layoutID)
 {
-  Q_ASSERT(sessionID != 0);
+  Q_ASSERT(layoutID != 0);
 
   Logger::getLogger()->printNormal(this, "Detaching widget from layout");
 
-  if(activeViews_[sessionID]->item)
+  if(activeViews_[layoutID]->item)
   {
-    layout_->removeItem(activeViews_[sessionID]->item);
+    layout_->removeItem(activeViews_[layoutID]->item);
   }
 
-  activeViews_[sessionID]->item = nullptr;
+  activeViews_[layoutID]->item = nullptr;
   parent_->hide();
 }
 
 
-// if our call is accepted or we accepted their call
-void ConferenceView::callStarted(uint32_t sessionID, QWidget* video,
-                                 bool videoEnabled, bool audioEnabled, QString name)
+void ConferenceView::getConfirmID()
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                  "Adding Videostream.", {"SessionID"}, {QString::number(sessionID)});
+  QVariant layoutID = sender()->property("layoutID");
 
-  // auto-accept enters straight into video mode
-  if (activeViews_.find(sessionID) == activeViews_.end() || activeViews_[sessionID] == nullptr)
+  if (layoutID.isValid())
   {
-    initializeSession(sessionID, name);
-  }
-  else if(activeViews_[sessionID]->state == VIEW_INACTIVE)
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, this,
-                                    "Activating video view for session state which should not be possible.",
-                                    {"SessionID"}, {QString::number(sessionID)});
-  }
-
-  if (videoEnabled)
-  {
-    if (video != nullptr)
-    {
-      activeViews_[sessionID]->video = video;
-      updateSessionState(VIEW_VIDEO, video, sessionID);
-
-      // signals for double click attach/detach
-      QObject::connect(video, SIGNAL(reattach(uint32_t)),
-                       this,  SLOT(reattachWidget(uint32_t)));
-      QObject::connect(video, SIGNAL(detach(uint32_t)),
-                       this,  SLOT(detachWidget(uint32_t)));
-
-      video->show();
-    }
-    else
-    {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                      "Failed to get view.");
-      return;
-    }
-  }
-  else
-  {
-    if (activeViews_[sessionID]->item == nullptr)
-    {
-      reattachWidget(sessionID);
-    }
-
-    attachAvatarWidget(name, sessionID);
-  }
-}
-
-
-void ConferenceView::ringing(uint32_t sessionID)
-{
-  // get widget from layout and change the text.
-  Logger::getLogger()->printNormal(this, "Call is ringing", "SessionID", QString::number(sessionID));
-  if(activeViews_.find(sessionID) == activeViews_.end())
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                    "Ringing for nonexisting view. View should always exist if this function is called.",
-                                    {"SessionID"}, {QString::number(sessionID)});
-    return;
-  }
-  if (activeViews_[sessionID]->out != nullptr)
-  {
-    activeViews_[sessionID]->out->StatusLabel->setText("Call is ringing ...");
-  }
-  else
-  {
-
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
-                                    "No incoming call widget exists when it should be ringing.",
-                                    {"SessionID"},{QString::number(sessionID)});
-  }
-}
-
-
-void ConferenceView::removeCaller(uint32_t sessionID)
-{
-  if(activeViews_.find(sessionID) == activeViews_.end())
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                    "Tried to remove the view of non-existing sessionID!");
-  }
-  else
-  {
-    if (activeViews_[sessionID]->item == nullptr)
-    {
-      reattachWidget(sessionID);
-    }
-
-    unitializeSession(sessionID);
-  }
-
-  if (activeViews_.empty())
-  {
-    emit lastSessionRemoved();
-  }
-}
-
-
-void ConferenceView::removeWithMessage(uint32_t sessionID, QString text, int timeout)
-{
-  if (activeViews_.find(sessionID) != activeViews_.end() && activeViews_[sessionID] != nullptr)
-  {
-    if (activeViews_[sessionID]->item == nullptr)
-    {
-      reattachWidget(sessionID);
-    }
-
-    QFrame* holder = new QFrame;
-    Ui::MessageWidget *message = new Ui::MessageWidget;
-    message->setupUi(holder);
-    message->message_text->setText(text);
-
-    if (timeout > 0)
-    {
-      if (!expiringSessions_.contains(sessionID))
-      {
-        expiringSessions_.push_back(sessionID);
-      }
-      message->ok_button->hide();
-      removeSessionTimer_.setSingleShot(true);
-      removeSessionTimer_.start(timeout);
-
-      connect(&removeSessionTimer_, &QTimer::timeout,
-              this, &ConferenceView::expireSessions);
-    }
-    else
-    {
-      message->ok_button->setProperty("sessionID", QVariant(sessionID));
-      connect(message->ok_button, SIGNAL(clicked()), this, SLOT(removeSessionFromProperty()));
-    }
-
-    updateSessionState(VIEW_MESSAGE, holder, sessionID);
-
-    activeViews_[sessionID]->message = message;
-
-    holder->show();
-  }
-  else
-  {
-    Logger::getLogger()->printProgramWarning(this, "Tried to remove non-existing view from conference view");
+    emit messageConfirmed(layoutID.toUInt());
   }
 }
 
@@ -477,7 +367,7 @@ void ConferenceView::close()
 {
   Logger::getLogger()->printNormal(this, "Remove all views");
 
-  for (std::map<uint32_t, std::unique_ptr<SessionViews>>::iterator view = activeViews_.begin();
+  for (std::map<uint32_t, std::unique_ptr<LayoutView>>::iterator view = activeViews_.begin();
        view != activeViews_.end(); ++view)
   {
     unitializeSession(std::move(view->second));
@@ -488,14 +378,14 @@ void ConferenceView::close()
 }
 
 
-void ConferenceView::unitializeSession(uint32_t sessionID)
+void ConferenceView::unitializeSession(uint32_t layoutID)
 {
-  unitializeSession(std::move(activeViews_[sessionID]));
-  activeViews_.erase(sessionID);
+  unitializeSession(std::move(activeViews_[layoutID]));
+  activeViews_.erase(layoutID);
 }
 
 
-void ConferenceView::unitializeSession(std::unique_ptr<SessionViews> peer)
+void ConferenceView::unitializeSession(std::unique_ptr<LayoutView> peer)
 {
   if (peer->state != VIEW_INACTIVE)
   {
@@ -561,15 +451,15 @@ void ConferenceView::removeItemFromLayout(QLayoutItem* item)
 
 void ConferenceView::accept()
 {
-  uint32_t sessionID = sender()->property("sessionID").toUInt();
-  if (sessionID != 0
-      && activeViews_.find(sessionID) != activeViews_.end()
-      && activeViews_[sessionID]->state == VIEW_ASKING
-      && activeViews_[sessionID]->in != nullptr)
+  uint32_t layoutID = sender()->property("layoutID").toUInt();
+  if (layoutID != 0
+      && activeViews_.find(layoutID) != activeViews_.end()
+      && activeViews_[layoutID]->state == VIEW_ASKING
+      && activeViews_[layoutID]->in != nullptr)
   {
-    activeViews_[sessionID]->in->acceptButton->hide();
-    activeViews_[sessionID]->in->declineButton->hide();
-    emit acceptCall(sessionID);
+    activeViews_[layoutID]->in->acceptButton->hide();
+    activeViews_[layoutID]->in->declineButton->hide();
+    emit acceptCall(layoutID);
   }
   else
   {
@@ -581,16 +471,16 @@ void ConferenceView::accept()
 
 void ConferenceView::reject()
 {
-  uint32_t sessionID = sender()->property("sessionID").toUInt();
-  if (sessionID != 0
-      && activeViews_.find(sessionID) != activeViews_.end()
-      && activeViews_[sessionID]->state == VIEW_ASKING
-      && activeViews_[sessionID]->in != nullptr)
+  uint32_t layoutID = sender()->property("layoutID").toUInt();
+  if (layoutID != 0
+      && activeViews_.find(layoutID) != activeViews_.end()
+      && activeViews_[layoutID]->state == VIEW_ASKING
+      && activeViews_[layoutID]->in != nullptr)
   {
-    activeViews_[sessionID]->in->acceptButton->hide();
-    activeViews_[sessionID]->in->declineButton->hide();
+    activeViews_[layoutID]->in->acceptButton->hide();
+    activeViews_[layoutID]->in->declineButton->hide();
 
-    emit rejectCall(sessionID);
+    emit rejectCall(layoutID);
   }
   else
   {
@@ -602,15 +492,15 @@ void ConferenceView::reject()
 
 void ConferenceView::cancel()
 {
-  uint32_t sessionID = sender()->property("sessionID").toUInt();
-  emit cancelCall(sessionID);
+  uint32_t layoutID = sender()->property("layoutID").toUInt();
+  emit cancelCall(layoutID);
 }
 
 
 void ConferenceView::updateTimes()
 {
   bool countersRunning = false;
-  for(std::map<uint32_t, std::unique_ptr<SessionViews>>::iterator i = activeViews_.begin();
+  for(std::map<uint32_t, std::unique_ptr<LayoutView>>::iterator i = activeViews_.begin();
       i != activeViews_.end(); ++i)
   {
     if(i->second->out != nullptr)
@@ -627,15 +517,22 @@ void ConferenceView::updateTimes()
 }
 
 
-void ConferenceView::initializeSession(uint32_t sessionID, QString name)
+void ConferenceView::initializeLayout(uint32_t layoutID)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
-                                  "Initializing session", {"SessionID"},
-                                  {QString::number(sessionID)});
+                                  "Initializing session", {"layoutID"},
+                                  {QString::number(layoutID)});
+
+  activeViews_[layoutID] = std::unique_ptr<LayoutView>
+                            (new LayoutView{VIEW_INACTIVE, nullptr, getSlot(),
+                                              nullptr, nullptr, nullptr, nullptr, nullptr});
+}
 
 
-
-  activeViews_[sessionID] = std::unique_ptr<SessionViews>
-                            (new SessionViews{VIEW_INACTIVE, name, nullptr, getSlot(),
-                                              nullptr, nullptr, nullptr, nullptr});
+void ConferenceView::checkLayout(uint32_t layoutID)
+{
+  if (activeViews_.find(layoutID) == activeViews_.end())
+  {
+    initializeLayout(layoutID);
+  }
 }
