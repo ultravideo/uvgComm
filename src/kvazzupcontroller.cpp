@@ -171,7 +171,7 @@ void KvazzupController::createSIPDialog(QString name, QString username, QString 
   userInterface_.displayOutgoingCall(sessionID, remote.realname);
   if(states_.find(sessionID) == states_.end())
   {
-    states_[sessionID] = SessionState{CALL_INVITE_SENT, nullptr, nullptr, true, false, false, name};
+    states_[sessionID] = SessionState{CALL_INVITE_SENT, nullptr, nullptr, false, false, false, name};
   }
   else
   {
@@ -217,7 +217,7 @@ bool KvazzupController::processINVITE(uint32_t sessionID, QString caller)
                                                  "an existing session!");
   }
 
-  states_[sessionID] = SessionState{CALL_INVITE_RECEIVED, nullptr, nullptr, false, false, false, caller};
+  states_[sessionID] = SessionState{CALL_INVITE_RECEIVED, nullptr, nullptr, true, false, false, caller};
   ++ongoingNegotiations_;
 
   if(settingEnabled(SettingsKey::localAutoAccept))
@@ -353,6 +353,7 @@ void KvazzupController::processINVITE_OK(uint32_t sessionID)
     if(states_[sessionID].state == CALL_INVITE_SENT)
     {
       Logger::getLogger()->printImportant(this, "They accepted our call!");
+      states_[sessionID].followOurSDP = false;
       INVITETransactionConcluded(sessionID);
     }
     else
@@ -451,10 +452,12 @@ void KvazzupController::createCall(uint32_t sessionID)
 
   if (states_[sessionID].followOurSDP)
   {
+    Logger::getLogger()->printNormal(this, "Creating call using attributes from our SDP");
     uiMedias = formUIMedias(localSDP->media, sessionID);
   }
   else
   {
+    Logger::getLogger()->printNormal(this, "Creating call using attributes from remote SDP");
     uiMedias = formUIMedias(remoteSDP->media, sessionID);
   }
 
@@ -574,6 +577,7 @@ void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "We accept");
   states_[sessionID].state = CALL_TRANSACTION_CONCLUDED;
+  states_[sessionID].followOurSDP = true;
   sip_.respondOkToINVITE(sessionID);
 }
 
@@ -673,6 +677,7 @@ void KvazzupController::SIPRequestCallback(uint32_t sessionID,
     {
     // the SDP may be either in INVITE or ACK
       getRemoteSDP(sessionID, request.message, content);
+      states_[sessionID].followOurSDP = true;
       INVITETransactionConcluded(sessionID);
 
       break;
@@ -777,7 +782,6 @@ void KvazzupController::inputLocalSDP(uint32_t sessionID, std::shared_ptr<SDPMes
   }
 
   states_[sessionID].localSDP = local;
-  states_[sessionID].followOurSDP = true;
 
   if (states_[sessionID].remoteSDP != nullptr &&
       states_[sessionID].state == CALL_TRANSACTION_CONCLUDED)
@@ -829,8 +833,6 @@ void KvazzupController::getRemoteSDP(uint32_t sessionID,
     SDPMessageInfo sdp = content.value<SDPMessageInfo>();
     states_[sessionID].remoteSDP = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
     *(states_[sessionID].remoteSDP) = sdp;
-
-    states_[sessionID].followOurSDP = states_[sessionID].localSDP == nullptr;
   }
 }
 
