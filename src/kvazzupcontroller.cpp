@@ -574,6 +574,8 @@ void KvazzupController::userRejectsCall(uint32_t sessionID)
   Logger::getLogger()->printNormal(this, "We reject");
   sip_.respondDeclineToINVITE(sessionID);
   removeSession(sessionID, "Rejected", true);
+
+  --ongoingNegotiations_;
 }
 
 
@@ -584,6 +586,8 @@ void KvazzupController::userCancelsCall(uint32_t sessionID)
   {
     userInterface_.removeParticipant(sessionID);
   }
+
+  --ongoingNegotiations_;
 }
 
 
@@ -750,6 +754,7 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
       if (response.type == SIP_DECLINE)
       {
         sessionTerminated(sessionID);
+        --ongoingNegotiations_;
       }
     }
   }
