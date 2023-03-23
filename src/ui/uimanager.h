@@ -23,7 +23,7 @@ public:
   UIManager();
   ~UIManager();
 
-  VideoWidget* getSelfView();
+  QList<VideoInterface*> getSelfVideos () const;
 
   void init(ParticipantInterface *partInt);
 
@@ -36,15 +36,14 @@ public:
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  void callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled,
-                   QWidget *view, QString name);
+  VideoInterface* callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled,
+                              QString name);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
 
   void removeWithMessage(uint32_t sessionID, QString message,
                          bool temporaryMessage);
-
 
   void updateServerStatus(QString status);
 

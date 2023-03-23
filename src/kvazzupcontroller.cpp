@@ -1,7 +1,6 @@
 #include "kvazzupcontroller.h"
 
 #include "statisticsinterface.h"
-#include "videoviewfactory.h"
 
 #include "common.h"
 #include "settingskeys.h"
@@ -27,8 +26,7 @@ KvazzupController::KvazzupController():
   delayAutoAccept_(),
   delayedAutoAccept_(0),
   ongoingNegotiations_(0),
-  delayedNegotiation_(),
-  viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory()))
+  delayedNegotiation_()
 {}
 
 
@@ -37,8 +35,6 @@ void KvazzupController::init()
   Logger::getLogger()->printImportant(this, "Kvazzup initiation Started");
 
   userInterface_.init(this);
-
-  viewFactory_->addSelfview(userInterface_.getSelfView());
 
   stats_ = userInterface_.createStatsWindow();
 
@@ -90,7 +86,7 @@ void KvazzupController::init()
   QObject::connect(&media_, &MediaManager::iceMediaFailed,
                    this, &KvazzupController::iceFailed);
 
-  media_.init(viewFactory_->getSelfVideos(), stats_);
+  media_.init(userInterface_.getSelfVideos(), stats_);
 
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
@@ -498,10 +494,8 @@ void KvazzupController::createCall(uint32_t sessionID)
                                   {"Video Enabled", "Audio Enabled"},
                                   {videoState, audioState});
 
-  viewFactory_->getVideo(sessionID)->drawMicOffIcon(!audioEnabled);
-
-  userInterface_.callStarted(sessionID, videoEnabled, audioEnabled,
-                             viewFactory_->getView(sessionID), states_[sessionID].name);
+  VideoInterface* video = userInterface_.callStarted(sessionID, videoEnabled, audioEnabled,
+                                                     states_[sessionID].name);
 
   if (!states_[sessionID].sessionRunning)
   {
@@ -510,14 +504,14 @@ void KvazzupController::createCall(uint32_t sessionID)
       stats_->addSession(sessionID);
     }
 
-    media_.addParticipant(sessionID, remoteSDP, localSDP, viewFactory_->getVideo(sessionID),
+    media_.addParticipant(sessionID, remoteSDP, localSDP, video,
                            states_[sessionID].followOurSDP);
 
     states_[sessionID].sessionRunning = true;
    }
   else
   {
-    media_.modifyParticipant(sessionID, remoteSDP, localSDP, viewFactory_->getVideo(sessionID),
+    media_.modifyParticipant(sessionID, remoteSDP, localSDP, video,
                              states_[sessionID].followOurSDP);
   }
 
@@ -621,8 +615,6 @@ void KvazzupController::removeSession(uint32_t sessionID, QString message,
   {
     stats_->removeSession(sessionID);
   }
-
-  viewFactory_->clearWidgets(sessionID);
 }
 
 

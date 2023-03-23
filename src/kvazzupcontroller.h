@@ -141,9 +141,6 @@ private:
 
   QTimer delayedNegotiation_;
 
-  // video views
-  std::shared_ptr<VideoviewFactory> viewFactory_;
-
   // if we want to do something, but the TCP connection has not yet been established
   struct WaitingStart
   {

@@ -13,6 +13,7 @@ class CallerWidget;
 }
 
 class VideoWidget;
+class VideoInterface;
 
 // The main Call window.
 
@@ -23,9 +24,9 @@ public:
   explicit CallWindow(QWidget *parent);
   ~CallWindow();
 
-  VideoWidget* getSelfView() const;
+  QList<VideoInterface*> getSelfVideos () const;
 
-  void init(ParticipantInterface *partInt);
+  void init(ParticipantInterface *partInt, VideoWidget *settingsVideo);
 
   // sessionID identifies the view slot
   void displayOutgoingCall(uint32_t sessionID, QString name);
@@ -33,8 +34,8 @@ public:
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  void callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled, QWidget *view,
-                   QString name);
+  VideoInterface *callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled,
+                              QString name);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
@@ -110,6 +111,9 @@ private:
   Ui::CallWindow *ui_;
 
   ConferenceView conference_;
+
+  // video views
+  std::shared_ptr<VideoviewFactory> viewFactory_;
 
   ContactList contacts_;
   ParticipantInterface* partInt_;

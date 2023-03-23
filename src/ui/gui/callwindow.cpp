@@ -1,5 +1,7 @@
 #include "callwindow.h"
 
+#include "videoviewfactory.h"
+
 #include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
@@ -15,8 +17,8 @@
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
-
   conference_(this),
+  viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory())),
   partInt_(nullptr)
 {
   ui_->setupUi(this);
@@ -29,15 +31,18 @@ CallWindow::~CallWindow()
 }
 
 
-VideoWidget* CallWindow::getSelfView() const
+QList<VideoInterface*> CallWindow::getSelfVideos () const
 {
-  return ui_->SelfView;
+  return viewFactory_->getSelfVideos();
 }
 
 
-void CallWindow::init(ParticipantInterface *partInt)
+void CallWindow::init(ParticipantInterface *partInt, VideoWidget* settingsVideo)
 { 
   partInt_ = partInt;
+
+  viewFactory_->addSelfview(ui_->SelfView);
+  viewFactory_->addSelfview(settingsVideo);
 
   ui_->Add_contact_widget->setVisible(false);
 
@@ -222,14 +227,16 @@ void CallWindow::closeEvent(QCloseEvent *event)
 }
 
 
-void CallWindow::callStarted(uint32_t sessionID,
-                             bool videoEnabled, bool audioEnabled,
-                             QWidget* view, QString name)
+VideoInterface* CallWindow::callStarted(uint32_t sessionID,
+                                        bool videoEnabled, bool audioEnabled,
+                                        QString name)
 {
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
 
   checkID(sessionID);
+
+  viewFactory_->getVideo(sessionID)->drawMicOffIcon(!audioEnabled);
 
   for (auto& layoutID : layoutIDs_.at(sessionID))
   {
@@ -237,13 +244,15 @@ void CallWindow::callStarted(uint32_t sessionID,
 
     if (videoEnabled)
     {
-      conference_.attachVideoWidget(layoutID, view);
+      conference_.attachVideoWidget(layoutID, viewFactory_->getView(layoutID));
     }
     else
     {
       conference_.attachAvatarWidget(layoutID, name);
     }
   }
+
+  return viewFactory_->getVideo(sessionID); // TODO: LayoutID
 }
 
 
@@ -311,6 +320,7 @@ void CallWindow::removeParticipant(uint32_t sessionID)
 
   layoutIDs_.erase(sessionID);
   contacts_.setAccessible(sessionID);
+  viewFactory_->clearWidgets(sessionID);
 }
 
 

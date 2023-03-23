@@ -25,10 +25,12 @@ UIManager::~UIManager()
   }
 }
 
-VideoWidget* UIManager::getSelfView()
+
+QList<VideoInterface*> UIManager::getSelfVideos () const
 {
-  return window_.getSelfView();
+  return window_.getSelfVideos();
 }
+
 
 void UIManager::init(ParticipantInterface *partInt)
 {
@@ -82,7 +84,7 @@ void UIManager::init(ParticipantInterface *partInt)
                    this,     &UIManager::endCall);
 
   settingsView_.init();
-  window_.init(partInt);
+  window_.init(partInt, settingsView_.getSelfViews());
 }
 
 
@@ -129,10 +131,10 @@ void UIManager::displayIncomingCall(uint32_t sessionID, QString caller)
 
 
 // adds video stream to view
-void UIManager::callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled,
-                            QWidget* view, QString name)
+VideoInterface* UIManager::callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled,
+                                      QString name)
 {
-  window_.callStarted(sessionID, videoEnabled, audioEnabled, view, name);
+  return window_.callStarted(sessionID, videoEnabled, audioEnabled, name);
 }
 
 
