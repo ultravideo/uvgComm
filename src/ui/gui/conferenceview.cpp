@@ -190,20 +190,18 @@ void ConferenceView::attachVideoWidget(uint32_t layoutID, QWidget* widget)
 
   checkLayout(layoutID);
 
-  QWidget* video = activeViews_.at(layoutID)->video;
-
-  if (video != nullptr)
+  if (widget != nullptr)
   {
-    activeViews_[layoutID]->video = video;
-    updateLayoutState(VIEW_VIDEO, video, layoutID);
+    activeViews_[layoutID]->video = widget;
+    updateLayoutState(VIEW_VIDEO, widget, layoutID);
 
     // signals for double click attach/detach
-    QObject::connect(video, SIGNAL(reattach(uint32_t)),
+    QObject::connect(widget, SIGNAL(reattach(uint32_t)),
                      this,  SLOT(reattachWidget(uint32_t)));
-    QObject::connect(video, SIGNAL(detach(uint32_t)),
+    QObject::connect(widget, SIGNAL(detach(uint32_t)),
                      this,  SLOT(detachWidget(uint32_t)));
 
-    video->show();
+    widget->show();
   }
   else
   {
