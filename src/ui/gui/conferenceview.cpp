@@ -254,6 +254,9 @@ void ConferenceView::attachWidget(uint32_t layoutID, QLayoutItem* item, LayoutLo
     layout_->removeItem(item);
   }
 
+  view->setMinimumSize(QSize(240, 240));
+  view->setSizePolicy(QSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding));
+
   // add to layout
   layout_->addWidget(view, loc.row, loc.column);
 
