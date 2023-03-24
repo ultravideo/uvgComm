@@ -171,7 +171,7 @@ void KvazzupController::createSIPDialog(QString name, QString username, QString 
   userInterface_.displayOutgoingCall(sessionID, remote.realname);
   if(states_.find(sessionID) == states_.end())
   {
-    states_[sessionID] = SessionState{CALL_INVITE_SENT, nullptr, nullptr, false, false, false, name};
+    states_[sessionID] = SessionState{CALL_INVITE_SENT, nullptr, nullptr, false, true, false, false, name};
   }
   else
   {
@@ -217,7 +217,7 @@ bool KvazzupController::processINVITE(uint32_t sessionID, QString caller)
                                                  "an existing session!");
   }
 
-  states_[sessionID] = SessionState{CALL_INVITE_RECEIVED, nullptr, nullptr, true, false, false, caller};
+  states_[sessionID] = SessionState{CALL_INVITE_RECEIVED, nullptr, nullptr, true, false, false, false, caller};
   ++ongoingNegotiations_;
 
   if(settingEnabled(SettingsKey::localAutoAccept))
@@ -354,6 +354,7 @@ void KvazzupController::processINVITE_OK(uint32_t sessionID)
     {
       Logger::getLogger()->printImportant(this, "They accepted our call!");
       states_[sessionID].followOurSDP = false;
+      states_[sessionID].iceController = areWeICEController(true, sessionID);
       INVITETransactionConcluded(sessionID);
     }
     else
@@ -471,13 +472,15 @@ void KvazzupController::createCall(uint32_t sessionID)
     }
 
     media_.addParticipant(sessionID, remoteSDP, localSDP, video,
-                           states_[sessionID].followOurSDP);
+                          states_[sessionID].iceController,
+                          states_[sessionID].followOurSDP);
 
     states_[sessionID].sessionRunning = true;
    }
   else
   {
     media_.modifyParticipant(sessionID, remoteSDP, localSDP, video,
+                             states_[sessionID].iceController,
                              states_[sessionID].followOurSDP);
   }
 
@@ -684,6 +687,7 @@ void KvazzupController::SIPRequestCallback(uint32_t sessionID,
     // the SDP may be either in INVITE or ACK
       getRemoteSDP(sessionID, request.message, content);
       states_[sessionID].followOurSDP = true;
+      states_[sessionID].iceController = areWeICEController(false, sessionID);
       INVITETransactionConcluded(sessionID);
 
       break;
@@ -926,4 +930,19 @@ void KvazzupController::connectionEstablished(QString localAddress, QString remo
     sip_.bindingAtRegistrar(remoteAddress);
     waitingToBind_.removeOne(remoteAddress);
   }
+}
+
+bool KvazzupController::areWeICEController(bool initialAgent, uint32_t sessionID) const
+{
+  // one to one calls should follow the specification
+  if (states_.at(sessionID).remoteSDP &&
+      states_.at(sessionID).remoteSDP->media.size() == 2)
+  {
+    Logger::getLogger()->printNormal(this, "One-to-one call so we follow specification");
+    return initialAgent;
+  }
+
+  Logger::getLogger()->printNormal(this, "We select ICE controller based on a hack");
+
+  return areWeFocus() || states_.at(sessionID).sessionRunning;
 }

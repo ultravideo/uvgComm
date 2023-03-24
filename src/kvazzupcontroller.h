@@ -107,6 +107,14 @@ private:
                                           QList<MediaInfo> &attributeMedia,
                                           uint32_t sessionID);
 
+  bool areWeFocus() const
+  {
+    return states_.size() > 1;
+  }
+
+  // this is a huge hack altogether
+  bool areWeICEController(bool initialAgent, uint32_t sessionID) const;
+
   // call state is used to make sure everything is going according to plan,
   // no surprise ACK messages etc
   enum INVITETransactionState {
@@ -122,6 +130,7 @@ private:
     std::shared_ptr<SDPMessageInfo> localSDP;
     std::shared_ptr<SDPMessageInfo> remoteSDP;
     bool followOurSDP;
+    bool iceController;
     bool sessionNegotiated;
     bool sessionRunning;
 

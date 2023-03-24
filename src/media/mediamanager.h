@@ -51,11 +51,11 @@ public:
 
   void addParticipant(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo,
                       const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView,
-                      bool iceController);
+                      bool iceController, bool followOurSDP);
 
   void modifyParticipant(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo,
                          const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView,
-                         bool iceController);
+                         bool iceController, bool followOurSDP);
 
   void removeParticipant(uint32_t sessionID);
 
