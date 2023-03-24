@@ -5,7 +5,6 @@
 #include "common.h"
 #include "statisticsinterface.h"
 
-#include <QNetworkInterface>
 #include <QSettings>
 
 #include <memory>
@@ -227,7 +226,7 @@ std::vector<std::shared_ptr<ICEPair> > ICE::makeCandidatePairs(
   // match all host candidates with remote (remote does the same)
   for (int i = 0; i < local.size(); ++i)
   {
-    if (isLocalAddress(local[i]))
+    if (isLocalCandidate(local[i]))
     {
       for (int k = 0; k < remote.size(); ++k)
       {
@@ -268,27 +267,6 @@ std::vector<std::shared_ptr<ICEPair> > ICE::makeCandidatePairs(
   Logger::getLogger()->printNormal(this, "Created " + QString::number(pairs.size()) +
                                          " candidate pairs");
   return pairs;
-}
-
-
-bool ICE::isLocalAddress(std::shared_ptr<ICEInfo> info) const
-{
-  QString candidateAddress = info->address;
-
-  if (info->rel_address != "")
-  {
-    candidateAddress = info->rel_address;
-  }
-
-  for (const QHostAddress& address : QNetworkInterface::allAddresses())
-  {
-    if (address.toString() == candidateAddress)
-    {
-      return true;
-    }
-  }
-
-  return false;
 }
 
 

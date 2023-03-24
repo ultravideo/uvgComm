@@ -25,6 +25,8 @@ QString settingString(QString key);
 
 QString getLocalUsername();
 
+bool isLocalCandidate(std::shared_ptr<ICEInfo> info);
+
 bool getSendAttribute(const MediaInfo &media, bool local);
 bool getReceiveAttribute(const MediaInfo &media, bool local);
 

@@ -14,6 +14,8 @@
 
 #include <QSettings>
 #include <QMutex>
+#include <QNetworkInterface>
+
 #include <cstdlib>
 
 
@@ -76,6 +78,27 @@ QString getLocalUsername()
 
   return !settings.value(SettingsKey::localUsername).isNull()
       ? settings.value(SettingsKey::localUsername).toString() : "anonymous";
+}
+
+
+bool isLocalCandidate(std::shared_ptr<ICEInfo> info)
+{
+  QString candidateAddress = info->address;
+
+  if (info->rel_address != "")
+  {
+    candidateAddress = info->rel_address;
+  }
+
+  for (const QHostAddress& localInterface : QNetworkInterface::allAddresses())
+  {
+    if (localInterface.toString() == candidateAddress)
+    {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 

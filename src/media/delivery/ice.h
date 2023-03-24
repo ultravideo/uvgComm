@@ -40,9 +40,6 @@ public:
   // free all ICE-related resources
   void uninit();
 
-
-  bool isLocalAddress(std::shared_ptr<ICEInfo> info) const;
-
 private slots:
   // saves the nominated pair so it can be fetched later on and
   // sends nominationSucceeded signal that negotiation is done

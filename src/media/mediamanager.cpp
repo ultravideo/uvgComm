@@ -163,7 +163,7 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     for (unsigned int i = 0; i < localInfo->media.size(); ++i)
     {
       // only test if this is a local candidate
-      if (participants_[sessionID].ice->isLocalAddress(localInfo->media.at(i).candidates.first()))
+      if (isLocalCandidate(localInfo->media.at(i).candidates.first()))
       {
         participants_[sessionID].ice->startNomination(localInfo->media.at(i),
                                                       peerInfo->media.at(i),

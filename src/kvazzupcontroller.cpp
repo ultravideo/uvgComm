@@ -453,12 +453,12 @@ void KvazzupController::createCall(uint32_t sessionID)
   if (states_[sessionID].followOurSDP)
   {
     Logger::getLogger()->printNormal(this, "Creating call using attributes from our SDP");
-    uiMedias = formUIMedias(localSDP->media, sessionID);
+    uiMedias = formUIMedias(localSDP->media, localSDP->media, sessionID);
   }
   else
   {
     Logger::getLogger()->printNormal(this, "Creating call using attributes from remote SDP");
-    uiMedias = formUIMedias(remoteSDP->media, sessionID);
+    uiMedias = formUIMedias(localSDP->media, remoteSDP->media, sessionID);
   }
 
   VideoInterface* video = userInterface_.callStarted(sessionID, uiMedias);
@@ -487,7 +487,9 @@ void KvazzupController::createCall(uint32_t sessionID)
 }
 
 
-QList<SDPMediaParticipant> KvazzupController::formUIMedias(QList<MediaInfo>& media, uint32_t sessionID)
+QList<SDPMediaParticipant> KvazzupController::formUIMedias(QList<MediaInfo>& localMedia,
+                                                           QList<MediaInfo>& attributeMedia,
+                                                           uint32_t sessionID)
 {
   bool videoEnabled = false;
   bool audioEnabled = false;
@@ -495,27 +497,31 @@ QList<SDPMediaParticipant> KvazzupController::formUIMedias(QList<MediaInfo>& med
   QList<SDPMediaParticipant> uiMedias;
 
   // TODO: Use lipsync to determine pairs
-  for (int i = 0; i < media.size(); i += 2)
+  for (int i = 0; i < attributeMedia.size(); i += 2)
   {
-    if (media.at(i).type == "audio")
+    if (!localMedia.at(i).candidates.empty() &&
+        isLocalCandidate(localMedia.at(i).candidates.first()))
     {
-      audioEnabled = getReceiveAttribute(media.at(i), true);
-    }
-    else if (media.at(i).type == "video")
-    {
-      videoEnabled = getReceiveAttribute(media.at(i), true);
-    }
+      if (attributeMedia.at(i).type == "audio")
+      {
+        audioEnabled = getReceiveAttribute(attributeMedia.at(i), true);
+      }
+      else if (attributeMedia.at(i).type == "video")
+      {
+        videoEnabled = getReceiveAttribute(attributeMedia.at(i), true);
+      }
 
-    if (media.at(i + 1).type == "audio")
-    {
-      audioEnabled = getReceiveAttribute(media.at(i + 1), true);
-    }
-    else if (media.at(i + 1).type == "video")
-    {
-      videoEnabled = getReceiveAttribute(media.at(i + 1), true);
-    }
+      if (attributeMedia.at(i + 1).type == "audio")
+      {
+        audioEnabled = getReceiveAttribute(attributeMedia.at(i + 1), true);
+      }
+      else if (attributeMedia.at(i + 1).type == "video")
+      {
+        videoEnabled = getReceiveAttribute(attributeMedia.at(i + 1), true);
+      }
 
-    uiMedias.push_back({videoEnabled, audioEnabled, states_[sessionID].name});
+      uiMedias.push_back({videoEnabled, audioEnabled, states_[sessionID].name});
+    }
   }
 
   QString videoState = "no";
