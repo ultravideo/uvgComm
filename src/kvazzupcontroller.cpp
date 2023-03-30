@@ -462,7 +462,7 @@ void KvazzupController::createCall(uint32_t sessionID)
     uiMedias = formUIMedias(localSDP->media, remoteSDP->media, sessionID);
   }
 
-  VideoInterface* video = userInterface_.callStarted(sessionID, uiMedias);
+  std::vector<VideoInterface*> videos = userInterface_.callStarted(sessionID, uiMedias);
 
   if (!states_[sessionID].sessionRunning)
   {
@@ -471,7 +471,7 @@ void KvazzupController::createCall(uint32_t sessionID)
       stats_->addSession(sessionID);
     }
 
-    media_.addParticipant(sessionID, remoteSDP, localSDP, video,
+    media_.addParticipant(sessionID, remoteSDP, localSDP, videos,
                           states_[sessionID].iceController,
                           states_[sessionID].followOurSDP);
 
@@ -479,7 +479,7 @@ void KvazzupController::createCall(uint32_t sessionID)
    }
   else
   {
-    media_.modifyParticipant(sessionID, remoteSDP, localSDP, video,
+    media_.modifyParticipant(sessionID, remoteSDP, localSDP, videos,
                              states_[sessionID].iceController,
                              states_[sessionID].followOurSDP);
   }

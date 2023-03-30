@@ -228,7 +228,7 @@ void CallWindow::closeEvent(QCloseEvent *event)
 }
 
 
-VideoInterface *CallWindow::callStarted(uint32_t sessionID,
+std::vector<VideoInterface*> CallWindow::callStarted(uint32_t sessionID,
                                         QList<SDPMediaParticipant>& medias)
 {
   ui_->EndCallButton->setEnabled(true);
@@ -241,6 +241,8 @@ VideoInterface *CallWindow::callStarted(uint32_t sessionID,
   {
     layoutIDs_[sessionID].push_back(conference_.createLayoutID());
   }
+
+  std::vector<VideoInterface*> interfaces;
 
   // change the contents of layouts to medias
   for (unsigned int i = 0; i < medias.size(); ++i)
@@ -256,9 +258,10 @@ VideoInterface *CallWindow::callStarted(uint32_t sessionID,
     }
 
     viewFactory_->getVideo(layoutID)->drawMicOffIcon(!medias.at(i).audioEnabled);
+    interfaces.push_back(viewFactory_->getVideo(layoutID));
   }
 
-  return viewFactory_->getVideo(sessionID); // TODO: LayoutID
+  return interfaces;
 }
 
 

@@ -50,11 +50,11 @@ public:
   void registerContact(in_addr ip);
 
   void addParticipant(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo,
-                      const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView,
+                      const std::shared_ptr<SDPMessageInfo> localInfo, std::vector<VideoInterface*> videoView,
                       bool iceController, bool followOurSDP);
 
   void modifyParticipant(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo,
-                         const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView,
+                         const std::shared_ptr<SDPMessageInfo> localInfo, std::vector<VideoInterface*> videoView,
                          bool iceController, bool followOurSDP);
 
   void removeParticipant(uint32_t sessionID);
@@ -123,7 +123,7 @@ private:
     std::shared_ptr<SDPMessageInfo> localInfo;
     std::shared_ptr<SDPMessageInfo> peerInfo;
 
-    VideoInterface* videoView;
+    std::vector<VideoInterface*> videoViews;
     bool followOurSDP;
   };
 

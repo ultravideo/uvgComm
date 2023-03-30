@@ -86,7 +86,7 @@ void MediaManager::uninit()
 void MediaManager::addParticipant(uint32_t sessionID,
                                   std::shared_ptr<SDPMessageInfo> peerInfo,
                                   const std::shared_ptr<SDPMessageInfo> localInfo,
-                                  VideoInterface* videoView, bool iceController, bool followOurSDP)
+                                  std::vector<VideoInterface *> videoView, bool iceController, bool followOurSDP)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
   if (!sessionChecks(peerInfo, localInfo))
@@ -129,7 +129,7 @@ void MediaManager::addParticipant(uint32_t sessionID,
 void MediaManager::modifyParticipant(uint32_t sessionID,
                                   std::shared_ptr<SDPMessageInfo> peerInfo,
                                   const std::shared_ptr<SDPMessageInfo> localInfo,
-                                  VideoInterface* videoView, bool iceController, bool followOurSDP)
+                                  std::vector<VideoInterface *> videoView, bool iceController, bool followOurSDP)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
   if (!sessionChecks(peerInfo, localInfo))
@@ -156,7 +156,7 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
   {
     participants_[sessionID].localInfo = localInfo;
     participants_[sessionID].peerInfo = peerInfo;
-    participants_[sessionID].videoView = videoView;
+    participants_[sessionID].videoViews = videoView;
     participants_[sessionID].followOurSDP = followOurSDP;
 
     // each media has its own separate ICE
@@ -179,7 +179,7 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     for (unsigned int i = 0; i < localInfo->media.size(); ++i)
     {
       createMediaPair(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                      videoView, followOurSDP);
+                      videoView.front(), followOurSDP);
     }
   }
 }
@@ -397,7 +397,7 @@ void MediaManager::iceSucceeded(uint32_t sessionID, MediaInfo local, MediaInfo r
                                    {QString::number(sessionID)});
 
   createMediaPair(sessionID, local, remote,
-                  participants_[sessionID].videoView,
+                  participants_[sessionID].videoViews.front(),
                   participants_[sessionID].followOurSDP);
 }
 

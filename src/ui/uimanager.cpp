@@ -50,13 +50,13 @@ void UIManager::init(ParticipantInterface *partInt)
                    this,           &UIManager::updateAutomaticSettings);
 
   QObject::connect(&window_, &CallWindow::videoSourceChanged,
-                   this, &UIManager::videoSourceChanged);
+                   this,     &UIManager::videoSourceChanged);
 
   QObject::connect(&window_, &CallWindow::audioSourceChanged,
-                   this, &UIManager::audioSourceChanged);
+                   this,     &UIManager::audioSourceChanged);
 
   QObject::connect(&window_, &CallWindow::openSettings,
-                   this, &UIManager::showSettings);
+                   this,     &UIManager::showSettings);
 
   QObject::connect(&window_, &CallWindow::closed,
                    this,     &UIManager::quit);
@@ -131,7 +131,7 @@ void UIManager::displayIncomingCall(uint32_t sessionID, QString caller)
 
 
 // adds video stream to view
-VideoInterface* UIManager::callStarted(uint32_t sessionID,
+std::vector<VideoInterface*> UIManager::callStarted(uint32_t sessionID,
                                        QList<SDPMediaParticipant> &medias)
 {
   return window_.callStarted(sessionID, medias);

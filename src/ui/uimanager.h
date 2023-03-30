@@ -37,7 +37,7 @@ public:
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  VideoInterface* callStarted(uint32_t sessionID,
+  std::vector<VideoInterface *> callStarted(uint32_t sessionID,
                               QList<SDPMediaParticipant>& medias);
 
   // removes caller from view
