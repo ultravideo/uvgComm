@@ -156,7 +156,7 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
   {
     participants_[sessionID].localInfo = localInfo;
     participants_[sessionID].peerInfo = peerInfo;
-    participants_[sessionID].videoViews = videoView;
+    participants_[sessionID].freeViews = videoView;
     participants_[sessionID].followOurSDP = followOurSDP;
 
     // each media has its own separate ICE
@@ -396,8 +396,15 @@ void MediaManager::iceSucceeded(uint32_t sessionID, MediaInfo local, MediaInfo r
   Logger::getLogger()->printNormal(this, "ICE nomination has succeeded", {"SessionID"},
                                    {QString::number(sessionID)});
 
+  VideoInterface* view = nullptr;
+
+  if (local.type == "video")
+  {
+    view = reserveView(participants_[sessionID]);
+  }
+
   createMediaPair(sessionID, local, remote,
-                  participants_[sessionID].videoViews.front(),
+                  view,
                   participants_[sessionID].followOurSDP);
 }
 
@@ -499,4 +506,28 @@ bool MediaManager::sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
   }
 
   return true;
+}
+
+
+VideoInterface* MediaManager::reserveView(ParticipantMedia& media)
+{
+  if (media.freeViews.empty())
+  {
+    return nullptr;
+  }
+
+  VideoInterface* video = media.freeViews.back();
+  media.freeViews.pop_back();
+  media.reservedViews.push_back(video);
+
+  return video;
+}
+
+
+void MediaManager::freeViews(ParticipantMedia& media)
+{
+  media.freeViews.insert(media.freeViews.end(),
+                         media.reservedViews.begin(),
+                         media.reservedViews.end());
+  media.reservedViews.clear();
 }

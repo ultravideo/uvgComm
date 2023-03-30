@@ -34,6 +34,18 @@ class VideoInterface;
 
 typedef int16_t PeerID;
 
+
+struct ParticipantMedia
+{
+  std::unique_ptr<ICE> ice;
+  std::shared_ptr<SDPMessageInfo> localInfo;
+  std::shared_ptr<SDPMessageInfo> peerInfo;
+
+  std::vector<VideoInterface*> freeViews;
+  std::vector<VideoInterface*> reservedViews;
+  bool followOurSDP;
+};
+
 class MediaManager : public QObject
 {
   Q_OBJECT
@@ -117,15 +129,8 @@ private:
   bool sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
                      const std::shared_ptr<SDPMessageInfo> localInfo) const;
 
-  struct ParticipantMedia
-  {
-    std::unique_ptr<ICE> ice;
-    std::shared_ptr<SDPMessageInfo> localInfo;
-    std::shared_ptr<SDPMessageInfo> peerInfo;
-
-    std::vector<VideoInterface*> videoViews;
-    bool followOurSDP;
-  };
+  VideoInterface* reserveView(ParticipantMedia& media);
+  void freeViews(ParticipantMedia& media);
 
   StatisticsInterface* stats_;
 
