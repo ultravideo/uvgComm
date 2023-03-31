@@ -105,6 +105,7 @@ private:
 
   QList<SDPMediaParticipant> formUIMedias(QList<MediaInfo>& localMedia,
                                           QList<MediaInfo> &attributeMedia,
+                                          bool followOurSDP,
                                           uint32_t sessionID);
 
   bool areWeFocus() const

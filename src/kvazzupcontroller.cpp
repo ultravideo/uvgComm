@@ -454,12 +454,14 @@ void KvazzupController::createCall(uint32_t sessionID)
   if (states_[sessionID].followOurSDP)
   {
     Logger::getLogger()->printNormal(this, "Creating call using attributes from our SDP");
-    uiMedias = formUIMedias(localSDP->media, localSDP->media, sessionID);
+    uiMedias = formUIMedias(localSDP->media, localSDP->media,
+                            states_[sessionID].followOurSDP, sessionID);
   }
   else
   {
     Logger::getLogger()->printNormal(this, "Creating call using attributes from remote SDP");
-    uiMedias = formUIMedias(localSDP->media, remoteSDP->media, sessionID);
+    uiMedias = formUIMedias(localSDP->media, remoteSDP->media,
+                            states_[sessionID].followOurSDP, sessionID);
   }
 
   std::vector<VideoInterface*> videos = userInterface_.callStarted(sessionID, uiMedias);
@@ -492,6 +494,7 @@ void KvazzupController::createCall(uint32_t sessionID)
 
 QList<SDPMediaParticipant> KvazzupController::formUIMedias(QList<MediaInfo>& localMedia,
                                                            QList<MediaInfo>& attributeMedia,
+                                                           bool followOurSDP,
                                                            uint32_t sessionID)
 {
   bool videoEnabled = false;
@@ -507,20 +510,20 @@ QList<SDPMediaParticipant> KvazzupController::formUIMedias(QList<MediaInfo>& loc
     {
       if (attributeMedia.at(i).type == "audio")
       {
-        audioEnabled = getReceiveAttribute(attributeMedia.at(i), true);
+        audioEnabled = getReceiveAttribute(attributeMedia.at(i), followOurSDP);
       }
       else if (attributeMedia.at(i).type == "video")
       {
-        videoEnabled = getReceiveAttribute(attributeMedia.at(i), true);
+        videoEnabled = getReceiveAttribute(attributeMedia.at(i), followOurSDP);
       }
 
       if (attributeMedia.at(i + 1).type == "audio")
       {
-        audioEnabled = getReceiveAttribute(attributeMedia.at(i + 1), true);
+        audioEnabled = getReceiveAttribute(attributeMedia.at(i + 1), followOurSDP);
       }
       else if (attributeMedia.at(i + 1).type == "video")
       {
-        videoEnabled = getReceiveAttribute(attributeMedia.at(i + 1), true);
+        videoEnabled = getReceiveAttribute(attributeMedia.at(i + 1), followOurSDP);
       }
 
       uiMedias.push_back({videoEnabled, audioEnabled, states_[sessionID].name});
