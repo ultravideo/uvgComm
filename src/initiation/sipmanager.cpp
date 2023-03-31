@@ -169,6 +169,7 @@ void SIPManager::uninit()
   }
 
   dialogs_.clear();
+  sdpConf_->uninit();
   nextSessionID_ = FIRSTSESSIONID;
 }
 
@@ -937,6 +938,8 @@ void SIPManager::removeDialog(uint32_t sessionID)
   {
     nextSessionID_ = FIRSTSESSIONID;
   }
+
+  sdpConf_->removeRemoteSDP(sessionID);
 }
 
 

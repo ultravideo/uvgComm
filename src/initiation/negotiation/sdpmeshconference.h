@@ -16,6 +16,8 @@ class SDPMeshConference
 public:
   SDPMeshConference();
 
+  void uninit();
+
   void setConferenceMode(MeshType type);
 
   void addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp);
@@ -39,10 +41,4 @@ private:
    * the ports are update whenever a new participant joins.
    * Key: sessionID */
   std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> singleSDPTemplates_;
-
-
-  /* Collection of SDPs ready to be sent. Each new participant both adds
-   * their conference SDP here and also adds their media to existing ones.
-   * Key: sessionID */
-  std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> generatedSDPs_;
 };

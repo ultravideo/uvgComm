@@ -15,6 +15,11 @@ void SDPMeshConference::setConferenceMode(MeshType type)
   type_ = type;
 }
 
+void SDPMeshConference::uninit()
+{
+  singleSDPTemplates_.clear();
+}
+
 
 void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp)
 {
