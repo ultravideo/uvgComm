@@ -152,7 +152,10 @@ void ConferenceView::attachOutgoingCallWidget(uint32_t layoutID, QString name)
 
 void ConferenceView::attachRingingWidget(uint32_t layoutID)
 {
-  activeViews_[layoutID]->out->StatusLabel->setText("Call is ringing ...");
+  if(activeViews_[layoutID]->out)
+  {
+    activeViews_[layoutID]->out->StatusLabel->setText("Call is ringing ...");
+  }
 }
 
 

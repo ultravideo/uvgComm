@@ -333,14 +333,15 @@ void KvazzupController::processRINGING(uint32_t sessionID)
   // to make sure the original request has been received
 
   if(states_.find(sessionID) != states_.end() &&
-     states_[sessionID].state == CALL_INVITE_SENT)
+     states_[sessionID].state == CALL_INVITE_SENT &&
+     !states_[sessionID].sessionRunning)
   {
     Logger::getLogger()->printNormal(this, "Our call is ringing");
     userInterface_.displayRinging(sessionID);
   }
   else
   {
-    Logger::getLogger()->printPeerError(this, "Got call ringing for nonexisting call",
+    Logger::getLogger()->printPeerError(this, "Got invalid ringing reply",
                   {"SessionID"}, {QString::number(sessionID)});
   }
 }
