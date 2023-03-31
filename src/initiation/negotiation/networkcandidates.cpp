@@ -511,22 +511,25 @@ void NetworkCandidates::moreSTUNCandidates()
     {
       int stunPort = settingValue(SettingsKey::sipSTUNPort);
 
-      if (stunPort != 0 && stunFailureList_.find(interface.first) == stunFailureList_.end())
+      if (stunPort != 0)
       {
-        // use 0 as STUN sessionID
-        uint16_t nextPort = nextAvailablePort(interface.first, 0);
-
-        if (nextPort != 0)
+        if (stunFailureList_.find(interface.first) == stunFailureList_.end())
         {
-          if (!sendSTUNserverRequest(QHostAddress(interface.first), nextPort,
-                                    stunServerIP_,                 stunPort))
+          // use 0 as STUN sessionID
+          uint16_t nextPort = nextAvailablePort(interface.first, 0);
+
+          if (nextPort != 0)
+          {
+            if (!sendSTUNserverRequest(QHostAddress(interface.first), nextPort,
+                                       stunServerIP_,                 stunPort))
+            {
+              stunFailureList_.insert(interface.first);
+            }
+          }
+          else
           {
             stunFailureList_.insert(interface.first);
           }
-        }
-        else
-        {
-          stunFailureList_.insert(interface.first);
         }
       }
       else
