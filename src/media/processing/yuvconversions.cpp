@@ -857,7 +857,7 @@ void half_rgb(uint8_t* input, uint8_t* output, uint16_t width, uint16_t height)
     for (int x = 0; x < width; x += 2)
     {
       int rgb_x = 4*x;
-      output[new_rgb_row*y/2 + rgb_x/2 + 0]     = input[y*old_rgb_row + rgb_x];
+      output[new_rgb_row*y/2 + rgb_x/2 + 0] = input[y*old_rgb_row + rgb_x];
       output[new_rgb_row*y/2 + rgb_x/2 + 1] = input[y*old_rgb_row + rgb_x + 1];
       output[new_rgb_row*y/2 + rgb_x/2 + 2] = input[y*old_rgb_row + rgb_x + 2];
       output[new_rgb_row*y/2 + rgb_x/2 + 3] = input[y*old_rgb_row + rgb_x + 3];

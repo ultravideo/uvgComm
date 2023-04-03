@@ -38,6 +38,7 @@
 #include <QSettings>
 #include <QFile>
 #include <QTextStream>
+#include <QAudioFormat>
 
 #include <chrono>
 #include <thread>
@@ -979,10 +980,7 @@ QAudioFormat FilterGraph::createAudioFormat(uint8_t channels, uint32_t sampleRat
 
   format.setSampleRate(sampleRate);
   format.setChannelCount(channels);
-  format.setSampleSize(16);
-  format.setSampleType(QAudioFormat::SignedInt);
-  format.setByteOrder(QAudioFormat::LittleEndian);
-  format.setCodec("audio/pcm");
+  format.setSampleFormat(QAudioFormat::Int16);
 
   return format;
 }

@@ -1,16 +1,14 @@
 #include "camerafilter.h"
 
-#include "cameraframegrabber.h"
 #include "statisticsinterface.h"
 
 #include "settingskeys.h"
-
-#include "common.h"
 #include "logger.h"
 
 #include <QSettings>
-#include <QtMultimedia/QCameraInfo>
 #include <QTime>
+#include <QMediaDevices>
+#include <QVideoSink>
 
 #include <chrono>
 #include <thread>
@@ -20,7 +18,6 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
                            std::shared_ptr<ResourceAllocator> hwResources):
   Filter(id, "Camera", stats, hwResources, DT_NONE, DT_RGB32VIDEO),
   camera_(nullptr),
-  cameraFrameGrabber_(nullptr),
   framerateNumerator_(0),
   framerateDenominator_(0),
   currentDeviceName_(""),
@@ -36,10 +33,6 @@ CameraFilter::~CameraFilter()
   if (camera_ != nullptr)
   {
     delete camera_;
-  }
-  if(cameraFrameGrabber_ != nullptr)
-  {
-    delete cameraFrameGrabber_;
   }
 }
 
@@ -83,12 +76,6 @@ void CameraFilter::uninit()
     delete camera_;
     camera_ = nullptr;
   }
-
-  if (cameraFrameGrabber_ != nullptr)
-  {
-    delete cameraFrameGrabber_;
-    cameraFrameGrabber_ = nullptr;
-  }
 }
 
 
@@ -109,7 +96,7 @@ void CameraFilter::run()
 
 bool CameraFilter::initialCameraSetup()
 {
-  QList<QCameraInfo> cameras = QCameraInfo::availableCameras();
+  const QList<QCameraDevice> cameras = QMediaDevices::videoInputs();
 
   if(cameras.size() == 0)
   {
@@ -155,11 +142,7 @@ bool CameraFilter::initialCameraSetup()
   if (currentDeviceID_ != -1 && currentDeviceID_ < cameras.size())
   {
     camera_ = new QCamera(cameras.at(currentDeviceID_));
-    cameraFrameGrabber_ = new CameraFrameGrabber();
 
-#ifndef __linux__
-    camera_->load();
-#endif
     return true;
   }
 
@@ -169,17 +152,16 @@ bool CameraFilter::initialCameraSetup()
 
 bool CameraFilter::cameraSetup()
 {
-  Q_ASSERT(camera_ && cameraFrameGrabber_);
+  Q_ASSERT(camera_);
 
-  if (camera_ && cameraFrameGrabber_)
+  if (camera_)
   {
     QSettings settings(settingsFile, settingsFileFormat);
 
-#ifndef __linux__
     int waitRoundMS = 5;
     int totalWaitTime = 1000;
     int currentWaitTime = 0;
-    while(camera_->state() != QCamera::LoadedState)
+    while(!camera_->isAvailable())
     {
       std::this_thread::sleep_for(std::chrono::milliseconds(waitRoundMS));
       currentWaitTime += waitRoundMS;
@@ -189,97 +171,66 @@ bool CameraFilter::cameraSetup()
         return false;
       }
     }
-#endif
 
-    camera_->setViewfinder(cameraFrameGrabber_);
+    QObject::connect(&sink_, &QVideoSink::videoFrameChanged,
+                     this, &CameraFilter::handleFrame);
 
-    connect(cameraFrameGrabber_, SIGNAL(frameAvailable(QVideoFrame)), this, SLOT(handleFrame(QVideoFrame)));
-
-    QCameraViewfinderSettings viewSettings = camera_->viewfinderSettings();
+    capture_.setVideoSink(&sink_);
+    capture_.setCamera(camera_);
 
     currentInputFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
-
-    if(currentInputFormat_ == "MJPG")
-    {
-      viewSettings.setPixelFormat(QVideoFrame::Format_Jpeg);
-      output_ = DT_RGB32VIDEO;
-    }
-    else if(currentInputFormat_ == "RGB32")
-    {
-      viewSettings.setPixelFormat(QVideoFrame::Format_RGB32);
-      output_ = DT_RGB32VIDEO;
-    }
-    else if(currentInputFormat_ == "YUV420P")
-    {
-      viewSettings.setPixelFormat(QVideoFrame::Format_YUV420P);
-      output_ = DT_YUV420VIDEO;
-    }
-    else if(currentInputFormat_ == "YUYV")
-    {
-      viewSettings.setPixelFormat(QVideoFrame::Format_YUYV);
-      output_ = DT_YUYVVIDEO;
-    }
-    else
-    {
-      Logger::getLogger()->printError(this, "Input format not supported", 
-                                      {"Format"}, {currentInputFormat_});
-      viewSettings.setPixelFormat(QVideoFrame::Format_Invalid);
-      output_ = DT_NONE;
-      return false;
-    }
-
-#ifndef __linux__
-    QList<QSize> resolutions = camera_->supportedViewfinderResolutions(viewSettings);
-
     currentResolutionID_ = settings.value(SettingsKey::videoResolutionID).toInt();
-    if(resolutions.size() > currentResolutionID_ && !resolutions.empty())
-    {
-      QSize resolution = resolutions.at(currentResolutionID_);
-      viewSettings.setResolution(QSize(resolution.width(),
-                                       resolution.height()));
-    }
-    else {
-      viewSettings.setResolution(QSize(0,0));
-    }
-#else
-    viewSettings.setResolution(QSize(640, 480));
-#endif
-
-    QList<QCamera::FrameRateRange> framerates = camera_->supportedViewfinderFrameRateRanges(viewSettings);
 
     currentFramerateID_ = settings.value(SettingsKey::videoFramerateID).toInt();
     framerateNumerator_ = settings.value(SettingsKey::videoFramerateNumerator).toInt();
     framerateDenominator_ = settings.value(SettingsKey::videoFramerateDenominator).toInt();
 
-#ifndef __linux__
-    if (!framerates.empty())
+    QVideoFrameFormat::PixelFormat format = convertFormat(currentInputFormat_);
+    QList<QCameraFormat> options = camera_->cameraDevice().videoFormats();
+
+    QList<QSize> supportedResolutions;
+    QList<int> framerates;
+
+    QCameraFormat selectedOption;
+
+    bool foundOption = false;
+    for (auto& formatOption : options)
     {
-      if(currentFramerateID_ < framerates.size() && currentFramerateID_ >= 0)
+
+      if (formatOption.pixelFormat() == format)
       {
-        viewSettings.setMaximumFrameRate(framerates.at(currentFramerateID_).maximumFrameRate);
-        viewSettings.setMinimumFrameRate(framerates.at(currentFramerateID_).minimumFrameRate);
-      }
-      else {
-        viewSettings.setMaximumFrameRate(framerates.back().maximumFrameRate);
-        viewSettings.setMinimumFrameRate(framerates.back().minimumFrameRate);
+        if (!supportedResolutions.contains(formatOption.resolution()))
+        {
+            supportedResolutions.push_back(formatOption.resolution());
+        }
+
+        if (supportedResolutions.size() - 1 == currentResolutionID_)
+        {
+          framerates.push_back(formatOption.maxFrameRate());
+
+          if (framerates.size() - 1 == currentFramerateID_)
+          {
+              Logger::getLogger()->printNormal(this, "Found camera option");
+              selectedOption = formatOption;
+              foundOption = true;
+          }
+        }
       }
     }
-#else
-    viewSettings.setMaximumFrameRate(30);
-    viewSettings.setMinimumFrameRate(30);
-#endif
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Using the following camera settings.",
-               {"Format", "Resolution", "Framerate"}, {currentInputFormat_,
-               QString::number(viewSettings.resolution().width()) + "x" + QString::number(viewSettings.resolution().height()),
-               QString::number(viewSettings.minimumFrameRate()) + " to " + QString::number(viewSettings.maximumFrameRate())});
+    if (!options.empty())
+    {
+      if (!foundOption)
+      {
+        camera_->setCameraFormat(options.first());
+      }
+      else
+      {
+        camera_->setCameraFormat(selectedOption);
+      }
+    }
 
-    getStats()->videoInfo(viewSettings.maximumFrameRate(),
-                          viewSettings.resolution());
-
-    camera_->setViewfinderSettings(viewSettings);
     camera_->start();
-
     Logger::getLogger()->printImportant(this, "Starting camera.");
   }
   else
@@ -287,6 +238,41 @@ bool CameraFilter::cameraSetup()
     return false;
   }
   return true;
+}
+
+QVideoFrameFormat::PixelFormat CameraFilter::convertFormat(QString formatString)
+{
+  if (currentInputFormat_ == "RGB24")
+  {
+    output_ = DT_RGB32VIDEO;
+    return QVideoFrameFormat::Format_RGBX8888;
+  }
+  else if (currentInputFormat_ == "RGB32")
+  {
+    output_ = DT_RGB32VIDEO;
+    return QVideoFrameFormat::Format_RGBA8888;
+  }
+  if(currentInputFormat_ == "MJPG")
+  {
+    output_ = DT_RGB32VIDEO;
+    return QVideoFrameFormat::Format_Jpeg;
+  }
+  else if(currentInputFormat_ == "YUV420P")
+  {
+    output_ = DT_YUV420VIDEO;
+    return QVideoFrameFormat::Format_YUV420P;
+  }
+  else if(currentInputFormat_ == "YUYV")
+  {
+    output_ = DT_YUYVVIDEO;
+    return QVideoFrameFormat::Format_YUYV;
+  }
+
+  Logger::getLogger()->printError(this, "Input format not supported",
+                                  {"Format"}, {currentInputFormat_});
+  output_ = DT_NONE;
+
+  return QVideoFrameFormat::Format_Invalid;
 }
 
 
@@ -313,7 +299,14 @@ void CameraFilter::stop()
 void CameraFilter::handleFrame(const QVideoFrame &frame)
 {
   frameMutex_.lock();
-  frames_.push_back(frame);
+  if (frame.planeCount() == 1)
+  {
+    frames_.push_back(frame);
+  }
+  else
+  {
+    Logger::getLogger()->printUnimplemented(this, "Video frame has more than one plane");
+  }
   frameMutex_.unlock();
   wakeUp();
 }
@@ -334,19 +327,27 @@ void CameraFilter::process()
     frames_.pop_front();
     frameMutex_.unlock();
 
+    if (frame.pixelFormat() == QVideoFrameFormat::Format_Jpeg)
+    {
+      Logger::getLogger()->printWarning(this, "Unsupported frame format");
+      return;
+    }
+
+
     // capture the frame data
     std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
     newImage->presentationTime = QDateTime::currentMSecsSinceEpoch();
     newImage->type = output_;
 
     QVideoFrame cloneFrame(frame);
-    cloneFrame.map(QAbstractVideoBuffer::ReadOnly);
+    cloneFrame.map(QVideoFrame::ReadOnly);
 
-    newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes()]);
-    uchar *bits = cloneFrame.bits();
+    int plane = 0;
+    newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes(plane)]);
+    uchar *bits = cloneFrame.bits(plane);
 
-    memcpy(newImage->data.get(), bits, cloneFrame.mappedBytes());
-    newImage->data_size = cloneFrame.mappedBytes();
+    memcpy(newImage->data.get(), bits, cloneFrame.mappedBytes(plane));
+    newImage->data_size = cloneFrame.mappedBytes(plane);
 
     // kvazaar requires divisable by 8 resolution
     newImage->vInfo->width = cloneFrame.width() - cloneFrame.width()%8;
@@ -354,6 +355,14 @@ void CameraFilter::process()
     newImage->vInfo->framerateNumerator = framerateNumerator_;
     newImage->vInfo->framerateDenominator = framerateDenominator_;
 
+/*
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Captured frame",
+                                    {"Width", "Height", "data size"},
+                                    {QString::number(newImage->vInfo->width),
+                                     QString::number(newImage->vInfo->height),
+                                     QString::number(newImage->data_size)});
+
+*/
     cloneFrame.unmap();
 
     Q_ASSERT(newImage->data);

@@ -3,22 +3,21 @@
 #include "statisticsinterface.h"
 #include "audioframebuffer.h"
 
-#include "common.h"
 #include "settingskeys.h"
 #include "global.h"
 #include "logger.h"
 
-#include <QtMultimedia/QAudioInput>
+#include <QAudioSource>
 #include <QTime>
 #include <QSettings>
 #include <QRegularExpression>
+#include <QMediaDevices>
 
 
 AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format,
                                        StatisticsInterface *stats,
                                        std::shared_ptr<ResourceAllocator> hwResources):
   Filter(id, "Audio_Capture", stats, hwResources, DT_NONE, DT_RAWAUDIO),
-  deviceInfo_(),
   format_(format),
   audioInput_(nullptr),
   input_(nullptr),
@@ -41,8 +40,7 @@ bool AudioCaptureFilter::init()
 {
   Logger::getLogger()->printNormal(this, "Initializing audio capture filter.");
 
-  QList<QAudioDeviceInfo> microphones = QAudioDeviceInfo::availableDevices(QAudio::AudioInput);
-
+  const QList<QAudioDevice> microphones = QMediaDevices::audioInputs();
   if (!microphones.empty())
   {
     QSettings settings(settingsFile, settingsFileFormat);
@@ -58,10 +56,11 @@ bool AudioCaptureFilter::init()
 
     if (deviceID < microphones.size())
     {
-      QString parsedName = microphones[deviceID].deviceName();
+      QString parsedName = microphones[deviceID].description();
+
       // take only the device name from: "Microphone (device name)"
       QRegularExpression re_mic (".*\\((.+)\\).*");
-      QRegularExpressionMatch mic_match = re_mic.match(microphones[deviceID].deviceName());
+      QRegularExpressionMatch mic_match = re_mic.match(microphones[deviceID].description());
 
       if (mic_match.hasMatch() && mic_match.lastCapturedIndex() == 1)
       {
@@ -79,7 +78,7 @@ bool AudioCaptureFilter::init()
           {
             deviceID = i;
             Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found Mic.", {"Name", "ID"},
-                        {microphones.at(i).deviceName(), QString::number(deviceID)});
+                        {microphones.at(i).description(), QString::number(deviceID)});
             break;
           }
         }
@@ -89,22 +88,22 @@ bool AudioCaptureFilter::init()
         deviceID = 0;
       }
     }
-    deviceInfo_ = microphones.at(deviceID);
+
+    device_ = microphones.at(deviceID);
   }
   else
   {
     Logger::getLogger()->printWarning(this, "No available microphones found. Trying default.");
-    deviceInfo_ = QAudioDeviceInfo::defaultInputDevice();
+    device_ = QMediaDevices ::defaultAudioInput();
   }
 
-  QAudioDeviceInfo info(deviceInfo_);
+  QAudioDevice info(device_);
 
-  Logger::getLogger()->printNormal(this, "A microphone chosen.", {"Device name"}, {info.deviceName()});
+  Logger::getLogger()->printNormal(this, "A microphone chosen.", {"Device name"}, {info.description()});
 
   if (!info.isFormatSupported(format_)) {
-    Logger::getLogger()->printWarning(this, "Default audio format not supported - "
-                                            "trying to use nearest");
-    format_ = info.nearestFormat(format_);
+    Logger::getLogger()->printError(this, "Audio settings not supported");
+    return false;
   }
 
   if(format_.sampleRate() != -1)
@@ -120,7 +119,7 @@ bool AudioCaptureFilter::init()
 
 void AudioCaptureFilter::createAudioInput()
 {
-  audioInput_ = new QAudioInput(deviceInfo_, format_, this);
+  audioInput_ = new QAudioSource(device_, format_, this);
   if (audioInput_)
   {
     // it is possible to reduce the buffer size here to reduce latency, but this
@@ -142,14 +141,15 @@ void AudioCaptureFilter::createAudioInput()
   }
   wantedState_ = QAudio::ActiveState;
 
-  connect(audioInput_, &QAudioInput::stateChanged,
+  connect(audioInput_, &QAudioSource::stateChanged,
           this,        &AudioCaptureFilter::stateChanged);
-
+/*
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created audio input",
              {"Notify interval", "Buffer size", "Period Size"},
              {QString::number(audioInput_->notifyInterval()),
               QString::number(audioInput_->bufferSize()),
               QString::number(audioInput_->periodSize())});
+*/
 }
 
 
@@ -169,9 +169,9 @@ void AudioCaptureFilter::readMore()
     createReadBuffer(audioInput_->bufferSize());
   }
 
-  while (audioInput_->bytesReady() >= audioInput_->periodSize())
+  while (audioInput_->bytesAvailable() >= 0)
   {
-    qint64 len = audioInput_->bytesReady();
+    qint64 len = audioInput_->bytesAvailable();
 
     if (len >= 3*micBufferSize/2)
     {
@@ -190,8 +190,8 @@ void AudioCaptureFilter::readMore()
 
     if (readData == 0)
     {
-      Logger::getLogger()->printWarning(this, "Failed to read any data",
-      {"Bytes attempted"}, {QString::number(len)});
+      //Logger::getLogger()->printWarning(this, "Failed to read any data",
+      //{"Bytes attempted"}, {QString::number(len)});
       break;
     }
     else if (readData == -1)
@@ -224,10 +224,10 @@ void AudioCaptureFilter::readMore()
         --muteSamples_;
       }
 
-      sendOutput(std::move(audioFrame));
-
       //Logger::getLogger()->printNormal(this, "sent forward audio sample", {"Size"},
-      //            {QString::number(audioFrame->data_size)});
+      //                                 {QString::number(audioFrame->data_size)});
+
+      sendOutput(std::move(audioFrame));
 
       frame = buffer_->readFrame();
     }

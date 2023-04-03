@@ -1,8 +1,7 @@
 #include "videoviewfactory.h"
 
 #include "ui/gui/videowidget.h"
-#include "ui/gui/videoglwidget.h"
-#include "ui/gui/videoyuvwidget.h"
+
 
 #include "common.h"
 #include "settingskeys.h"
@@ -115,26 +114,9 @@ void VideoviewFactory::createWidget(uint32_t sessionID)
 
   QWidget* parent = nullptr;
 
-  if(false && !opengl_) // YUV widget not working yet
-  {
-    VideoYUVWidget* yuv = new VideoYUVWidget(parent, sessionID);
-    vw = yuv;
-    video = yuv;
-
-    opengl_ = true;
-  }
-  else if(openGLEnabled)
-  {
-    VideoGLWidget* opengl = new VideoGLWidget(parent, sessionID);
-    vw = opengl;
-    video = opengl;
-  }
-  else
-  {
     VideoWidget* normal = new VideoWidget(parent, sessionID);
     vw = normal;
     video = normal;
-  }
 
   if (vw != nullptr && video != nullptr)
   {

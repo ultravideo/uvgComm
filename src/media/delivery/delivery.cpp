@@ -331,7 +331,7 @@ void Delivery::removeMediaStream(uint32_t sessionID, uint16_t localPort)
 {
   Logger::getLogger()->printNormal(this, "Removing mediastream");
 
-  peers_[sessionID]->session->destroy_stream(peers_[sessionID]->streams[localPort]->stream);
+  peers_[sessionID]->session->destroy_stream(peers_[sessionID]->streams[localPort]->stream.result());
   delete peers_[sessionID]->streams[localPort];
   peers_[sessionID]->streams[localPort] = nullptr;
   peers_[sessionID]->streams.erase(localPort);

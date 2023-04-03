@@ -628,8 +628,8 @@ void Settings::checkUUID()
     QUuid uuid = QUuid::createUuid();
     QString uuid_str = uuid.toString();
 
-    uuid = uuid_str.remove("{");
-    uuid = uuid_str.remove("}");
+    uuid_str = uuid_str.remove("{");
+    uuid_str = uuid_str.remove("}");
 
     settings_.setValue(SettingsKey::sipUUID, uuid_str);
 

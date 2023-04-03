@@ -80,7 +80,6 @@ SOURCES +=\
     src/media/processing/audiooutputdevice.cpp \
     src/media/processing/audiooutputfilter.cpp \
     src/media/processing/camerafilter.cpp \
-    src/media/processing/cameraframegrabber.cpp \
     src/media/processing/displayfilter.cpp \
     src/media/processing/dspfilter.cpp \
     src/media/processing/filter.cpp \
@@ -114,9 +113,9 @@ SOURCES +=\
     src/ui/gui/guimessage.cpp \
     src/ui/gui/statisticswindow.cpp \
     src/ui/gui/videodrawhelper.cpp \
-    src/ui/gui/videoglwidget.cpp \
+    #src/ui/gui/videoglwidget.cpp \
     src/ui/gui/videowidget.cpp \
-    src/ui/gui/videoyuvwidget.cpp \
+    #src/ui/gui/videoyuvwidget.cpp \
     src/ui/settings/audiosettings.cpp \
     src/ui/settings/automaticsettings.cpp \
     src/ui/settings/camerainfo.cpp \
@@ -178,7 +177,6 @@ HEADERS  += \
     src/media/processing/audiooutputdevice.h \
     src/media/processing/audiooutputfilter.h \
     src/media/processing/camerafilter.h \
-    src/media/processing/cameraframegrabber.h \
     src/media/processing/displayfilter.h \
     src/media/processing/dspfilter.h \
     src/media/processing/filter.h \
@@ -216,10 +214,10 @@ HEADERS  += \
     src/ui/gui/guimessage.h \
     src/ui/gui/statisticswindow.h \
     src/ui/gui/videodrawhelper.h \
-    src/ui/gui/videoglwidget.h \
+    #src/ui/gui/videoglwidget.h \
     src/ui/gui/videointerface.h \
     src/ui/gui/videowidget.h \
-    src/ui/gui/videoyuvwidget.h \
+    #src/ui/gui/videoyuvwidget.h \
     src/ui/settings/audiosettings.h \
     src/ui/settings/automaticsettings.h \
     src/ui/settings/camerainfo.h \
@@ -249,6 +247,10 @@ FORMS    += \
     ui/about.ui \
     ui/settings.ui \
     ui/videosettings.ui
+
+
+QT_MEDIA_BACKEND += windows
+
 
 QT += widgets
 QT += multimedia

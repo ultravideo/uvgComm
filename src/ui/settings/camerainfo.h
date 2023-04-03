@@ -45,6 +45,8 @@ public:
   QSize   getResolution(int deviceID, int formatID, int resolutionID);
   int     getFramerate(int deviceID, int formatID, int resolutionID, int framerateID);
 
+  QCameraFormat getVideoFormat(int deviceID, int formatID, int resolutionID, int framerateID);
+
   void getCameraOptions(std::vector<SettingsCameraFormat>& options, int deviceID);
 
 private:
@@ -57,7 +59,7 @@ private:
   QVideoFrame::PixelFormat stringToPixelFormat(QString format);
 #endif
 
-  void getAllowedFormats(QList<QVideoFrame::PixelFormat>& p_formats,
+  void getAllowedFormats(QList<QVideoFrameFormat::PixelFormat>& p_formats,
                          QStringList& allowedFormats);
 
   std::unique_ptr<QCamera> loadCamera(int deviceID);
