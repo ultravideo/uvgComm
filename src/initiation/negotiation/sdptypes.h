@@ -27,8 +27,8 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_PTIME,
                       A_MAXPTIME,
                       A_RTPMAP,
-                      A_GROUP,
-                      A_MID,
+                      A_GROUP, // see RFC 5888
+                      A_MID,   // see RFC 5888
                       A_ORIENT,
                       A_TYPE,
                       A_CHARSET,
@@ -38,7 +38,9 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_QUALITY,
                       A_FMTP,
                       A_CANDIDATE,
-                      A_LABEL}; // RFC 4574
+                      A_LABEL,    // RFC 4574
+                      A_ZRTP_HASH // RFC 6189
+                     };
 
 struct SDPAttribute
 {
@@ -59,6 +61,12 @@ struct RTPMap
   uint32_t clockFrequency;
   QString codec;
   QString codecParameter; // only for audio channel count
+};
+
+struct ZRTPHash
+{
+  QString version;
+  QString hash;
 };
 
 // SDP media info
@@ -87,6 +95,7 @@ struct MediaInfo
   QList<SDPAttribute> valueAttributes; // optional
   std::unordered_map<uint8_t, std::vector<FormatParameter>> fmtpAttributes; // optional
   QList<std::shared_ptr<ICEInfo>> candidates;
+  QList<ZRTPHash> zrtp;
 };
 
 struct TimeInfo

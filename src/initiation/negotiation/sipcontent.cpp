@@ -40,7 +40,7 @@ bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringL
                          QList<SDPAttributeType> &flags, QList<SDPAttribute> &parsedValues,
                          QList<RTPMap> &parsedCodecs,
                          std::unordered_map<uint8_t, std::vector<FormatParameter> > &parsedParameters,
-                         QList<std::shared_ptr<ICEInfo> > &candidates);
+                         QList<std::shared_ptr<ICEInfo> > &candidates, QList<ZRTPHash> &zrtp);
 bool parseSessionAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
                            QList<SDPAttributeType> &flags, QList<SDPAttribute> &parsedValues,
                            QList<MediaGroup> &groupings);
@@ -48,6 +48,7 @@ bool parseSessionAtributes(QStringListIterator &lineIterator, char &type, QStrin
 void parseRTPMap(QString value, QString secondWord, QList<RTPMap>& codecs);
 void parseGroup(QString value, QStringList& words, QList<MediaGroup>& groups);
 bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& candidates);
+bool parseZRTPHash(QStringList& words, QString& value, QList<ZRTPHash>& zrtp);
 void parseFormatParameters(QString value, QString secondWord,
                            std::unordered_map<uint8_t, std::vector<FormatParameter>>& parsedParameters);
 
@@ -233,6 +234,11 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
       }
 
       sdp += LINE_END;
+    }
+
+    for (auto& zhash : mediaStream.zrtp)
+    {
+      sdp += "a=zrtp-hash:" + zhash.version + " " + zhash.hash + LINE_END;
     }
   }
 
@@ -606,7 +612,8 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
                                sdp.media.back().valueAttributes,
                                sdp.media.back().rtpMaps,
                                sdp.media.back().fmtpAttributes,
-                               sdp.media.back().candidates))
+                               sdp.media.back().candidates,
+                               sdp.media.back().zrtp))
     {
       Logger::getLogger()->printError("SipContent", "Failed to parse some media fields");
       return false;
@@ -634,8 +641,11 @@ bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringL
                          QList<SDPAttributeType>& flags, QList<SDPAttribute>& parsedValues,
                          QList<RTPMap>& parsedCodecs,
                          std::unordered_map<uint8_t, std::vector<FormatParameter>>& parsedParameters,
-                         QList<std::shared_ptr<ICEInfo>>& candidates)
+                         QList<std::shared_ptr<ICEInfo>>& candidates,
+                         QList<ZRTPHash>& zrtp)
 {
+  bool rValue = true;
+
   while(type == 'a')
   {
     SDPAttributeType attribute = A_NO_ATTRIBUTE;
@@ -687,7 +697,12 @@ bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringL
       }
       case A_CANDIDATE: // RFC 8445
       {
-        parseICECandidate(words, candidates);
+        rValue = parseICECandidate(words, candidates);
+        break;
+      }
+      case A_ZRTP_HASH:
+      {
+        rValue = parseZRTPHash(words, value, zrtp);
         break;
       }
       default:
@@ -704,7 +719,7 @@ bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringL
     }
   }
 
-  return true;
+  return rValue;
 }
 
 
@@ -946,6 +961,20 @@ bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& cand
 }
 
 
+bool parseZRTPHash(QStringList& words, QString &value, QList<ZRTPHash>& zrtp)
+{
+  if (value == "" || words.size() != 2)
+  {
+    return false;
+  }
+
+  // value contains the zrtp version and the second word contains the hash
+  zrtp.push_back({value, words.at(1)});
+
+  return true;
+}
+
+
 bool parseAttributeTypeValue(QString word, SDPAttributeType& type, QString& value)
 {
   QRegularExpression re_attribute("(\\w+)(?::(\\S+))?");
@@ -1032,7 +1061,8 @@ SDPAttributeType stringToAttributeType(QString attribute)
     // attributes with (possibly) more than one value
     {"rtpmap",    A_RTPMAP},
     {"group",     A_GROUP}, // see RFC 5888
-    {"label",     A_LABEL}
+    {"label",     A_LABEL},
+    {"zrtp-hash", A_ZRTP_HASH}
   };
 
   if (xmap.find(attribute) == xmap.end())
@@ -1071,7 +1101,8 @@ QString attributeTypeToString(SDPAttributeType type)
     {A_PTIME,     "ptime"},
     {A_FMTP,      "fmtp"},
     {A_CANDIDATE, "candidate"},
-    {A_LABEL,     "label"}
+    {A_LABEL,     "label"},
+    {A_ZRTP_HASH, "zrtp-hash"}
   };
 
   if (xmap.find(type) == xmap.end())
