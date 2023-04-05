@@ -233,20 +233,20 @@ HEADERS  += \
     src/videoviewfactory.h
 
 FORMS    += \
-    ui/audiosettings.ui \
-    ui/automaticsettings.ui \
-    ui/callwindow.ui \
-    ui/conference/avatarholder.ui \
-    ui/conference/incomingcallwidget.ui \
-    ui/conference/outgoingcallwidget.ui \
-    ui/message/guimessage.ui \
-    ui/message/messagewidget.ui \
-    ui/message/stunmessage.ui \
-    ui/sipsettings.ui \
-    ui/statisticswindow.ui \
-    ui/about.ui \
-    ui/settings.ui \
-    ui/videosettings.ui
+    src/ui/gui/about.ui \
+    src/ui/gui/avatarholder.ui \
+    src/ui/gui/callwindow.ui \
+    src/ui/gui/guimessage.ui \
+    src/ui/gui/incomingcallwidget.ui \
+    src/ui/gui/messagewidget.ui \
+    src/ui/gui/outgoingcallwidget.ui \
+    src/ui/gui/statisticswindow.ui \
+    src/ui/settings/audiosettings.ui \
+    src/ui/settings/automaticsettings.ui \
+    src/ui/settings/settings.ui \
+    src/ui/settings/sipsettings.ui \
+    src/ui/settings/stunmessage.ui \
+    src/ui/settings/videosettings.ui
 
 
 QT_MEDIA_BACKEND += windows
