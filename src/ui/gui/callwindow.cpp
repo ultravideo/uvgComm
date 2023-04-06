@@ -80,12 +80,12 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   conference_.init(ui_->participantLayout, ui_->participants);
 
-  initButton(QDir::currentPath() + "/icons/add_contact.svg", QSize(60,60), QSize(35,35), ui_->addContact);
-  initButton(QDir::currentPath() + "/icons/settings.svg", QSize(60,60), QSize(35,35), ui_->settings_button);
-  initButton(QDir::currentPath() + "/icons/video_on.svg", QSize(60,60), QSize(35,35), ui_->camera);
-  initButton(QDir::currentPath() + "/icons/mic_on.svg", QSize(60,60), QSize(35,35), ui_->mic);
-  initButton(QDir::currentPath() + "/icons/end_call.svg", QSize(60,60), QSize(35,35), ui_->EndCallButton);
-  initButton(QDir::currentPath() + "/icons/screen_share.svg", QSize(60,60), QSize(35,35), ui_->screen_share);
+  initButton(":/icons/add_contact.svg",  QSize(60,60), QSize(35,35), ui_->addContact);
+  initButton(":/icons/settings.svg",     QSize(60,60), QSize(35,35), ui_->settings_button);
+  initButton(":/icons/video_on.svg",     QSize(60,60), QSize(35,35), ui_->camera);
+  initButton(":/icons/mic_on.svg",       QSize(60,60), QSize(35,35), ui_->mic);
+  initButton(":/icons/end_call.svg",     QSize(60,60), QSize(35,35), ui_->EndCallButton);
+  initButton(":/icons/screen_share.svg", QSize(60,60), QSize(35,35), ui_->screen_share);
 
   ui_->buttonContainer->layout()->setAlignment(ui_->end_call_holder, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->settings_button, Qt::AlignBottom);
@@ -220,12 +220,12 @@ void CallWindow::setMicState(bool on)
 {
   if(on)
   {
-    initButton(QDir::currentPath() + "/icons/mic_on.svg", QSize(60,60), QSize(35,35), ui_->mic);
+    initButton(":/icons/mic_on.svg", QSize(60,60), QSize(35,35), ui_->mic);
     //ui_->mic->setText("Mic off");
   }
   else
   {
-    initButton(QDir::currentPath() + "/icons/mic_off.svg", QSize(60,60), QSize(35,35), ui_->mic);
+    initButton(":/icons/mic_off.svg", QSize(60,60), QSize(35,35), ui_->mic);
     //ui_->mic->setText("Mic on");
   }
 }
@@ -235,13 +235,11 @@ void CallWindow::setCameraState(bool on)
 {
   if(on)
   {
-    initButton(QDir::currentPath() + "/icons/video_on.svg",
-               QSize(60,60), QSize(35,35), ui_->camera);
+    initButton(":/icons/video_on.svg", QSize(60,60), QSize(35,35), ui_->camera);
   }
   else
   {
-    initButton(QDir::currentPath() + "/icons/video_off.svg",
-               QSize(60,60), QSize(35,35), ui_->camera);
+    initButton(":/icons/video_off.svg", QSize(60,60), QSize(35,35), ui_->camera);
   }
 
   if (on)

@@ -249,6 +249,24 @@ FORMS    += \
     src/ui/settings/videosettings.ui
 
 
+resources.files = \
+    icons/add_contact.svg \
+    icons/add_to_call.svg \
+    icons/avatar.svg \
+    icons/start_call.svg \
+    icons/end_call.svg \
+    icons/settings.svg \
+    icons/screen_share.svg \
+    icons/video_on.svg \
+    icons/video_off.svg \
+    icons/mic_on.svg \
+    icons/mic_off.svg \
+    stylesheet.qss \
+    fonts/OpenSans-Regular.ttf
+resources.prefix = /
+
+RESOURCES = resources
+
 QT += widgets
 QT += multimedia
 QT += multimediawidgets
@@ -359,9 +377,9 @@ DEPENDPATH += $$PWD/../
 
 
 # copy assets to build folder so we have them when running from QtCreator
-copyToDestination($$PWD/stylesheet.qss, $$OUT_PWD)
-copyToDestination($$PWD/fonts, $$OUT_PWD/fonts)
-copyToDestination($$PWD/icons, $$OUT_PWD/icons)
+#copyToDestination($$PWD/stylesheet.qss, $$OUT_PWD)
+#copyToDestination($$PWD/fonts, $$OUT_PWD/fonts)
+#copyToDestination($$PWD/icons, $$OUT_PWD/icons)
 
 # Deploying a portable version of Kvazzup with Qt deployment script.
 # Copies only Qt libraries. OpenMP is not copied.

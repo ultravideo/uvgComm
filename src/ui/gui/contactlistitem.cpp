@@ -29,7 +29,7 @@ void ContactListItem::init(ParticipantInterface *interface)
   callButton_ = new QPushButton();
   callButton_->setMaximumWidth(30);
 
-  switchButtonIcon(QDir::currentPath() + "/icons/start_call.svg");
+  switchButtonIcon(":/icons/start_call.svg");
 
   layout_->addWidget(callButton_, 0, 1);
   QObject::connect(callButton_, SIGNAL(clicked()), this, SLOT(call()));
@@ -37,7 +37,7 @@ void ContactListItem::init(ParticipantInterface *interface)
 /*
   chatButton_ = new QPushButton();
   chatButton_->setMaximumWidth(30);
-  QPixmap pixmap2(QDir::currentPath() + "/icons/chat.svg");
+  QPixmap pixmap2(":/icons/chat.svg");
   QIcon ButtonIcon2(pixmap2);
   chatButton_->setIcon(ButtonIcon2);
   layout_->addWidget(chatButton_);
@@ -57,13 +57,13 @@ void ContactListItem::SetInaccessible(uint32_t sessionID)
 void ContactListItem::setPlusOne()
 {
   //callButton_->show();
-  switchButtonIcon(QDir::currentPath() + "/icons/add_to_call.svg");
+  switchButtonIcon(":/icons/add_to_call.svg");
 }
 
 void ContactListItem::setAccesssible()
 {
   callButton_->show();
-  switchButtonIcon(QDir::currentPath() + "/icons/start_call.svg");
+  switchButtonIcon(":/icons/start_call.svg");
   setDisabled(false);
   activeSessionID_ = 0;
 }

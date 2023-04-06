@@ -118,6 +118,34 @@ qt_add_executable(Kvazzup WIN32 MACOSX_BUNDLE
     src/videoviewfactory.cpp src/videoviewfactory.h
 )
 
+qt_add_resources(Kvazzup "Icons"
+    PREFIX "/"
+    FILES
+        icons/add_contact.svg
+        icons/add_to_call.svg
+        icons/avatar.svg
+        icons/start_call.svg
+        icons/end_call.svg
+        icons/settings.svg
+        icons/screen_share.svg
+        icons/video_on.svg
+        icons/video_off.svg
+        icons/mic_on.svg
+        icons/mic_off.svg
+)
+
+qt_add_resources(Kvazzup "Stylesheet"
+    PREFIX "/"
+    FILES
+        stylesheet.qss
+)
+
+qt_add_resources(Kvazzup "Fonts"
+    PREFIX "/"
+    FILES
+        fonts/OpenSans-Regular.ttf
+)
+
 target_include_directories(Kvazzup PRIVATE
     ..
     ../include
