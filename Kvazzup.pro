@@ -233,7 +233,7 @@ HEADERS  += \
     src/videoviewfactory.h
 
 FORMS    += \
-    src/ui/gui/about.ui \
+    src/ui/about.ui \
     src/ui/gui/avatarholder.ui \
     src/ui/gui/callwindow.ui \
     src/ui/gui/guimessage.ui \
@@ -247,9 +247,6 @@ FORMS    += \
     src/ui/settings/sipsettings.ui \
     src/ui/settings/stunmessage.ui \
     src/ui/settings/videosettings.ui
-
-
-QT_MEDIA_BACKEND += windows
 
 
 QT += widgets
@@ -332,8 +329,6 @@ win32-g++{
 
 # These apply to both Windows configurations
 win32{
-  INCLUDEPATH += $$PWD/../include/uvgrtp
-  INCLUDEPATH += $$PWD/../include/opus
 
   # These seem to be needed
   LIBS += -lws2_32
@@ -351,8 +346,6 @@ unix {
   LIBS += -lkvazaar
   QMAKE_CXXFLAGS += -msse4.1 -mavx2 -fopenmp
   QMAKE_LFLAGS += -fopenmp
-  INCLUDEPATH += /usr/include/opus/
-  INCLUDEPATH += /usr/local/include/uvgrtp/
 
   LIBS += -lspeexdsp
 
