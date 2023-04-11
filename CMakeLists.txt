@@ -1,10 +1,27 @@
 cmake_minimum_required(VERSION 3.16)
-project(Kvazzup VERSION 1.0 LANGUAGES C CXX)
+
+include(cmake/ProjectDetails.cmake)
+project(kvazzup
+    VERSION ${kvazzup_VER}
+    DESCRIPTION ${kvazzup_DESCR}
+    HOMEPAGE_URL ${kvazzup_URL}
+    LANGUAGES CXX)
+
+
+include(GNUInstallDirs)
+
+include(cmake/FindDependencies.cmake)
+include(cmake/Versioning.cmake)
+
+#option(ENABLE_SRTP    "Enables media encryption" ON)
+#option(ENABLE_PRINTS  "Print Debug prints to command line" ON)
+#option(ENABLE_LOGGING "Save log to file" ON)
+#option(ENABLE_WERROR  "Fail with compiler warnings" OFF)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(QT NAMES Qt5 Qt6 REQUIRED COMPONENTS Core)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Concurrent Gui Multimedia MultimediaWidgets Network OpenGL Svg Widgets)
 
 qt_standard_project_setup()
@@ -116,6 +133,7 @@ qt_add_executable(Kvazzup WIN32 MACOSX_BUNDLE
     src/ui/settings/videosettings.cpp src/ui/settings/videosettings.h src/ui/settings/videosettings.ui
     src/ui/uimanager.cpp src/ui/uimanager.h
     src/videoviewfactory.cpp src/videoviewfactory.h
+    version.cpp
 )
 
 qt_add_resources(Kvazzup "Icons"
@@ -171,6 +189,14 @@ target_link_libraries(Kvazzup PRIVATE
     opus
     uvgrtp
 )
+
+if(CMAKE_BUILD_TYPE)
+    message(STATUS "Selecting build type: ${CMAKE_BUILD_TYPE}")
+elseif (NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "No build type selected. Selecting Release. You may use CMAKE_BUILD_TYPE to select a different build type.")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
 
 if(WIN32)
     target_link_libraries(Kvazzup PRIVATE

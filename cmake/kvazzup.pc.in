@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=@CMAKE_INSTALL_PREFIX@/lib
+includedir=@CMAKE_INSTALL_PREFIX@/include
+
+Name: @PROJECT_NAME@
+Description: @kvazzup_DESC@
+URL: @kvazzup_URL@
+Version: @PROJECT_VERSION@
+CFlags: -I${includedir} @CRYPTOPP_INCLUDE_DIRS@ @UVGRTP_CXX_FLAGS@
+Libs: -L${libdir} @UVGRTP_LINKER_FLAGS@
+Requires:
+
