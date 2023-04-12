@@ -1,6 +1,6 @@
 #pragma once
 
-#include "src/media/processing/filter.h"
+#include "processing/filter.h"
 
 #include <QObject>
 

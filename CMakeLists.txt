@@ -175,6 +175,15 @@ target_link_directories(Kvazzup PRIVATE
     lib
 )
 
+if(CMAKE_BUILD_TYPE)
+    message(STATUS "Selecting build type: ${CMAKE_BUILD_TYPE}")
+elseif (NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "No build type selected. Selecting Release. You may use CMAKE_BUILD_TYPE to select a different build type.")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+endif()
+
+
 target_link_libraries(Kvazzup PRIVATE
     LibOpenHevcWrapper
     Qt::Concurrent
@@ -189,14 +198,6 @@ target_link_libraries(Kvazzup PRIVATE
     opus
     uvgrtp
 )
-
-if(CMAKE_BUILD_TYPE)
-    message(STATUS "Selecting build type: ${CMAKE_BUILD_TYPE}")
-elseif (NOT CMAKE_CONFIGURATION_TYPES)
-    message(STATUS "No build type selected. Selecting Release. You may use CMAKE_BUILD_TYPE to select a different build type.")
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-endif()
 
 if(WIN32)
     target_link_libraries(Kvazzup PRIVATE
@@ -246,7 +247,7 @@ elseif(UNIX)
     )
 endif()
 
-
+add_subdirectory(test EXCLUDE_FROM_ALL)
 
 if((CONFIG(OFF)) AND ((CMAKE_BUILD_TYPE STREQUAL Debug)))
     set_target_properties(Kvazzup PROPERTIES
