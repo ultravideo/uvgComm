@@ -1,5 +1,7 @@
 project(kvazzup_test)
 
+include(cmake/FindDependencies.cmake)
+
 enable_testing()
 include(GoogleTest)
 

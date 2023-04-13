@@ -164,6 +164,12 @@ qt_add_resources(Kvazzup "Fonts"
         fonts/OpenSans-Regular.ttf
 )
 
+qt_add_resources(Kvazzup "Ico"
+    PREFIX "/"
+    FILES
+        favicon.ico
+)
+
 target_include_directories(Kvazzup PRIVATE
     ..
     ../include
