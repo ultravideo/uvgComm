@@ -10,7 +10,13 @@ project(kvazzup
 
 include(GNUInstallDirs)
 
-include(cmake/FindDependencies.cmake)
+include(dependencies/cryptopp.cmake)
+include(dependencies/uvgrtp.cmake)
+include(dependencies/openhevc.cmake)
+include(dependencies/kvazaar.cmake)
+include(dependencies/opus.cmake)
+include(dependencies/speexdsp.cmake)
+
 include(cmake/Versioning.cmake)
 
 #option(ENABLE_SRTP    "Enables media encryption" ON)
