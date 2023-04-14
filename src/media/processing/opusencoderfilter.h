@@ -1,7 +1,7 @@
 #pragma once
 #include "filter.h"
 
-#include <opus/opus.h>
+#include <opus.h>
 #include <QtMultimedia/QAudioFormat>
 
 class OpusEncoderFilter : public Filter

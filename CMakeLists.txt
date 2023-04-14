@@ -207,8 +207,9 @@ target_link_libraries(Kvazzup PRIVATE
     Qt::OpenGL
     Qt::Svg
     Qt::Widgets
-    opus
+    cryptopp
     uvgrtp
+    opus
 )
 
 if(WIN32)
@@ -223,7 +224,6 @@ if(WIN32)
 
         target_link_libraries(Kvazzup PRIVATE
             advapi32
-            cryptlib
             kernel32
             kvazaar_lib
             libspeexdsp
@@ -231,7 +231,6 @@ if(WIN32)
     elseif(MINGW)
         target_link_libraries(Kvazzup PRIVATE
             # Remove: fopenmp
-            cryptopp
             kvazaar
             speexdsp
             ssp
@@ -247,7 +246,6 @@ if(WIN32)
 elseif(UNIX)
 
     target_link_libraries(Kvazzup PRIVATE
-        cryptopp
         kvazaar
         speexdsp
     )
