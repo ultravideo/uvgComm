@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 include(cmake/ProjectDetails.cmake)
 
+# Note: We do not set the default build type, since this is typically handled by Qt Creator
+
 project(kvazzup
     VERSION ${kvazzup_VER}
     DESCRIPTION ${kvazzup_DESCR}
@@ -195,14 +197,6 @@ target_link_directories(kvazzup_app PRIVATE
     ../msvc_libs
     lib
 )
-
-if(CMAKE_BUILD_TYPE)
-    message(STATUS "Selecting build type: ${CMAKE_BUILD_TYPE}")
-elseif (NOT CMAKE_CONFIGURATION_TYPES)
-    message(STATUS "No build type selected. Selecting Release. You may use CMAKE_BUILD_TYPE to select a different build type.")
-    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-endif()
 
 set(KVAZZUP_LIBS LibOpenHevcWrapper
     Qt::Concurrent
