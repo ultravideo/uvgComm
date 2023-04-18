@@ -9,6 +9,8 @@
 #include <QImage>
 #include <QDebug>
 
+#include <thread>
+
 
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                std::shared_ptr<ResourceAllocator> hwResources,

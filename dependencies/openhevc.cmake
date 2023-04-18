@@ -16,6 +16,10 @@ if(NOT MSVC)
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(LibOpenHevcWrapper)
     unset(BUILD_SHARED_LIBS)
+
+    # this gets us the openHevcWrapper.h include file
+    include_directories(${libopenhevcwrapper_SOURCE_DIR}/gpac/modules/openhevc_dec)
+
 else()
     # TODO: Either download an MSVC building OpenHEVC version or download built binaries
 endif()
