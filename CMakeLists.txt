@@ -8,8 +8,29 @@ project(kvazzup
     HOMEPAGE_URL ${kvazzup_URL}
     LANGUAGES CXX)
 
+set(CMAKE_POLICY_DEFAULT_CMP0100 NEW)
 
-include(GNUInstallDirs)
+find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Concurrent Gui Multimedia MultimediaWidgets Network OpenGL Svg Widgets)
+
+if(${QT_VERSION_MAJOR} LESS 6)
+    message(FATAL_ERROR "Qt versions smaller than 6.2 are no longer supported")
+elseif(${QT_VERSION_MAJOR} EQUAL 6 AND ${QT_VERSION_MINOR} LESS 2)
+    message(FATAL_ERROR "Qt versions smaller than 6.2 are no longer supported")
+endif()
+
+message(STATUS "Building Kvazzup with Qt version " ${QT_VERSION})
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+if(${QT_VERSION_MAJOR} EQUAL 6 AND ${QT_VERSION_MINOR} GREATER 2)
+    message(STATUS "Qt Standard project setup")
+    qt_standard_project_setup()
+else()
+    include(GNUInstallDirs)
+    set(CMAKE_AUTOUIC ON)
+    set(CMAKE_AUTOMOC ON)
+endif()
 
 include(dependencies/cryptopp.cmake)
 include(dependencies/uvgrtp.cmake)
@@ -20,18 +41,11 @@ include(dependencies/speexdsp.cmake)
 
 include(cmake/Versioning.cmake)
 
-#option(ENABLE_SRTP    "Enables media encryption" ON)
-#option(ENABLE_PRINTS  "Print Debug prints to command line" ON)
-#option(ENABLE_LOGGING "Save log to file" ON)
-#option(ENABLE_WERROR  "Fail with compiler warnings" OFF)
+#option(KVAZZUP_ENABLE_SRTP    "Enables media encryption" ON)
+#option(KVAZZUP_ENABLE_PRINTS  "Print Debug prints to command line" ON)
+#option(KVAZZUP_ENABLE_LOGGING "Save log to file" ON)
+#option(KVAZZUP_ENABLE_WERROR  "Fail with compiler warnings" OFF)
 
-set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOUIC ON)
-
-find_package(QT NAMES Qt6 REQUIRED COMPONENTS Core)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Concurrent Gui Multimedia MultimediaWidgets Network OpenGL Svg Widgets)
-
-qt_standard_project_setup()
 
 set(KVAZZUP_SOURCES
     src/common.cpp src/common.h
@@ -240,10 +254,22 @@ install(TARGETS kvazzup_app
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-qt_generate_deploy_app_script(
-    TARGET kvazzup_app
-    OUTPUT_SCRIPT deploy_script
-    NO_UNSUPPORTED_PLATFORM_ERROR
-)
+if(${QT_VERSION_MAJOR} EQUAL 6 AND ${QT_VERSION_MINOR} LESS_EQUAL 2)
+    message(WARNING "Kvazzup does not support deployment with Qt 6.2 version")
+elseif(${QT_VERSION_MAJOR} EQUAL 6 AND ${QT_VERSION_MINOR} LESS_EQUAL 4)
+    qt_generate_deploy_app_script(
+        TARGET kvazzup_app
+        FILENAME_VARIABLE deploy_script
+        NO_UNSUPPORTED_PLATFORM_ERROR
+    )
+    install(SCRIPT ${deploy_script})
+else()
+    qt_generate_deploy_app_script(
+        TARGET kvazzup_app
+        OUTPUT_SCRIPT deploy_script
+        NO_UNSUPPORTED_PLATFORM_ERROR
+    )
+    install(SCRIPT ${deploy_script})
+endif()
 
-install(SCRIPT ${deploy_script})
+
