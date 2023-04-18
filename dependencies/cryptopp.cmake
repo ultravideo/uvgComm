@@ -11,4 +11,9 @@ FetchContent_Declare(
         GIT_TAG        CRYPTOPP_8_7_0_1
 )
 
+set(CRYPTOPP_INSTALL OFF CACHE BOOL "" FORCE) # we don't want to install Crypto++
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
 FetchContent_MakeAvailable(cryptopp-cmake)
+
+unset(BUILD_SHARED_LIBS)

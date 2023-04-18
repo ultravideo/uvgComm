@@ -12,4 +12,6 @@ FetchContent_Declare(
         GIT_TAG        v1.3.1
 )
 
+set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(opus)
+unset(BUILD_SHARED_LIBS)

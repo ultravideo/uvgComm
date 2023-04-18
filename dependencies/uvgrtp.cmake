@@ -17,4 +17,4 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(uvgrtp)
 
-set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+unset(BUILD_SHARED_LIBS)
