@@ -211,6 +211,7 @@ set(KVAZZUP_LIBS LibOpenHevcWrapper
     cryptopp
     uvgrtp
     opus
+    kvazaar
 )
 
 find_package(OpenMP)
@@ -223,12 +224,12 @@ if(WIN32)
 
     if(MSVC)
         target_compile_definitions(kvazzup_app PRIVATE PIC)
-        list(APPEND KVAZZUP_LIBS advapi32 kernel32 kvazaar_lib libspeexdsp)
+        list(APPEND KVAZZUP_LIBS advapi32 kernel32 libspeexdsp)
     elseif(MINGW)
-        list(APPEND KVAZZUP_LIBS kvazaar speexdsp ssp strmiids)
+        list(APPEND KVAZZUP_LIBS speexdsp ssp strmiids)
     endif()
 elseif(UNIX)
-    list(APPEND KVAZZUP_LIBS kvazaar speexdsp)
+    list(APPEND KVAZZUP_LIBS speexdsp)
 endif()
 
 target_link_libraries(kvazzup_app PRIVATE ${KVAZZUP_LIBS})
