@@ -8,11 +8,13 @@ message(STATUS "Fetching and building Kvazaar")
 FetchContent_Declare(
         kvazaar
         GIT_REPOSITORY https://github.com/jrsnen/kvazaar.git
-        GIT_TAG        b04e868cf7a0388556154c39e9c04be728f32ab0
+        GIT_TAG        0bd045db34c9896f37ce27bc6177c4f3bb1af097
 )
 
 set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(kvazaar)
 
 unset(BUILD_SHARED_LIBS)
+unset(BUILD_TESTS)
