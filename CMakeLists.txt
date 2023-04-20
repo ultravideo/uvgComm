@@ -230,6 +230,7 @@ if(WIN32)
     endif()
 elseif(UNIX)
     list(APPEND KVAZZUP_LIBS speexdsp)
+    target_compile_options(kvazzup_app PUBLIC "-march=native")
 endif()
 
 target_link_libraries(kvazzup_app PRIVATE ${KVAZZUP_LIBS})
