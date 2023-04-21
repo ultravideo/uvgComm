@@ -8,37 +8,63 @@
 const std::map<QVideoFrameFormat::PixelFormat, QString> pixelFormatStrings = {{QVideoFrameFormat::Format_Invalid, "INVALID"},
 
                                                                         {QVideoFrameFormat::Format_ARGB8888,  "ARGB32"},
-                                                                        {QVideoFrameFormat::Format_ARGB8888_Premultiplied, "ARGB32_Premultiplied"},
+                                                                        {QVideoFrameFormat::Format_ARGB8888_Premultiplied,
+                                                                               "ARGB32_Premultiplied"},
 
-                                                                        {QVideoFrameFormat::Format_RGBX8888,   "RGB24"},
+                                                                        {QVideoFrameFormat::Format_XRGB8888,   "XRGB"},
+
+                                                                        {QVideoFrameFormat::Format_BGRA8888,   "BGRA32"},
+                                                                        {QVideoFrameFormat::Format_BGRA8888_Premultiplied,
+                                                                               "BGRA32_Premultiplied"},
+
+                                                                        {QVideoFrameFormat::Format_ABGR8888,   "ABGR"},
+                                                                        {QVideoFrameFormat::Format_XBGR8888,   "XBGR"},
+
                                                                         {QVideoFrameFormat::Format_RGBA8888,   "RGB32"},
 
-                                                                        {QVideoFrameFormat::Format_BGRX8888,   "BGR24"},
-                                                                        {QVideoFrameFormat::Format_BGRA8888,   "BGRA32"},
-                                                                        {QVideoFrameFormat::Format_BGRA8888_Premultiplied, "BGRA32_Premultiplied"},
+                                                                        {QVideoFrameFormat::Format_BGRX8888,   "BGR24"}, // also known as RAW
+                                                                        {QVideoFrameFormat::Format_RGBX8888,   "RGB24"},
 
                                                                         {QVideoFrameFormat::Format_AYUV,                "AYUV444"},
                                                                         {QVideoFrameFormat::Format_AYUV_Premultiplied,  "AYUV444_Premultiplied"},
+
                                                                         {QVideoFrameFormat::Format_YUV422P,             "YUV422P"},
                                                                         {QVideoFrameFormat::Format_YUV420P,             "YUV420P"},
+
                                                                         {QVideoFrameFormat::Format_YV12,                "YV12"},
                                                                         {QVideoFrameFormat::Format_UYVY,                "UYVY"},
-                                                                        {QVideoFrameFormat::Format_YUYV,                "YUYV"},
+                                                                        {QVideoFrameFormat::Format_YUYV,                "YUYV"}, // also called YUY2
+
                                                                         {QVideoFrameFormat::Format_NV12,                "NV12"},
                                                                         {QVideoFrameFormat::Format_NV21,                "NV21"},
+
                                                                         {QVideoFrameFormat::Format_IMC1,                "IMC1"},
                                                                         {QVideoFrameFormat::Format_IMC2,                "IMC2"},
                                                                         {QVideoFrameFormat::Format_IMC3,                "IMC3"},
                                                                         {QVideoFrameFormat::Format_IMC4,                "IMC4"},
+
                                                                         {QVideoFrameFormat::Format_Y8,                  "Y8"},
                                                                         {QVideoFrameFormat::Format_Y16,                 "Y16"},
+
+                                                                        {QVideoFrameFormat::Format_P010,                "P010"},
+                                                                        {QVideoFrameFormat::Format_P016,                "P016"},
+
                                                                         {QVideoFrameFormat::Format_Jpeg,                "MJPG"}};
 
-const QList<QVideoFrameFormat::PixelFormat> kvazzupFormats = {QVideoFrameFormat::Format_RGBA8888,
+// these are supported by kvazzup (can be converted to YUV420), list mostly based on which formats libyuv supports
+const QList<QVideoFrameFormat::PixelFormat> kvazzupFormats = {QVideoFrameFormat::Format_YUV420P,
+                                                              QVideoFrameFormat::Format_YUV422P,
+                                                              QVideoFrameFormat::Format_NV12,
+                                                              QVideoFrameFormat::Format_NV21,
+                                                              QVideoFrameFormat::Format_YUYV, // YUY2
+                                                              QVideoFrameFormat::Format_UYVY,
+                                                              QVideoFrameFormat::Format_ARGB8888,
+                                                              QVideoFrameFormat::Format_BGRA8888,
+                                                              QVideoFrameFormat::Format_ABGR8888,
+                                                              QVideoFrameFormat::Format_RGBA8888,
                                                               QVideoFrameFormat::Format_RGBX8888,
-                                                              QVideoFrameFormat::Format_YUV420P,
-//                                                              QVideoFrameFormat::Format_Jpeg,
-                                                              QVideoFrameFormat::Format_YUYV};
+                                                              QVideoFrameFormat::Format_BGRX8888,
+                                                              QVideoFrameFormat::Format_Jpeg};
 
 
 

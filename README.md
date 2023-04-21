@@ -57,6 +57,8 @@ Kvazzup uses code indent of 2. You can change that in qt creator from Tools -> O
 
 As per usual, make sure you don't mix libraries from different compilers or bit versions. 64-bit (x64) is the recommended bit version of Kvazzup.
 
+Install CMake.
+
 ### Linux (GCC)
 
 Install Qt, Qt multimedia and QtCreator. Make sure Opus, Speex DSP, OpenMP and Crypto++ are installed. Compile and install [OpenHEVC](https://github.com/OpenHEVC/openHEVC), [Kvazaar](https://github.com/ultravideo/kvazaar) and [uvgRTP](https://github.com/ultravideo/uvgRTP).

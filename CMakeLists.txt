@@ -36,8 +36,11 @@ endif()
 
 include(dependencies/cryptopp.cmake)
 include(dependencies/uvgrtp.cmake)
+
 include(dependencies/openhevc.cmake)
 include(dependencies/kvazaar.cmake)
+include(dependencies/libyuv.cmake)
+
 include(dependencies/opus.cmake)
 include(dependencies/speexdsp.cmake)
 
@@ -118,6 +121,7 @@ set(KVAZZUP_SOURCES
     src/media/processing/yuvtorgb32.cpp             src/media/processing/yuvtorgb32.h
     src/media/processing/yuyvtorgb32.cpp            src/media/processing/yuyvtorgb32.h
     src/media/processing/yuyvtoyuv420.cpp           src/media/processing/yuyvtoyuv420.h
+    src/media/processing/libyuvconverter.cpp        src/media/processing/libyuvconverter.h
     src/media/resourceallocator.cpp                 src/media/resourceallocator.h
     src/participantinterface.h
     src/settingskeys.h
@@ -212,6 +216,7 @@ set(KVAZZUP_LIBS LibOpenHevcWrapper
     uvgrtp
     opus
     kvazaar
+    yuv
 )
 
 find_package(OpenMP)
