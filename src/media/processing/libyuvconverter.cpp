@@ -51,7 +51,7 @@ void LibYUVConverter::process()
         }
         case DT_YUYVVIDEO:
         {
-          fourcc = libyuv::FOURCC_NV21;
+          fourcc = libyuv::FOURCC_YUYV;
           break;
         }
         case DT_UYVYVIDEO:

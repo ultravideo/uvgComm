@@ -61,8 +61,8 @@ const QList<QVideoFrameFormat::PixelFormat> kvazzupFormats = {QVideoFrameFormat:
                                                               QVideoFrameFormat::Format_ARGB8888,
                                                               QVideoFrameFormat::Format_BGRA8888,
                                                               QVideoFrameFormat::Format_ABGR8888,
-                                                              QVideoFrameFormat::Format_RGBA8888,
-                                                              QVideoFrameFormat::Format_RGBX8888,
+                                                              QVideoFrameFormat::Format_RGBA8888, // RGB32
+                                                              QVideoFrameFormat::Format_RGBX8888, // RGB24
                                                               QVideoFrameFormat::Format_BGRX8888,
                                                               QVideoFrameFormat::Format_Jpeg};
 
@@ -325,6 +325,11 @@ void CameraInfo::getCameraOptions(std::vector<SettingsCameraFormat>& options, in
       QList<int> framerates;
       for (auto& formatOption : camera->cameraDevice().videoFormats())
       {
+        if (!kvazzupFormats.contains(formatOption.pixelFormat()))
+        {
+          continue;
+        }
+
         if (!p_formats.contains(formatOption.pixelFormat()))
         {
           p_formats.push_back(formatOption.pixelFormat());

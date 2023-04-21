@@ -242,30 +242,73 @@ bool CameraFilter::cameraSetup()
 
 QVideoFrameFormat::PixelFormat CameraFilter::convertFormat(QString formatString)
 {
-  if (currentInputFormat_ == "RGB24")
+  if(currentInputFormat_ == "YUV420P")
   {
-    output_ = DT_RGB32VIDEO;
-    return QVideoFrameFormat::Format_RGBX8888;
+    output_ = DT_YUV420VIDEO;
+    return QVideoFrameFormat::Format_YUV420P;
+  }
+  else if(currentInputFormat_ == "YUV422P")
+  {
+    output_ = DT_YUV422VIDEO;
+    return QVideoFrameFormat::Format_YUV422P;
+  }
+
+  else if(currentInputFormat_ == "NV12")
+  {
+    output_ = DT_NV12VIDEO;
+    return QVideoFrameFormat::Format_NV12;
+  }
+  else if(currentInputFormat_ == "NV21")
+  {
+    output_ = DT_NV21VIDEO;
+    return QVideoFrameFormat::Format_NV21;
+  }
+
+  else if(currentInputFormat_ == "YUYV")
+  {
+    output_ = DT_YUYVVIDEO;
+    return QVideoFrameFormat::Format_YUYV;
+  }
+  else if(currentInputFormat_ == "UYVY")
+  {
+    output_ = DT_UYVYVIDEO;
+    return QVideoFrameFormat::Format_UYVY;
+  }
+
+  else if(currentInputFormat_ == "ARGB32")
+  {
+    output_ = DT_ARGBVIDEO;
+    return QVideoFrameFormat::Format_ARGB8888;
+  }
+  else if(currentInputFormat_ == "BGRA32")
+  {
+    output_ = DT_BGRAVIDEO;
+    return QVideoFrameFormat::Format_BGRA8888;
+  }
+  else if(currentInputFormat_ == "ABGR")
+  {
+    output_ = DT_ABGRVIDEO;
+    return QVideoFrameFormat::Format_ABGR8888;
   }
   else if (currentInputFormat_ == "RGB32")
   {
     output_ = DT_RGB32VIDEO;
     return QVideoFrameFormat::Format_RGBA8888;
   }
-  if(currentInputFormat_ == "MJPG")
+  else if (currentInputFormat_ == "RGB24")
   {
-    output_ = DT_RGB32VIDEO;
+    output_ = DT_RGB24VIDEO;
+    return QVideoFrameFormat::Format_RGBX8888;
+  }
+  else if (currentInputFormat_ == "BGR24")
+  {
+    output_ = DT_BGRXVIDEO;
+    return QVideoFrameFormat::Format_BGRX8888;
+  }
+  else if(currentInputFormat_ == "MJPG")
+  {
+    output_ = DT_MJPEGVIDEO;
     return QVideoFrameFormat::Format_Jpeg;
-  }
-  else if(currentInputFormat_ == "YUV420P")
-  {
-    output_ = DT_YUV420VIDEO;
-    return QVideoFrameFormat::Format_YUV420P;
-  }
-  else if(currentInputFormat_ == "YUYV")
-  {
-    output_ = DT_YUYVVIDEO;
-    return QVideoFrameFormat::Format_YUYV;
   }
 
   Logger::getLogger()->printError(this, "Input format not supported",
@@ -299,14 +342,7 @@ void CameraFilter::stop()
 void CameraFilter::handleFrame(const QVideoFrame &frame)
 {
   frameMutex_.lock();
-  if (frame.planeCount() == 1)
-  {
-    frames_.push_back(frame);
-  }
-  else
-  {
-    Logger::getLogger()->printUnimplemented(this, "Video frame has more than one plane");
-  }
+  frames_.push_back(frame);
   frameMutex_.unlock();
   wakeUp();
 }
@@ -327,11 +363,12 @@ void CameraFilter::process()
     frames_.pop_front();
     frameMutex_.unlock();
 
+    /*
     if (frame.pixelFormat() == QVideoFrameFormat::Format_Jpeg)
     {
       Logger::getLogger()->printWarning(this, "Unsupported frame format");
       return;
-    }
+    }*/
 
 
     // capture the frame data
@@ -342,12 +379,24 @@ void CameraFilter::process()
     QVideoFrame cloneFrame(frame);
     cloneFrame.map(QVideoFrame::ReadOnly);
 
-    int plane = 0;
-    newImage->data = std::unique_ptr<uchar[]>(new uchar[cloneFrame.mappedBytes(plane)]);
-    uchar *bits = cloneFrame.bits(plane);
+    size_t totalSize = 0;
 
-    memcpy(newImage->data.get(), bits, cloneFrame.mappedBytes(plane));
-    newImage->data_size = cloneFrame.mappedBytes(plane);
+    for (int plane = 0; plane < cloneFrame.planeCount(); ++plane)
+    {
+      totalSize += cloneFrame.mappedBytes(plane);
+    }
+
+    newImage->data = std::unique_ptr<uchar[]>(new uchar[totalSize]);
+
+    uint8_t* ptr = newImage->data.get();
+    for (int plane = 0; plane < cloneFrame.planeCount(); ++plane)
+    {
+      uchar *bits = cloneFrame.bits(plane);
+      memcpy(ptr, bits, cloneFrame.mappedBytes(plane));
+      ptr += cloneFrame.mappedBytes(plane);
+    }
+
+    newImage->data_size = totalSize;
 
     // kvazaar requires divisable by 8 resolution
     newImage->vInfo->width = cloneFrame.width() - cloneFrame.width()%8;

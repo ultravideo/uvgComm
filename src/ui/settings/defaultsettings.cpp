@@ -430,26 +430,45 @@ uint64_t DefaultSettings::calculatePoints(QString format, QSize resolution, doub
 
   int formatPoints = 0;
 
-  if (format == "YUYV")
+  if (format == "YUV420P")
   {
-    formatPoints = 1;
+    formatPoints = 15; // no conversion needed for encoder
+  }
+  else if (format == "RGB32")
+  {
+    formatPoints = 14; // no conversion needed for self view
   }
   else if (format == "MJPG")
   {
-    formatPoints = 2;
+    formatPoints = 13; // usually a high performance input
   }
-  else if (format == "YUV_420")
+  else if (format == "NV12" ||
+           format == "NV21")
   {
-    formatPoints = 3;
+    formatPoints = 12; // NV YUV format
+  }
+  else if (format == "YUV422P" ||
+           format == "UYVY"    ||
+           format == "YUYV" )
+  {
+    formatPoints = 11; // YUV formats
+  }
+  else if (format == "ARGB32" ||
+           format == "BGRA32" ||
+           format == "ABGR"   ||
+           format == "RGB24"  ||
+           format == "BGR24")
+  {
+    formatPoints = 1; // RGB formats
   }
 
   // try to use fps values between 30 and 60, since these are most widely supported
   if (fps < 30.0 || 61.0 < fps)
   {
-    return (resolution.width()*resolution.height()/10 + (int)fps) + formatPoints;
+    return (resolution.width()*resolution.height() + (int)fps)*10 + formatPoints;
   }
 
-  return resolution.width()*resolution.height() + (int)fps + formatPoints;
+  return (resolution.width()*resolution.height() + (int)fps)*100 + formatPoints;
 }
 
 

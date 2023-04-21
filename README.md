@@ -41,6 +41,22 @@ Currently Kvazzup has the following features:
 
 See [uvgRTP](https://github.com/ultravideo/uvgRTP).
 
+## Supported Camera Input Formats
+
+- YUV 420 P (also known as I420)
+- YUV 422 P (also known as I422)
+- NV 12
+- NV 21
+- YUYV (also known as YUY2)
+- UYVY
+- ARGB
+- BGRA
+- ABGR
+- RGBA (also known as RGB32)
+- RGBX (also known as RGB24)
+- BGRX (also known as BGR24)
+- Motion JPEG
+
 ## Compile Kvazzup
 
 Kvazzup requires the following external libraries to operate: 
