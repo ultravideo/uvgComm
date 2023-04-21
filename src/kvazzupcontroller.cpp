@@ -214,7 +214,7 @@ void KvazzupController::updateAudioSettings()
   updateSDPAudioStatus(sdp);
 
   emit media_.updateAudioSettings();
-  sip_.setSDP(sdp);
+  //sip_.setSDP(sdp);
 }
 
 
@@ -229,7 +229,7 @@ void KvazzupController::updateVideoSettings()
   // NOTE: Media must be updated before SIP so that SIP does not time-out while we update media
   // TODO: For everything that is negotiated via SDP, the media should not be modified here
   emit media_.updateVideoSettings();
-  sip_.setSDP(sdp);
+  //sip_.setSDP(sdp);
 }
 
 
