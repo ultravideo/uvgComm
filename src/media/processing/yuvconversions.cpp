@@ -211,7 +211,8 @@ int yuv420_to_rgb_i_avx2(uint8_t* input, uint8_t* output, uint16_t width, uint16
     __m256i luma_a = _mm256_set_m128i(luma_hi, luma_lo);
     __m256i chroma_u, chroma_v;
 
-    __m128i u_a, v_a;
+    __m128i u_a  = _mm_set_epi8(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+    __m128i v_a  = _mm_set_epi8(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
 
     // For every second row
     if (!row) {
