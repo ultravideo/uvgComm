@@ -20,6 +20,8 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
   camera_(nullptr),
   framerateNumerator_(0),
   framerateDenominator_(0),
+  resolutionWidth_(0),
+  resolutionHeight_(0),
   currentDeviceName_(""),
   currentDeviceID_(-1),
   currentInputFormat_("")
@@ -42,10 +44,20 @@ void CameraFilter::updateSettings()
   QString deviceName = settings.value(SettingsKey::videoDevice).toString();
   int deviceID = settings.value(SettingsKey::videoDeviceID).toInt();
   QString inputFormat = settings.value(SettingsKey::videoInputFormat).toString();
+  int resolutionWidth = settings.value(SettingsKey::videoResolutionWidth).toInt();
+  int resolutionHeight = settings.value(SettingsKey::videoResolutionHeight).toInt();
 
-  if (deviceName != currentDeviceName_ ||
-      deviceID != currentDeviceID_ ||
-      inputFormat != currentInputFormat_)
+  int32_t framerateNumerator = settings.value(SettingsKey::videoFramerateNumerator).toInt();
+  int32_t framerateDenominator = settings.value(SettingsKey::videoFramerateDenominator).toInt();
+
+  // update camera only if something has changed
+  if (deviceName            != currentDeviceName_   ||
+      deviceID              != currentDeviceID_     ||
+      inputFormat           != currentInputFormat_  ||
+      resolutionWidth       != resolutionWidth_     ||
+      resolutionHeight      != resolutionHeight_    ||
+      framerateNumerator    != framerateNumerator_  ||
+      framerateDenominator  != framerateDenominator_)
   {
     Logger::getLogger()->printNormal(this, "Updating camera settings since they have changed");
 
@@ -173,8 +185,8 @@ bool CameraFilter::cameraSetup()
     capture_.setCamera(camera_);
 
     currentInputFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
-    int resolutionWidth = settings.value(SettingsKey::videoResolutionWidth).toInt();
-    int resolutionHeight = settings.value(SettingsKey::videoResolutionHeight).toInt();
+    resolutionWidth_ = settings.value(SettingsKey::videoResolutionWidth).toInt();
+    resolutionHeight_ = settings.value(SettingsKey::videoResolutionHeight).toInt();
     framerateNumerator_ = settings.value(SettingsKey::videoFramerateNumerator).toInt();
     framerateDenominator_ = settings.value(SettingsKey::videoFramerateDenominator).toInt();
     float framerate = (float)framerateNumerator_/framerateDenominator_;
@@ -188,26 +200,24 @@ bool CameraFilter::cameraSetup()
     for (auto& formatOption : options)
     {
       if (formatOption.pixelFormat() == format &&
-          formatOption.resolution().width() == resolutionWidth &&
-          formatOption.resolution().height() == resolutionHeight &&
+          formatOption.resolution().width() == resolutionWidth_ &&
+          formatOption.resolution().height() == resolutionHeight_ &&
           formatOption.maxFrameRate() == framerate)
       {
-        Logger::getLogger()->printNormal(this, "Found camera option");
         selectedOption = formatOption;
         foundOption = true;
       }
     }
 
-    if (!options.empty())
+    if (foundOption)
     {
-      if (!foundOption)
-      {
-        camera_->setCameraFormat(options.first());
-      }
-      else
-      {
-        camera_->setCameraFormat(selectedOption);
-      }
+      Logger::getLogger()->printNormal(this, "Found camera option");
+      camera_->setCameraFormat(selectedOption);
+    }
+    else
+    {
+      Logger::getLogger()->printError(this, "Did not find camera option");
+      return false;
     }
 
     camera_->start();

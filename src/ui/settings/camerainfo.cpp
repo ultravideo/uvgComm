@@ -135,35 +135,26 @@ void CameraInfo::getFormatResolutions(int deviceID, QString format, QStringList 
 
     for (int i = 0; i < supportedResolutions.size(); ++i)
     {
-      resolutions.push_back(QString::number(supportedResolutions[i].width()) + "x" +
-                            QString::number(supportedResolutions[i].height()));
+      resolutions.push_back(resolutionToString(supportedResolutions[i]));
     }
   }
 }
 
 
-void CameraInfo::getFramerates(int deviceID, QString format, int resolutionID, QStringList &ranges)
+void CameraInfo::getFramerates(int deviceID, QString format, QString resolution, QStringList &ranges)
 {
   std::unique_ptr<QCamera> camera = loadCamera(deviceID);
 
   if (camera != nullptr)
   {
-    QList<QSize> supportedResolutions;
     for (auto& formatOption : camera->cameraDevice().videoFormats())
     {
-      if (format == pixelFormatStrings.at(formatOption.pixelFormat()))
+      if (format == pixelFormatStrings.at(formatOption.pixelFormat()) &&
+          resolutionToString(formatOption.resolution()) == resolution)
       {
-        if (!supportedResolutions.contains(formatOption.resolution()))
+        if (!ranges.contains(QString::number(formatOption.maxFrameRate())))
         {
-          supportedResolutions.push_back(formatOption.resolution());
-        }
-
-        if (supportedResolutions.size() - 1 == resolutionID)
-        {
-          if (!ranges.contains(QString::number(formatOption.maxFrameRate())))
-          {
-              ranges.push_back(QString::number(formatOption.maxFrameRate()));
-          }
+          ranges.push_back(QString::number(formatOption.maxFrameRate()));
         }
       }
     }
@@ -207,52 +198,53 @@ QVideoFrameFormat::PixelFormat CameraInfo::stringToPixelFormat(QString format)
 }
 
 
-QString CameraInfo::getFormat(int deviceID, int formatID)
+QString CameraInfo::getFormat(int deviceID, QString format)
 {
   QStringList formats;
 
   getVideoFormats(deviceID, formats);
 
-  if(formats.size() > formatID)
+  if(formats.contains(format))
   {
-    return formats.at(formatID);
+    return format;
   }
   else if(!formats.empty())
   {
     return formats.at(0);
   }
+
   return "No_camera";
 }
 
 
-QSize CameraInfo::getResolution(int deviceID, int formatID, int resolutionID)
+QSize CameraInfo::getResolution(int deviceID, QString format, QString resolution)
 {
+  // here we can trust that the format exists in options
+
   std::unique_ptr<QCamera> camera = loadCamera(deviceID);
 
   if (camera != nullptr)
   {
-    QList<QVideoFrameFormat::PixelFormat> p_formats;
-    QList<QSize> supportedResolutions;
+    // try to find the exact match
     for (auto& formatOption : camera->cameraDevice().videoFormats())
     {
-      printFormatOption(formatOption);
-
-      if (!p_formats.contains(formatOption.pixelFormat()))
+      if (pixelFormatStrings.at(formatOption.pixelFormat()) == format &&
+          resolutionToString(formatOption.resolution()) ==  resolution)
       {
-        p_formats.push_back(formatOption.pixelFormat());
+        printFormatOption(formatOption);
+
+        return formatOption.resolution();
       }
+    }
 
-      if (p_formats.size() - 1 == formatID)
+    // select first resolution for this format as backup
+    for (auto& formatOption : camera->cameraDevice().videoFormats())
+    {
+      if (pixelFormatStrings.at(formatOption.pixelFormat()) == format)
       {
-        if (!supportedResolutions.contains(formatOption.resolution()))
-        {
-          supportedResolutions.push_back(formatOption.resolution());
-        }
+        printFormatOption(formatOption);
 
-        if (supportedResolutions.size() - 1 == resolutionID)
-        {
-          return formatOption.resolution();
-        }
+        return formatOption.resolution();
       }
     }
   }
@@ -261,13 +253,13 @@ QSize CameraInfo::getResolution(int deviceID, int formatID, int resolutionID)
 }
 
 
-int CameraInfo::getFramerate(int deviceID, int formatID, int resolutionID, int framerateID)
+int CameraInfo::getFramerate(int deviceID, QString format, QString resolution, QString framerate)
 {
-  return getVideoFormat(deviceID, formatID, resolutionID, framerateID).maxFrameRate();
+  return getVideoFormat(deviceID, format, resolution, framerate).maxFrameRate();
 }
 
 
-QCameraFormat CameraInfo::getVideoFormat(int deviceID, int formatID, int resolutionID, int framerateID)
+QCameraFormat CameraInfo::getVideoFormat(int deviceID, QString format, QString resolution, QString framerate)
 {
   if (deviceID != -1)
   {
@@ -275,34 +267,14 @@ QCameraFormat CameraInfo::getVideoFormat(int deviceID, int formatID, int resolut
 
     if (camera != nullptr)
     {
-      QList<QVideoFrameFormat::PixelFormat> p_formats;
-      QList<QSize> supportedResolutions;
-      QList<int> framerates;
       QList<QCameraFormat> options = camera->cameraDevice().videoFormats();
-
       for (auto& formatOption : options)
       {
-        if (!p_formats.contains(formatOption.pixelFormat()))
+        if (format == pixelFormatStrings.at(formatOption.pixelFormat()) &&
+            resolutionToString(formatOption.resolution()) == resolution &&
+            QString::number(formatOption.maxFrameRate()) == framerate)
         {
-          p_formats.push_back(formatOption.pixelFormat());
-        }
-
-        if (p_formats.size() - 1 == formatID)
-        {
-          if (!supportedResolutions.contains(formatOption.resolution()))
-          {
-            supportedResolutions.push_back(formatOption.resolution());
-          }
-
-          if (supportedResolutions.size() - 1 == resolutionID)
-          {
-            framerates.push_back(formatOption.maxFrameRate());
-
-            if (framerates.size() - 1 == framerateID)
-            {
-                return formatOption;
-            }
-          }
+          return formatOption;
         }
       }
 
@@ -379,8 +351,7 @@ void CameraInfo::printFormatOption(QCameraFormat& formatOption) const
 {
   QString framerate = QString::number(formatOption.minFrameRate()) + " -> " +
                       QString::number(formatOption.maxFrameRate());
-  QString resolution = QString::number(formatOption.resolution().width()) + "x" +
-                       QString::number(formatOption.resolution().height());
+  QString resolution = resolutionToString(formatOption.resolution());
 
   QString format = pixelFormatStrings.at(formatOption.pixelFormat());
 
@@ -389,4 +360,10 @@ void CameraInfo::printFormatOption(QCameraFormat& formatOption) const
                                    {format, resolution, framerate});
 
 
+}
+
+QString CameraInfo::resolutionToString(QSize resolution) const
+{
+  return QString::number(resolution.width()) + "x" +
+         QString::number(resolution.height());
 }

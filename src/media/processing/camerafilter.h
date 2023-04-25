@@ -55,6 +55,9 @@ private:
   int32_t framerateNumerator_;
   int32_t framerateDenominator_;
 
+  int resolutionWidth_;
+  int resolutionHeight_;
+
   QMutex frameMutex_;
   std::deque<QVideoFrame> frames_;
 

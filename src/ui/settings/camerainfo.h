@@ -35,13 +35,15 @@ public:
   void getFormatResolutions(int deviceID, QString format, QStringList& resolutions);
 
   // get resolutions for a format.
-  void getFramerates(int deviceID, QString format, int resolutionID, QStringList& ranges);
+  void getFramerates(int deviceID, QString format, QString resolution, QStringList& ranges);
 
-  QString getFormat(int deviceID, int formatID);
-  QSize   getResolution(int deviceID, int formatID, int resolutionID);
-  int     getFramerate(int deviceID, int formatID, int resolutionID, int framerateID);
+  QString getFormat(int deviceID, QString format);
 
-  QCameraFormat getVideoFormat(int deviceID, int formatID, int resolutionID, int framerateID);
+  // format must be verified by calling getFormat() before calling getResolution()
+  QSize   getResolution(int deviceID, QString format, QString resolution);
+  int     getFramerate(int deviceID, QString format, QString resolution, QString framerate);
+
+  QCameraFormat getVideoFormat(int deviceID, QString format, QString resolution, QString framerate);
 
   void getCameraOptions(std::vector<SettingsCameraFormat>& options, int deviceID);
 
@@ -61,4 +63,6 @@ private:
   std::unique_ptr<QCamera> loadCamera(int deviceID);
 
   void printFormatOption(QCameraFormat& formatOption) const;
+
+  QString resolutionToString(QSize resolution) const;
 };

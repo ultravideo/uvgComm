@@ -207,25 +207,15 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
     settings_.setValue(SettingsKey::videoFramerateDenominator, 1);
 
 #else
-    int formatIndex = videoSettingsUI_->format_box->currentIndex();
-    int resolutionIndex = videoSettingsUI_->resolution->currentIndex();
+    QString formatText = videoSettingsUI_->format_box->currentText();
+
+    // here we check that the settings are still valid and select a valid option in case they are not.
+    // Invalidation happens when a device is removed which can happen at any time
+    QString format = cam_->getFormat(currentDevice_, formatText);
+    QSize res = cam_->getResolution(currentDevice_, format, videoSettingsUI_->resolution->currentText());
 
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Box status", {"Format", "Resolution"},
-                                    {QString::number(formatIndex), QString::number(resolutionIndex)});
-
-    if(formatIndex == -1)
-    {
-      formatIndex = 0;
-      resolutionIndex = 0;
-    }
-
-    if(resolutionIndex == -1)
-    {
-      resolutionIndex = 0;
-    }
-
-    QString format = cam_->getFormat(currentDevice_, formatIndex);
-    QSize res = cam_->getResolution(currentDevice_, formatIndex, resolutionIndex);
+                                    {format, QString::number(res.width()) + "x" + QString::number(res.height())});
 
     // since kvazaar requires resolution to be divisible by eight
     // TODO: Use QSize to record resolution
@@ -250,10 +240,9 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
     settings_.setValue(SettingsKey::videoInputFormat,          format);
 
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded following video settings.",
-                                    {"Resolution", "Resolution Index", "Format"},
+                                    {"Resolution", "Format"},
                                     {QString::number(res.width() - res.width()%8) + "x" +
-                                     QString::number(res.height() - res.height()%8),
-                                     QString::number(resolutionIndex), format});
+                                     QString::number(res.height() - res.height()%8), format});
 #endif
   }
 }
@@ -438,7 +427,7 @@ void VideoSettings::restoreFramerate()
   {
     int32_t framerateNumerator = settings_.value(SettingsKey::videoFramerateNumerator).toInt();
     int32_t framerateDenominator = settings_.value(SettingsKey::videoFramerateDenominator).toInt();
-    double framerate = (double)framerateNumerator/framerateDenominator;
+    float framerate = (float)framerateNumerator/framerateDenominator;
     int framerateID = videoSettingsUI_->framerate_box->findText(QString::number(framerate));
 
     if (0 <= framerateID && framerateID < videoSettingsUI_->framerate_box->count())
@@ -547,7 +536,7 @@ void VideoSettings::initializeFramerates()
   QStringList rates;
 
   cam_->getFramerates(currentDevice_, videoSettingsUI_->format_box->currentText(),
-                      videoSettingsUI_->resolution->currentIndex(), rates);
+                      videoSettingsUI_->resolution->currentText(), rates);
 
   if (!rates.empty())
   {
@@ -555,8 +544,8 @@ void VideoSettings::initializeFramerates()
     {
       videoSettingsUI_->framerate_box->addItem(rates.at(i));
     }
-    // use the highest framerate values as default selection.
-    videoSettingsUI_->framerate_box->setCurrentIndex(videoSettingsUI_->framerate_box->count() - 1);
+    // use the first framerate as default. Usually the intended default is set as first by camera
+    videoSettingsUI_->framerate_box->setCurrentIndex(0);
   }
   else
   {
