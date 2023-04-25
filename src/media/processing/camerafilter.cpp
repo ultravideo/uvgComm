@@ -22,9 +22,7 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
   framerateDenominator_(0),
   currentDeviceName_(""),
   currentDeviceID_(-1),
-  currentInputFormat_(""),
-  currentResolutionID_(-1),
-  currentFramerateID_(-1)
+  currentInputFormat_("")
 {}
 
 
@@ -44,14 +42,10 @@ void CameraFilter::updateSettings()
   QString deviceName = settings.value(SettingsKey::videoDevice).toString();
   int deviceID = settings.value(SettingsKey::videoDeviceID).toInt();
   QString inputFormat = settings.value(SettingsKey::videoInputFormat).toString();
-  int resolutionID = settings.value(SettingsKey::videoResolutionID).toInt();
-  int framerateID = settings.value(SettingsKey::videoFramerateID).toInt();
 
   if (deviceName != currentDeviceName_ ||
       deviceID != currentDeviceID_ ||
-      inputFormat != currentInputFormat_ ||
-      resolutionID != currentResolutionID_ ||
-      framerateID != currentFramerateID_)
+      inputFormat != currentInputFormat_)
   {
     Logger::getLogger()->printNormal(this, "Updating camera settings since they have changed");
 
@@ -179,42 +173,28 @@ bool CameraFilter::cameraSetup()
     capture_.setCamera(camera_);
 
     currentInputFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
-    currentResolutionID_ = settings.value(SettingsKey::videoResolutionID).toInt();
-
-    currentFramerateID_ = settings.value(SettingsKey::videoFramerateID).toInt();
+    int resolutionWidth = settings.value(SettingsKey::videoResolutionWidth).toInt();
+    int resolutionHeight = settings.value(SettingsKey::videoResolutionHeight).toInt();
     framerateNumerator_ = settings.value(SettingsKey::videoFramerateNumerator).toInt();
     framerateDenominator_ = settings.value(SettingsKey::videoFramerateDenominator).toInt();
+    float framerate = (float)framerateNumerator_/framerateDenominator_;
 
     QVideoFrameFormat::PixelFormat format = convertFormat(currentInputFormat_);
     QList<QCameraFormat> options = camera_->cameraDevice().videoFormats();
-
-    QList<QSize> supportedResolutions;
-    QList<int> framerates;
 
     QCameraFormat selectedOption;
 
     bool foundOption = false;
     for (auto& formatOption : options)
     {
-
-      if (formatOption.pixelFormat() == format)
+      if (formatOption.pixelFormat() == format &&
+          formatOption.resolution().width() == resolutionWidth &&
+          formatOption.resolution().height() == resolutionHeight &&
+          formatOption.maxFrameRate() == framerate)
       {
-        if (!supportedResolutions.contains(formatOption.resolution()))
-        {
-            supportedResolutions.push_back(formatOption.resolution());
-        }
-
-        if (supportedResolutions.size() - 1 == currentResolutionID_)
-        {
-          framerates.push_back(formatOption.maxFrameRate());
-
-          if (framerates.size() - 1 == currentFramerateID_)
-          {
-              Logger::getLogger()->printNormal(this, "Found camera option");
-              selectedOption = formatOption;
-              foundOption = true;
-          }
-        }
+        Logger::getLogger()->printNormal(this, "Found camera option");
+        selectedOption = formatOption;
+        foundOption = true;
       }
     }
 

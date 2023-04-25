@@ -14,12 +14,8 @@ struct SettingsCameraFormat
   int deviceID;
 
   QString format;
-  int formatID;
   QSize resolution;
-  int resolutionID;
-
   QString framerate;
-  int framerateID;
 };
 
 // A helper class for settings.
@@ -64,4 +60,5 @@ private:
 
   std::unique_ptr<QCamera> loadCamera(int deviceID);
 
+  void printFormatOption(QCameraFormat& formatOption) const;
 };

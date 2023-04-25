@@ -43,9 +43,9 @@ void ScreenShareFilter::updateSettings()
 
     framerateNumerator_ = settingValue(SettingsKey::videoFramerateNumerator);
     framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
-
-    currentResolution_.setWidth(settingValue(SettingsKey::videoResultionWidth));
-    currentResolution_.setHeight(settingValue(SettingsKey::videoResultionHeight));
+    
+    currentResolution_.setWidth(settingValue(SettingsKey::videoResolutionWidth));
+    currentResolution_.setHeight(settingValue(SettingsKey::videoResolutionHeight));
 
     sendTimer_.setSingleShot(false);
     sendTimer_.setInterval(1000/(framerateNumerator_/framerateDenominator_));

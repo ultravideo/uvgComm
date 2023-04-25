@@ -61,8 +61,6 @@ private:
   QString currentDeviceName_;
   int currentDeviceID_;
   QString currentInputFormat_;
-  int currentResolutionID_;
-  int currentFramerateID_;
 
   QMediaCaptureSession capture_;
 

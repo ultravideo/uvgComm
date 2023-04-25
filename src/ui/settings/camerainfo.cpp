@@ -155,12 +155,15 @@ void CameraInfo::getFramerates(int deviceID, QString format, int resolutionID, Q
       {
         if (!supportedResolutions.contains(formatOption.resolution()))
         {
-        supportedResolutions.push_back(formatOption.resolution());
+          supportedResolutions.push_back(formatOption.resolution());
         }
 
         if (supportedResolutions.size() - 1 == resolutionID)
         {
-          ranges.push_back(QString::number(formatOption.maxFrameRate()));
+          if (!ranges.contains(QString::number(formatOption.maxFrameRate())))
+          {
+              ranges.push_back(QString::number(formatOption.maxFrameRate()));
+          }
         }
       }
     }
@@ -232,6 +235,8 @@ QSize CameraInfo::getResolution(int deviceID, int formatID, int resolutionID)
     QList<QSize> supportedResolutions;
     for (auto& formatOption : camera->cameraDevice().videoFormats())
     {
+      printFormatOption(formatOption);
+
       if (!p_formats.contains(formatOption.pixelFormat()))
       {
         p_formats.push_back(formatOption.pixelFormat());
@@ -346,11 +351,8 @@ void CameraInfo::getCameraOptions(std::vector<SettingsCameraFormat>& options, in
         options.push_back({camera->cameraDevice().description(),
                           deviceID,
                           pixelFormatStrings.at(formatOption.pixelFormat()),
-                           (int)p_formats.size() - 1,
                           formatOption.resolution(),
-                           (int)supportedResolutions.size() -1 ,
-                          QString::number(formatOption.maxFrameRate()),
-                           (int)framerates.size() -1});
+                          QString::number(formatOption.maxFrameRate())});
       }
     }
   }
@@ -370,4 +372,21 @@ void CameraInfo::getAllowedFormats(QList<QVideoFrameFormat::PixelFormat> &p_form
       }
     }
   }
+}
+
+
+void CameraInfo::printFormatOption(QCameraFormat& formatOption) const
+{
+  QString framerate = QString::number(formatOption.minFrameRate()) + " -> " +
+                      QString::number(formatOption.maxFrameRate());
+  QString resolution = QString::number(formatOption.resolution().width()) + "x" +
+                       QString::number(formatOption.resolution().height());
+
+  QString format = pixelFormatStrings.at(formatOption.pixelFormat());
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "CameraInfo", "Camera format option",
+                                   {"Format", "Resolution", "Frame rate"},
+                                   {format, resolution, framerate});
+
+
 }

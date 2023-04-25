@@ -201,8 +201,8 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
 #ifdef __linux__
     // only these work on Linux with Qt 5
     settings_.setValue(SettingsKey::videoInputFormat,         "RGB32");
-    settings_.setValue(SettingsKey::videoResultionWidth,      640);
-    settings_.setValue(SettingsKey::videoResultionHeight,     480);
+    settings_.setValue(SettingsKey::videoResolutionWidth,      640);
+    settings_.setValue(SettingsKey::videoResolutionHeight,     480);
     settings_.setValue(SettingsKey::videoFramerateNumerator,   30);
     settings_.setValue(SettingsKey::videoFramerateDenominator, 1);
 
@@ -229,11 +229,8 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
 
     // since kvazaar requires resolution to be divisible by eight
     // TODO: Use QSize to record resolution
-    settings_.setValue(SettingsKey::videoResultionWidth,      res.width() - res.width()%8);
-    settings_.setValue(SettingsKey::videoResultionHeight,     res.height() - res.height()%8);
-    settings_.setValue(SettingsKey::videoResolutionID,         resolutionIndex);
-    settings_.setValue(SettingsKey::videoFramerateID,
-                       videoSettingsUI_->framerate_box->currentIndex());
+    settings_.setValue(SettingsKey::videoResolutionWidth,   res.width() - res.width()%8);
+    settings_.setValue(SettingsKey::videoResolutionHeight,  res.height() - res.height()%8);
 
     // TODO: does not work if minimum and maximum framerates differ
     if (!videoSettingsUI_->framerate_box->currentText().isEmpty())
@@ -276,10 +273,6 @@ void VideoSettings::restoreSettings()
   // input-tab
   videoSettingsUI_->format_box->setCurrentText
       (settings_.value(SettingsKey::videoInputFormat).toString());
-
-  int resolutionID = settings_.value(SettingsKey::videoResolutionID).toInt();
-  videoSettingsUI_->resolution->setCurrentIndex(resolutionID);
-
 
   // parallelization-tab
   restoreComboBoxValue(SettingsKey::videoKvzThreads, videoSettingsUI_->kvazaar_threads,
@@ -420,7 +413,10 @@ void VideoSettings::restoreResolution()
 {
   if (videoSettingsUI_->resolution->count() > 0)
   {
-    int resolutionID = settings_.value(SettingsKey::videoResolutionID).toInt();
+    int width = settings_.value(SettingsKey::videoResolutionWidth).toInt();
+    int height = settings_.value(SettingsKey::videoResolutionHeight).toInt();
+    QString resolution = QString::number(width) + "x" +  QString::number(height);
+    int resolutionID = videoSettingsUI_->resolution->findText(resolution);
 
     if (0 <= resolutionID &&  resolutionID < videoSettingsUI_->resolution->count())
     {
@@ -440,7 +436,10 @@ void VideoSettings::restoreFramerate()
 {
   if(videoSettingsUI_->framerate_box->count() > 0)
   {
-    int framerateID = settings_.value(SettingsKey::videoFramerateID).toInt();
+    int32_t framerateNumerator = settings_.value(SettingsKey::videoFramerateNumerator).toInt();
+    int32_t framerateDenominator = settings_.value(SettingsKey::videoFramerateDenominator).toInt();
+    double framerate = (double)framerateNumerator/framerateDenominator;
+    int framerateID = videoSettingsUI_->framerate_box->findText(QString::number(framerate));
 
     if (0 <= framerateID && framerateID < videoSettingsUI_->framerate_box->count())
     {
@@ -448,7 +447,7 @@ void VideoSettings::restoreFramerate()
     }
     else
     {
-      videoSettingsUI_->framerate_box->setCurrentIndex(videoSettingsUI_->framerate_box->count() - 1);
+      videoSettingsUI_->framerate_box->setCurrentIndex(0);
     }
   }
 }
@@ -506,7 +505,6 @@ void VideoSettings::initializeFormat()
   {
     Logger::getLogger()->printWarning(this, "Couldn't find any camera formats");
   }
-
 }
 
 
