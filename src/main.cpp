@@ -28,8 +28,8 @@ int main(int argc, char *argv[])
   a.setApplicationName("Kvazzup");
   //a.setQuitOnLastWindowClosed(false);
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Starting Kvazzup",
-                                  {"Version"}, {QString::fromStdString(get_version())});
+  //Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Starting Kvazzup",
+  //                                {"Version"}, {QString::fromStdString(get_version())});
 
   int id = QFontDatabase::addApplicationFont(":/fonts/OpenSans-Regular.ttf");
 

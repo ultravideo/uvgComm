@@ -86,6 +86,7 @@ SOURCES +=\
     src/media/processing/filtergraph.cpp \
     src/media/processing/halfrgbfilter.cpp \
     src/media/processing/kvazaarfilter.cpp \
+    src/media/processing/libyuvconverter.cpp \
     src/media/processing/openhevcfilter.cpp \
     src/media/processing/opusdecoderfilter.cpp \
     src/media/processing/opusencoderfilter.cpp \
@@ -183,6 +184,7 @@ HEADERS  += \
     src/media/processing/filtergraph.h \
     src/media/processing/halfrgbfilter.h \
     src/media/processing/kvazaarfilter.h \
+    src/media/processing/libyuvconverter.h \
     src/media/processing/openhevcfilter.h \
     src/media/processing/opusdecoderfilter.h \
     src/media/processing/opusencoderfilter.h \
@@ -283,6 +285,7 @@ RC_ICONS = favicon.ico
 
 # common includes
 INCLUDEPATH += $$PWD/../include/
+INCLUDEPATH += $$PWD/../include/opus
 
 # These you need to install or build yourself. Here are the libraries that
 # have the same name on each platform.
@@ -290,6 +293,7 @@ LIBS += -lopus
 LIBS += -lLibOpenHevcWrapper
 
 LIBS += -luvgrtp
+LIBS += -lyuv
 
 
 # Windows configurations have optional library folders defined for easier inclusion
@@ -387,7 +391,7 @@ DEPENDPATH += $$PWD/../
 
 # TODO: There is a bug in this that creates a growing recursive structure and
 # it eventually stops working. When that is solved, this should be enabled in release mode.
-CONFIG(false){
+CONFIG(true){
   isEmpty(TARGET_EXT) {
       win32 {
           TARGET_CUSTOM_EXT = .exe
