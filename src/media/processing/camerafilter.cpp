@@ -82,11 +82,16 @@ void CameraFilter::uninit()
     delete camera_;
     camera_ = nullptr;
   }
+
+  capture_.reset();
+  sink_.reset();
 }
 
 
 bool CameraFilter::init()
 {
+  capture_ = std::unique_ptr<QMediaCaptureSession>(new QMediaCaptureSession);
+  sink_ = std::unique_ptr<QVideoSink>(new QVideoSink);
   if (initialCameraSetup() && cameraSetup())
   {
     return Filter::init();
@@ -178,11 +183,11 @@ bool CameraFilter::cameraSetup()
       }
     }
 
-    QObject::connect(&sink_, &QVideoSink::videoFrameChanged,
+    QObject::connect(sink_.get(), &QVideoSink::videoFrameChanged,
                      this, &CameraFilter::handleFrame);
 
-    capture_.setVideoSink(&sink_);
-    capture_.setCamera(camera_);
+    capture_->setVideoSink(sink_.get());
+    capture_->setCamera(camera_);
 
     currentInputFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
     resolutionWidth_ = settings.value(SettingsKey::videoResolutionWidth).toInt();
@@ -219,8 +224,10 @@ bool CameraFilter::cameraSetup()
       Logger::getLogger()->printError(this, "Did not find camera option");
       return false;
     }
-
-    camera_->start();
+    if (!camera_->isActive())
+    {
+      camera_->start();
+    }
     Logger::getLogger()->printImportant(this, "Starting camera.");
   }
   else
