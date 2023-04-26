@@ -169,8 +169,6 @@ void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mi
 void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 {
   // Try to guess best resolution and thread distribution based on available threads
-  ComplexityClass cpuPower = CC_TRIVIAL;
-
   unsigned int threads = std::thread::hardware_concurrency();
   if (threads <= 4)
   {
@@ -181,7 +179,7 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
      * The openHEVC may require more threads if the incoming resolution is high,
      * but usually one is enough. The OpenHEVC parallelization mode slice is the best for latency,
      * but when receiving high resolution, "Frame and Slice" may be needed
-     * (TODO: selection should probably be done based on received resolution).
+     * (TODO: mode selection should be done based on received resolution to minimize latency).
      *
      * YUV and RGB conversions should be able to handle everything expect 4K with one thread. */
     settings_.setValue(SettingsKey::videoKvzThreads, threads);
@@ -200,11 +198,20 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
     settings_.setValue(SettingsKey::videoRGBThreads, 1);
     settings_.setValue(SettingsKey::videoOWF, 0);
   }
-  else if (threads <= 24)
+  else if (threads <= 16)
   {
     settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
     settings_.setValue(SettingsKey::videoOpenHEVCThreads, 4);
-    settings_.setValue(SettingsKey::videoOHParallelization, "Frame and Slice");
+    settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
+    settings_.setValue(SettingsKey::videoYUVThreads, 1);
+    settings_.setValue(SettingsKey::videoRGBThreads, 1);
+    settings_.setValue(SettingsKey::videoOWF, 0);
+  }
+  else if (threads <= 24)
+  {
+    settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
+    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 6);
+    settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
     settings_.setValue(SettingsKey::videoYUVThreads, 1);
     settings_.setValue(SettingsKey::videoRGBThreads, 1);
     settings_.setValue(SettingsKey::videoOWF, 1);
@@ -221,29 +228,10 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 
 #ifdef NDEBUG
   // The complexity guess is based on testing and is subject to changes
-  if (threads < 4)
-  {
-    cpuPower = CC_TRIVIAL;
-  }
-  else if (threads == 4)
-  {
-    cpuPower = CC_EASY;
-  }
-  else if (threads <= 8)
-  {
-    cpuPower = CC_MEDIUM;
-  }
-  else if (threads <= 16)
-  {
-    cpuPower = CC_COMPLEX;
-  }
-  else
-  {
-    cpuPower = CC_EXTREME;
-  }
+  uint64_t cpuPower = threads*CC_TRIVIAL/2;
 #else
-  // we always use the lightest option when using debug mode to get a more responsive program
-  cpuPower = CC_TRIVIAL;
+  // Use a lighter option in debug mode
+  uint64_t cpuPower = threads*CC_TRIVIAL/16;
 #endif
 
   SettingsCameraFormat format = selectBestCameraFormat(cam, cpuPower);
@@ -283,10 +271,10 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   settings_.setValue(SettingsKey::videoRCAlgorithm, "lambda");
 
   // use resolution and framerate to determine the best bit rate
-  ComplexityClass formatComplexity = calculateComplexity(format.resolution,
-                                                         format.framerate.toDouble());
+  uint64_t formatComplexity = calculateComplexity(format.resolution,
+                                                  format.framerate.toDouble());
 
-  if (formatComplexity == CC_TRIVIAL)
+  if (formatComplexity < CC_TRIVIAL)
   {
     settings_.setValue(SettingsKey::videoTileDimensions, "2x2");
     settings_.setValue(SettingsKey::videoBitrate, 250000); // 250 kbit/s
@@ -296,21 +284,21 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
      settings_.setValue(SettingsKey::videoPreset, "ultrafast");
 #endif
   }
-  else if (formatComplexity == CC_EASY)
+  else if (formatComplexity < CC_EASY)
   {
     //settings_.setValue(SettingsKey::videoTiles, 0);
     settings_.setValue(SettingsKey::videoTileDimensions, "2x2");
     settings_.setValue(SettingsKey::videoBitrate, 500000); // 500 kbit/s
     settings_.setValue(SettingsKey::videoPreset, "faster");
   }
-  else if (formatComplexity == CC_MEDIUM)
+  else if (formatComplexity < CC_MEDIUM)
   {
     //settings_.setValue(SettingsKey::videoTiles, 1);
     settings_.setValue(SettingsKey::videoTileDimensions, "4x4");
     settings_.setValue(SettingsKey::videoBitrate, 1000000); // 1 mbit/s
     settings_.setValue(SettingsKey::videoPreset, "veryfast");
   }
-  else if (formatComplexity == CC_COMPLEX)
+  else if (formatComplexity < CC_COMPLEX)
   {
     //settings_.setValue(SettingsKey::videoTiles, 1);
     settings_.setValue(SettingsKey::videoTileDimensions, "8x8");
@@ -324,6 +312,10 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
     settings_.setValue(SettingsKey::videoBitrate, 6000000); // 6 mbit/s
     settings_.setValue(SettingsKey::videoPreset, "ultrafast");
   }
+
+#ifndef NDEBUG
+  settings_.setValue(SettingsKey::videoPreset, "ultrafast");
+#endif
 }
 
 
@@ -332,7 +324,7 @@ void DefaultSettings::setDefaultCallSettings()
 
 
 SettingsCameraFormat DefaultSettings::selectBestCameraFormat(std::shared_ptr<CameraInfo> cam,
-                                                             ComplexityClass complexity)
+                                                             uint32_t complexity)
 {
   // Note: the current implementation does not go through all the devices to
   // find the best format, just the first one
@@ -352,7 +344,7 @@ SettingsCameraFormat DefaultSettings::selectBestCameraFormat(std::shared_ptr<Cam
 
 
 SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<CameraInfo> cam,
-                                                             int deviceID, ComplexityClass complexity)
+                                                             int deviceID, uint32_t complexity)
 {
 #ifdef __linux__
   // this is the only format that seems to work on Linux in Qt 5
@@ -363,7 +355,7 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
   // point system for best format
   SettingsCameraFormat bestOption = {"No option found", deviceID, "No option", {}, 0};
   uint64_t highestValue = 0;
-  ComplexityClass lowestComplexity = CC_EXTREME;
+  uint64_t lowestComplexity = CC_EXTREME;
   SettingsCameraFormat lowestComplexityOption = bestOption;
 
   std::vector<SettingsCameraFormat> options;
@@ -373,8 +365,8 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
   {
     uint64_t points = calculatePoints(option.format, option.resolution,
                                       option.framerate.toDouble());
-    ComplexityClass optionComplexity = calculateComplexity(option.resolution,
-                                                           option.framerate.toDouble());
+    uint64_t optionComplexity = calculateComplexity(option.resolution,
+                                                    option.framerate.toDouble());
 
     if (optionComplexity <= complexity)
     {
@@ -460,26 +452,7 @@ uint64_t DefaultSettings::calculatePoints(QString format, QSize resolution, doub
 }
 
 
-ComplexityClass DefaultSettings::calculateComplexity(QSize resolution, double fps)
+uint64_t DefaultSettings::calculateComplexity(QSize resolution, double fps)
 {
-  uint64_t complexityScore = resolution.width()*resolution.height()*fps;
-
-  if (complexityScore <= CC_TRIVIAL)
-  {
-    return CC_TRIVIAL;
-  }
-  else if (complexityScore <= CC_EASY)
-  {
-    return CC_EASY;
-  }
-  else if (complexityScore <= CC_MEDIUM)
-  {
-    return CC_MEDIUM;
-  }
-  else if (complexityScore <= CC_COMPLEX)
-  {
-    return CC_COMPLEX;
-  }
-
-  return CC_EXTREME;
+  return resolution.width()*resolution.height()*fps;
 }
