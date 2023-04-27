@@ -17,4 +17,11 @@ if (NOT OPUS_FOUND)
     FetchContent_MakeAvailable(opus)
 
     unset(BUILD_SHARED_LIBS)
+
+    file(MAKE_DIRECTORY ${opus_BINARY_DIR}/include/opus)
+
+    file(GLOB OPUS_HEADERS "${opus_SOURCE_DIR}/include/*")
+    file(COPY ${OPUS_HEADERS} DESTINATION ${opus_BINARY_DIR}/include/opus)
+    include_directories(${opus_BINARY_DIR}/include)
+
 endif()
