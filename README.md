@@ -89,8 +89,6 @@ The following Kvazzup dependencies are available as packages: `libopus-dev libsp
 
 If you have trouble with Qt creator code highlights, but not compilation, make sure you have the correct version of Clang installed. When testing, the Ubuntu had clang-10 installed when Qt depended on clang-8. Installing `clang-8` may solve this issue.
 
-Note: We have not been able to get the changing of the camera formats, resolutions or frame rates to work on Linux. It is possible that we didn't have all the necessary packets installed or that there is some sort of bug in Qt Multimedia/Qt Multimediawidgets.
-
 ### Windows (MinGW)
 
 Make sure OpenMP is installed in your build environment. Compile rest of the dependencies. If you are not putting files to PATH, Kvazzup MinGW build uses the following folders for build files:

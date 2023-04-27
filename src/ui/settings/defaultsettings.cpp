@@ -346,12 +346,6 @@ SettingsCameraFormat DefaultSettings::selectBestCameraFormat(std::shared_ptr<Cam
 SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<CameraInfo> cam,
                                                              int deviceID, uint32_t complexity)
 {
-#ifdef __linux__
-  // this is the only format that seems to work on Linux in Qt 5
-  return {"Linux camera", deviceID, "RGB32", -1, {640, 480}, -1, "30", -1};
-
-#else
-
   // point system for best format
   SettingsCameraFormat bestOption = {"No option found", deviceID, "No option", {}, 0};
   uint64_t highestValue = 0;
@@ -407,7 +401,6 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
                                     bestOption.format, resolution, bestOption.framerate});
 
   return bestOption;
-#endif
 }
 
 uint64_t DefaultSettings::calculatePoints(QString format, QSize resolution, double fps)
