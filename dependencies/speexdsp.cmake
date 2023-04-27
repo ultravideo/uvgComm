@@ -21,7 +21,19 @@ elseif(MSVC)
     include_directories(${CMAKE_CURRENT_BINARY_DIR}/external/src/SpeexDSPDownload/include)
     link_directories(${CMAKE_CURRENT_BINARY_DIR}/external/src/SpeexDSPDownload/)
 else()
-    message(FATAL_ERROR "Please install SpeexDSP package to compile Kvazzup")
+
+    # try pkgconfig just to be sure
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_search_module(SPEEXDSP libspeexdsp speexdsp)
+        if(SPEEXDSP_FOUND)
+            message(STATUS "PkgConfig found SpeexDSP library")
+        else()
+            message(FATAL_ERROR "Please install SpeexDSP package to compile Kvazzup")
+        endif()
+    else()
+        message(FATAL_ERROR "Could not find SpeexDSP or PkgConfig")
+    endif()
 endif()
 
 
