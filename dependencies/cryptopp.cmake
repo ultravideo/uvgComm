@@ -1,18 +1,6 @@
 include(FetchContent)
 
-find_package(Cryptopp QUIET)
-
 if (NOT CRYPTOPP_FOUND)
-    # try pkgconfig just to be sure
-    find_package(PkgConfig QUIET)
-    if(PkgConfig_FOUND)
-        pkg_search_module(CRYPTOPP libcrypto++ cryptopp)
-    endif()
-endif()
-
-if (CRYPTOPP_FOUND)
-    message(STATUS "Using system version of Crypto++")
-else()
     find_package(Git REQUIRED)
 
     message(STATUS "Fetching and building Crypto++")

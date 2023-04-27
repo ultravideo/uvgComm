@@ -34,15 +34,7 @@ else()
     set(CMAKE_AUTOMOC ON)
 endif()
 
-include(dependencies/cryptopp.cmake)
-include(dependencies/uvgrtp.cmake)
-
-include(dependencies/openhevc.cmake)
-include(dependencies/kvazaar.cmake)
-include(dependencies/libyuv.cmake)
-
-include(dependencies/opus.cmake)
-include(dependencies/speexdsp.cmake)
+include(dependencies/FindDependencies.cmake)
 
 include(cmake/Versioning.cmake)
 

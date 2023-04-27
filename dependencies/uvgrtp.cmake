@@ -1,18 +1,6 @@
 include(FetchContent)
 
-find_package(uvgRTP QUIET)
-
 if (NOT UVGRTP_FOUND)
-    # try pkgconfig just to be sure
-    find_package(PkgConfig QUIET)
-    if(PkgConfig_FOUND)
-        pkg_search_module(UVGRTP uvgrtp uvgRTP)
-    endif()
-endif()
-
-if (UVGRTP_FOUND)
-    message(STATUS "Using system version of uvgRTP")
-else()
     find_package(Git REQUIRED)
 
     message(STATUS "Fetching and building uvgRTP")

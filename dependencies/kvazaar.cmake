@@ -1,18 +1,6 @@
 include(FetchContent)
 
-find_package(Kvazaar QUIET)
-
 if (NOT KVAZAAR_FOUND)
-    # try pkgconfig just to be sure
-    find_package(PkgConfig QUIET)
-    if(PkgConfig_FOUND)
-        pkg_search_module(KVAZAAR libkvazaar kvazaar)
-    endif()
-endif()
-
-if (KVAZAAR_FOUND)
-    message(STATUS "Using system version of Kvazaar")
-else()
     find_package(Git REQUIRED)
 
     message(STATUS "Fetching and building Kvazaar")

@@ -1,18 +1,6 @@
 include(FetchContent)
 
-find_package(libyuv QUIET)
-
 if (NOT LIBYUV_FOUND)
-    # try pkgconfig just to be sure
-    find_package(PkgConfig QUIET)
-    if(PkgConfig_FOUND)
-        pkg_search_module(LIBYUV yuv libyuv)
-    endif()
-endif()
-
-if (LIBYUV_FOUND)
-    message(STATUS "Using system version of libyuv")
-else()
     find_package(Git REQUIRED)
 
     message(STATUS "Fetching and building libyuv")
