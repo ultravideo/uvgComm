@@ -2,6 +2,14 @@ include(FetchContent)
 
 find_package(Opus QUIET)
 
+if (NOT OPUS_FOUND)
+    # try pkgconfig just to be sure
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_search_module(OPUS opus libopus)
+    endif()
+endif()
+
 if (OPUS_FOUND)
     message(STATUS "Using system version of Opus")
 else()

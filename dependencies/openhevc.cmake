@@ -2,6 +2,14 @@ include(FetchContent)
 
 find_package(OpenHEVC QUIET)
 
+if (NOT OPENHEVC_FOUND)
+    # try pkgconfig just to be sure
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_search_module(OPENHEVC OpenHEVC LibOpenHevcWrapper OpenHevcWrapper)
+    endif()
+endif()
+
 if (OPENHEVC_FOUND)
     message(STATUS "Using system version of OpenHEVC")
 elseif(NOT MSVC)
