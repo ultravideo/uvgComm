@@ -1,20 +1,24 @@
 include(FetchContent)
 
-# Git
-find_package(Git)
+find_package(uvgRTP QUIET)
 
-message(STATUS "Fetching and building uvgRTP")
+if (UVGRTP_FOUND)
+    message(STATUS "Using system version of uvgRTP")
+else()
+    find_package(Git REQUIRED)
 
+    message(STATUS "Fetching and building uvgRTP")
 
-# uvgRTP
-FetchContent_Declare(
-        uvgrtp
-        GIT_REPOSITORY https://github.com/ultravideo/uvgRTP.git
-        GIT_TAG        4423d6942627fd8458e488333b1f059ebe2d243c
-)
+    # uvgRTP
+    FetchContent_Declare(
+            uvgrtp
+            GIT_REPOSITORY https://github.com/ultravideo/uvgRTP.git
+            GIT_TAG        4423d6942627fd8458e488333b1f059ebe2d243c
+    )
 
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
-FetchContent_MakeAvailable(uvgrtp)
+    FetchContent_MakeAvailable(uvgrtp)
 
-unset(BUILD_SHARED_LIBS)
+    unset(BUILD_SHARED_LIBS)
+endif()

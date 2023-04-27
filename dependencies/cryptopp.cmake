@@ -1,19 +1,25 @@
 include(FetchContent)
 
-find_package(Git)
+find_package(Cryptopp QUIET)
 
-message(STATUS "Fetching and building Crypto++")
+if (CRYPTOPP_FOUND)
+    message(STATUS "Using system version of Crypto++")
+else()
+    find_package(Git REQUIRED)
 
-# CMake for Crypto++
-FetchContent_Declare(
-        cryptopp-cmake
-        GIT_REPOSITORY https://github.com/abdes/cryptopp-cmake.git
-        GIT_TAG        CRYPTOPP_8_7_0_1
-)
+    message(STATUS "Fetching and building Crypto++")
 
-set(CRYPTOPP_INSTALL OFF CACHE BOOL "" FORCE) # we don't want to install Crypto++
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+    # CMake for Crypto++
+    FetchContent_Declare(
+            cryptopp-cmake
+            GIT_REPOSITORY https://github.com/abdes/cryptopp-cmake.git
+            GIT_TAG        CRYPTOPP_8_7_0_1
+    )
 
-FetchContent_MakeAvailable(cryptopp-cmake)
+    set(CRYPTOPP_INSTALL OFF CACHE BOOL "" FORCE) # we don't want to install Crypto++
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
-unset(BUILD_SHARED_LIBS)
+    FetchContent_MakeAvailable(cryptopp-cmake)
+
+    unset(BUILD_SHARED_LIBS)
+endif()

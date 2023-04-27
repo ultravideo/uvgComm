@@ -1,6 +1,10 @@
-if(MSVC)
-    include(ExternalProject)
+include(ExternalProject)
 
+find_package(SpeexDSP QUIET)
+
+if (SPEEXDSP_FOUND)
+    message(STATUS "Using found SpeexDSP library")
+elseif(MSVC)
     message(STATUS "Downloading ready-built SpeexDSP binary library")
 
     ExternalProject_Add(SpeexDSPDownload
@@ -16,6 +20,8 @@ if(MSVC)
 
     include_directories(${CMAKE_CURRENT_BINARY_DIR}/external/src/SpeexDSPDownload/include)
     link_directories(${CMAKE_CURRENT_BINARY_DIR}/external/src/SpeexDSPDownload/)
+else()
+    message(FATAL_ERROR "Please install SpeexDSP package to compile Kvazzup")
 endif()
 
 

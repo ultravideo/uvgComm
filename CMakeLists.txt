@@ -219,9 +219,14 @@ set(KVAZZUP_LIBS LibOpenHevcWrapper
     yuv
 )
 
-find_package(OpenMP)
+find_package(OpenMP) # needed for multithreading conversions
 if(OpenMP_CXX_FOUND)
     list(APPEND KVAZZUP_LIBS OpenMP::OpenMP_CXX)
+endif()
+
+find_package(JPEG QUIET) # needed for motion jpeg inside libyuv, optional
+if (JPEG_FOUND)
+    list(APPEND KVAZZUP_LIBS  ${JPEG_LIBRARY})
 endif()
 
 if(WIN32)
