@@ -9,8 +9,8 @@ if (NOT OPENHEVC_FOUND)
         # OpenHEVC
         FetchContent_Declare(
                         LibOpenHevcWrapper
-                        GIT_REPOSITORY https://github.com/OpenHEVC/openHEVC.git
-                        GIT_TAG        20dde1a748ad0b890067814c7f24cbcef6568cae # ffmpeg_update branch
+                        GIT_REPOSITORY https://github.com/jrsnen/openHEVC.git
+                        GIT_TAG        cbe04ded9da58ea0994e122eeb550cf8aaae109e
         )
 
         # static version compiles by default
