@@ -21,7 +21,8 @@ if (NOT OPENHEVC_FOUND)
         unset(BUILD_SHARED_LIBS)
 
         # this gets us the openHevcWrapper.h include file
-        include_directories(${libopenhevcwrapper_SOURCE_DIR}/gpac/modules/openhevc_dec)
+        file(COPY ${libopenhevcwrapper_SOURCE_DIR}/gpac/modules/openhevc_dec/openHevcWrapper.h
+            DESTINATION ${CMAKE_BINARY_DIR}/include/)
     else()
         include(ExternalProject)
 

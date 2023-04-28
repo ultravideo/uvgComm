@@ -184,14 +184,7 @@ qt_add_resources(kvazzup_app "Resources"
 )
 
 target_include_directories(kvazzup_app PRIVATE
-    ..
-    ../include
     src
-)
-
-target_link_directories(kvazzup_app PRIVATE
-    ../msvc_libs
-    lib
 )
 
 set(KVAZZUP_LIBS LibOpenHevcWrapper
@@ -204,12 +197,17 @@ set(KVAZZUP_LIBS LibOpenHevcWrapper
     Qt::OpenGL
     Qt::Svg
     Qt::Widgets
-    cryptopp
     uvgrtp
     opus
     kvazaar
     yuv
 )
+
+if (CRYPTOPP_FOUND AND NOT MSVC)
+    list(APPEND KVAZZUP_LIBS cryptopp.a) # this makes sure we link up the static version
+else()
+    list(APPEND KVAZZUP_LIBS cryptopp)
+endif()
 
 find_package(OpenMP) # needed for multithreading conversions
 if(OpenMP_CXX_FOUND)
@@ -223,7 +221,7 @@ endif()
 
 if(WIN32)
     list(APPEND KVAZZUP_LIBS ole32 oleaut32 ws2_32)
-
+    
     if(MSVC)
         target_compile_definitions(kvazzup_app PRIVATE PIC)
         list(APPEND KVAZZUP_LIBS advapi32 kernel32 libspeexdsp)

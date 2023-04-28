@@ -18,10 +18,14 @@ if (NOT OPUS_FOUND)
 
     unset(BUILD_SHARED_LIBS)
 
-    file(MAKE_DIRECTORY ${opus_BINARY_DIR}/include/opus)
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/include/opus)
 
     file(GLOB OPUS_HEADERS "${opus_SOURCE_DIR}/include/*")
-    file(COPY ${OPUS_HEADERS} DESTINATION ${opus_BINARY_DIR}/include/opus)
-    include_directories(${opus_BINARY_DIR}/include)
+    file(COPY ${OPUS_HEADERS} DESTINATION ${CMAKE_BINARY_DIR}/include/opus)
+
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+    file(REMOVE ${opus_BINARY_DIR}/opus.pc)
+    file(GLOB OPUS_LIB "${opus_BINARY_DIR}/opus.*")
+    file(COPY ${OPUS_LIB} DESTINATION ${CMAKE_BINARY_DIR}/lib)
 
 endif()

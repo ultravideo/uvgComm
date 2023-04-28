@@ -18,4 +18,10 @@ if (NOT CRYPTOPP_FOUND)
     FetchContent_MakeAvailable(cryptopp-cmake)
 
     unset(BUILD_SHARED_LIBS)
+
+    # copy lib binary so it is found later
+    file(GLOB CRYPTOPP_BIN "${cryptopp-cmake_BINARY_DIR}/cryptopp/cryptopp.*")
+    file(COPY ${CRYPTOPP_BIN} DESTINATION ${CMAKE_BINARY_DIR}/lib/)
+    file(GLOB CRYPTOPP_BIN "${cryptopp-cmake_BINARY_DIR}/cryptopp/libcryptopp.*")
+    file(COPY ${CRYPTOPP_BIN} DESTINATION ${CMAKE_BINARY_DIR}/lib/)
 endif()

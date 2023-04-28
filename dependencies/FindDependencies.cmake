@@ -83,3 +83,9 @@ include(dependencies/kvazaar.cmake)
 include(dependencies/libyuv.cmake)
 include(dependencies/opus.cmake)
 include(dependencies/speexdsp.cmake)
+
+# include and link directories for dependencies. 
+# These are needed when the compilation happens a second time and the library 
+# is found so no compilation happens. Not needed in every case, but a nice backup
+include_directories(${CMAKE_BINARY_DIR}/include)
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/lib)
