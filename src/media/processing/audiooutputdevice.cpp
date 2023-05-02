@@ -31,7 +31,10 @@ AudioOutputDevice::AudioOutputDevice():
 
 AudioOutputDevice::~AudioOutputDevice()
 {
-  audioOutput_->stop();
+  if (audioOutput_)
+  {
+    audioOutput_->stop();
+  }
   destroyLatestFrame();
 }
 

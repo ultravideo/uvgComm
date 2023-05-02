@@ -351,9 +351,9 @@ void FilterGraph::initializeAudioInput(bool opus)
 {
   audioCapture_ = std::shared_ptr<AudioCaptureFilter>(new AudioCaptureFilter("", format_, stats_, hwResources_));
 
-  if (autioOutput_)
+  if (audioOutput_)
   {
-    QObject::connect(autioOutput_.get(), &AudioOutputFilter::outputtingSound,
+    QObject::connect(audioOutput_.get(), &AudioOutputFilter::outputtingSound,
                      audioCapture_.get(), &AudioCaptureFilter::mute);
   }
 
@@ -398,13 +398,13 @@ void FilterGraph::initializeAudioOutput(bool opus)
                                          true, false, false, false, true, AUDIO_OUTPUT_VOLUME, AUDIO_OUTPUT_GAIN),
              audioOutputGraph_);
 
-  autioOutput_ = std::make_shared<AudioOutputFilter>("", stats_, hwResources_, format_);
+  audioOutput_ = std::make_shared<AudioOutputFilter>("", stats_, hwResources_, format_);
 
-  addToGraph(autioOutput_, audioOutputGraph_, (unsigned int)audioOutputGraph_.size() - 1);
+  addToGraph(audioOutput_, audioOutputGraph_, (unsigned int)audioOutputGraph_.size() - 1);
 
   if (audioCapture_)
   {
-    QObject::connect(autioOutput_.get(),  &AudioOutputFilter::outputtingSound,
+    QObject::connect(audioOutput_.get(),  &AudioOutputFilter::outputtingSound,
                      audioCapture_.get(), &AudioCaptureFilter::mute);
   }
 
@@ -955,6 +955,8 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
       destroyFilters(screenShareGraph_);
       destroyFilters(audioInputGraph_);
       destroyFilters(audioOutputGraph_);
+      audioOutput_ = nullptr;
+      audioCapture_ = nullptr;
 
       videoSendIniated_ = false;
       audioInputInitialized_ = false;

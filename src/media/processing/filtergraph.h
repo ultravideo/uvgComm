@@ -149,7 +149,7 @@ private:
   bool audioOutputInitialized_;
 
   std::shared_ptr<AudioCaptureFilter> audioCapture_;
-  std::shared_ptr<AudioOutputFilter>  autioOutput_;
+  std::shared_ptr<AudioOutputFilter>  audioOutput_;
 
   // audio configs
   QAudioFormat format_;
