@@ -304,7 +304,14 @@ QVideoFrameFormat::PixelFormat CameraFilter::convertFormat(QString formatString)
   }
   else if(currentInputFormat_ == "MJPG")
   {
+#if QT_VERSION_MAJOR == 6 && QT_VERSION_MINOR >= 5
+    // Qt 6.5 starts using ffmpeg as backend, resulting in actual mjpeg support
     output_ = DT_MJPEGVIDEO;
+#else
+    // Qt versions before 6.5 seem to always give RGB32 when asked for motion jpeg
+    output_ = DT_RGB32VIDEO;
+#endif
+
     return QVideoFrameFormat::Format_Jpeg;
   }
 
@@ -402,6 +409,7 @@ void CameraFilter::process()
     newImage->vInfo->framerateDenominator = framerateDenominator_;
 
 /*
+    printDataBytes("Camera bytes", newImage->data.get(), newImage->data_size, 3, 0);
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Captured frame",
                                     {"Width", "Height", "data size"},
                                     {QString::number(newImage->vInfo->width),
