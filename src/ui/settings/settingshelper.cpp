@@ -210,8 +210,7 @@ QString getBitrateString(int bits)
 {
   QString finalString = QString::number(bits);
 
-  // not possible at the moment
-  if (bits < 1000)
+  if (bits < 1000) // not possible at the moment
   {
     finalString = QString::number(bits) + " bit/s";
   }
@@ -221,8 +220,11 @@ QString getBitrateString(int bits)
   }
   else
   {
-    finalString = QString::number(bits/1000000) + "." +
-                  QString::number((bits%1000000)/1000) + " Mbit/s";
+    QString mBits = QString::number(bits/1000000);
+    QString kBits = QString::number((bits%1000000)/1000);
+    kBits = kBits.rightJustified(3, '0');
+
+    finalString = mBits + "." + kBits + " Mbit/s";
   }
 
   return finalString;
