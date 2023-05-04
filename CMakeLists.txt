@@ -154,7 +154,7 @@ set(KVAZZUP_SOURCES
 )
 
 
-qt_add_executable(kvazzup_app WIN32 MACOSX_BUNDLE
+qt_add_executable(kvazzup WIN32 MACOSX_BUNDLE
     ${KVAZZUP_SOURCES}
     src/main.cpp
     version.cpp
@@ -177,13 +177,13 @@ set(KVAZZUP_RESOURCES
     favicon.ico
 )
 
-qt_add_resources(kvazzup_app "Resources"
+qt_add_resources(kvazzup "Resources"
     PREFIX "/"
     FILES
         ${KVAZZUP_RESOURCES}
 )
 
-target_include_directories(kvazzup_app PRIVATE
+target_include_directories(kvazzup PRIVATE
     src
 )
 
@@ -223,31 +223,31 @@ if(WIN32)
     list(APPEND KVAZZUP_LIBS ole32 oleaut32 ws2_32)
     
     if(MSVC)
-        target_compile_definitions(kvazzup_app PRIVATE PIC)
+        target_compile_definitions(kvazzup PRIVATE PIC)
         list(APPEND KVAZZUP_LIBS advapi32 kernel32 libspeexdsp)
-        add_dependencies(kvazzup_app LibOpenHevcWrapperDownload)
-        add_dependencies(kvazzup_app SpeexDSPDownload)
+        add_dependencies(kvazzup LibOpenHevcWrapperDownload)
+        add_dependencies(kvazzup SpeexDSPDownload)
     elseif(MINGW)
         list(APPEND KVAZZUP_LIBS speexdsp ssp strmiids)
     endif()
 elseif(UNIX)
     list(APPEND KVAZZUP_LIBS speexdsp)
-    target_compile_options(kvazzup_app PUBLIC "-march=native")
+    target_compile_options(kvazzup PUBLIC "-march=native")
 endif()
 
-target_link_libraries(kvazzup_app PRIVATE ${KVAZZUP_LIBS})
+target_link_libraries(kvazzup PRIVATE ${KVAZZUP_LIBS})
 
 
 # Unit tests
 add_subdirectory(test EXCLUDE_FROM_ALL)
 
 if((CONFIG(OFF)) AND ((CMAKE_BUILD_TYPE STREQUAL Debug)))
-    set_target_properties(kvazzup_app PROPERTIES
+    set_target_properties(kvazzup PROPERTIES
         WIN32_EXECUTABLE FALSE
     )
 endif()
 
-install(TARGETS kvazzup_app
+install(TARGETS kvazzup
     BUNDLE DESTINATION .
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
@@ -256,14 +256,14 @@ if(${QT_VERSION_MAJOR} EQUAL 6 AND ${QT_VERSION_MINOR} LESS_EQUAL 2)
     message(WARNING "Kvazzup does not support deployment with Qt 6.2 version")
 elseif(${QT_VERSION_MAJOR} EQUAL 6 AND ${QT_VERSION_MINOR} LESS_EQUAL 4)
     qt_generate_deploy_app_script(
-        TARGET kvazzup_app
+        TARGET kvazzup
         FILENAME_VARIABLE deploy_script
         NO_UNSUPPORTED_PLATFORM_ERROR
     )
     install(SCRIPT ${deploy_script})
 else()
     qt_generate_deploy_app_script(
-        TARGET kvazzup_app
+        TARGET kvazzup
         OUTPUT_SCRIPT deploy_script
         NO_UNSUPPORTED_PLATFORM_ERROR
     )
