@@ -33,6 +33,8 @@ if(PkgConfig_FOUND)
     endif()
 endif()
 
+# Here we prints status of all dependencies so it is easier to figure out what
+# is happening during build process
 if (CRYPTOPP_FOUND)
     message(STATUS "Found Crypto++")
 else()

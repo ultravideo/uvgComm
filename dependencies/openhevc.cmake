@@ -29,21 +29,22 @@ if (NOT OPENHEVC_FOUND)
         message(STATUS "Downloading ready-built OpenHEVC binary library")
 
         # Download OpenHEVC binaries from previous Kvazzup release
-        ExternalProject_Add(LibOpenHevcWrapperDownload
-          URL https://github.com/ultravideo/kvazzup/releases/download/v0.12.0/openhevc.zip
-          URL_HASH SHA256=345097b7ce272e7b958fdc2ba43f1f41061f63e7fab738b09516334b5e96f90b
-          PREFIX ${CMAKE_CURRENT_BINARY_DIR}/external
-          DOWNLOAD_NAME "openhevc.zip"
-          CONFIGURE_COMMAND ""
-          BUILD_COMMAND ${CMAKE_COMMAND} -E echo "No build step"
-          INSTALL_COMMAND ""
-          DOWNLOAD_EXTRACT_TIMESTAMP ON
+        FetchContent_Declare(
+                LibOpenHevcWrapper
+                URL https://github.com/ultravideo/kvazzup/releases/download/v0.12.0/openhevc.zip
+                URL_HASH SHA256=345097b7ce272e7b958fdc2ba43f1f41061f63e7fab738b09516334b5e96f90b
+                DOWNLOAD_EXTRACT_TIMESTAMP ON
         )
 
-        include_directories(${CMAKE_CURRENT_BINARY_DIR}/external/src/LibOpenHevcWrapperDownload/include)
-        link_directories(${CMAKE_CURRENT_BINARY_DIR}/external/src/LibOpenHevcWrapperDownload/)
+        FetchContent_MakeAvailable(LibOpenHevcWrapper)
+
+        include_directories(${libopenhevcwrapper_SOURCE_DIR}/include)
+        link_directories(${libopenhevcwrapper_SOURCE_DIR})
+
+        file(GLOB OPENHEVC_LIB "${libopenhevcwrapper_SOURCE_DIR}/LibOpenHevcWrapper.*")
+        list(APPEND OPENHEVC_LIB ${libopenhevcwrapper_SOURCE_DIR}/pthreadVC2.dll)
+
+        # Install openhevc dll with Kvazzup install
+        install(FILES ${OPENHEVC_LIB} DESTINATION ${CMAKE_INSTALL_BINDIR})
     endif()
 endif()
-
-
-
