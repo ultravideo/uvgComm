@@ -19,15 +19,15 @@ On Linux, Kvazzup offers both detection of installed packages as well as install
 
 | Library  | Source Build  | Package Available |
 | :---     | :---:         | :---:             | 
-| Kvazaar  |     Yes       |    On Arch Linux  | 
-| OpenHEVC |     Yes       |        No         | 
-| uvgRTP   |     Yes       |        No         | 
-| Opus     |     Yes       |        Yes        | 
-| SpeexDSP |     No        |        Yes        | 
+| Kvazaar  |     Yes       |    [Arch Linux](https://archlinux.org/packages/community/x86_64/kvazaar/) | 
+| OpenHEVC |     Yes       |        None       | 
+| uvgRTP   |     Yes       |        None       | 
+| Opus     |     Yes       |        Often      | 
+| SpeexDSP |     No        |        Often      | 
 | libyuv   |     Yes       |  Not compatible   | 
-| Crypto++ |     Yes       |        Yes        | 
+| Crypto++ |     Yes       |        Often      | 
 
-At the time of testing, pre-installed libyuv package cannot be found with either of used methods even if installed because it lacks both files needed for detection.
+At the time of testing, pre-installed libyuv package cannot be found with either of used methods because the package does not contain either file used for detection.
 
 **Required packages**
 
