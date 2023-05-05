@@ -217,6 +217,8 @@ endif()
 find_package(JPEG QUIET) # needed for motion jpeg inside libyuv, optional
 if (JPEG_FOUND)
     list(APPEND KVAZZUP_LIBS  ${JPEG_LIBRARY})
+else()
+    target_compile_definitions(kvazzup PRIVATE KVAZZUP_NO_JPEG)
 endif()
 
 if(WIN32)

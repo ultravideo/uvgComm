@@ -64,7 +64,10 @@ const QList<QVideoFrameFormat::PixelFormat> kvazzupFormats = {QVideoFrameFormat:
                                                               QVideoFrameFormat::Format_RGBA8888, // RGB32
                                                               QVideoFrameFormat::Format_RGBX8888, // RGB24
                                                               QVideoFrameFormat::Format_BGRX8888,
-                                                              QVideoFrameFormat::Format_Jpeg};
+#if !KVAZZUP_NO_JPEG || (QT_VERSION_MAJOR == 6 && QT_VERSION_MINOR <= 4)
+                                                              QVideoFrameFormat::Format_Jpeg
+#endif
+};
 
 
 
