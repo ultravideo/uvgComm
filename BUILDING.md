@@ -1,6 +1,6 @@
 ## Building Kvazzup
 
-Kvazzup is a [Qt 6](https://www.qt.io/product/qt6) application which has several libraries as dependencies and uses [CMake](https://cmake.org/) as its build system. To make building easier, the CMake system has been set up in such a way that it automatically downloads the dependencies which are not easily available on the system, making building Kvazzup simple on both Linux with GCC and Windows with Microsoft Visual Studio. 
+Kvazzup is a [Qt 6](https://www.qt.io/product/qt6) application which has several libraries as dependencies and uses [CMake](https://cmake.org/) as its build system. To make building easier, the CMake system has been set up in such a way that it automatically downloads the dependencies which are not easily available on the system, making building Kvazzup simple on both Linux with GCC and Windows with Microsoft Visual Studio. Building Kvazzup has been tested on x86_64 and that is at this point the only officially supported architecture.
 
 The primary methods for installing dependencies are 
 * 1) preinstall by user (Linux)
