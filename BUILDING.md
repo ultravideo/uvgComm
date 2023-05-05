@@ -42,22 +42,16 @@ apt install cmake qt6-base-dev libqt6svg6-dev qt6-multimedia-dev libspeexdsp-dev
 It is also recommended to install Crypto++ and opus as preinstall reduces compilation time and disk usage:
 
 ```
-apt install libcrypto++-dev libopus-dev
+apt install libcrypto++-dev libopus-dev yasm libjpeg-dev
 ```
 
 If uvgRTP, Kvazaar or OpenHEVC packages are available, you are welcome to install those as well to reduce compilation time. Installing libyuv-dev may not help, since the package did not seem to provide the necessary files for CMake to find it even if it is installed.
 
-**Optional packages**
-
-As for optional dependencies, OpenHEVC has an optional dependency in Yasm, enabling more optimizations. If you are using Qt version 6.5 or higher, you should install libjpeg in case your webcamera is using Motion JPEG. Qt versions before 6.5 provide Motion JPEG as 32-bit RGB which is supported without libjpeg.
-
-```
-apt install yasm libjpeg-dev
-```
+As for other optional dependencies, OpenHEVC has an optional dependency in `yasm`, enabling more optimizations. `libjpeg-dev` is needed for Motion JPEG support with Qt versions 6.5 and up.
 
 #### Building on Linux
 
-Compiling with both methods worked for me, but I had annoying visual bugs in Qt Creator in addition to having difficulties setting build type and I would therefore recommend the CMake method on Linux.
+Compiling with both methods worked for me, but I had annoying visual bugs in Qt Creator in addition to having difficulties setting build type and I would therefore recommend the CMake method on Linux. Whichever method you use, setting the `-j <threads>` for cmake/make will speed up the build process in Linux.
 
 **Option 1: Qt Creator**
 
@@ -89,7 +83,7 @@ Windows instructions assume that Microsoft Visual Studio 2019 or newer has been 
 
 #### Dependencies On Windows
 
-Windows relies on source builds with projects that build easily with CMake and for those projects that don't have CMake available, Kvazzup utilizes download of ZIP containing the pre-built libary from Kvazzup Github repository.
+On Windows Kvazzup relies on source builds with dependency projects that build easily with CMake and for those projects that don't build with CMake, Kvazzup utilizes download of ZIP containing the pre-built libary from Kvazzup Github repository.
 
 | Library  | Source Build | Zip Download |
 | :---     | :---:        | :---:        | 
@@ -135,7 +129,7 @@ On Windows, Qt Creator is the superior build method as there is no extra configu
 
 Open the CMakeLists.txt file with Qt Creator and wait for the CMake to run (output seen in the `General Messages`-tab). After CMake has finished, you can build Kvazzup. It will take a while to compile all the dependencies, and you may check the progress in `Compiler Output`-tab. Sometimes the build may result in error if the CMake is run at the same time as build, but rerunning the build should solve the issue.
 
-To deploy the built Kvazzup as a binary, you only need to modify the `Projects -> Build Settings -> Build Steps` to include install. This will install Kvazzup to location indicated by the `CMAKE_INSTALL_PREFIX`-variable along with all necessary libraries and assets.
+To deploy the built Kvazzup as a binary along with everything needed to run it, you only need to modify the `Projects -> Build Settings -> Build Steps` to include install. This will install Kvazzup to location indicated by the `CMAKE_INSTALL_PREFIX`-variable along with all necessary libraries and assets.
 
 **Option 2: CMake**
 
