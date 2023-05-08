@@ -8,7 +8,6 @@
 #include "media/processing/openhevcfilter.h"
 
 #include "media/processing/yuvtorgb32.h"
-#include "media/processing/yuyvtorgb32.h"
 #include "media/processing/halfrgbfilter.h"
 #include "media/processing/libyuvconverter.h"
 
@@ -445,13 +444,6 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
       {
         Logger::getLogger()->printNormal(this, "Adding YUV420 to RGB32 conversion");
         addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_, hwResources_)),
-                   graph, connectIndex);
-      }
-      else if(graph.at(connectIndex)->outputType() == DT_YUYVVIDEO &&
-              filter->inputType() == DT_RGB32VIDEO)// TODO: Currently this filter is colorless!
-      {
-        Logger::getLogger()->printNormal(this, "Adding YUYV to RGB32 conversion");
-        addToGraph(std::shared_ptr<Filter>(new YUYVtoRGB32("", stats_, hwResources_)),
                    graph, connectIndex);
       }
       else

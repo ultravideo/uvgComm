@@ -103,7 +103,6 @@ set(KVAZZUP_SOURCES
     src/media/processing/openhevcfilter.cpp         src/media/processing/openhevcfilter.h
     src/media/processing/opusdecoderfilter.cpp      src/media/processing/opusdecoderfilter.h
     src/media/processing/opusencoderfilter.cpp      src/media/processing/opusencoderfilter.h
-    src/media/processing/rgb32toyuv.cpp             src/media/processing/rgb32toyuv.h
     src/media/processing/roimanualfilter.cpp        src/media/processing/roimanualfilter.h
     src/media/processing/scalefilter.cpp            src/media/processing/scalefilter.h
     src/media/processing/screensharefilter.cpp      src/media/processing/screensharefilter.h
@@ -111,8 +110,6 @@ set(KVAZZUP_SOURCES
     src/media/processing/speexdsp.cpp               src/media/processing/speexdsp.h
     src/media/processing/yuvconversions.cpp         src/media/processing/yuvconversions.h
     src/media/processing/yuvtorgb32.cpp             src/media/processing/yuvtorgb32.h
-    src/media/processing/yuyvtorgb32.cpp            src/media/processing/yuyvtorgb32.h
-    src/media/processing/yuyvtoyuv420.cpp           src/media/processing/yuyvtoyuv420.h
     src/media/processing/libyuvconverter.cpp        src/media/processing/libyuvconverter.h
     src/media/resourceallocator.cpp                 src/media/resourceallocator.h
     src/participantinterface.h
