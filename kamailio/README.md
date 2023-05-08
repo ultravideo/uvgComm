@@ -7,25 +7,28 @@ Install Kamailio and postgress module with following command:
 apt-get install kamailio kamailio-postgres-modules postgresql postgresql-contrib kamailio-presence-modules kamailio-tls-modules
 ```
 
-## Configure script Variables
-Configuration file:
+After Kamailio has been installed, we can start configuring its various aspects.
+
+## Configure kamctlrc for control tools
+
+Kamailio uses control tools to ease operations such as adding or removing users. The Kamailio control tool configuration file is found at:
 ```
 /etc/kamailio/kamctlrc
 ```
 
-Set SIP_DOMAIN to Kamailio host’s public IP address or domain name.
+First, set SIP_DOMAIN to Kamailio host’s public IP address or domain name. This will be the server address used in Kvazzup.
 ```
 SIP_DOMAIN=10.0.0.2
 ```
 
-Next, find and set DBENGINE to PGSQL
+Next, find and set DBENGINE to PGSQL (or any other alternative database if desired):
 ```
 DBENGINE=PGSQL
 ```
 
 ## Create PostgreSQL database
 
-Next we start creating the database. Create a .pgpass file in home folder with postgres user and password: 
+Next we start creating the database that will hold the users details as well as their location information so they can be called from anywhere on the internet. Create a `.pgpass` file in /root folder (home folder of root) with postgres as the username and password: 
 ```
 *:*:*:postgres:postgres
 ```
@@ -33,33 +36,38 @@ and change the permissions with:
 ```
 chmod 0600 ~/.pgpass
 ```
+
 These credentials are used by kamailio when operating with postgreSQL database. For security reasons, you should NOT change the UNIX password of postgres user, because this unlocks it and makes logging with it possible.
 
-Instead, set the postgres password within psql:
+Instead, set the postgres password within psql terminal front-end for Postgress:
 ```
 sudo -u postgres psql postgres
 # \password postgres
 ```
 
-Create the database in postgres with following command. Change the owner of the database to kamailio.
+Now we create the Kamailio database in postgres with following command. Change the owner of the database to kamailio.
+
 ```
 kamdbctl create
 ```
 
-Check existance of database with
+Just to be sure that everything went correctly, we check the existance of the database. Start psql:
 ```
 sudo -u postgres psql
 ```
 
-Inside psql list databases, connect to kamailio database and list all tables:
+Inside with the front-end open, list databases, connect to kamailio database and list all tables:
 ```
 psql> \list
 psql> \c kamailio
 psql> \dt
 ```
 
+You should see the tables we just created that are used by Kamailio.
+
 ## Configure run-time behavior and modules
-Configuration file:
+
+Next we configure the run-time behavior of Kamailio. The configuration file for modules and run-time behavior is found in:
 ```
 /etc/kamailio/kamailio.cfg 
 ```
@@ -105,7 +113,7 @@ listen=tcp:10.0.0.2:5060
 listen=tcp:10.0.0.2:5061
 ```
 
-## Configure GRUU
+**Configure GRUU**
 
 Change the following parameter to 1 so the REGISTER-request will generate GRUUs:
 ```
@@ -124,14 +132,14 @@ if ( is_gruu() ) {
 
 TODO: Something is needed for NATs?
 
-## Startup configuration
+## Start configuration
 
-Configuration file:
+Lastly we set the last few details needed to start Kamailio.The configuration file is located in:
 ```
 /etc/default/kamailio
 ```
 
-Set user
+Set these values:
 ```
 RUN_KAMAILIO=yes
 USER=kamailio
@@ -140,11 +148,13 @@ GROUP=kamailio
 
 ## Securing Kamailio
 
-See [Overview of Security related config snippets](https://www.kamailio.org/wiki/tutorials/security/kamailio-security) from Kamailio for security tips.
+You may want to add additional security measures to your Kamailio server. See [Overview of Security related config snippets](https://www.kamailio.org/wiki/tutorials/security/kamailio-security) from Kamailio for security tips.
 
 ## Adding a test user
 
-In order for REGISTER-requests to be accepted the user has to exist in database. WITH_AUTH makes kamailio require password. Default password for kamailio is "kamailiorw". Add user with following command: 
+In order for REGISTER-requests to be accepted by the Kamailio, the user has to exist in database. WITH_AUTH makes kamailio require password with each request from Kvazzup.
+
+kamctl control utility is used to add users. When asked for password, the default kamctl password for kamailio is "kamailiorw". Add user with following command: 
 ```
 kamctl add testuser testpasswd
 ```
@@ -175,7 +185,6 @@ systemctl status kamailio
 ```
 If Kamailio was running before modifying configs, use "systemctl restart" instead.
 
-
 ## Debugging
 
 In case you need to debug Kamailio use the following:
@@ -187,7 +196,7 @@ You may want to include
 ```
 #!define WITH_DEBUG
 ```
-at the beginning of /etc/kamailio/kamctlrc for more detailed logs.
+at the beginning of `/etc/kamailio/kamailio.cfg` for more detailed logs.
 
 ## Resources
 [Kamailio SIP Trunk Registration](https://telnyx.com/resources/sip-trunk-registration-kamailio) <br>
