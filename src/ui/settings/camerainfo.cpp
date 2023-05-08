@@ -129,7 +129,8 @@ void CameraInfo::getFormatResolutions(int deviceID, QString format, QStringList 
     {
       if (format == pixelFormatStrings.at(formatOption.pixelFormat()))
       {
-          if (!supportedResolutions.contains(formatOption.resolution()))
+          if (!supportedResolutions.contains(formatOption.resolution()) &&
+              goodResolution(formatOption.resolution()))
           {
             supportedResolutions.push_back(formatOption.resolution());
           }
@@ -305,7 +306,8 @@ void CameraInfo::getCameraOptions(std::vector<SettingsCameraFormat>& options, in
       QList<int> framerates;
       for (auto& formatOption : camera->cameraDevice().videoFormats())
       {
-        if (!kvazzupFormats.contains(formatOption.pixelFormat()))
+        if (!kvazzupFormats.contains(formatOption.pixelFormat()) ||
+            !goodResolution(formatOption.resolution()))
         {
           continue;
         }
@@ -324,10 +326,10 @@ void CameraInfo::getCameraOptions(std::vector<SettingsCameraFormat>& options, in
 
         framerates.push_back(formatOption.maxFrameRate());
         options.push_back({camera->cameraDevice().description(),
-                          deviceID,
-                          pixelFormatStrings.at(formatOption.pixelFormat()),
-                          formatOption.resolution(),
-                          QString::number(formatOption.maxFrameRate())});
+                         deviceID,
+                         pixelFormatStrings.at(formatOption.pixelFormat()),
+                         formatOption.resolution(),
+                         QString::number(formatOption.maxFrameRate())});
       }
     }
   }
@@ -361,12 +363,17 @@ void CameraInfo::printFormatOption(QCameraFormat& formatOption) const
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "CameraInfo", "Camera format option",
                                    {"Format", "Resolution", "Frame rate"},
                                    {format, resolution, framerate});
-
-
 }
+
 
 QString CameraInfo::resolutionToString(QSize resolution) const
 {
   return QString::number(resolution.width()) + "x" +
          QString::number(resolution.height());
+}
+
+
+bool CameraInfo::goodResolution(QSize resolution)
+{
+  return resolution.width()%8 == 0 && resolution.height()%8 == 0;
 }

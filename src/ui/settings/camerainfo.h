@@ -65,4 +65,6 @@ private:
   void printFormatOption(QCameraFormat& formatOption) const;
 
   QString resolutionToString(QSize resolution) const;
+
+  bool goodResolution(QSize resolution);
 };
