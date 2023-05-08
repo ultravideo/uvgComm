@@ -78,6 +78,8 @@ public slots:
   void showSettings();
   void showAbout();
 
+  void closeUI();
+
 private:
 
   CallWindow window_;

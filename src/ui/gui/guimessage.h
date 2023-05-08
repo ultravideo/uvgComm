@@ -20,6 +20,8 @@ public:
   explicit GUIMessage(QWidget *parent = nullptr);
   ~GUIMessage();
 
+  void clearMessages();
+
   // shows the error message or if there is already a message shown
   // it is shown after current message is closed
   void showWarning(QString heading, QString message);

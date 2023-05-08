@@ -57,10 +57,10 @@ void UIManager::init(ParticipantInterface *partInt)
                    this, &UIManager::showSettings);
 
   QObject::connect(&window_, &CallWindow::closed,
-                   this,     &UIManager::quit);
+                   this,     &UIManager::closeUI);
 
   QObject::connect(&window_, &CallWindow::quit,
-                   this,     &UIManager::quit);
+                   this,     &UIManager::closeUI);
 
   QObject::connect(&window_, &CallWindow::callAccepted,
                    this,     &UIManager::callAccepted);
@@ -219,4 +219,11 @@ void UIManager::showSettings()
 void UIManager::showAbout()
 {
   about_.show();
+}
+
+
+void UIManager::closeUI()
+{
+  mesg_.clearMessages();
+  emit quit();
 }

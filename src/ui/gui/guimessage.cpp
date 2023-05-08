@@ -1,7 +1,6 @@
 #include "guimessage.h"
 #include "ui_guimessage.h"
 
-#include "common.h"
 #include "logger.h"
 
 GUIMessage::GUIMessage(QWidget *parent) :
@@ -13,7 +12,15 @@ GUIMessage::GUIMessage(QWidget *parent) :
 
 GUIMessage::~GUIMessage()
 {
+  clearMessages();
   delete ui_;
+}
+
+
+void GUIMessage::clearMessages()
+{
+  waiting_.clear();
+  GUIMessage::accept();
 }
 
 
