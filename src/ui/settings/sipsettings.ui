@@ -70,10 +70,10 @@
        <item row="2" column="0">
         <widget class="QCheckBox" name="srtp_enabled">
          <property name="text">
-          <string>Encrypt media using SRTP</string>
+          <string>Encrypt media using SRTP (EXPERIMENTAL)</string>
          </property>
          <property name="checked">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
         </widget>
        </item>
