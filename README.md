@@ -44,6 +44,10 @@ Kvazzup relies on following external libraries:
 
 Kvazzup uses CMake to build itself and missing dependencies with minimal effort from the developer, see [BUILDING.md](BUILDING.md) for build instructions.
 
+## Setting up a SIP Server
+
+Kvazzup has been tested together with *Kamailio Open Source SIP Server*. Easy to follow instructions are hard to come by on the internet, so we provide our own [instructions](kamailio/README.md) for setting up Kamailio.
+
 ## Papers
 
 If you are using Kvazzup in your research, please cite one of the following papers: <br>
