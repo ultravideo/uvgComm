@@ -565,12 +565,16 @@
  <tabstops>
   <tabstop>name_edit</tabstop>
   <tabstop>username_edit</tabstop>
+  <tabstop>serverAddress_edit</tabstop>
+  <tabstop>auto_connect_box</tabstop>
   <tabstop>passwd_edit</tabstop>
+  <tabstop>show_password_button</tabstop>
   <tabstop>videoDevice_combo</tabstop>
   <tabstop>audioDevice_combo</tabstop>
   <tabstop>screenDevice_combo</tabstop>
   <tabstop>sip_settings_button</tabstop>
   <tabstop>media_settings_button</tabstop>
+  <tabstop>show_manual_box</tabstop>
   <tabstop>audio_settings_button</tabstop>
   <tabstop>video_settings_button</tabstop>
   <tabstop>save</tabstop>
