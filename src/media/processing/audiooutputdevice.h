@@ -1,7 +1,8 @@
 #pragma once
 
-#include <QtMultimedia/QAudioOutput>
 #include <QtMultimedia/QAudioFormat>
+#include <QAudioSink>
+
 #include <QIODevice>
 #include <QObject>
 #include <QMutex>
@@ -62,8 +63,8 @@ private:
 
   StatisticsInterface* stats_;
 
-  QAudioDeviceInfo device_;
-  QAudioOutput *audioOutput_;
+  QAudioDevice device_;
+  QAudioSink *audioOutput_;
   QIODevice *output_; // not owned
   QAudioFormat format_;
 

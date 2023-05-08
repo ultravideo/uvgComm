@@ -112,13 +112,13 @@ void ConferenceView::attachIncomingCallWidget(QString name, uint32_t sessionID)
   in->acceptButton->setProperty("sessionID", QVariant(sessionID));
   in->declineButton->setProperty("sessionID", QVariant(sessionID));
 
-  QPixmap pixmap(QDir::currentPath() + "/icons/end_call.svg");
+  QPixmap pixmap(":/icons/end_call.svg");
   QIcon ButtonIcon(pixmap);
   in->declineButton->setIcon(ButtonIcon);
   in->declineButton->setText("");
   in->declineButton->setIconSize(QSize(35,35));
 
-  QPixmap pixmap2(QDir::currentPath() + "/icons/start_call.svg");
+  QPixmap pixmap2(":/icons/start_call.svg");
   QIcon ButtonIcon2(pixmap2);
   in->acceptButton->setIcon(ButtonIcon2);
   in->acceptButton->setText("");
@@ -150,7 +150,7 @@ void ConferenceView::attachOutgoingCallWidget(QString name, uint32_t sessionID)
   out->cancelCall->setProperty("sessionID", QVariant(sessionID));
   connect(out->cancelCall, SIGNAL(clicked()), this, SLOT(cancel()));
 
-  QPixmap pixmap(QDir::currentPath() + "/icons/end_call.svg");
+  QPixmap pixmap(":/icons/end_call.svg");
   QIcon ButtonIcon(pixmap);
   out->cancelCall->setIcon(ButtonIcon);
   out->cancelCall->setText("");

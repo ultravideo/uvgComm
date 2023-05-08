@@ -2,13 +2,12 @@
 #include "filter.h"
 
 #include <QByteArray>
-#include <QtMultimedia/QAudioDeviceInfo>
-
-
+#include <QAudioFormat>
+#include <QAudioDevice>
 
 //TODO: this class would not have to be a filter, just needs to send data to one
 
-class QAudioInput;
+class QAudioSource;
 class QIODevice;
 class AudioFrameBuffer;
 
@@ -52,10 +51,10 @@ private:
   void createReadBuffer(int size);
   void destroyReadBuffer();
 
-  QAudioDeviceInfo deviceInfo_;
   QAudioFormat format_;
-  QAudioInput *audioInput_;
+  QAudioSource *audioInput_;
   QIODevice *input_;
+  QAudioDevice device_;
 
   // used in reading audio frames from mic
   char* readBuffer_;

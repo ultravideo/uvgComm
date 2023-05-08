@@ -798,8 +798,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
               it.second.tableIndex == -1)
           {
             filterMutex_.unlock();
-            Logger::getLogger()->printProgramError(this, "Invalid filtertable index detected!", 
-                                                   {"Name"}, {it.first});
+            Logger::getLogger()->printProgramError(this, "Invalid filtertable index detected!",
+                                                   {"ID"}, {QString::number(it.first)});
             return;
           }
 

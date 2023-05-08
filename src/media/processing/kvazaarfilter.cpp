@@ -128,16 +128,16 @@ bool KvazaarFilter::init()
   if(inputPics_.empty() && !api_)
   {
     QSettings settings(settingsFile, settingsFileFormat);
-
-    if (settings.value(SettingsKey::videoResultionWidth).toInt() == 0 ||
-        settings.value(SettingsKey::videoResultionHeight).toInt() == 0 ||
+    
+    if (settings.value(SettingsKey::videoResolutionWidth).toInt() == 0 ||
+        settings.value(SettingsKey::videoResolutionHeight).toInt() == 0 ||
         settings.value(SettingsKey::videoFramerateNumerator).toInt() == 0 ||
         settings.value(SettingsKey::videoFramerateDenominator).toInt() == 0)
     {
       Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Invalid values in settings",
                                       {"Width", "Height", "Framerate Numerator", "Framerate Denominator"},
-                                      {settings.value(SettingsKey::videoResultionWidth).toString(),
-                                       settings.value(SettingsKey::videoResultionHeight).toString(),
+                                        {settings.value(SettingsKey::videoResolutionWidth).toString(),
+                                       settings.value(SettingsKey::videoResolutionHeight).toString(),
                                        settings.value(SettingsKey::videoFramerateNumerator).toString(),
                                        settings.value(SettingsKey::videoFramerateDenominator).toString()});
       return false;
@@ -161,9 +161,9 @@ bool KvazaarFilter::init()
     api_->config_init(config_);
 
     QString preset = settings.value(SettingsKey::videoPreset).toString().toUtf8();
-
-    QString resolutionStr = settings.value(SettingsKey::videoResultionWidth).toString() + "x" +
-        settings.value(SettingsKey::videoResultionHeight).toString();
+    
+    QString resolutionStr = settings.value(SettingsKey::videoResolutionWidth).toString() + "x" +
+        settings.value(SettingsKey::videoResolutionHeight).toString();
 
     QString framerate = QString::number(settings.value(SettingsKey::videoFramerateNumerator).toInt()) + "/" +
                         QString::number(settings.value(SettingsKey::videoFramerateDenominator).toInt());

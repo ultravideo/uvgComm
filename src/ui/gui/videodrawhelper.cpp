@@ -32,7 +32,7 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint8_t borderSize):
   videoResolution_(QSize(0,0)),
   showGrid_(false),
   pixelBasedDrawing_(false),
-  micIcon_(QString("icons/mic_off.svg")),
+  micIcon_(QString(":/icons/mic_off.svg")),
   drawIcon_(false),
   fullscreen_(false)
 {

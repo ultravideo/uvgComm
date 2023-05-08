@@ -4,7 +4,7 @@
 
 AvatarImage::AvatarImage(QWidget *parent)
   : QWidget(parent),
-    image_(QString("icons/avatar.svg"))
+    image_(QString(":icons/avatar.svg"))
 {}
 
 

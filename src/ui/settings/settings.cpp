@@ -227,8 +227,8 @@ void Settings::setScreenShareState(bool enabled)
         resolution.setHeight(screen->size().height() - screen->size().height()%8);
 
         settings_.setValue(SettingsKey::screenShareStatus, "1");
-        settings_.setValue(SettingsKey::videoResultionWidth, resolution.width());
-        settings_.setValue(SettingsKey::videoResultionHeight, resolution.height());
+        settings_.setValue(SettingsKey::videoResolutionWidth, resolution.width());
+        settings_.setValue(SettingsKey::videoResolutionHeight, resolution.height());
 
         settings_.setValue(SettingsKey::videoFramerateNumerator, "10");
         settings_.setValue(SettingsKey::videoFramerateDenominator, "1");
@@ -628,8 +628,8 @@ void Settings::checkUUID()
     QUuid uuid = QUuid::createUuid();
     QString uuid_str = uuid.toString();
 
-    uuid = uuid_str.remove("{");
-    uuid = uuid_str.remove("}");
+    uuid_str = uuid_str.remove("{");
+    uuid_str = uuid_str.remove("}");
 
     settings_.setValue(SettingsKey::sipUUID, uuid_str);
 

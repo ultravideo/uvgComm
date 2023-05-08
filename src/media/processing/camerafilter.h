@@ -3,8 +3,8 @@
 
 #include <QtMultimedia/QCamera>
 #include <QtMultimedia/QVideoFrame>
-
-class CameraFrameGrabber;
+#include <QMediaCaptureSession>
+#include <QVideoSink>
 
 class CameraFilter : public Filter
 {
@@ -48,11 +48,15 @@ private:
   // setup camera device. For some reason this has to be called from main thread
   bool cameraSetup();
 
+  QVideoFrameFormat::PixelFormat convertFormat(QString formatString);
+
   QCamera *camera_;
-  CameraFrameGrabber *cameraFrameGrabber_;
 
   int32_t framerateNumerator_;
   int32_t framerateDenominator_;
+
+  int resolutionWidth_;
+  int resolutionHeight_;
 
   QMutex frameMutex_;
   std::deque<QVideoFrame> frames_;
@@ -60,6 +64,7 @@ private:
   QString currentDeviceName_;
   int currentDeviceID_;
   QString currentInputFormat_;
-  int currentResolutionID_;
-  int currentFramerateID_;
+
+  std::unique_ptr<QMediaCaptureSession> capture_;
+  std::unique_ptr<QVideoSink>  sink_;
 };

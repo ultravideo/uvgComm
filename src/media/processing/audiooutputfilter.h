@@ -3,6 +3,8 @@
 #include "filter.h"
 #include "audiooutputdevice.h"
 
+#include <QAudioFormat>
+
 // There should be only one audio output filter
 
 class AudioOutputFilter : public Filter

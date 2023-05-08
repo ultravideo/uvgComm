@@ -1,22 +1,22 @@
 #include "audiooutputdevice.h"
 
 #include "filter.h"
-#include "statisticsinterface.h"
 #include "audioframebuffer.h"
 
-#include "common.h"
 #include "global.h"
 #include "logger.h"
+
+#include <QMediaDevices>
 
 
 uint8_t MAX_SAMPLE_REPEATS = 5;
 
-uint8_t MAX_BUFFER_SIZE = AUDIO_FRAMES_PER_SECOND/5;
+uint8_t MAX_BUFFER_SIZE = AUDIO_FRAMES_PER_SECOND/10;
 
 
 AudioOutputDevice::AudioOutputDevice():
   QIODevice(),
-  device_(QAudioDeviceInfo::defaultOutputDevice()),
+  device_(QMediaDevices::defaultAudioOutput()),
   audioOutput_(nullptr),
   output_(nullptr),
   format_(),
@@ -31,18 +31,22 @@ AudioOutputDevice::AudioOutputDevice():
 
 AudioOutputDevice::~AudioOutputDevice()
 {
-  audioOutput_->stop();
+  if (audioOutput_)
+  {
+    audioOutput_->stop();
+  }
   destroyLatestFrame();
 }
 
 
 void AudioOutputDevice::init(QAudioFormat format)
 {
-  QAudioDeviceInfo info(device_);
+  QAudioDevice info(device_);
   if (!info.isFormatSupported(format)) {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this,
-               "Default format not supported - trying to use nearest.");
-    format_ = info.nearestFormat(format);
+    Logger::getLogger()->printDebug(DEBUG_ERROR, this,
+               "Default audio output format not supported");
+    //format_ = info.nearestFormat(format);
+    return;
   }
   else
   {
@@ -59,7 +63,7 @@ void AudioOutputDevice::createAudioOutput()
   {
     delete audioOutput_;
   }
-  audioOutput_ = new QAudioOutput(device_, format_, this);
+  audioOutput_ = new QAudioSink(device_, format_, this);
 
   // it is possible to reduce the buffer size here to reduce latency, but this
   // causes issues with audio reliability with Qt and is not recommended.
@@ -67,15 +71,18 @@ void AudioOutputDevice::createAudioOutput()
   open(QIODevice::ReadOnly);
   // pull mode
 
+  int frameSize = format_.sampleRate()*format_.bytesPerFrame()/AUDIO_FRAMES_PER_SECOND;
+  buffer_ = std::make_unique<AudioFrameBuffer>(frameSize);
+
   audioOutput_->start(this);
 
-  buffer_ = std::make_unique<AudioFrameBuffer>(audioOutput_->periodSize());
-
+/*
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created audio output",
              {"Notify interval", "Buffer size", "Period Size"},
              {QString::number(audioOutput_->notifyInterval()),
               QString::number(audioOutput_->bufferSize()),
               QString::number(audioOutput_->periodSize())});
+*/
 }
 
 
@@ -102,11 +109,13 @@ qint64 AudioOutputDevice::readData(char *data, qint64 maxlen)
 {
   qint64 read = 0;
 
+  /*
   // make sure we are giving the correct size audio frames
   if (audioOutput_->periodSize() != buffer_->getDesiredSize())
   {
     buffer_->changeDesiredFrameSize(audioOutput_->periodSize());
   }
+*/
 
   if (maxlen < buffer_->getDesiredSize())
   {

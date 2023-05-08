@@ -44,4 +44,4 @@ signals:
   virtual bool isVisible() = 0;
 };
 
-Q_DECLARE_INTERFACE(VideoInterface, "VideoInterface")
+//Q_DECLARE_INTERFACE(VideoInterface, "VideoInterface")

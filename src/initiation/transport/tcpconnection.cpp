@@ -7,6 +7,7 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include <stdint.h>
+#include <thread>
 
 const uint32_t MAX_READ_BYTES = 10000;
 

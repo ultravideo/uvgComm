@@ -12,7 +12,7 @@
 enum DebugType{DEBUG_NORMAL, DEBUG_IMPORTANT, DEBUG_ERROR, DEBUG_WARNING,
                DEBUG_PEER_ERROR, DEBUG_PROGRAM_ERROR, DEBUG_PROGRAM_WARNING};
 
-// A singleton class. Used to uniformalize debug prints accross Kvazzup
+// A singleton class. Used to uniformalize debug prints across Kvazzup
 
 class Logger
 {

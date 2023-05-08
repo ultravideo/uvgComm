@@ -24,12 +24,28 @@
 
 // the numbers will change as new formats are added, please use enum values
 enum DataType {DT_NONE        = 0,
-               DT_RGB32VIDEO  = (1 << 1),
-               DT_YUV420VIDEO = (1 << 2),
-               DT_YUYVVIDEO   = (1 << 3),
-               DT_HEVCVIDEO   = (1 << 4),
-               DT_RAWAUDIO    = (1 << 5),
-               DT_OPUSAUDIO   = (1 << 6)};
+               DT_YUV420VIDEO = (1),
+               DT_YUV422VIDEO = (1 << 1),
+
+               DT_NV12VIDEO   = (1 << 2),
+               DT_NV21VIDEO   = (1 << 3),
+
+               DT_YUYVVIDEO   = (1 << 4), // also called YUY2
+               DT_UYVYVIDEO   = (1 << 5),
+
+               DT_ARGBVIDEO   = (1 << 7),
+               DT_BGRAVIDEO   = (1 << 8), // reverse of ARGB
+               DT_ABGRVIDEO   = (1 << 9), // reverse of RGBA
+               DT_RGB32VIDEO   = (1 << 10), // also known as RGBA
+
+               DT_RGB24VIDEO  = (1 << 11), // also known as RGBX
+               DT_BGRXVIDEO   = (1 << 12), // also known as RAW, reverse of RGBX
+
+               DT_MJPEGVIDEO  = (1 << 13), // jpeg compressed video, often used as intermediary compression
+               DT_HEVCVIDEO   = (1 << 14),
+
+               DT_RAWAUDIO    = (1 << 15),
+               DT_OPUSAUDIO   = (1 << 16)};
 
 enum DataSource {DS_UNKNOWN, DS_LOCAL, DS_REMOTE};
 

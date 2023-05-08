@@ -1,8 +1,8 @@
 #include "kvazzupcontroller.h"
 
-#include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
+#include "version.h"
 
 #include <QApplication>
 #include <QSettings>
@@ -13,7 +13,6 @@
 
 int main(int argc, char *argv[])
 {
-  QGuiApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
   QApplication a(argc, argv);
 
 #ifndef QT_NO_SYSTEMTRAYICON
@@ -29,10 +28,10 @@ int main(int argc, char *argv[])
   a.setApplicationName("Kvazzup");
   //a.setQuitOnLastWindowClosed(false);
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Starting Kvazzup.",
-    {"Location"}, {QDir::currentPath()});
+  //Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Starting Kvazzup",
+  //                                {"Version"}, {QString::fromStdString(get_version())});
 
-  int id = QFontDatabase::addApplicationFont(QDir::currentPath() + "/fonts/OpenSans-Regular.ttf");
+  int id = QFontDatabase::addApplicationFont(":/fonts/OpenSans-Regular.ttf");
 
   if(id != -1)
   {
@@ -51,7 +50,7 @@ int main(int argc, char *argv[])
 
   QSettings::setPath(settingsFileFormat, QSettings::SystemScope, ".");
 
-  QFile File("stylesheet.qss");
+  QFile File(":/stylesheet.qss");
   File.open(QFile::ReadOnly);
   QString StyleSheet = QLatin1String(File.readAll());
   a.setStyleSheet(StyleSheet);

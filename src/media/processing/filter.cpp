@@ -9,6 +9,8 @@
 #include <QImage>
 #include <QDebug>
 
+#include <thread>
+
 
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                std::shared_ptr<ResourceAllocator> hwResources,
@@ -51,10 +53,23 @@ bool Filter::init()
 
 bool Filter::isVideo(DataType type) const
 {
-  return type == DT_RGB32VIDEO ||
-      type == DT_YUV420VIDEO ||
-      type == DT_YUYVVIDEO ||
-      type == DT_HEVCVIDEO;
+  return type == DT_YUV420VIDEO ||
+    type == DT_YUV422VIDEO ||
+    type == DT_NV12VIDEO ||
+    type == DT_NV21VIDEO ||
+    type == DT_YUYVVIDEO ||
+    type == DT_UYVYVIDEO ||
+
+    type == DT_ARGBVIDEO ||
+    type == DT_BGRAVIDEO ||
+    type == DT_ABGRVIDEO ||
+    type == DT_RGB32VIDEO ||
+
+    type == DT_RGB24VIDEO ||
+    type == DT_BGRXVIDEO ||
+
+    type == DT_MJPEGVIDEO ||
+    type == DT_HEVCVIDEO;
 }
 
 

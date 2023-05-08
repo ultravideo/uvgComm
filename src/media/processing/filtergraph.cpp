@@ -7,14 +7,11 @@
 
 #include "media/processing/openhevcfilter.h"
 
-#include "media/processing/rgb32toyuv.h"
 #include "media/processing/yuvtorgb32.h"
-#include "media/processing/yuyvtoyuv420.h"
-#include "media/processing/yuyvtorgb32.h"
 #include "media/processing/halfrgbfilter.h"
+#include "media/processing/libyuvconverter.h"
 
 #include "media/processing/displayfilter.h"
-#include "media/processing/scalefilter.h"
 #include "media/processing/audiocapturefilter.h"
 #include "media/processing/opusencoderfilter.h"
 #include "media/processing/opusdecoderfilter.h"
@@ -38,6 +35,7 @@
 #include <QSettings>
 #include <QFile>
 #include <QTextStream>
+#include <QAudioFormat>
 
 #include <chrono>
 #include <thread>
@@ -297,12 +295,17 @@ void FilterGraph::initCameraSelfView()
     std::shared_ptr<Filter> resizeFilter = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
     if (!cameraGraph_.empty())
     {
+      addToGraph(std::shared_ptr<Filter>(new LibYUVConverter("", stats_, hwResources_,
+                                                             cameraGraph_.at(0)->outputType())), cameraGraph_, 0);
       addToGraph(resizeFilter, cameraGraph_, cameraGraph_.size() - 1);
       addToGraph(selfviewFilter_, cameraGraph_, cameraGraph_.size() - 1);
     }
 
     if (!screenShareGraph_.empty())
     {
+      addToGraph(std::shared_ptr<Filter>(new LibYUVConverter("", stats_, hwResources_,
+                                                             screenShareGraph_.at(0)->outputType())),
+                 screenShareGraph_, 0);
       addToGraph(resizeFilter, screenShareGraph_, screenShareGraph_.size() - 1);
       addToGraph(selfviewFilter_, screenShareGraph_, screenShareGraph_.size() - 1);
     }
@@ -328,12 +331,14 @@ void FilterGraph::initVideoSend()
     initCameraSelfView();
   }
 
+  // we connect mroi to libyuv conversion filter which makes sure the format is correct
   std::shared_ptr<Filter> mRoi =
       std::shared_ptr<Filter>(new ROIManualFilter("", stats_, hwResources_, roiInterface_));
-  addToGraph(mRoi, cameraGraph_, 0);
+  addToGraph(mRoi, cameraGraph_, 1);
 
   std::shared_ptr<Filter> kvazaar =
       std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
+
   addToGraph(kvazaar, cameraGraph_, cameraGraph_.size() - 1);
   addToGraph(kvazaar, screenShareGraph_, 0);
 
@@ -345,9 +350,9 @@ void FilterGraph::initializeAudioInput(bool opus)
 {
   audioCapture_ = std::shared_ptr<AudioCaptureFilter>(new AudioCaptureFilter("", format_, stats_, hwResources_));
 
-  if (autioOutput_)
+  if (audioOutput_)
   {
-    QObject::connect(autioOutput_.get(), &AudioOutputFilter::outputtingSound,
+    QObject::connect(audioOutput_.get(), &AudioOutputFilter::outputtingSound,
                      audioCapture_.get(), &AudioCaptureFilter::mute);
   }
 
@@ -392,13 +397,13 @@ void FilterGraph::initializeAudioOutput(bool opus)
                                          true, false, false, false, true, AUDIO_OUTPUT_VOLUME, AUDIO_OUTPUT_GAIN),
              audioOutputGraph_);
 
-  autioOutput_ = std::make_shared<AudioOutputFilter>("", stats_, hwResources_, format_);
+  audioOutput_ = std::make_shared<AudioOutputFilter>("", stats_, hwResources_, format_);
 
-  addToGraph(autioOutput_, audioOutputGraph_, (unsigned int)audioOutputGraph_.size() - 1);
+  addToGraph(audioOutput_, audioOutputGraph_, (unsigned int)audioOutputGraph_.size() - 1);
 
   if (audioCapture_)
   {
-    QObject::connect(autioOutput_.get(),  &AudioOutputFilter::outputtingSound,
+    QObject::connect(audioOutput_.get(),  &AudioOutputFilter::outputtingSound,
                      audioCapture_.get(), &AudioCaptureFilter::mute);
   }
 
@@ -427,32 +432,18 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
 
       // TODO: Check the out connections of connected filter for an already existing conversion.
 
-      if(graph.at(connectIndex)->outputType() == DT_RGB32VIDEO &&
-         filter->inputType() == DT_YUV420VIDEO)
+      if(filter->inputType() == DT_YUV420VIDEO)
       {
-        Logger::getLogger()->printNormal(this, "Adding RGB32 to YUV420 conversion");
-        addToGraph(std::shared_ptr<Filter>(new RGB32toYUV("", stats_, hwResources_)),
-                   graph, connectIndex);
+        Logger::getLogger()->printNormal(this, "Adding libyuv conversion filter to YUV420");
+        addToGraph(std::shared_ptr<Filter>(new LibYUVConverter("", stats_, hwResources_,
+                                                               graph.at(connectIndex)->outputType())),
+                                           graph, connectIndex);
       }
       else if(graph.at(connectIndex)->outputType() == DT_YUV420VIDEO &&
               filter->inputType() == DT_RGB32VIDEO)
       {
         Logger::getLogger()->printNormal(this, "Adding YUV420 to RGB32 conversion");
         addToGraph(std::shared_ptr<Filter>(new YUVtoRGB32("", stats_, hwResources_)),
-                   graph, connectIndex);
-      }
-      else if(graph.at(connectIndex)->outputType() == DT_YUYVVIDEO &&
-              filter->inputType() == DT_YUV420VIDEO)
-      {
-        Logger::getLogger()->printNormal(this, "Adding YUYV to YUV420 conversion");
-        addToGraph(std::shared_ptr<Filter>(new YUYVtoYUV420("", stats_, hwResources_)),
-                   graph, connectIndex);
-      }
-      else if(graph.at(connectIndex)->outputType() == DT_YUYVVIDEO &&
-              filter->inputType() == DT_RGB32VIDEO)
-      {
-        Logger::getLogger()->printNormal(this, "Adding YUYV to RGB32 conversion");
-        addToGraph(std::shared_ptr<Filter>(new YUYVtoRGB32("", stats_, hwResources_)),
                    graph, connectIndex);
       }
       else
@@ -956,6 +947,8 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
       destroyFilters(screenShareGraph_);
       destroyFilters(audioInputGraph_);
       destroyFilters(audioOutputGraph_);
+      audioOutput_ = nullptr;
+      audioCapture_ = nullptr;
 
       videoSendIniated_ = false;
       audioInputInitialized_ = false;
@@ -979,10 +972,7 @@ QAudioFormat FilterGraph::createAudioFormat(uint8_t channels, uint32_t sampleRat
 
   format.setSampleRate(sampleRate);
   format.setChannelCount(channels);
-  format.setSampleSize(16);
-  format.setSampleType(QAudioFormat::SignedInt);
-  format.setByteOrder(QAudioFormat::LittleEndian);
-  format.setCodec("audio/pcm");
+  format.setSampleFormat(QAudioFormat::Int16);
 
   return format;
 }

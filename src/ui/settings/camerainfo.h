@@ -14,12 +14,8 @@ struct SettingsCameraFormat
   int deviceID;
 
   QString format;
-  int formatID;
   QSize resolution;
-  int resolutionID;
-
   QString framerate;
-  int framerateID;
 };
 
 // A helper class for settings.
@@ -39,11 +35,15 @@ public:
   void getFormatResolutions(int deviceID, QString format, QStringList& resolutions);
 
   // get resolutions for a format.
-  void getFramerates(int deviceID, QString format, int resolutionID, QStringList& ranges);
+  void getFramerates(int deviceID, QString format, QString resolution, QStringList& ranges);
 
-  QString getFormat(int deviceID, int formatID);
-  QSize   getResolution(int deviceID, int formatID, int resolutionID);
-  int     getFramerate(int deviceID, int formatID, int resolutionID, int framerateID);
+  QString getFormat(int deviceID, QString format);
+
+  // format must be verified by calling getFormat() before calling getResolution()
+  QSize   getResolution(int deviceID, QString format, QString resolution);
+  int     getFramerate(int deviceID, QString format, QString resolution, QString framerate);
+
+  QCameraFormat getVideoFormat(int deviceID, QString format, QString resolution, QString framerate);
 
   void getCameraOptions(std::vector<SettingsCameraFormat>& options, int deviceID);
 
@@ -57,9 +57,12 @@ private:
   QVideoFrame::PixelFormat stringToPixelFormat(QString format);
 #endif
 
-  void getAllowedFormats(QList<QVideoFrame::PixelFormat>& p_formats,
+  void getAllowedFormats(QList<QVideoFrameFormat::PixelFormat>& p_formats,
                          QStringList& allowedFormats);
 
   std::unique_ptr<QCamera> loadCamera(int deviceID);
 
+  void printFormatOption(QCameraFormat& formatOption) const;
+
+  QString resolutionToString(QSize resolution) const;
 };

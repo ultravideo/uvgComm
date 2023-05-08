@@ -188,8 +188,8 @@ VideoWidget* AutomaticSettings::getRoiSelfView()
 QSize AutomaticSettings::getSettingsResolution()
 {
   QSize resolution;
-  resolution.setWidth(settings_.value(SettingsKey::videoResultionWidth).toInt());
-  resolution.setHeight(settings_.value(SettingsKey::videoResultionHeight).toInt());
+  resolution.setWidth(settings_.value(SettingsKey::videoResolutionWidth).toInt());
+  resolution.setHeight(settings_.value(SettingsKey::videoResolutionHeight).toInt());
 
   return resolution;
 }

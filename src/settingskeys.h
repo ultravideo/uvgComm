@@ -30,15 +30,13 @@ const QString manualROIStatus = "auto/manualRoi";
 const QString videoDeviceID = "video/DeviceID";
 const QString videoDevice = "video/Device";
 
-const QString videoResultionWidth = "video/ResolutionWidth";
-const QString videoResultionHeight = "video/ResolutionHeight";
-const QString videoResolutionID = "video/ResolutionID";
+const QString videoResolutionWidth = "video/ResolutionWidth";
+const QString videoResolutionHeight = "video/ResolutionHeight";
 const QString videoInputFormat = "video/InputFormat";
 const QString videoYUVThreads = "video/yuvThreads";
 const QString videoRGBThreads = "video/rgbThreads";
 const QString videoOpenHEVCThreads = "video/OPENHEVC_threads";
 const QString videoOHParallelization = "video/OH_parallelization";
-const QString videoFramerateID = "video/FramerateID";
 const QString videoFramerateNumerator = "video/FramerateNumerator";
 const QString videoFramerateDenominator = "video/FramerateDenominator";
 const QString videoOpenGL = "video/opengl";
