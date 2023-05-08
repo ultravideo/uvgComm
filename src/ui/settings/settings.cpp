@@ -130,14 +130,20 @@ void Settings::init()
   QObject::connect(basicUI_->passwd_edit, &QLineEdit::textChanged,
                    this, &Settings::uiChangedString);
 
+  QObject::connect(basicUI_->show_password_button, &QPushButton::clicked,
+                   this, &Settings::showPasswordPlaintext);
+
   QObject::connect(basicUI_->auto_connect_box, &QCheckBox::stateChanged,
                    this,                       &Settings::uiChangedBool);
 
+  QObject::connect(basicUI_->auto_connect_box, &QCheckBox::stateChanged,
+                   this,                       &Settings::showServerOptions);
+
   QObject::connect(basicUI_->show_manual_box, &QCheckBox::stateChanged,
                    this,                       &Settings::uiChangedBool);
 
   QObject::connect(basicUI_->show_manual_box, &QCheckBox::stateChanged,
-                   this,                      &Settings::showManual);
+                   this,                      &Settings::showMedia);
 
   QObject::connect(basicUI_->videoDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
@@ -264,7 +270,30 @@ void Settings::uiChangedBool(bool state)
 }
 
 
-void Settings::showManual(bool state)
+void Settings::showServerOptions(bool state)
+{
+  if (state)
+  {
+    basicUI_->label_status->show();
+    basicUI_->status->show();
+
+    basicUI_->show_password_button->show();
+    basicUI_->passwd_edit->show();
+    basicUI_->label_password->show();
+  }
+  else
+  {
+    basicUI_->label_status->hide();
+    basicUI_->status->hide();
+
+    basicUI_->show_password_button->hide();
+    basicUI_->passwd_edit->hide();
+    basicUI_->label_password->hide();
+  }
+}
+
+
+void Settings::showMedia(bool state)
 {
   if (state)
   {
@@ -403,7 +432,8 @@ void Settings::getSettings(bool changedDevice)
     restoreCheckBox(SettingsKey::manualSettings, basicUI_->show_manual_box, settings_);
 
     // set the UI in correct state
-    showManual(basicUI_->show_manual_box->isChecked());
+    showServerOptions(basicUI_->auto_connect_box->isChecked());
+    showMedia(basicUI_->show_manual_box->isChecked());
 
     // updates the sip text label
     changedSIPText("");
@@ -611,6 +641,21 @@ void Settings::changedSIPText(const QString &text)
   Q_UNUSED(text);
   basicUI_->sipAddress->setText("sip:" + basicUI_->username_edit->text()
                                 + "@" + basicUI_->serverAddress_edit->text());
+}
+
+
+void Settings::showPasswordPlaintext()
+{
+  if (basicUI_->passwd_edit->echoMode() == QLineEdit::Password)
+  {
+    basicUI_->passwd_edit->setEchoMode(QLineEdit::Normal);
+    basicUI_->show_password_button->setText("Hide Password");
+  }
+  else
+  {
+    basicUI_->passwd_edit->setEchoMode(QLineEdit::Password);
+    basicUI_->show_password_button->setText("Show Password");
+  }
 }
 
 

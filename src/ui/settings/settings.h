@@ -85,10 +85,15 @@ public slots:
 
   void changedSIPText(const QString &text);
 
+  void showPasswordPlaintext();
+
   void uiChangedString(QString text);
   void uiChangedBool(bool state);
 
-  void showManual(bool state);
+  // determines if SIP server related UI options are visible
+  void showServerOptions(bool state);
+
+  void showMedia(bool state);
 
 protected:
 
