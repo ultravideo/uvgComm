@@ -50,8 +50,7 @@ void IceSessionTester::componentSucceeded(std::shared_ptr<ICEPair> connection)
   if (finished_[connection->local->foundation].find(connection->local->component)
       != finished_[connection->local->foundation].end())
   {
-    Logger::getLogger()->printError(this, 
-                                    "Component finished, but it has already finished before.");
+    Logger::getLogger()->printWarning(this, "Component finished, but it has already finished before.");
   }
 
   finished_[connection->local->foundation][connection->local->component] = connection;
