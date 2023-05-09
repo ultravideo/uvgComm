@@ -40,6 +40,6 @@ struct ICEPair
 {
   std::shared_ptr<ICEInfo> local;
   std::shared_ptr<ICEInfo> remote;
-  int priority;
+  uint64_t priority;
   PairState state;
 };

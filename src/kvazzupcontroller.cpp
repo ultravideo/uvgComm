@@ -1,17 +1,22 @@
 #include "kvazzupcontroller.h"
 
 #include "statisticsinterface.h"
-#include "videoviewfactory.h"
 
 #include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
+
+#include "global.h"
 
 #include <QSettings>
 #include <QHostAddress>
 
 #include <thread>
 #include <chrono>
+
+// TODO: Eliminating this would speed up the start of conference, but does require making the media more
+// resilient to repeated re-negotiations
+const int DELAYED_NEGOTIATION_TIMEOUT_MS = 500;
 
 
 KvazzupController::KvazzupController():
@@ -22,7 +27,8 @@ KvazzupController::KvazzupController():
   stats_(nullptr),
   delayAutoAccept_(),
   delayedAutoAccept_(0),
-  viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory()))
+  ongoingNegotiations_(0),
+  delayedNegotiation_()
 {}
 
 
@@ -32,17 +38,14 @@ void KvazzupController::init()
 
   userInterface_.init(this);
 
-  std::vector<VideoWidget*> views = userInterface_.getSelfViews();
-
-  for (auto& view : views)
-  {
-    viewFactory_->addSelfview(view);
-  }
-
   stats_ = userInterface_.createStatsWindow();
 
   QObject::connect(&sip_, &SIPManager::finalLocalSDP,
                    this, &KvazzupController::inputLocalSDP);
+
+  QObject::connect(&sip_, &SIPManager::connectionEstablished,
+                   this, &KvazzupController::connectionEstablished);
+
 
   sip_.installSIPRequestCallback(std::bind(&KvazzupController::SIPRequestCallback, this,
                                            std::placeholders::_1,
@@ -71,6 +74,9 @@ void KvazzupController::init()
   sip_.setSDP(sdp);
 
   sip_.init(stats_);
+  sip_.listenToAny(SIP_TCP, 5060);
+
+  checkBinding();
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
                    this,    &KvazzupController::zrtpFailed);
@@ -82,7 +88,7 @@ void KvazzupController::init()
   QObject::connect(&media_, &MediaManager::iceMediaFailed,
                    this, &KvazzupController::iceFailed);
 
-  media_.init(viewFactory_->getSelfVideos(), stats_);
+  media_.init(userInterface_.getSelfVideos(), stats_);
 
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
@@ -129,8 +135,24 @@ void KvazzupController::quit()
 }
 
 
-uint32_t KvazzupController::callToParticipant(QString name, QString username,
-                                              QString ip)
+uint32_t KvazzupController::startINVITETransaction(QString name, QString username,
+                                                   QString ip)
+{
+  uint32_t sessionID = sip_.reserveSessionID();
+  waitingToStart_[ip] = {name, username, sessionID};
+
+  // try connecting, if returns immediately or we already have a connection, create Dialog
+  if (sip_.connect(SIP_TCP, ip, 5060))
+  {
+    waitingToStart_.erase(ip);
+    createSIPDialog(name, username, ip, sessionID);
+  }
+
+  return sessionID;
+}
+
+
+void KvazzupController::createSIPDialog(QString name, QString username, QString ip, uint32_t sessionID)
 {
   NameAddr remote;
   remote.realname = name;
@@ -141,18 +163,40 @@ uint32_t KvazzupController::callToParticipant(QString name, QString username,
 
   //start negotiations for this connection
 
-  Logger::getLogger()->printNormal(this, "Starting call with contact", 
+  Logger::getLogger()->printNormal(this, "Starting call with contact",
                                    {"Contact"}, {remote.realname});
 
-  uint32_t sessionID = sip_.startCall(remote);
+  sip_.createDialog(sessionID, remote, ip);
 
   userInterface_.displayOutgoingCall(sessionID, remote.realname);
   if(states_.find(sessionID) == states_.end())
   {
-    states_[sessionID] = SessionState{CALLINGTHEM, nullptr, nullptr, true, name};
+    states_[sessionID] = SessionState{CALL_INVITE_SENT, nullptr, nullptr, false, true, false, false, name};
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "SIP Manager is giving existing sessionIDs as new ones");
   }
 
-  return sessionID;
+  // first we must renegotiates this call, so we get all their media parameters
+  renegotiateCall(sessionID);
+
+  if (settingEnabled(SettingsKey::sipP2PConferencing))
+  {
+    // then we renegotiates rest of the calls with the previous calls parameters included
+    for (auto& state : states_)
+    {
+      if (state.first != sessionID)
+      {
+        renegotiateCall(state.first);
+      }
+    }
+  }
+
+  if (ongoingNegotiations_ == 0)
+  {
+    negotiateNextCall();
+  }
 }
 
 
@@ -165,7 +209,7 @@ uint32_t KvazzupController::chatWithParticipant(QString name, QString username,
 }
 
 
-bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
+bool KvazzupController::processINVITE(uint32_t sessionID, QString caller)
 {
   if(states_.find(sessionID) != states_.end())
   {
@@ -173,9 +217,10 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
                                                  "an existing session!");
   }
 
-  int autoAccept = settingValue(SettingsKey::localAutoAccept);
+  states_[sessionID] = SessionState{CALL_INVITE_RECEIVED, nullptr, nullptr, true, false, false, false, caller};
+  ++ongoingNegotiations_;
 
-  if(autoAccept == 1)
+  if(settingEnabled(SettingsKey::localAutoAccept))
   {
     Logger::getLogger()->printNormal(this, "Incoming call auto-accepted");
 
@@ -192,7 +237,6 @@ bool KvazzupController::incomingCall(uint32_t sessionID, QString caller)
   else
   {
     Logger::getLogger()->printNormal(this, "Showing incoming call");
-    states_[sessionID] = SessionState{CALLRINGINGWITHUS, nullptr, nullptr, false, caller};
     userInterface_.displayIncomingCall(sessionID, caller);
   }
   return false;
@@ -214,7 +258,13 @@ void KvazzupController::updateAudioSettings()
   updateSDPAudioStatus(sdp);
 
   emit media_.updateAudioSettings();
-  //sip_.setSDP(sdp);
+
+  sip_.setSDP(sdp);
+  renegotiateAllCalls();
+  if (ongoingNegotiations_ == 0)
+  {
+    negotiateNextCall();
+  }
 }
 
 
@@ -226,10 +276,23 @@ void KvazzupController::updateVideoSettings()
   updateSDPVideoStatus(sdp);
   updateSDPAudioStatus(sdp);
 
-  // NOTE: Media must be updated before SIP so that SIP does not time-out while we update media
   // TODO: For everything that is negotiated via SDP, the media should not be modified here
+
+  // NOTE: Media must be updated before SIP so that SIP does not time-out while we update media
   emit media_.updateVideoSettings();
-  //sip_.setSDP(sdp);
+  sip_.setSDP(sdp);
+  renegotiateAllCalls();
+  if (ongoingNegotiations_ == 0)
+  {
+    negotiateNextCall();
+  }
+}
+
+
+void KvazzupController::updateCallSettings()
+{
+  checkBinding();
+  sip_.updateCallSettings();
 }
 
 
@@ -264,42 +327,42 @@ void KvazzupController::updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp
 }
 
 
-void KvazzupController::callRinging(uint32_t sessionID)
+void KvazzupController::processRINGING(uint32_t sessionID)
 {
   // TODO_RFC 3261: Enable cancelling the request at this point
   // to make sure the original request has been received
 
-  if(states_.find(sessionID) != states_.end() && states_[sessionID].state == CALLINGTHEM)
+  if(states_.find(sessionID) != states_.end() &&
+     states_[sessionID].state == CALL_INVITE_SENT &&
+     !states_[sessionID].sessionRunning)
   {
     Logger::getLogger()->printNormal(this, "Our call is ringing");
     userInterface_.displayRinging(sessionID);
-    states_[sessionID].state = CALLRINGINWITHTHEM;
   }
   else
   {
-    Logger::getLogger()->printPeerError(this, "Got call ringing for nonexisting call",
+    Logger::getLogger()->printPeerError(this, "Got invalid ringing reply",
                   {"SessionID"}, {QString::number(sessionID)});
   }
 }
 
 
-void KvazzupController::peerAccepted(uint32_t sessionID)
+void KvazzupController::processINVITE_OK(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
-    if(states_[sessionID].state == CALLRINGINWITHTHEM || states_[sessionID].state == CALLINGTHEM)
+    if(states_[sessionID].state == CALL_INVITE_SENT)
     {
       Logger::getLogger()->printImportant(this, "They accepted our call!");
-      states_[sessionID].state = CALLNEGOTIATING;
-    }
-    else if (states_[sessionID].state == CALLONGOING)
-    {
-      Logger::getLogger()->printNormal(this, "Detected a re-INVITE");
+      states_[sessionID].followOurSDP = false;
+      states_[sessionID].iceController = areWeICEController(true, sessionID);
+      INVITETransactionConcluded(sessionID);
     }
     else
     {
       Logger::getLogger()->printPeerError(this, "Got an accepted call even though "
-                                                "we have not yet called them!");
+                                                "we have not yet called them!",
+                                          "sessionID", QString::number(sessionID));
     }
   }
   else
@@ -309,24 +372,34 @@ void KvazzupController::peerAccepted(uint32_t sessionID)
 }
 
 
-void KvazzupController::callNegotiated(uint32_t sessionID)
+void KvazzupController::INVITETransactionConcluded(uint32_t sessionID)
 {
-  Logger::getLogger()->printNormal(this, "Call negotiated");
+  Logger::getLogger()->printNormal(this, "Call negotiated", "SessionID", QString::number(sessionID));
 
-  if (states_.find(sessionID) != states_.end() &&
-      (states_[sessionID].state == CALLNEGOTIATING ||
-       states_[sessionID].state == CALLONGOING))
+  if (states_.find(sessionID) != states_.end())
   {
+    states_[sessionID].state = CALL_TRANSACTION_CONCLUDED; // all messages received for call
+    states_[sessionID].sessionNegotiated = true;
+
+    // we start the session only if we have both SDP messages
     if (states_[sessionID].localSDP != nullptr &&
         states_[sessionID].remoteSDP != nullptr)
     {
+       --ongoingNegotiations_;
+      Logger::getLogger()->printImportant(this, "Starting session for peer",
+                  "SessionID", {QString::number(sessionID)});
+
       createCall(sessionID);
+
+      if (!pendingRenegotiations_.empty())
+      {
+        delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
+                                       this, &KvazzupController::negotiateNextCall);
+      }
     }
     else
     {
-      Logger::getLogger()->printProgramError(this,
-                                             "SDP has not been set "
-                                             "after concluding negotiations");
+      Logger::getLogger()->printNormal(this, "Still waiting for SDP messages");
     }
   }
 }
@@ -340,7 +413,7 @@ void KvazzupController::iceFailed(uint32_t sessionID)
 
   // TODO: Tell sip manager to send an error for ICE
   Logger::getLogger()->printUnimplemented(this, "Send SIP error code for ICE failure");
-  endCall(sessionID);
+  sessionTerminated(sessionID);
 }
 
 
@@ -350,12 +423,12 @@ void KvazzupController::zrtpFailed(quint32 sessionID)
 
   userInterface_.showZRTPFailedMessage(QString::number(sessionID));
   if (states_.find(sessionID) != states_.end() &&
-      states_[sessionID].state != CALLENDING)
+      states_[sessionID].state != CALL_ENDING)
   {
     // TODO: Mutex this
-    states_[sessionID].state = CALLENDING;
+    states_[sessionID].state = CALL_ENDING;
     sip_.endCall(sessionID);
-    endCall(sessionID); // TODO: Remove this once the BYE OK is processed correctly in SIPManager
+    sessionTerminated(sessionID); // TODO: Remove this once the BYE OK is processed correctly in SIPManager
   }
 }
 
@@ -368,9 +441,6 @@ void KvazzupController::noEncryptionAvailable()
 
 void KvazzupController::createCall(uint32_t sessionID)
 {
-  Logger::getLogger()->printNormal(this, "Call has been agreed upon with peer.",
-              "SessionID", {QString::number(sessionID)});
-
   std::shared_ptr<SDPMessageInfo> localSDP = states_[sessionID].localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP = states_[sessionID].remoteSDP;
 
@@ -380,16 +450,85 @@ void KvazzupController::createCall(uint32_t sessionID)
     return;
   }
 
-  bool videoEnabled = false;
-  bool audioEnabled = false;
+  QList<SDPMediaParticipant> uiMedias;
 
   if (states_[sessionID].followOurSDP)
   {
-    getReceiveAttribute(localSDP, true, videoEnabled, audioEnabled);
+    Logger::getLogger()->printNormal(this, "Creating call using attributes from our SDP");
+    uiMedias = formUIMedias(localSDP->media, localSDP->media,
+                            states_[sessionID].followOurSDP, sessionID);
   }
   else
   {
-    getReceiveAttribute(remoteSDP, false, videoEnabled, audioEnabled);
+    Logger::getLogger()->printNormal(this, "Creating call using attributes from remote SDP");
+    uiMedias = formUIMedias(localSDP->media, remoteSDP->media,
+                            states_[sessionID].followOurSDP, sessionID);
+  }
+
+  std::vector<VideoInterface*> videos = userInterface_.callStarted(sessionID, uiMedias);
+
+  if (!states_[sessionID].sessionRunning)
+  {
+    if (stats_)
+    {
+      stats_->addSession(sessionID);
+    }
+
+    media_.addParticipant(sessionID, remoteSDP, localSDP, videos,
+                          states_[sessionID].iceController,
+                          states_[sessionID].followOurSDP);
+
+    states_[sessionID].sessionRunning = true;
+   }
+  else
+  {
+    media_.modifyParticipant(sessionID, remoteSDP, localSDP, videos,
+                             states_[sessionID].iceController,
+                             states_[sessionID].followOurSDP);
+  }
+
+  // lastly we delete our saved SDP messages when they are no longer needed
+  states_[sessionID].localSDP = nullptr;
+  states_[sessionID].remoteSDP = nullptr;
+}
+
+
+QList<SDPMediaParticipant> KvazzupController::formUIMedias(QList<MediaInfo>& localMedia,
+                                                           QList<MediaInfo>& attributeMedia,
+                                                           bool followOurSDP,
+                                                           uint32_t sessionID)
+{
+  bool videoEnabled = false;
+  bool audioEnabled = false;
+
+  QList<SDPMediaParticipant> uiMedias;
+
+  // TODO: Use lipsync to determine pairs
+  for (int i = 0; i < attributeMedia.size(); i += 2)
+  {
+    if (!localMedia.at(i).candidates.empty() &&
+        isLocalCandidate(localMedia.at(i).candidates.first()))
+    {
+      if (attributeMedia.at(i).type == "audio")
+      {
+        audioEnabled = getReceiveAttribute(attributeMedia.at(i), followOurSDP);
+      }
+      else if (attributeMedia.at(i).type == "video")
+      {
+        videoEnabled = getReceiveAttribute(attributeMedia.at(i), followOurSDP);
+      }
+
+      if (attributeMedia.at(i + 1).type == "audio")
+      {
+        audioEnabled = getReceiveAttribute(attributeMedia.at(i + 1), followOurSDP);
+      }
+      else if (attributeMedia.at(i + 1).type == "video")
+      {
+        videoEnabled = getReceiveAttribute(attributeMedia.at(i + 1), followOurSDP);
+      }
+
+      uiMedias.push_back({videoEnabled, audioEnabled, states_[sessionID].name});
+    }
   }
 
   QString videoState = "no";
@@ -409,75 +548,7 @@ void KvazzupController::createCall(uint32_t sessionID)
                                   {"Video Enabled", "Audio Enabled"},
                                   {videoState, audioState});
 
-  viewFactory_->getVideo(sessionID)->drawMicOffIcon(!audioEnabled);
-
-  userInterface_.callStarted(sessionID, videoEnabled, audioEnabled,
-                             viewFactory_->getView(sessionID), states_[sessionID].name);
-
-  if (states_[sessionID].state != CALLONGOING)
-  {
-    if (stats_)
-    {
-      stats_->addSession(sessionID);
-    }
-
-    media_.addParticipant(sessionID, remoteSDP, localSDP, viewFactory_->getVideo(sessionID),
-                           states_[sessionID].followOurSDP);
-
-    states_[sessionID].state = CALLONGOING;
-   }
-  else
-  {
-    media_.modifyParticipant(sessionID, remoteSDP, localSDP, viewFactory_->getVideo(sessionID),
-                             states_[sessionID].followOurSDP);
-  }
-
-  // lastly we delete our saved SDP messages when they are no longer needed
-  states_[sessionID].localSDP = nullptr;
-  states_[sessionID].remoteSDP = nullptr;
-}
-
-
-void KvazzupController::getReceiveAttribute(std::shared_ptr<SDPMessageInfo> sdp, bool isThisLocal, bool& recvVideo,
-                         bool& recvAudio)
-{
-  for (auto& media : sdp->media)
-  {
-    if (media.type == "video")
-    {
-      if (isThisLocal)
-      {
-        recvVideo = (media.flagAttributes.empty()
-                     || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                     || media.flagAttributes.at(0) == A_SENDRECV
-                     || media.flagAttributes.at(0) == A_RECVONLY);
-      }
-      else
-      {
-        recvVideo = (media.flagAttributes.empty()
-                     || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                     || media.flagAttributes.at(0) == A_SENDRECV
-                     || media.flagAttributes.at(0) == A_SENDONLY);
-      }
-    }
-    else if (media.type == "audio")
-    {
-      if (isThisLocal)
-      {
-      recvAudio = (media.flagAttributes.empty()
-                      || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                      || media.flagAttributes.at(0) == A_SENDRECV
-                      || media.flagAttributes.at(0) == A_RECVONLY);
-      }
-      else
-      {
-        recvAudio = (media.flagAttributes.empty()
-                        || media.flagAttributes.at(0) == A_NO_ATTRIBUTE
-                        || media.flagAttributes.at(0) == A_SENDRECV
-                        || media.flagAttributes.at(0) == A_SENDONLY);
-      }
-    }
-  }
+  return uiMedias;
 }
 
 
@@ -487,45 +558,17 @@ void KvazzupController::cancelIncomingCall(uint32_t sessionID)
 }
 
 
-void KvazzupController::endCall(uint32_t sessionID)
+void KvazzupController::sessionTerminated(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "Ending the call", {"SessionID"}, 
                                    {QString::number(sessionID)});
   if (states_.find(sessionID) != states_.end() &&
-      (states_[sessionID].state == CALLONGOING || states_[sessionID].state == CALLENDING))
+      (states_[sessionID].state == CALL_TRANSACTION_CONCLUDED ||
+       states_[sessionID].state == CALL_ENDING))
   {
     media_.removeParticipant(sessionID);
   }
   removeSession(sessionID, "Call ended", true);
-}
-
-
-void KvazzupController::failure(uint32_t sessionID, QString error)
-{
-  if (states_.find(sessionID) != states_.end())
-  {
-    if (states_[sessionID].state == CALLINGTHEM)
-    {
-      Logger::getLogger()->printImportant(this, "Our call failed. Invalid sip address?");
-    }
-    else if(states_[sessionID].state == CALLRINGINWITHTHEM)
-    {
-      Logger::getLogger()->printImportant(this, "Our call has been rejected!");
-    }
-    else
-    {
-      Logger::getLogger()->printPeerError(this, "Got reject when we weren't calling them", 
-                                          "SessionID", {QString::number(sessionID)});
-    }
-    removeSession(sessionID, error, false);
-  }
-  else
-  {
-    Logger::getLogger()->printPeerError(this, "Got reject for nonexisting call", 
-                                        "SessionID", {QString::number(sessionID)});
-    Logger::getLogger()->printPeerError(this, "", "Ongoing sessions", 
-                                        {QString::number(states_.size())});
-  }
 }
 
 
@@ -546,7 +589,8 @@ void KvazzupController::registeringFailed()
 void KvazzupController::userAcceptsCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "We accept");
-  states_[sessionID].state = CALLNEGOTIATING;
+  states_[sessionID].state = CALL_TRANSACTION_CONCLUDED;
+  states_[sessionID].followOurSDP = true;
   sip_.respondOkToINVITE(sessionID);
 }
 
@@ -556,6 +600,8 @@ void KvazzupController::userRejectsCall(uint32_t sessionID)
   Logger::getLogger()->printNormal(this, "We reject");
   sip_.respondDeclineToINVITE(sessionID);
   removeSession(sessionID, "Rejected", true);
+
+  --ongoingNegotiations_;
 }
 
 
@@ -566,6 +612,8 @@ void KvazzupController::userCancelsCall(uint32_t sessionID)
   {
     userInterface_.removeParticipant(sessionID);
   }
+
+  --ongoingNegotiations_;
 }
 
 
@@ -599,9 +647,8 @@ void KvazzupController::removeSession(uint32_t sessionID, QString message,
   {
     stats_->removeSession(sessionID);
   }
-
-  viewFactory_->clearWidgets(sessionID);
 }
+
 
 void KvazzupController::SIPRequestCallback(uint32_t sessionID,
                                            SIPRequest& request,
@@ -616,17 +663,21 @@ void KvazzupController::SIPRequestCallback(uint32_t sessionID,
   {
     case SIP_INVITE:
     {
-      if (states_.find(sessionID) != states_.end() && states_.at(sessionID).state == CALLONGOING)
+      if (states_.find(sessionID) != states_.end() &&
+          (states_.at(sessionID).sessionNegotiated))
       {
         Logger::getLogger()->printNormal(this, "Detected a re-INVITE");
+        ++ongoingNegotiations_;
+        states_[sessionID].state = CALL_OK_SENT;
         sip_.respondOkToINVITE(sessionID);
       }
-      else if (!incomingCall(sessionID, request.message->from.address.realname))
+      else if (!processINVITE(sessionID, request.message->from.address.realname))
       {
         sip_.respondRingingToINVITE(sessionID);
       }
       else
       {
+        states_[sessionID].state = CALL_OK_SENT;
         sip_.respondOkToINVITE(sessionID);
       }
 
@@ -639,15 +690,15 @@ void KvazzupController::SIPRequestCallback(uint32_t sessionID,
     {
     // the SDP may be either in INVITE or ACK
       getRemoteSDP(sessionID, request.message, content);
-      if (states_[sessionID].localSDP != nullptr)
-      {
-        callNegotiated(sessionID);
-      }
+      states_[sessionID].followOurSDP = true;
+      states_[sessionID].iceController = areWeICEController(false, sessionID);
+      INVITETransactionConcluded(sessionID);
+
       break;
     }
     case SIP_BYE:
     {
-      endCall(sessionID);
+      sessionTerminated(sessionID);
       break;
     }
     case SIP_CANCEL:
@@ -680,20 +731,16 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
 
       if(response.type == SIP_RINGING)
       {
-        callRinging(sessionID);
+        processRINGING(sessionID);
       }
       else if(response.type == SIP_OK)
       {
-        peerAccepted(sessionID);
-        if (states_[sessionID].localSDP != nullptr)
-        {
-          callNegotiated(sessionID);
-        }
+        processINVITE_OK(sessionID);
       }
     }
     else if (response.message->cSeq.method == SIP_BYE && response.type == 200)
     {
-      endCall(sessionID);
+      sessionTerminated(sessionID);
     }
   }
   else if (response.type >= 300 && response.type <= 399)
@@ -708,6 +755,19 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
         removeSession(sessionID, "Call cancelled", true);
       }
     }
+    else if(response.type == SIP_NOT_FOUND)
+    {
+      removeSession(sessionID, "Not found", true);
+    }
+
+    // TODO: A bit of a hack, we should redo authentication INVITE here instead of elsewhere
+    if (response.message->cSeq.method == SIP_INVITE &&
+        response.type != SIP_PROXY_AUTHENTICATION_REQUIRED)
+    {
+      --ongoingNegotiations_;
+    }
+
+    // TODO: Put rest of the error return values
   }
   else if (response.type >= 500 && response.type <= 599)
   {
@@ -719,7 +779,8 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
     {
       if (response.type == SIP_DECLINE)
       {
-        endCall(sessionID);
+        sessionTerminated(sessionID);
+        --ongoingNegotiations_;
       }
     }
   }
@@ -728,19 +789,18 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
 
 void KvazzupController::inputLocalSDP(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> local)
 {
-  if (states_.find(sessionID) == states_.end() ||
-      (states_[sessionID].state != CALLNEGOTIATING && states_[sessionID].state != CALLONGOING))
+  if (states_.find(sessionID) == states_.end())
   {
     Logger::getLogger()->printProgramError(this, "Got local SDP, but we are not in correct state");
     return;
   }
 
   states_[sessionID].localSDP = local;
-  states_[sessionID].followOurSDP = true;
 
-  if (states_[sessionID].remoteSDP != nullptr)
+  if (states_[sessionID].remoteSDP != nullptr &&
+      states_[sessionID].state == CALL_TRANSACTION_CONCLUDED)
   {
-    callNegotiated(sessionID);
+    INVITETransactionConcluded(sessionID);
   }
 }
 
@@ -787,7 +847,106 @@ void KvazzupController::getRemoteSDP(uint32_t sessionID,
     SDPMessageInfo sdp = content.value<SDPMessageInfo>();
     states_[sessionID].remoteSDP = std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
     *(states_[sessionID].remoteSDP) = sdp;
-
-    states_[sessionID].followOurSDP = false;
   }
+}
+
+
+void KvazzupController::renegotiateCall(uint32_t sessionID)
+{
+  bool found = false;
+
+  // avoid renegotiating the same call twice
+  for (auto& pendingSessionID: pendingRenegotiations_)
+  {
+    if (pendingSessionID == sessionID)
+    {
+      found = true;
+    }
+  }
+
+  if (!found)
+  {
+    pendingRenegotiations_.push_back(sessionID);
+  }
+}
+
+
+void KvazzupController::renegotiateAllCalls()
+{
+  for (auto& state : states_)
+  {
+    renegotiateCall(state.first);
+  }
+}
+
+
+void KvazzupController::negotiateNextCall()
+{
+  if (!pendingRenegotiations_.empty() && ongoingNegotiations_ == 0)
+  {
+    ++ongoingNegotiations_;
+    uint32_t sessionID = pendingRenegotiations_.front();
+    pendingRenegotiations_.pop_front();
+    states_[sessionID].localSDP = nullptr;
+    states_[sessionID].remoteSDP = nullptr;
+
+    states_[sessionID].state = CALL_INVITE_SENT;
+    sip_.sendINVITE(sessionID);
+  }
+}
+
+
+void KvazzupController::checkBinding()
+{
+  int autoConnect = settingValue(SettingsKey::sipAutoConnect);
+  if(autoConnect == 1)
+  {
+    QString serverAddress = settingString(SettingsKey::sipServerAddress);
+    waitingToBind_.push_back(serverAddress);
+
+    if(sip_.connect(SIP_TCP, serverAddress, 5060))
+    {
+      waitingToBind_.removeAll(serverAddress);
+      sip_.bindingAtRegistrar(serverAddress);
+    }
+  }
+}
+
+
+void KvazzupController::connectionEstablished(QString localAddress, QString remoteAddress)
+{
+  Q_UNUSED(localAddress)
+
+  // if we are planning to call a peer using this connection
+  if (waitingToStart_.find(remoteAddress) != waitingToStart_.end())
+  {
+    WaitingStart startingSession = waitingToStart_[remoteAddress];
+    waitingToStart_.erase(remoteAddress);
+
+    createSIPDialog(startingSession.realname, startingSession.realname,
+                    remoteAddress,
+                    startingSession.sessionID);
+  }
+
+  // if we are planning to register using this connection
+  if(waitingToBind_.contains(remoteAddress))
+  {
+    sip_.bindingAtRegistrar(remoteAddress);
+    waitingToBind_.removeOne(remoteAddress);
+  }
+}
+
+bool KvazzupController::areWeICEController(bool initialAgent, uint32_t sessionID) const
+{
+  // one to one calls should follow the specification
+  if (states_.at(sessionID).remoteSDP &&
+      states_.at(sessionID).remoteSDP->media.size() == 2)
+  {
+    Logger::getLogger()->printNormal(this, "One-to-one call so we follow specification");
+    return initialAgent;
+  }
+
+  Logger::getLogger()->printNormal(this, "We select ICE controller based on a hack");
+
+  return areWeFocus() || states_.at(sessionID).sessionRunning;
 }

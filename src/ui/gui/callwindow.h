@@ -3,6 +3,7 @@
 #include "conferenceview.h"
 #include "contactlist.h"
 
+
 #include <QMainWindow>
 #include <QPushButton>
 
@@ -13,6 +14,8 @@ class CallerWidget;
 }
 
 class VideoWidget;
+class VideoInterface;
+class SDPMediaParticipant;
 
 // The main Call window.
 
@@ -23,9 +26,9 @@ public:
   explicit CallWindow(QWidget *parent);
   ~CallWindow();
 
-  VideoWidget* getSelfView() const;
+  QList<VideoInterface*> getSelfVideos () const;
 
-  void init(ParticipantInterface *partInt);
+  void init(ParticipantInterface *partInt, VideoWidget *settingsVideo);
 
   // sessionID identifies the view slot
   void displayOutgoingCall(uint32_t sessionID, QString name);
@@ -33,8 +36,7 @@ public:
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  void callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled, QWidget *view,
-                   QString name);
+  std::vector<VideoInterface*> callStarted(uint32_t sessionID, QList<SDPMediaParticipant> &medias);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
@@ -75,6 +77,15 @@ public slots:
 
   void restoreCallUI();
 
+  void removeLayout(uint32_t layoutID);
+
+  void layoutAccepts(uint32_t layoutID);
+  void layoutRejects(uint32_t layoutID);
+  void layoutCancels(uint32_t layoutID);
+
+private slots:
+  void expireLayouts();
+
 protected:
 
   // if user closes the window
@@ -91,10 +102,26 @@ private:
   void initButton(QString iconPath, QSize size, QSize iconSize,
                   QPushButton* button);
 
+  void checkID(uint32_t sessionID);
+  bool layoutExists(uint32_t sessionID);
+
+  uint32_t layoutIDToSessionID(uint32_t layoutID);
+
+  void cleanUp();
+
   Ui::CallWindow *ui_;
 
   ConferenceView conference_;
 
+  // video views
+  std::shared_ptr<VideoviewFactory> viewFactory_;
+
   ContactList contacts_;
   ParticipantInterface* partInt_;
+
+  QTimer removeLayoutTimer_;
+  QList<uint32_t> expiringLayouts_;
+
+  // key is sessionID and vector contains all layoutIDs belonging to this sessionID
+  std::map<uint32_t, std::vector<uint32_t>> layoutIDs_;
 };

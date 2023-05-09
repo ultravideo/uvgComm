@@ -11,6 +11,7 @@
 
 
 const QStringList neededSettings = {SettingsKey::localAutoAccept,
+                                    SettingsKey::sipP2PConferencing,
                                     SettingsKey::sipMediaPort,
                                     SettingsKey::sipSTUNEnabled,
                                     SettingsKey::sipSTUNAddress,
@@ -177,9 +178,10 @@ void SIPSettings::saveAdvancedSettings()
                     QStringList() << "userName" << "date", advancedUI_->blockedUsers);
 
   // sip settings.
-  saveCheckBox(SettingsKey::localAutoAccept, advancedUI_->auto_accept, settings_);
-  saveCheckBox(SettingsKey::sipSTUNEnabled,  advancedUI_->stun_enabled, settings_);
-  saveCheckBox(SettingsKey::sipSRTP,         advancedUI_->srtp_enabled, settings_);
+  saveCheckBox(SettingsKey::localAutoAccept,     advancedUI_->auto_accept, settings_);
+  saveCheckBox(SettingsKey::sipSTUNEnabled,      advancedUI_->stun_enabled, settings_);
+  saveCheckBox(SettingsKey::sipSRTP,             advancedUI_->srtp_enabled, settings_);
+  saveCheckBox(SettingsKey::sipP2PConferencing,  advancedUI_->p2p_conferencing, settings_);
 
   saveTextValue(SettingsKey::sipSTUNAddress, advancedUI_->stun_address->text(),
                 settings_);
@@ -196,9 +198,10 @@ void SIPSettings::restoreAdvancedSettings()
 
   if(checkSettingsList(settings_, neededSettings))
   {
-    restoreCheckBox(SettingsKey::localAutoAccept, advancedUI_->auto_accept, settings_);
-    restoreCheckBox(SettingsKey::sipSTUNEnabled, advancedUI_->stun_enabled, settings_);
-    restoreCheckBox(SettingsKey::sipSRTP,        advancedUI_->srtp_enabled, settings_);
+    restoreCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings_);
+    restoreCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
+    restoreCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
+    restoreCheckBox(SettingsKey::sipP2PConferencing, advancedUI_->p2p_conferencing, settings_);
 
     advancedUI_->stun_address->setText(settings_.value(SettingsKey::sipSTUNAddress).toString());
     advancedUI_->stun_port->setValue  (settings_.value(SettingsKey::sipSTUNPort).toInt());

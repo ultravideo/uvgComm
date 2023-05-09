@@ -385,6 +385,8 @@ void FilterGraph::initializeAudioInput(bool opus)
 
 void FilterGraph::initializeAudioOutput(bool opus)
 {
+  Logger::getLogger()->printNormal(this, "Initializing audio output");
+
   if (aec_ == nullptr)
   {
     aec_ = std::make_shared<SpeexAEC>(format_);
@@ -542,6 +544,10 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
     cameraGraph_.back()->addOutConnection(videoFramedSource);
     videoFramedSource->start();
   }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Found existing filter, not adding video sender to Filter Graph");
+  }
 }
 
 
@@ -569,6 +575,10 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
 
     addToGraph(displayFilter, *graph, 1);
   }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Found existing filter, not adding video receiver to Filter Graph");
+  }
 }
 
 
@@ -595,13 +605,17 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
     audioInputGraph_.back()->addOutConnection(audioFramedSource);
     audioFramedSource->start();
   }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Found existing filter, not adding audio sender to Filter Graph");
+  }
 
   mic(settingEnabled(SettingsKey::micStatus));
 }
 
 
-void FilterGraph::receiveAudioFrom(uint32_t sessionID,
-                                   std::shared_ptr<Filter> audioSink, QString localAddress, uint16_t localPort, uint16_t peerPort)
+void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
+                                   QString localAddress, uint16_t localPort, uint16_t peerPort)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(audioSink);
@@ -651,6 +665,10 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID,
       Logger::getLogger()->printProgramError(this, "Audio output not initialized "
                                                    "when adding audio reception");
     }
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Found existing filter, not adding audio receiver to Filter Graph");
   }
 }
 

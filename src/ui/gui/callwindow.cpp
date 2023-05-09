@@ -1,5 +1,8 @@
 #include "callwindow.h"
 
+#include "global.h"
+#include "videoviewfactory.h"
+
 #include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
@@ -15,14 +18,11 @@
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
-
   conference_(this),
+  viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory())),
   partInt_(nullptr)
 {
   ui_->setupUi(this);
-
-  QObject::connect(&conference_, &ConferenceView::lastSessionRemoved,
-                   this,         &CallWindow::restoreCallUI);
 }
 
 
@@ -32,15 +32,18 @@ CallWindow::~CallWindow()
 }
 
 
-VideoWidget* CallWindow::getSelfView() const
+QList<VideoInterface*> CallWindow::getSelfVideos () const
 {
-  return ui_->SelfView;
+  return viewFactory_->getSelfVideos();
 }
 
 
-void CallWindow::init(ParticipantInterface *partInt)
+void CallWindow::init(ParticipantInterface *partInt, VideoWidget* settingsVideo)
 { 
   partInt_ = partInt;
+
+  viewFactory_->addSelfview(ui_->SelfView);
+  viewFactory_->addSelfview(settingsVideo);
 
   ui_->Add_contact_widget->setVisible(false);
 
@@ -72,11 +75,15 @@ void CallWindow::init(ParticipantInterface *partInt)
   QObject::connect(ui_->username, &QLineEdit::textChanged,
                    this, &CallWindow::changedSIPText);
 
+  QObject::connect(&removeLayoutTimer_, &QTimer::timeout,
+                  this,                 &CallWindow::expireLayouts);
+
   QMainWindow::show();
 
-  QObject::connect(&conference_, &ConferenceView::acceptCall, this, &CallWindow::callAccepted);
-  QObject::connect(&conference_, &ConferenceView::rejectCall, this, &CallWindow::callRejected);
-  QObject::connect(&conference_, &ConferenceView::cancelCall, this, &CallWindow::callCancelled);
+  QObject::connect(&conference_, &ConferenceView::acceptCall,       this, &CallWindow::layoutAccepts);
+  QObject::connect(&conference_, &ConferenceView::rejectCall,       this, &CallWindow::layoutRejects);
+  QObject::connect(&conference_, &ConferenceView::cancelCall,       this, &CallWindow::layoutCancels);
+  QObject::connect(&conference_, &ConferenceView::messageConfirmed, this, &CallWindow::removeLayout);
 
   conference_.init(ui_->participantLayout, ui_->participants);
 
@@ -89,10 +96,10 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   ui_->buttonContainer->layout()->setAlignment(ui_->end_call_holder, Qt::AlignBottom);
   ui_->buttonContainer->layout()->setAlignment(ui_->settings_button, Qt::AlignBottom);
-  ui_->buttonContainer->layout()->setAlignment(ui_->mic, Qt::AlignBottom);
-  ui_->buttonContainer->layout()->setAlignment(ui_->camera, Qt::AlignBottom);
-  ui_->buttonContainer->layout()->setAlignment(ui_->SelfView, Qt::AlignBottom);
-  ui_->buttonContainer->layout()->setAlignment(ui_->screen_share, Qt::AlignBottom);
+  ui_->buttonContainer->layout()->setAlignment(ui_->mic,             Qt::AlignBottom);
+  ui_->buttonContainer->layout()->setAlignment(ui_->camera,          Qt::AlignBottom);
+  ui_->buttonContainer->layout()->setAlignment(ui_->SelfView,        Qt::AlignBottom);
+  ui_->buttonContainer->layout()->setAlignment(ui_->screen_share,    Qt::AlignBottom);
 
   QObject::connect(ui_->actionAbout,      &QAction::triggered, this, &CallWindow::openAbout);
   QObject::connect(ui_->actionSettings,   &QAction::triggered, this, &CallWindow::openSettings);
@@ -183,19 +190,34 @@ void CallWindow::addContact()
 void CallWindow::displayOutgoingCall(uint32_t sessionID, QString name)
 {
   contacts_.turnAllItemsToPlus();
-  conference_.callingTo(sessionID, name); // TODO get name from contact list
+  checkID(sessionID);
+
+  for (auto& layoutID : layoutIDs_.at(sessionID))
+  {
+    conference_.attachOutgoingCallWidget(layoutID, name);  // TODO get name from contact list
+  }
 }
 
 
 void CallWindow::displayRinging(uint32_t sessionID)
 {
-  conference_.ringing(sessionID);
+  checkID(sessionID);
+
+  for (auto& layoutID : layoutIDs_.at(sessionID))
+  {
+    conference_.attachRingingWidget(layoutID);
+  }
 }
 
 
 void CallWindow::displayIncomingCall(uint32_t sessionID, QString caller)
 {
-  conference_.incomingCall(sessionID, caller);
+  checkID(sessionID);
+
+  for (auto& layoutID : layoutIDs_.at(sessionID))
+  {
+    conference_.attachIncomingCallWidget(layoutID, caller);
+  }
 }
 
 
@@ -206,13 +228,40 @@ void CallWindow::closeEvent(QCloseEvent *event)
 }
 
 
-void CallWindow::callStarted(uint32_t sessionID,
-                             bool videoEnabled, bool audioEnabled,
-                             QWidget* view, QString name)
+std::vector<VideoInterface*> CallWindow::callStarted(uint32_t sessionID,
+                                        QList<SDPMediaParticipant>& medias)
 {
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
-  conference_.callStarted(sessionID, view, videoEnabled, audioEnabled, name);
+
+  checkID(sessionID);
+
+  // create the needed amount of layoutIDs
+  for (unsigned int i = layoutIDs_[sessionID].size(); i < medias.size(); ++i)
+  {
+    layoutIDs_[sessionID].push_back(conference_.createLayoutID());
+  }
+
+  std::vector<VideoInterface*> interfaces;
+
+  // change the contents of layouts to medias
+  for (unsigned int i = 0; i < medias.size(); ++i)
+  {
+    uint32_t layoutID = layoutIDs_[sessionID].at(i);
+    if (medias.at(i).videoEnabled)
+    {
+      conference_.attachVideoWidget(layoutID, viewFactory_->getView(layoutID));
+    }
+    else
+    {
+      conference_.attachAvatarWidget(layoutID, medias.at(i).name);
+    }
+
+    viewFactory_->getVideo(layoutID)->drawMicOffIcon(!medias.at(i).audioEnabled);
+    interfaces.push_back(viewFactory_->getVideo(layoutID));
+  }
+
+  return interfaces;
 }
 
 
@@ -270,20 +319,42 @@ void CallWindow::removeParticipant(uint32_t sessionID)
     return;
   }
 
-  conference_.removeCaller(sessionID);
+  checkID(sessionID);
+  for (auto& layoutID : layoutIDs_.at(sessionID))
+  {
+    conference_.removeWidget(layoutID);
+  }
+
+  layoutIDs_.erase(sessionID);
   contacts_.setAccessible(sessionID);
+  viewFactory_->clearWidgets(sessionID);
 }
 
 
-void CallWindow::removeWithMessage(uint32_t sessionID, QString message, bool temporaryMessage)
+void CallWindow::removeWithMessage(uint32_t sessionID, QString message,
+                                   bool temporaryMessage)
 {
-  int timeout = 0;
-  if (temporaryMessage)
+  if (layoutExists(sessionID))
   {
-    timeout = 3000;
+    for (auto& layoutID : layoutIDs_.at(sessionID))
+    {
+      conference_.attachMessageWidget(layoutID, message, !temporaryMessage);
+
+      if (temporaryMessage)
+      {
+        expiringLayouts_.push_back(layoutID);
+      }
+    }
   }
 
-  conference_.removeWithMessage(sessionID, message, timeout);
+  if (temporaryMessage)
+  {
+    int timeout = 3000;
+
+    removeLayoutTimer_.setSingleShot(true);
+    removeLayoutTimer_.start(timeout);
+
+  }
 }
 
 
@@ -322,11 +393,30 @@ void CallWindow::cameraButton(bool checked)
 }
 
 
+void CallWindow::layoutAccepts(uint32_t layoutID)
+{
+  emit callAccepted(layoutIDToSessionID(layoutID));
+}
+
+
+void CallWindow::layoutRejects(uint32_t layoutID)
+{
+  emit callRejected(layoutIDToSessionID(layoutID));
+}
+
+
+void CallWindow::layoutCancels(uint32_t layoutID)
+{
+  emit callCancelled(layoutIDToSessionID(layoutID));
+}
+
+
 void CallWindow::changedSIPText(const QString &text)
 {
   Q_UNUSED(text);
   ui_->sipAddress->setText("sip:" + ui_->username->text() + "@" + ui_->address->text());
 }
+
 
 void CallWindow::restoreCallUI()
 {
@@ -334,3 +424,93 @@ void CallWindow::restoreCallUI()
   ui_->EndCallButton->hide();
   contacts_.setAccessibleAll();
 }
+
+
+void CallWindow::checkID(uint32_t sessionID)
+{
+  if (!layoutExists(sessionID))
+  {
+    layoutIDs_[sessionID].push_back(conference_.createLayoutID());
+  }
+}
+
+
+bool CallWindow::layoutExists(uint32_t sessionID)
+{
+  return layoutIDs_.find(sessionID) != layoutIDs_.end() && !layoutIDs_[sessionID].empty();
+}
+
+
+void CallWindow::expireLayouts()
+{
+  for (auto& layoutID : expiringLayouts_)
+  {
+    removeLayout(layoutID);
+  }
+
+  expiringLayouts_.clear();
+}
+
+
+void CallWindow::removeLayout(uint32_t layoutID)
+{
+  conference_.removeWidget(layoutID);
+
+  // remove the layout id also from call window tracking
+  for (auto& sessionID : layoutIDs_)
+  {
+    for (unsigned int i = 0; i < sessionID.second.size(); ++i)
+    {
+      if (sessionID.second.at(i) == layoutID)
+      {
+        sessionID.second.erase(sessionID.second.begin() + i);
+        break;
+      }
+    }
+  }
+
+  cleanUp();
+}
+
+
+uint32_t CallWindow::layoutIDToSessionID(uint32_t layoutID)
+{
+  for (auto& sessionID : layoutIDs_)
+  {
+    for (auto& ownedLayoutID : sessionID.second)
+    {
+      if (ownedLayoutID == layoutID)
+      {
+        return sessionID.first;
+      }
+    }
+  }
+
+  Logger::getLogger()->printProgramError(this, "Could not found mapping from layoutID to sessionID!");
+  return 0;
+}
+
+
+void CallWindow::cleanUp()
+{
+  std::vector<uint32_t> toRemove;
+
+  for (auto& sessionID : layoutIDs_)
+  {
+    if (sessionID.second.empty())
+    {
+      toRemove.push_back(sessionID.first);
+    }
+  }
+
+  for (auto& sessionID : toRemove)
+  {
+    layoutIDs_.erase(sessionID);
+  }
+
+  if (layoutIDs_.empty())
+  {
+    restoreCallUI();
+  }
+}
+

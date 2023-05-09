@@ -228,24 +228,6 @@ void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
 }
 
 
-void setSDPAddress(QString inAddress, QString& sdpAddress, QString& type, QString& addressType)
-{
-  sdpAddress = inAddress;
-  type = "IN";
-
-  // TODO: Improve the address detection
-  if (inAddress.front() == '[')
-  {
-    sdpAddress = inAddress.mid(1, inAddress.size() - 2);
-    addressType = "IP6";
-  }
-  else
-  {
-    addressType = "IP4";
-  }
-}
-
-
 void generateMedia(QString type, QList<MediaInfo>& medias,
                    QList<QString> &dynamicSubtypes,
                    QList<uint8_t> &staticPayloadTypes,
@@ -260,10 +242,10 @@ void generateMedia(QString type, QList<MediaInfo>& medias,
 
   for (auto& type : dynamicSubtypes)
   {
-    media.codecs.push_back(createMapping(dynamicPayloadType, type, clockFrequencies));
+    media.rtpMaps.push_back(createMapping(dynamicPayloadType, type, clockFrequencies));
   }
 
-  for(RTPMap& codec : media.codecs)
+  for(RTPMap& codec : media.rtpMaps)
   {
     media.rtpNums.push_back(codec.rtpNum);
   }

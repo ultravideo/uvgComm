@@ -9,6 +9,7 @@
 #include "resourceallocator.h"
 
 #include "logger.h"
+#include "common.h"
 
 #include <QHostAddress>
 #include <QtEndian>
@@ -85,7 +86,7 @@ void MediaManager::uninit()
 void MediaManager::addParticipant(uint32_t sessionID,
                                   std::shared_ptr<SDPMessageInfo> peerInfo,
                                   const std::shared_ptr<SDPMessageInfo> localInfo,
-                                  VideoInterface* videoView, bool iceController)
+                                  std::vector<VideoInterface *> videoView, bool iceController, bool followOurSDP)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
   if (!sessionChecks(peerInfo, localInfo))
@@ -111,24 +112,24 @@ void MediaManager::addParticipant(uint32_t sessionID,
 
   if (participants_.find(sessionID) == participants_.end())
   {
-    participants_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID));
+    participants_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID, stats_));
 
     // connect signals so we get information when ice is ready
-    QObject::connect(participants_[sessionID].ice.get(), &ICE::nominationSucceeded,
+    QObject::connect(participants_[sessionID].ice.get(), &ICE::mediaNominationSucceeded,
                      this, &MediaManager::iceSucceeded);
 
-    QObject::connect(participants_[sessionID].ice.get(), &ICE::nominationFailed,
+    QObject::connect(participants_[sessionID].ice.get(), &ICE::mediaNominationFailed,
                      this, &MediaManager::iceFailed);
   }
 
-  return modifyParticipant(sessionID, peerInfo, localInfo, videoView, iceController);
+  return modifyParticipant(sessionID, peerInfo, localInfo, videoView, iceController, followOurSDP);
 }
 
 
 void MediaManager::modifyParticipant(uint32_t sessionID,
                                   std::shared_ptr<SDPMessageInfo> peerInfo,
                                   const std::shared_ptr<SDPMessageInfo> localInfo,
-                                  VideoInterface* videoView, bool iceController)
+                                  std::vector<VideoInterface *> videoView, bool iceController, bool followOurSDP)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
   if (!sessionChecks(peerInfo, localInfo))
@@ -137,82 +138,113 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
   }
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
+  QList<std::shared_ptr<ICEInfo>> localCandidates;
+  QList<std::shared_ptr<ICEInfo>> remoteCandidates;
+
+  for (auto& media : localInfo->media)
+  {
+    localCandidates += media.candidates;
+  }
+
+  for (auto& media : peerInfo->media)
+  {
+    remoteCandidates += media.candidates;
+  }
 
   // perform ICE
-  if (!localInfo->candidates.empty() && !peerInfo->candidates.empty())
+  if (!localCandidates.empty() && !remoteCandidates.empty())
   {
     participants_[sessionID].localInfo = localInfo;
     participants_[sessionID].peerInfo = peerInfo;
-    participants_[sessionID].videoView = videoView;
-    participants_[sessionID].followOurSDP = iceController;
+    participants_[sessionID].freeViews = videoView;
+    participants_[sessionID].followOurSDP = followOurSDP;
 
-    participants_[sessionID].ice->startNomination(localInfo->media.count()*2,
-                                                  localInfo->candidates,
-                                                  peerInfo->candidates, iceController);
+    // each media has its own separate ICE
+    for (unsigned int i = 0; i < localInfo->media.size(); ++i)
+    {
+      // only test if this is a local candidate
+      if (isLocalCandidate(localInfo->media.at(i).candidates.first()))
+      {
+        participants_[sessionID].ice->startNomination(localInfo->media.at(i),
+                                                      peerInfo->media.at(i),
+                                                      iceController);
+      }
+    }
   }
   else
   {
+    /* Not really used or tested branch, but its not much of a hassle to
+     * attempt to support non-ICE implementations */
     Logger::getLogger()->printWarning(this, "Did not find any ICE candidates, not performing ICE");
-    createCall(sessionID, peerInfo, localInfo, videoView, iceController);
+    for (unsigned int i = 0; i < localInfo->media.size(); ++i)
+    {
+      createMediaPair(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
+                      videoView.front(), followOurSDP);
+    }
   }
 }
 
 
-void MediaManager::createCall(uint32_t sessionID,
-                std::shared_ptr<SDPMessageInfo> peerInfo,
-                const std::shared_ptr<SDPMessageInfo> localInfo,
-                VideoInterface* videoView, bool followOurSDP)
+void MediaManager::createMediaPair(uint32_t sessionID, const MediaInfo &localMedia, const MediaInfo &remoteMedia,
+                                   VideoInterface *videoView, bool followOurSDP)
 {
-  if(!streamer_->addPeer(sessionID,
-                         getMediaAddrtype(peerInfo, 0),
-                         getMediaAddress(peerInfo, 0),
-                         getMediaAddrtype(localInfo, 0),
-                         getMediaAddress(localInfo, 0)))
+  if(!streamer_->addSession(sessionID,
+                         remoteMedia.connection_addrtype,
+                         remoteMedia.connection_address,
+                         localMedia.connection_addrtype,
+                         localMedia.connection_address))
   {
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
                "Error creating RTP peer");
     return;
   }
 
-  // create each agreed media stream
-  for(int i = 0; i < peerInfo->media.size(); ++i)
-  {
-    createOutgoingMedia(sessionID,
-                        localInfo->media.at(i),
-                        getMediaAddress(peerInfo, i),
-                        peerInfo->media.at(i), followOurSDP);
-  }
-
-  for (int i = 0; i < localInfo->media.size(); ++i)
-  {
-    createIncomingMedia(sessionID, localInfo->media.at(i),
-                        getMediaAddress(localInfo, i),
-                        peerInfo->media.at(i), videoView, followOurSDP);
-  }
+  createOutgoingMedia(sessionID, localMedia, remoteMedia, followOurSDP);
+  createIncomingMedia(sessionID, localMedia, remoteMedia, videoView, followOurSDP);
 }
 
 
 void MediaManager::createOutgoingMedia(uint32_t sessionID,
                                        const MediaInfo& localMedia,
-                                       QString peerAddress,
                                        const MediaInfo& remoteMedia,
                                        bool useOurSDP)
 {
-  if (peerAddress == "")
+  if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
   {
     Logger::getLogger()->printProgramError(this, "Address was empty when creating outgoing media");
     return;
   }
 
   bool send = true;
-  bool recv = true;
   if (useOurSDP)
   {
-    transportAttributes(localMedia.flagAttributes, send, recv);
+    send = getSendAttribute(localMedia, true);
   }
   else
   {
-    transportAttributes(remoteMedia.flagAttributes, send, recv);
+    send = getSendAttribute(remoteMedia, false);
+  }
+
+  QString codec = rtpNumberToCodec(remoteMedia);
+
+  std::shared_ptr<Filter> senderFilter = nullptr;
+
+  if(remoteMedia.proto == "RTP/AVP" ||
+     remoteMedia.proto == "RTP/AVPF" ||
+     remoteMedia.proto == "RTP/SAVP" ||
+     remoteMedia.proto == "RTP/SAVPF")
+  {
+    senderFilter = streamer_->addSendStream(sessionID,
+                                            localMedia.connection_address,
+                                            remoteMedia.connection_address,
+                                            localMedia.receivePort,
+                                            remoteMedia.receivePort,
+                                            codec, remoteMedia.rtpNums.at(0));
+  }
+  else
+  {
+    Logger::getLogger()->printUnimplemented(this, "Remote has unknown proto");
+    return;
   }
 
   // if we want to send
@@ -221,36 +253,25 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
     Q_ASSERT(remoteMedia.receivePort);
     Q_ASSERT(!remoteMedia.rtpNums.empty());
 
-    QString codec = rtpNumberToCodec(remoteMedia);
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating send stream", {"Destination", "Type"},
+                                     {remoteMedia.connection_address + ":" + QString::number(remoteMedia.receivePort), remoteMedia.type});
 
-    if(remoteMedia.proto == "RTP/AVP")
+    Q_ASSERT(senderFilter != nullptr);
+
+    if(remoteMedia.type == "audio")
     {
-      std::shared_ptr<Filter> framedSource = streamer_->addSendStream(sessionID, peerAddress,
-                                                                      localMedia.receivePort,
-                                                                      remoteMedia.receivePort,
-                                                                      codec, remoteMedia.rtpNums.at(0));
-
-      Q_ASSERT(framedSource != nullptr);
-
-      if(remoteMedia.type == "audio")
-      {
-        fg_->sendAudioTo(sessionID, std::shared_ptr<Filter>(framedSource),
-                         peerAddress, localMedia.receivePort, remoteMedia.receivePort);
-      }
-      else if(remoteMedia.type == "video")
-      {
-        fg_->sendVideoto(sessionID, std::shared_ptr<Filter>(framedSource),
-                         peerAddress, localMedia.receivePort, remoteMedia.receivePort);
-      }
-      else
-      {
-        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported media type!",
-                  {"type"}, QStringList() << remoteMedia.type);
-      }
+      fg_->sendAudioTo(sessionID, senderFilter,
+                       remoteMedia.connection_address, localMedia.receivePort, remoteMedia.receivePort);
+    }
+    else if(remoteMedia.type == "video")
+    {
+      fg_->sendVideoto(sessionID, senderFilter,
+                       remoteMedia.connection_address, localMedia.receivePort, remoteMedia.receivePort);
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "SDP transport protocol not supported.");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported media type!",
+                {"type"}, QStringList() << remoteMedia.type);
     }
   }
   else
@@ -265,26 +286,45 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 
 void MediaManager::createIncomingMedia(uint32_t sessionID,
                                        const MediaInfo &localMedia,
-                                       QString localAddress,
                                        const MediaInfo &remoteMedia,
                                        VideoInterface* videoView,
                                        bool useOurSDP)
 {
-  if (localAddress == "")
+  if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
   {
     Logger::getLogger()->printProgramError(this, "Address was empty when creating incoming media");
     return;
   }
-  bool send = true;
-  bool recv = true;
 
+  bool recv = true;
   if (useOurSDP)
   {
-    transportAttributes(localMedia.flagAttributes, send, recv);
+    recv = getReceiveAttribute(localMedia, true);
   }
   else
   {
-    transportAttributes(remoteMedia.flagAttributes, send, recv);
+    recv = getReceiveAttribute(remoteMedia, false);
+  }
+
+  QString codec = rtpNumberToCodec(localMedia);
+  std::shared_ptr<Filter> receiverFilter = nullptr;
+
+  if(localMedia.proto == "RTP/AVP" ||
+     localMedia.proto == "RTP/AVPF" ||
+     localMedia.proto == "RTP/SAVP" ||
+     localMedia.proto == "RTP/SAVPF")
+  {
+    receiverFilter = streamer_->addReceiveStream(sessionID,
+                                                 localMedia.connection_address,
+                                                 remoteMedia.connection_address,
+                                                 localMedia.receivePort,
+                                                 remoteMedia.receivePort,
+                                                 codec, localMedia.rtpNums.at(0));
+  }
+  else
+  {
+    Logger::getLogger()->printUnimplemented(this, "Our media has unkown proto");
+    return;
   }
 
   if(recv)
@@ -292,43 +332,33 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
     Q_ASSERT(localMedia.receivePort);
     Q_ASSERT(!localMedia.rtpNums.empty());
 
-    QString codec = rtpNumberToCodec(localMedia);
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating receive stream", {"Interface", "codec"},
+                                     {localMedia.connection_address + ":" + QString::number(localMedia.receivePort), codec});
 
-    if(localMedia.proto == "RTP/AVP")
+
+    Q_ASSERT(receiverFilter != nullptr);
+    if(localMedia.type == "audio")
     {
-      std::shared_ptr<Filter> rtpSink = streamer_->addReceiveStream(sessionID, localAddress,
-                                                                    localMedia.receivePort,
-                                                                    remoteMedia.receivePort,
-                                                                    codec, localMedia.rtpNums.at(0));
-      Q_ASSERT(rtpSink != nullptr);
-      if(localMedia.type == "audio")
+      fg_->receiveAudioFrom(sessionID, receiverFilter,
+                            localMedia.connection_address, localMedia.receivePort, remoteMedia.receivePort);
+    }
+    else if(localMedia.type == "video")
+    {
+      Q_ASSERT(videoView);
+      if (videoView != nullptr)
       {
-        fg_->receiveAudioFrom(sessionID, std::shared_ptr<Filter>(rtpSink),
-                              localAddress, localMedia.receivePort, remoteMedia.receivePort);
-      }
-      else if(localMedia.type == "video")
-      {
-        Q_ASSERT(videoView);
-        if (videoView != nullptr)
-        {
-          fg_->receiveVideoFrom(sessionID, std::shared_ptr<Filter>(rtpSink), videoView,
-                                localAddress, localMedia.receivePort, remoteMedia.receivePort);
-        }
-        else
-        {
-          Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to get view from viewFactory");
-        }
+        fg_->receiveVideoFrom(sessionID, receiverFilter, videoView,
+                              localMedia.connection_address, localMedia.receivePort, remoteMedia.receivePort);
       }
       else
       {
-        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported incoming media type!",
-                  {"type"}, QStringList() << localMedia.type);
+        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to get view from viewFactory");
       }
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
-                                      "Incoming SDP transport protocol not supported.");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported incoming media type!",
+                {"type"}, QStringList() << localMedia.type);
     }
   }
   else
@@ -337,6 +367,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
                                     "Not receiving media according to attribute", {"Type"}, {localMedia.type});
   }
 }
+
 
 void MediaManager::removeParticipant(uint32_t sessionID)
 {
@@ -353,8 +384,8 @@ void MediaManager::removeParticipant(uint32_t sessionID)
             {"SessionID"}, {QString::number(sessionID)});
 }
 
-void MediaManager::iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
-                                quint32 sessionID)
+
+void MediaManager::iceSucceeded(uint32_t sessionID, MediaInfo local, MediaInfo remote)
 {
   if (participants_.find(sessionID) == participants_.end())
   {
@@ -365,29 +396,20 @@ void MediaManager::iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
   Logger::getLogger()->printNormal(this, "ICE nomination has succeeded", {"SessionID"},
                                    {QString::number(sessionID)});
 
-  // Video. 0 is RTP, 1 is RTCP
-  if (streams.at(0) != nullptr && streams.at(1) != nullptr)
+  VideoInterface* view = nullptr;
+
+  if (local.type == "video")
   {
-    setMediaPair(participants_[sessionID].localInfo->media[1],  streams.at(0)->local, true);
-    setMediaPair(participants_[sessionID].peerInfo->media[1], streams.at(0)->remote, false);
+    view = reserveView(participants_[sessionID]);
   }
 
-  // Audio. 2 is RTP, 3 is RTCP
-  if (streams.at(2) != nullptr && streams.at(3) != nullptr)
-  {
-    setMediaPair(participants_[sessionID].localInfo->media[0],  streams.at(2)->local, true);
-    setMediaPair(participants_[sessionID].peerInfo->media[0], streams.at(2)->remote, false);
-  }
-
-  createCall(sessionID,
-             participants_[sessionID].peerInfo,
-             participants_[sessionID].localInfo,
-             participants_[sessionID].videoView,
-             participants_[sessionID].followOurSDP);
+  createMediaPair(sessionID, local, remote,
+                  view,
+                  participants_[sessionID].followOurSDP);
 }
 
 
-void MediaManager::iceFailed(uint32_t sessionID)
+void MediaManager::iceFailed(uint32_t sessionID, MediaInfo local, MediaInfo remote)
 {
   Logger::getLogger()->printError(this, "ICE failed, removing participant");
 
@@ -403,111 +425,28 @@ QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
   // but its unlikely that we will support any besides raw pcmu.
   if(info.rtpNums.at(0) != 0)
   {
-    Q_ASSERT(!info.codecs.empty());
-    if(!info.codecs.empty())
+    Q_ASSERT(!info.rtpMaps.empty());
+    if(!info.rtpMaps.empty())
     {
-      return info.codecs.at(0).codec;
+      return info.rtpMaps.at(0).codec;
     }
   }
   return "PCMU";
 }
 
 
-void MediaManager::transportAttributes(const QList<SDPAttributeType>& attributes, bool& send, bool& recv)
-{
-  send = true;
-  recv = true;
-
-  for(SDPAttributeType attribute : attributes)
-  {
-    if(attribute == A_SENDRECV)
-    {
-      send = true;
-      recv = true;
-    }
-    else if(attribute == A_SENDONLY)
-    {
-      send = true;
-      recv = false;
-    }
-    else if(attribute == A_RECVONLY)
-    {
-      send = false;
-      recv = true;
-    }
-    else if(attribute == A_INACTIVE)
-    {
-      send = false;
-      recv = false;
-    }
-  }
-}
-
-
 void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool local)
 {
-  // TODO: This feels like a hack to do this here. Instead we should give stats the whole SDP
-  QStringList ipList;
-  QStringList audioPorts;
-  QStringList videoPorts;
-
-  // create each agreed media stream
-  for (auto& media : sdp->media)
-  {
-    if (media.type == "audio")
-    {
-      audioPorts.append(QString::number(media.receivePort));
-    }
-    else if (media.type == "video")
-    {
-      videoPorts.append(QString::number(media.receivePort));
-    }
-
-    if (media.connection_address != "")
-    {
-      ipList.append(media.connection_address);
-    }
-    else
-    {
-      ipList.append(sdp->connection_address);
-    }
-  }
-
   if (stats_)
   {
     if (local)
     {
-      stats_->incomingMedia(sessionID, sdp->originator_username, ipList, audioPorts, videoPorts);
+      stats_->outgoingMedia(sessionID, sdp->originator_username);
     }
     else
     {
-      stats_->outgoingMedia(sessionID, sdp->originator_username,ipList, audioPorts, videoPorts);
+      stats_->incomingMedia(sessionID, sdp->originator_username);
     }
-  }
-}
-
-
-void MediaManager::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local)
-{
-  if (mediaInfo == nullptr)
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
-                                    "Null mediainfo in setMediaPair");
-    return;
-  }
-
-  // for local address, we bind to our rel-address if using non-host connection type
-  if (local &&
-      mediaInfo->type != "host" &&
-      mediaInfo->rel_address != "" && mediaInfo->rel_port != 0)
-  {
-    media.connection_address = mediaInfo->rel_address;
-    media.receivePort        = mediaInfo->rel_port;
-  }
-  else
-  {
-    media.connection_address = mediaInfo->address;
-    media.receivePort        = mediaInfo->port;
   }
 }
 
@@ -567,4 +506,28 @@ bool MediaManager::sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
   }
 
   return true;
+}
+
+
+VideoInterface* MediaManager::reserveView(ParticipantMedia& media)
+{
+  if (media.freeViews.empty())
+  {
+    return nullptr;
+  }
+
+  VideoInterface* video = media.freeViews.back();
+  media.freeViews.pop_back();
+  media.reservedViews.push_back(video);
+
+  return video;
+}
+
+
+void MediaManager::freeViews(ParticipantMedia& media)
+{
+  media.freeViews.insert(media.freeViews.end(),
+                         media.reservedViews.begin(),
+                         media.reservedViews.end());
+  media.reservedViews.clear();
 }

@@ -110,6 +110,8 @@ private:
 
   bool sendRequestWaitResponse(ICEPair *pair, QByteArray &request, int retries, int baseTimeout);
 
+  QString stateToString(PairState state);
+
 
   std::shared_ptr<ICEPair> pair_;
   QString debugPair_;
@@ -118,7 +120,8 @@ private:
 
   UDPServer *udp_;
 
-  StunMessageFactory stunmsg_;
+  StunMessageFactory stunOutTransaction_;
+  StunMessageFactory stunInTransaction_;
 
   // When waitFor(Stun|Nomination)(Request|Response) returns, the calling code should
   // check whether interrupt flag has been set. It means that the running thread has

@@ -15,6 +15,8 @@ public:
 
   SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID);
 
+  void limitMediaCandidates(int limit);
+
   virtual void uninit();
 
 public slots:
@@ -70,14 +72,13 @@ private:
 
   // Adds local ICE candidates to SDP and starts nomination if we have
   // their candidates.
-  void addLocalCandidates(QVariant& content);
+  void addLocalCandidatesToSDP(QVariant& content);
+  void addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex);
 
   void printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates);
 
   void addICEToSupported(std::shared_ptr<QStringList> &supported);
   bool isICEToSupported(std::shared_ptr<QStringList> supported);
-
-  bool areMediasEqual(const MediaInfo first, const MediaInfo second) const;
 
   uint32_t sessionID_;
 
@@ -85,11 +86,16 @@ private:
 
   bool peerSupportsICE_;
 
+  // In joint RTP session, we want to limit the dfferent ports in candidates,
+  // since we always have just one per media.
+  int mediaLimit_;
+
   // these are saved so that when we want to renegotiate call parameters,
   // we don't have to redo ICE
-  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingLocalCandidates_;
-  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingGlobalCandidates_;
-  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingStunCandidates_;
-  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingStunBindings_;
-  std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> existingturnCandidates_;
+
+  std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingLocalCandidates_;
+  std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingGlobalCandidates_;
+  std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingStunCandidates_;
+  std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingStunBindings_;
+  std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingturnCandidates_;
 };

@@ -30,17 +30,16 @@ public:
   void uninit();
 
   // participant interface funtions used to start a call or a chat.
-  uint32_t callToParticipant(QString name, QString username, QString ip);
+  uint32_t startINVITETransaction(QString name, QString username, QString ip);
   uint32_t chatWithParticipant(QString name, QString username, QString ip);
 
   // Call Control Interface used by SIP transaction
-  bool incomingCall(uint32_t sessionID, QString caller);
-  void callRinging(uint32_t sessionID);
-  void peerAccepted(uint32_t sessionID);
-  void callNegotiated(uint32_t sessionID);
+  bool processINVITE(uint32_t sessionID, QString caller);
+  void processRINGING(uint32_t sessionID);
+  void processINVITE_OK(uint32_t sessionID);
+  void INVITETransactionConcluded(uint32_t sessionID);
   void cancelIncomingCall(uint32_t sessionID);
-  void endCall(uint32_t sessionID);
-  void failure(uint32_t sessionID, QString error);
+  void sessionTerminated(uint32_t sessionID);
   void registeredToServer();
   void registeringFailed();
 
@@ -80,11 +79,16 @@ public slots:
 
   void updateAudioSettings();
   void updateVideoSettings();
+  void updateCallSettings();
+
+  void negotiateNextCall();
+
+  void connectionEstablished(QString localAddress, QString remoteAddress);
+
 private:
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
 
   void createCall(uint32_t sessionID);
-  void setupConference();
 
   void updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp);
   void updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp);
@@ -92,31 +96,51 @@ private:
   void getRemoteSDP(uint32_t sessionID, std::shared_ptr<SIPMessageHeader> message,
                     QVariant& content);
 
-  void getReceiveAttribute(std::shared_ptr<SDPMessageInfo> sdp, bool isThisLocal,
-                           bool& recvVideo, bool& recvAudio);
+  void renegotiateCall(uint32_t sessionID);
+  void renegotiateAllCalls();
+
+  void createSIPDialog(QString name, QString username, QString ip, uint32_t sessionID);
+
+  void checkBinding();
+
+  QList<SDPMediaParticipant> formUIMedias(QList<MediaInfo>& localMedia,
+                                          QList<MediaInfo> &attributeMedia,
+                                          bool followOurSDP,
+                                          uint32_t sessionID);
+
+  bool areWeFocus() const
+  {
+    return states_.size() > 1;
+  }
+
+  // this is a huge hack altogether
+  bool areWeICEController(bool initialAgent, uint32_t sessionID) const;
 
   // call state is used to make sure everything is going according to plan,
   // no surprise ACK messages etc
-  enum CallState {
-    CALLNOSTATE,
-    CALLRINGINGWITHUS,
-    CALLINGTHEM,
-    CALLRINGINWITHTHEM,
-    CALLNEGOTIATING,
-    CALLONGOING,
-    CALLENDING
+  enum INVITETransactionState {
+    CALL_INVITE_SENT,
+    CALL_INVITE_RECEIVED,
+    CALL_OK_SENT,
+    CALL_TRANSACTION_CONCLUDED,
+    CALL_ENDING
   };
 
   struct SessionState {
-    CallState state;
+    INVITETransactionState state;
     std::shared_ptr<SDPMessageInfo> localSDP;
     std::shared_ptr<SDPMessageInfo> remoteSDP;
     bool followOurSDP;
+    bool iceController;
+    bool sessionNegotiated;
+    bool sessionRunning;
 
     QString name;
   };
 
   std::map<uint32_t, SessionState> states_;
+
+  std::deque<uint32_t> pendingRenegotiations_;
 
   MediaManager media_; // Media processing and delivery
   SIPManager sip_; // SIP
@@ -127,6 +151,18 @@ private:
   QTimer delayAutoAccept_;
   uint32_t delayedAutoAccept_;
 
-  // video views
-  std::shared_ptr<VideoviewFactory> viewFactory_;
+  int ongoingNegotiations_;
+
+  QTimer delayedNegotiation_;
+
+  // if we want to do something, but the TCP connection has not yet been established
+  struct WaitingStart
+  {
+    QString realname;
+    QString username;
+    uint32_t sessionID;
+  };
+
+  std::map<QString, WaitingStart> waitingToStart_; // INVITE after connect
+  QStringList waitingToBind_; // REGISTER after connect
 };

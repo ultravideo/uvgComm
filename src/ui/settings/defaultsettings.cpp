@@ -21,6 +21,7 @@ void DefaultSettings::validateSettings(std::shared_ptr<MicrophoneInfo> mic,
     Logger::getLogger()->printWarning(this, "No mic found");
     settings_.setValue(SettingsKey::audioDevice,        "No microphone");
     settings_.setValue(SettingsKey::audioDeviceID,      -1);
+    setDefaultAudioSettings(mic);
   }
   else if (!validateAudioSettings() || settings_.value(SettingsKey::audioDeviceID).toInt() == -1)
   {
@@ -111,7 +112,7 @@ bool DefaultSettings::validateCallSettings()
 }
 
 
-void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mic)
+void DefaultSettings::selectDefaultCamera(std::shared_ptr<MicrophoneInfo> mic)
 {
   QStringList devices = mic->getDeviceList();
 
@@ -147,6 +148,15 @@ void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mi
 
   settings_.setValue(SettingsKey::audioDevice,        deviceName);
   settings_.setValue(SettingsKey::audioDeviceID,      deviceID);
+}
+
+
+void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mic)
+{
+  if (!mic->getDeviceList().empty())
+  {
+    selectDefaultCamera(mic);
+  }
 
   // TODO: Choose rest of the audio parameters such as samplerate (and maybe codec)
 
@@ -157,7 +167,7 @@ void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mi
   settings_.setValue(SettingsKey::audioAECDelay,        120);
   settings_.setValue(SettingsKey::audioAECFilterLength, 250);
   settings_.setValue(SettingsKey::audioMutingPeriod,    350);
-  settings_.setValue(SettingsKey::audioMutingThreshold, 10);
+  settings_.setValue(SettingsKey::audioMutingThreshold, 15);
   settings_.setValue(SettingsKey::audioSelectiveMuting, 1);
 
   settings_.setValue(SettingsKey::audioDenoise,         1);

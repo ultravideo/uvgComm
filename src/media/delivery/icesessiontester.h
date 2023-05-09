@@ -25,17 +25,15 @@ public:
   IceSessionTester(bool controller);
   ~IceSessionTester();
 
-  void init(QList<std::shared_ptr<ICEPair>> *pairs_,
+  void init(std::vector<std::shared_ptr<ICEPair>> &pairs_,
             uint8_t components);
-
-  // TODO: Have some way to stop testing if the call suddenly ends
 
 signals:
 
   // When IceSessionTester finishes, it sends a success/failure signal.
-  void iceSuccess(QList<std::shared_ptr<ICEPair>>& streams);
+  void iceSuccess(std::vector<std::shared_ptr<ICEPair>>& streams);
 
-  void iceFailure();
+  void iceFailure(std::vector<std::shared_ptr<ICEPair>>& candidates);
 
   // private signal
   // used to end eventloop responsible for one interface
@@ -57,12 +55,12 @@ private:
   std::shared_ptr<ICECandidateTester> createCandidateTester(std::shared_ptr<ICEInfo> local);
 
   // wait until all components have succeeded or timeout has occured
-  void waitForEndOfTesting(unsigned long timeout);
+  void waitForEndOfTesting(unsigned long timeoutMs);
 
-  QList<std::shared_ptr<ICEPair>> *pairs_;
+  std::vector<std::shared_ptr<ICEPair>> pairs_;
 
   bool isController_;
-  int timeout_;
+  int timeoutMs_;
 
   uint8_t components_;
 
@@ -75,5 +73,7 @@ private:
 
   // currently the first pair to have all its components succeed is selected.
   // These are then these are copied here.
-  QList<std::shared_ptr<ICEPair>> nominated_;
+  std::vector<std::shared_ptr<ICEPair>> nominated_;
+
+  std::chrono::time_point<std::chrono::system_clock> startTime_;
 };

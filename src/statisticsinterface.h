@@ -6,11 +6,14 @@
 #include <map>
 #include <stdint.h>
 #include <vector>
+#include <memory>
 
 // An interface where the program tells various statistics of its operations.
 // Can be used to show the statistics in window or to record the statistics to a file.
 
 // TODO: improve the interface to add the participant details in pieces.
+
+struct ICEPair;
 
 class StatisticsInterface
 {
@@ -28,10 +31,10 @@ public:
   virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount) = 0;
 
   // basic call info for incoming and outgoing medias
-  virtual void incomingMedia(uint32_t sessionID, QString name, QStringList& ipList,
-                             QStringList& audioPorts, QStringList& videoPorts) = 0;
-  virtual void outgoingMedia(uint32_t sessionID, QString name, QStringList& ipList,
-                             QStringList& audioPorts, QStringList& videoPorts) = 0;
+  virtual void incomingMedia(uint32_t sessionID, QString name) = 0;
+  virtual void outgoingMedia(uint32_t sessionID, QString name) = 0;
+
+  virtual void selectedICEPair(uint32_t sessionID, std::shared_ptr<ICEPair> pair) = 0;
 
   // the delay it takes from input to the point when input is encoded
   virtual void sendDelay(QString type, uint32_t delay) = 0;

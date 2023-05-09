@@ -64,7 +64,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Sent SIP Messages</string>
+          <string>SIP log</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -72,26 +72,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableWidget" name="sent_list"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="label">
-         <property name="font">
-          <font>
-           <pointsize>12</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Received SIP Messages</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QTableWidget" name="received_list"/>
+        <widget class="QTableWidget" name="sip_list"/>
        </item>
        <item>
         <widget class="QWidget" name="widget" native="true">
@@ -176,7 +157,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Outgoing Streams</string>
+          <string>Selected Remote ICE Candidates</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -242,7 +223,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Incoming Streams</string>
+          <string>Selected Local ICE Candidates</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>

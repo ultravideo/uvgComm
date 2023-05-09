@@ -7,6 +7,7 @@
 class StatisticsWindow;
 class StatisticsInterface;
 class VideoviewFactory;
+class SDPMediaParticipant;
 
 namespace Ui {
 class AboutWidget;
@@ -23,7 +24,7 @@ public:
   UIManager();
   ~UIManager();
 
-  std::vector<VideoWidget*> getSelfViews();
+  QList<VideoInterface*> getSelfVideos () const;
 
   void init(ParticipantInterface *partInt);
 
@@ -36,15 +37,14 @@ public:
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  void callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled,
-                   QWidget *view, QString name);
+  std::vector<VideoInterface *> callStarted(uint32_t sessionID,
+                              QList<SDPMediaParticipant>& medias);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
 
   void removeWithMessage(uint32_t sessionID, QString message,
                          bool temporaryMessage);
-
 
   void updateServerStatus(QString status);
 

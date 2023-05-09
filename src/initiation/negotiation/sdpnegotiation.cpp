@@ -2,17 +2,23 @@
 
 #include "sdpdefault.h"
 
+#include "initiation/negotiation/sdpmeshconference.h"
+
 #include "common.h"
 #include "logger.h"
 
 #include <QVariant>
 
-SDPNegotiation::SDPNegotiation(QString localAddress, std::shared_ptr<SDPMessageInfo> localSDP):
+SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
+                               std::shared_ptr<SDPMessageInfo> localSDP,
+                               std::shared_ptr<SDPMeshConference> sdpConf):
+  sessionID_(sessionID),
   localbaseSDP_(nullptr),
   localSDP_(nullptr),
   remoteSDP_(nullptr),
   negotiationState_(NEG_NO_STATE),
-  peerAcceptsSDP_(false)
+  peerAcceptsSDP_(false),
+  sdpConf_(sdpConf)
 {
   // this makes it possible to send SDP as a signal parameter
   qRegisterMetaType<std::shared_ptr<SDPMessageInfo> >("std::shared_ptr<SDPMessageInfo>");
@@ -49,20 +55,18 @@ void SDPNegotiation::processOutgoingRequest(SIPRequest& request, QVariant& conte
 
   // We could also add SDP to INVITE, but we choose to send offer
   // in INVITE OK response and ACK.
-  if (request.method == SIP_ACK && negotiationState_ == NEG_OFFER_RECEIVED)
+  if (request.method == SIP_INVITE || (request.method == SIP_ACK && negotiationState_ == NEG_OFFER_RECEIVED))
   {
     Logger::getLogger()->printNormal(this, "Adding SDP content to request");
 
     request.message->contentLength = 0;
     request.message->contentType = MT_APPLICATION_SDP;
 
-    if (!sdpToContent(localSDP_, content))
+    if (!sdpToContent(content))
     {
       Logger::getLogger()->printError(this, "Failed to get SDP answer to request");
       return;
     }
-
-    negotiationState_ = NEG_FINISHED;
   }
 
   emit outgoingRequest(request, content);
@@ -84,26 +88,10 @@ void SDPNegotiation::processOutgoingResponse(SIPResponse& response, QVariant& co
         response.message->contentLength = 0;
         response.message->contentType = MT_APPLICATION_SDP;
 
-        std::shared_ptr<SDPMessageInfo> ourSDP = localbaseSDP_;
-
-        if (negotiationState_ == NEG_OFFER_RECEIVED)
-        {
-          ourSDP = localSDP_;
-        }
-
-        if (!sdpToContent(ourSDP, content))
+        if (!sdpToContent(content))
         {
           Logger::getLogger()->printError(this, "Failed to get SDP answer to response");
           return;
-        }
-
-        if (negotiationState_ == NEG_NO_STATE)
-        {
-          negotiationState_ = NEG_OFFER_SENT;
-        }
-        else if (negotiationState_ == NEG_OFFER_RECEIVED)
-        {
-          negotiationState_ = NEG_FINISHED;
         }
       }
     }
@@ -170,16 +158,36 @@ void SDPNegotiation::uninit()
 }
 
 
-bool SDPNegotiation::sdpToContent(std::shared_ptr<SDPMessageInfo> sdp, QVariant& content)
+bool SDPNegotiation::sdpToContent(QVariant& content)
 {
-  Q_ASSERT(sdp != nullptr);
+  std::shared_ptr<SDPMessageInfo> ourSDP = localbaseSDP_;
+
+  if (negotiationState_ == NEG_OFFER_RECEIVED)
+  {
+    ourSDP = localSDP_;
+    negotiationState_ = NEG_FINISHED;
+  }
+  else if (negotiationState_ == NEG_NO_STATE)
+  {
+    negotiationState_ = NEG_OFFER_SENT;
+  }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "SDP negotiation in wrong state when including SDP");
+    return false;
+  }
+
+  ourSDP = sdpConf_->getMeshSDP(sessionID_, ourSDP);
+
+  Q_ASSERT(ourSDP != nullptr);
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Adding local SDP to content");
-  if(!sdp)
+  if(!ourSDP)
   {
     Logger::getLogger()->printWarning(this, "Failed to get local SDP!");
     return false;
   }
-  content.setValue(*sdp);
+  content.setValue(*ourSDP);
+
   return true;
 }
 
@@ -233,6 +241,8 @@ bool SDPNegotiation::processOfferSDP(QVariant& content)
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
+ sdpConf_->addRemoteSDP(sessionID_, retrieved);
+
   // get our final SDP, which is later sent to them
   localSDP_ = findCommonSDP(*localbaseSDP_.get(), retrieved);
 
@@ -266,6 +276,8 @@ bool SDPNegotiation::processAnswerSDP(QVariant &content)
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation",
                                   "Starting to process answer SDP.");
+
+  sdpConf_->addRemoteSDP(sessionID_, retrieved);
 
   /* Get our final SDP based on their answer, should succeed if they did everything correctly,
    * but good to check */
@@ -367,71 +379,78 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
 
   for (int i = 0; i < comparedSDP.media.size(); ++i)
   {
-    MediaInfo resultMedia;
-
-    resultMedia.type = comparedSDP.media.at(i).type;
-    resultMedia.receivePort = 0; // TODO: ICE Should set this to one of its candidates, 0 means it is rejected
-    resultMedia.title = comparedSDP.media.at(i).title;
-
-    resultMedia.proto = baseSDP.media.at(matches.at(i)).proto;
-
-    if (matches.at(i) == -1)
+    if (matches.at(i) != -1)
     {
-      // no match was found, this media is unacceptable
+      MediaInfo resultMedia;
 
-      // compared to INACTIVE, 0 makes it so that no RTCP is sent
-      resultMedia.receivePort = 0;
-      resultMedia.flagAttributes = {A_INACTIVE};
-    }
-    else
-    {
-      // here we determine which side is ready to send and/or receive this media
-      SDPAttributeType ourAttribute   = findStatusAttribute(baseSDP.media.at(matches.at(i)).flagAttributes);
-      SDPAttributeType theirAttribute = findStatusAttribute(comparedSDP.media.at(i).flagAttributes);
+      resultMedia.type = comparedSDP.media.at(i).type;
+      resultMedia.receivePort = 0; // TODO: ICE Should set this to one of its candidates, 0 means it is rejected
+      resultMedia.title = comparedSDP.media.at(i).title;
 
-      resultMedia.flagAttributes.clear(); // TODO: Copy non-directional attributes
+      resultMedia.proto = baseSDP.media.at(matches.at(i)).proto;
 
-      // important to know here that having no attribute means same as sendrecv (default) in SDP.
-      // These ifs go through possible flags one by one, some checks are omitted thanks to previous cases
-      if (ourAttribute   == A_INACTIVE ||
-          theirAttribute == A_INACTIVE ||
-          (ourAttribute == A_SENDONLY && theirAttribute == A_SENDONLY) || // both want to send
-          (ourAttribute == A_RECVONLY && theirAttribute == A_RECVONLY))   // both want to receive
+      if (matches.at(i) == -1)
       {
-        // no possible media connection found, but this stream can be activated at any time
-        // RTCP should be remain active while the stream itself is inactive
-        resultMedia.flagAttributes.push_back(A_INACTIVE);
-      }
-      else if ((ourAttribute   == A_SENDRECV || ourAttribute   == A_NO_ATTRIBUTE) &&
-               (theirAttribute == A_SENDRECV || theirAttribute == A_NO_ATTRIBUTE))
-      {
-        // media will flow in both directions
-        resultMedia.flagAttributes.push_back(ourAttribute); // sendrecv or no attribute
-      }
-      else if ((ourAttribute   == A_SENDONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
-               (theirAttribute == A_RECVONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
-      {
-        // we will send media, but not receive it
-        resultMedia.flagAttributes.push_back(A_SENDONLY);
-      }
-      else if ((ourAttribute   == A_RECVONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
-               (theirAttribute == A_SENDONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
-      {
-        // we will not send media, but will receive it
-        resultMedia.flagAttributes.push_back(A_RECVONLY);
+        // no match was found, this media is unacceptable
+
+        // compared to INACTIVE, 0 makes it so that no RTCP is sent
+        resultMedia.receivePort = 0;
+        resultMedia.flagAttributes = {A_INACTIVE};
       }
       else
       {
-        Logger::getLogger()->printProgramError(this, "Couldn't determine attribute correctly");
-        return nullptr;
+        // here we determine which side is ready to send and/or receive this media
+        SDPAttributeType ourAttribute   = findStatusAttribute(baseSDP.media.at(matches.at(i)).flagAttributes);
+        SDPAttributeType theirAttribute = findStatusAttribute(comparedSDP.media.at(i).flagAttributes);
+
+        resultMedia.flagAttributes.clear(); // TODO: Copy non-directional attributes
+
+        // important to know here that having no attribute means same as sendrecv (default) in SDP.
+        // These ifs go through possible flags one by one, some checks are omitted thanks to previous cases
+        if (ourAttribute   == A_INACTIVE ||
+            theirAttribute == A_INACTIVE ||
+            (ourAttribute == A_SENDONLY && theirAttribute == A_SENDONLY) || // both want to send
+            (ourAttribute == A_RECVONLY && theirAttribute == A_RECVONLY))   // both want to receive
+        {
+          // no possible media connection found, but this stream can be activated at any time
+          // RTCP should be remain active while the stream itself is inactive
+          resultMedia.flagAttributes.push_back(A_INACTIVE);
+        }
+        else if ((ourAttribute   == A_SENDRECV || ourAttribute   == A_NO_ATTRIBUTE) &&
+                 (theirAttribute == A_SENDRECV || theirAttribute == A_NO_ATTRIBUTE))
+        {
+          // media will flow in both directions
+          resultMedia.flagAttributes.push_back(ourAttribute); // sendrecv or no attribute
+        }
+        else if ((ourAttribute   == A_SENDONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
+                 (theirAttribute == A_RECVONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
+        {
+          // we will send media, but not receive it
+          resultMedia.flagAttributes.push_back(A_SENDONLY);
+        }
+        else if ((ourAttribute   == A_RECVONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
+                 (theirAttribute == A_SENDONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
+        {
+          // we will not send media, but will receive it
+          resultMedia.flagAttributes.push_back(A_RECVONLY);
+        }
+        else
+        {
+          Logger::getLogger()->printProgramError(this, "Couldn't determine attribute correctly");
+          return nullptr;
+        }
+
+        selectBestCodec(comparedSDP.media.at(i).rtpNums,         comparedSDP.media.at(i).rtpMaps,
+                        baseSDP.media.at(matches.at(i)).rtpNums, baseSDP.media.at(matches.at(i)).rtpMaps,
+                        resultMedia.rtpNums,                     resultMedia.rtpMaps);
       }
 
-      selectBestCodec(comparedSDP.media.at(i).rtpNums,         comparedSDP.media.at(i).codecs,
-                      baseSDP.media.at(matches.at(i)).rtpNums, baseSDP.media.at(matches.at(i)).codecs,
-                      resultMedia.rtpNums,                     resultMedia.codecs);
+      newInfo->media.append(resultMedia);
     }
-
-    newInfo->media.append(resultMedia);
+    else
+    {
+      Logger::getLogger()->printWarning(this, "Did not find match for media, rejecting this one media");
+    }
   }
 
   return newInfo;
@@ -488,7 +507,6 @@ bool SDPNegotiation::matchMedia(std::vector<int> &matches,
    * to 0 which would only reject them instead of the whole call.
    * We would also have to omit our media that was not in the offer
    */
-  std::vector<bool> reserved = std::vector<bool>(secondSDP.media.size(), false);
   for (auto& media : firstSDP.media)
   {
     bool foundMatch = false;
@@ -496,18 +514,15 @@ bool SDPNegotiation::matchMedia(std::vector<int> &matches,
     // see which remote media best matches our media
     for (int j = 0; j < secondSDP.media.size(); ++j)
     {
-      if (!reserved.at(j))
-      {
-        // TODO: Improve matching?
-        bool isMatch = media.type == secondSDP.media.at(j).type;
+      // TODO: Improve matching?
+      bool isMatch = media.type == secondSDP.media.at(j).type;
 
-        if (isMatch)
-        {
-          matches.push_back(j);
-          reserved.at(j) = true;
-          foundMatch = true;
-          break;
-        }
+      if (isMatch)
+      {
+        matches.push_back(j);
+
+        foundMatch = true;
+        break;
       }
     }
 

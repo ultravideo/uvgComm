@@ -7,14 +7,16 @@
 #include <QMetaType>
 
 #include <memory>
+#include <unordered_map>
 #include <stdint.h>
 
 
-// see RFC 4566 for details.
+// see RFC 8866 for details.
 
 // sendrecv is default, if none present.
 // Note that RTCP is still sent in case of RECVONLY, SENDONLY and INACTIVE
 enum SDPAttributeType{A_NO_ATTRIBUTE,
+                      A_UNKNOWN_ATTRIBUTE,
                       A_INACTIVE,
                       A_SENDONLY,
                       A_RECVONLY,
@@ -25,6 +27,8 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_PTIME,
                       A_MAXPTIME,
                       A_RTPMAP,
+                      A_GROUP, // see RFC 5888
+                      A_MID,   // see RFC 5888
                       A_ORIENT,
                       A_TYPE,
                       A_CHARSET,
@@ -33,7 +37,10 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_FRAMERATE,
                       A_QUALITY,
                       A_FMTP,
-                      A_CANDIDATE};
+                      A_CANDIDATE,
+                      A_LABEL,    // RFC 4574
+                      A_ZRTP_HASH // RFC 6189
+                     };
 
 struct SDPAttribute
 {
@@ -41,7 +48,11 @@ struct SDPAttribute
   QString value;
 };
 
-/* SDP message info structs */
+struct FormatParameter
+{
+  QString name;
+  QString value;
+};
 
 // RTP stream info
 struct RTPMap
@@ -50,6 +61,12 @@ struct RTPMap
   uint32_t clockFrequency;
   QString codec;
   QString codecParameter; // only for audio channel count
+};
+
+struct ZRTPHash
+{
+  QString version;
+  QString hash;
 };
 
 // SDP media info
@@ -73,9 +90,12 @@ struct MediaInfo
   QString encryptionKey;        // k=, optional
 
   // a=
-  QList<RTPMap> codecs; // mandatory if not preset rtpnumber
+  QList<RTPMap> rtpMaps; // mandatory if not preset rtpnumber
   QList<SDPAttributeType> flagAttributes; // optional
   QList<SDPAttribute> valueAttributes; // optional
+  std::unordered_map<uint8_t, std::vector<FormatParameter>> fmtpAttributes; // optional
+  QList<std::shared_ptr<ICEInfo>> candidates;
+  QList<ZRTPHash> zrtp;
 };
 
 struct TimeInfo
@@ -95,6 +115,14 @@ struct TimezoneInfo
 {
   QString adjustmentTime;
   QString offset;
+};
+
+enum GroupType {G_LS, G_FID, G_UNRECOGNIZED};
+
+struct MediaGroup
+{
+  GroupType type;
+  QStringList identificationTags;
 };
 
 // Session Description Protocol message data
@@ -132,13 +160,11 @@ struct SDPMessageInfo
   QString encryptionKey; // k=, optional
 
   // a=, optional, global
+  QList<MediaGroup> groupings;
   QList<SDPAttributeType> flagAttributes;
   QList<SDPAttribute> valueAttributes;
 
   QList<MediaInfo> media;// m=, zero or more
-
-  // TODO: Candidate is a media-level attribute only
-  QList<std::shared_ptr<ICEInfo>> candidates;
 };
 
 Q_DECLARE_METATYPE(SDPMessageInfo); // used in qvariant for content

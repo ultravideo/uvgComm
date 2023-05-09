@@ -7,12 +7,20 @@
 SDPICE::SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID):
   sessionID_(sessionID),
   networkCandidates_(candidates),
-  peerSupportsICE_(false)
+  peerSupportsICE_(false),
+  mediaLimit_(-1)
 {}
 
 void SDPICE::uninit()
 {
   networkCandidates_->cleanupSession(sessionID_);
+}
+
+
+void SDPICE::limitMediaCandidates(int limit)
+{
+  Logger::getLogger()->printNormal(this, "Limiting media", "Limit", QString::number(limit));
+  mediaLimit_ = limit;
 }
 
 void SDPICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
@@ -25,9 +33,11 @@ void SDPICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
     addICEToSupported(request.message->supported);
   }
 
-  if (peerSupportsICE_ && request.message->contentType == MT_APPLICATION_SDP)
+  if ((request.method == SIP_INVITE ||
+       (peerSupportsICE_ && request.method == SIP_ACK))
+      && request.message->contentType == MT_APPLICATION_SDP)
   {
-    addLocalCandidates(content);  
+    addLocalCandidatesToSDP(content);
   }
 
   emit outgoingRequest(request, content);
@@ -43,7 +53,7 @@ void SDPICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
 
   if (peerSupportsICE_ && response.message->contentType == MT_APPLICATION_SDP)
   {
-    addLocalCandidates(content);
+    addLocalCandidatesToSDP(content);
   }
 
   emit outgoingResponse(response, content);
@@ -86,54 +96,23 @@ void SDPICE::processIncomingResponse(SIPResponse& response, QVariant& content,
 }
 
 
-void SDPICE::addLocalCandidates(QVariant& content)
+void SDPICE::addLocalCandidatesToSDP(QVariant& content)
 {
   SDPMessageInfo sdp = content.value<SDPMessageInfo>();
-
-  int components = 0;
-  for (auto& media: sdp.media)
+  for (unsigned int i = 0; i < sdp.media.size(); ++i)
   {
-    if (media.proto == "RTP/AVP")
+    if (sdp.media.at(i).candidates.empty())
     {
-      components += 2; // RTP and RTCP
+      if (mediaLimit_ > 0)
+      {
+        addLocalCandidatesToMedia(sdp.media[i], i%mediaLimit_);
+      }
+      else
+      {
+        addLocalCandidatesToMedia(sdp.media[i], i);
+      }
     }
-    else
-    {
-      components += 1;
-    }
   }
-
-  // here we generate new candidates addresses if we don't have any existing,
-  // or if the amount of components has changed
-  if (!existingLocalCandidates_ || existingLocalCandidates_->size() != components)
-  {
-    existingLocalCandidates_ = networkCandidates_->localCandidates(components, sessionID_);
-  }
-
-  if (!existingGlobalCandidates_ || existingGlobalCandidates_->size() != components)
-  {
-    existingGlobalCandidates_ = networkCandidates_->globalCandidates(components, sessionID_);
-  }
-
-  if (!existingStunCandidates_ || existingStunCandidates_->size() != components)
-  {
-    existingStunCandidates_ = networkCandidates_->stunCandidates(components);
-  }
-
-  if (!existingStunBindings_ || existingStunBindings_->size() != components)
-  {
-    existingStunBindings_ = networkCandidates_->stunBindings(components, sessionID_);
-  }
-
-  if (!existingturnCandidates_ || existingturnCandidates_->size() != components)
-  {
-    existingturnCandidates_ = networkCandidates_->turnCandidates(components, sessionID_);
-  }
-
-  // transform network addresses into ICE candidates
-  sdp.candidates = generateICECandidates(existingLocalCandidates_, existingGlobalCandidates_,
-                                         existingStunCandidates_,  existingStunBindings_,
-                                         existingturnCandidates_, components);
 
   content.setValue(sdp); // adds the candidates to outgoing message
   std::shared_ptr<SDPMessageInfo> local = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
@@ -141,6 +120,48 @@ void SDPICE::addLocalCandidates(QVariant& content)
 
   // we must give our final SDP to rest of the program
   emit localSDPWithCandidates(sessionID_, local);
+}
+
+
+void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
+{
+  Logger::getLogger()->printNormal(this, "Media limit", "index", QString::number(mediaIndex));
+  int neededComponents = 1;
+  if (media.proto == "RTP/AVP")
+  {
+    neededComponents = 2; // RTP and RTCP
+  }
+
+  if (existingLocalCandidates_.size() <= mediaIndex)
+  {
+    existingLocalCandidates_.push_back(networkCandidates_->localCandidates(neededComponents, sessionID_));
+  }
+  if (existingGlobalCandidates_.size() <= mediaIndex)
+  {
+    existingGlobalCandidates_.push_back(networkCandidates_->globalCandidates(neededComponents, sessionID_));
+  }
+  if (existingStunCandidates_.size() <= mediaIndex)
+  {
+    existingStunCandidates_.push_back(networkCandidates_->stunCandidates(neededComponents));
+  }
+  if (existingStunBindings_.size() <= mediaIndex)
+  {
+    existingStunBindings_.push_back(networkCandidates_->stunBindings(neededComponents, sessionID_));
+  }
+  if (existingturnCandidates_.size() <= mediaIndex)
+  {
+    existingturnCandidates_.push_back(networkCandidates_->turnCandidates(neededComponents, sessionID_));
+  }
+
+  // transform network addresses into ICE candidates
+  media.candidates += generateICECandidates(existingLocalCandidates_[mediaIndex], existingGlobalCandidates_[mediaIndex],
+                                            existingStunCandidates_[mediaIndex],  existingStunBindings_[mediaIndex],
+                                            existingturnCandidates_[mediaIndex], neededComponents);
+
+  if (!media.candidates.empty())
+  {
+    media.receivePort = media.candidates.first()->port;
+  }
 }
 
 
@@ -199,6 +220,9 @@ void SDPICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_
     return;
   }
 
+  // map sorts candidates by priority if we add them here
+  std::map<int, std::shared_ptr<ICEInfo>> sorted;
+
   // got through sets of STREAMS addresses
   for (int i = 0; i + components <= addresses->size(); i += components)
   {
@@ -217,14 +241,20 @@ void SDPICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_
       }
       uint8_t component = j - i + 1;
 
-      candidates.push_back(makeCandidate(foundation, type, component,
-                                         addresses->at(j).first,
-                                         addresses->at(j).second,
-                                         relayAddress, relayPort, localPriority));
+      std::shared_ptr<ICEInfo> candidate = makeCandidate(foundation, type, component,
+                                                         addresses->at(j).first,
+                                                         addresses->at(j).second,
+                                                         relayAddress, relayPort, localPriority);
+      sorted[candidate->priority] = candidate;
     }
 
     ++foundation;
+  }
 
+  // add candidates from largest to smallest priority
+  for (auto candidate = sorted.rbegin(); candidate != sorted.rend(); candidate++)
+  {
+    candidates.push_back(candidate->second);
   }
 }
 
@@ -323,12 +353,3 @@ int SDPICE::candidateTypePriority(CandidateType type, quint16 local, uint8_t com
          256 - component;
 }
 
-bool SDPICE::areMediasEqual(const MediaInfo first, const MediaInfo second) const
-{
-  return first.type == second.type &&
-      first.receivePort == second.receivePort &&
-      first.proto == second.proto &&
-      first.connection_nettype == second.connection_nettype &&
-      first.connection_addrtype == second.connection_addrtype &&
-      first.connection_address == second.connection_address;
-}

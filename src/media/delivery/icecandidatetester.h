@@ -38,7 +38,7 @@ public:
   // for all components. Note that this concerns components of one candidate
   // where as startTestingPairs is concerned with one interface/port pair
   // of all candidates
-  bool performNomination(QList<std::shared_ptr<ICEPair> > &nominated);
+  bool performNomination(std::vector<std::shared_ptr<ICEPair> > &nominated);
 
 signals:
   void controllerPairFound(std::shared_ptr<ICEPair> connection);

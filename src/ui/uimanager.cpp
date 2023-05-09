@@ -25,10 +25,12 @@ UIManager::~UIManager()
   }
 }
 
-std::vector<VideoWidget*> UIManager::getSelfViews()
+
+QList<VideoInterface*> UIManager::getSelfVideos () const
 {
-  return {window_.getSelfView(), settingsView_.getSelfViews()};
+  return window_.getSelfVideos();
 }
+
 
 void UIManager::init(ParticipantInterface *partInt)
 {
@@ -48,13 +50,13 @@ void UIManager::init(ParticipantInterface *partInt)
                    this,           &UIManager::updateAutomaticSettings);
 
   QObject::connect(&window_, &CallWindow::videoSourceChanged,
-                   this, &UIManager::videoSourceChanged);
+                   this,     &UIManager::videoSourceChanged);
 
   QObject::connect(&window_, &CallWindow::audioSourceChanged,
-                   this, &UIManager::audioSourceChanged);
+                   this,     &UIManager::audioSourceChanged);
 
   QObject::connect(&window_, &CallWindow::openSettings,
-                   this, &UIManager::showSettings);
+                   this,     &UIManager::showSettings);
 
   QObject::connect(&window_, &CallWindow::closed,
                    this,     &UIManager::closeUI);
@@ -82,7 +84,7 @@ void UIManager::init(ParticipantInterface *partInt)
                    this,     &UIManager::endCall);
 
   settingsView_.init();
-  window_.init(partInt);
+  window_.init(partInt, settingsView_.getSelfViews());
 }
 
 
@@ -129,10 +131,10 @@ void UIManager::displayIncomingCall(uint32_t sessionID, QString caller)
 
 
 // adds video stream to view
-void UIManager::callStarted(uint32_t sessionID, bool videoEnabled, bool audioEnabled,
-                            QWidget* view, QString name)
+std::vector<VideoInterface*> UIManager::callStarted(uint32_t sessionID,
+                                       QList<SDPMediaParticipant> &medias)
 {
-  window_.callStarted(sessionID, videoEnabled, audioEnabled, view, name);
+  return window_.callStarted(sessionID, medias);
 }
 
 

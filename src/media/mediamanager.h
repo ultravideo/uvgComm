@@ -34,6 +34,18 @@ class VideoInterface;
 
 typedef int16_t PeerID;
 
+
+struct ParticipantMedia
+{
+  std::unique_ptr<ICE> ice;
+  std::shared_ptr<SDPMessageInfo> localInfo;
+  std::shared_ptr<SDPMessageInfo> peerInfo;
+
+  std::vector<VideoInterface*> freeViews;
+  std::vector<VideoInterface*> reservedViews;
+  bool followOurSDP;
+};
+
 class MediaManager : public QObject
 {
   Q_OBJECT
@@ -50,12 +62,12 @@ public:
   void registerContact(in_addr ip);
 
   void addParticipant(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo,
-                      const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView,
-                      bool iceController);
+                      const std::shared_ptr<SDPMessageInfo> localInfo, std::vector<VideoInterface*> videoView,
+                      bool iceController, bool followOurSDP);
 
   void modifyParticipant(uint32_t sessionID, const std::shared_ptr<SDPMessageInfo> peerInfo,
-                         const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView,
-                         bool iceController);
+                         const std::shared_ptr<SDPMessageInfo> localInfo, std::vector<VideoInterface*> videoView,
+                         bool iceController, bool followOurSDP);
 
   void removeParticipant(uint32_t sessionID);
 
@@ -90,27 +102,23 @@ signals:
   void updateAutomaticSettings();
 
 public slots:
-  void iceSucceeded(QList<std::shared_ptr<ICEPair>>& streams,
-                           quint32 sessionID);
-  void iceFailed(quint32 sessionID);
+  void iceSucceeded(uint32_t sessionID, MediaInfo local, MediaInfo remote);
+  void iceFailed(uint32_t sessionID, MediaInfo local, MediaInfo remote);
 
 signals:
   void iceMediaFailed(uint32_t sessionID);
 
 private:
 
-  void createCall(uint32_t sessionID,
-                  std::shared_ptr<SDPMessageInfo> peerInfo,
-                  const std::shared_ptr<SDPMessageInfo> localInfo, VideoInterface *videoView, bool followOurSDP);
+  void createMediaPair(uint32_t sessionID, const MediaInfo &localMedia, const MediaInfo &remoteMedia,
+                       VideoInterface *videoView, bool followOurSDP);
 
   void createOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           QString peerAddress, const MediaInfo& remoteMedia, bool useOurSDP);
+                           const MediaInfo& remoteMedia, bool useOurSDP);
   void createIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           QString localAddress, const MediaInfo& remoteMedia, VideoInterface *videoView, bool useOurSDP);
+                           const MediaInfo& remoteMedia, VideoInterface *videoView, bool useOurSDP);
 
   QString rtpNumberToCodec(const MediaInfo& info);
-
-  void transportAttributes(const QList<SDPAttributeType> &attributes, bool& send, bool& recv);
 
   void sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool local);
 
@@ -118,21 +126,11 @@ private:
   QString getMediaAddrtype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
   QString getMediaAddress(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
 
-  // update MediaInfo of SDP after ICE has finished
-  void setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, bool local);
-
   bool sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
                      const std::shared_ptr<SDPMessageInfo> localInfo) const;
 
-  struct ParticipantMedia
-  {
-    std::unique_ptr<ICE> ice;
-    std::shared_ptr<SDPMessageInfo> localInfo;
-    std::shared_ptr<SDPMessageInfo> peerInfo;
-
-    VideoInterface* videoView;
-    bool followOurSDP;
-  };
+  VideoInterface* reserveView(ParticipantMedia& media);
+  void freeViews(ParticipantMedia& media);
 
   StatisticsInterface* stats_;
 

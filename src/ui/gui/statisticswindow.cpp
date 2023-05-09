@@ -1,6 +1,7 @@
 #include "statisticswindow.h"
 
 #include "ui_statisticswindow.h"
+#include "icetypes.h"
 
 #include "common.h"
 #include "logger.h"
@@ -94,15 +95,15 @@ StatisticsInterface(),
 
   // init headers of call parameter table
   fillTableHeaders(ui_->table_outgoing, sessionMutex_,
-                          {"Target IP", "Audio Ports", "Video Ports"});
+                          {"Foundation", "Component", "Type", "Address", "Port"});
+
   fillTableHeaders(ui_->table_incoming, sessionMutex_,
-                          {"Local Interface IP", "Audio Ports", "Video Ports"});
+                          {"Foundation", "Component", "Type", "Address", "Port"});
+
   fillTableHeaders(ui_->filterTable, filterMutex_,
                           {"Filter", "Info", "TID", "Buffer Size", "Dropped"});
-  fillTableHeaders(ui_->sent_list, sipMutex_,
-                          {"Header", "Body"});
-  fillTableHeaders(ui_->received_list, sipMutex_,
-                          {"Header", "Body"});
+  fillTableHeaders(ui_->sip_list, sipMutex_,
+                          {"Direction", "Header", "Body"});
 }
 
 
@@ -184,65 +185,66 @@ void StatisticsWindow::addSession(uint32_t sessionID)
                           0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
                           0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
                           0,0, 0,0, // jitter and lost
-                          -1};
+                          -1, -1, {}};
 }
 
 
-void StatisticsWindow::incomingMedia(uint32_t sessionID, QString name, QStringList& ipList,
-                                     QStringList &audioPorts, QStringList &videoPorts)
+void StatisticsWindow::incomingMedia(uint32_t sessionID, QString name)
 {
-  if (ipList.size() == 0)
-  {
-    return;
-  }
-
-  addMedia(ui_->table_incoming, sessionID, ipList, audioPorts, videoPorts);
-
-  ui_->v_delay_chart->addLine(name);
+  int lineID = ui_->v_delay_chart->addLine(name);
   ui_->a_delay_chart->addLine(name);
   ui_->v_bitrate_chart->addLine(name);
   ui_->a_bitrate_chart->addLine(name);
   ui_->v_framerate_chart->addLine(name);
+
+  sessionMutex_.lock();
+  sessions_[sessionID].performanceGraphIndex = lineID;
+  sessionMutex_.unlock();
 }
 
 
-void StatisticsWindow::outgoingMedia(uint32_t sessionID, QString name, QStringList& ipList,
-                                     QStringList& audioPorts, QStringList& videoPorts)
+void StatisticsWindow::outgoingMedia(uint32_t sessionID, QString name)
 {
-  addMedia(ui_->table_outgoing, sessionID, ipList, audioPorts, videoPorts);
-
-  ui_->v_jitter->addLine(name);
+  int lineID = ui_->v_jitter->addLine(name);
   ui_->a_jitter->addLine(name);
   ui_->v_lost->addLine(name);
   ui_->a_lost->addLine(name);
+
+  sessionMutex_.lock();
+  sessions_[sessionID].deliveryGraphIndex = lineID;
+  sessionMutex_.unlock();
 }
 
 
-void StatisticsWindow::addMedia(QTableWidget* table, uint32_t sessionID, QStringList& ipList,
-                                QStringList audioPorts, QStringList videoPorts)
+void StatisticsWindow::selectedICEPair(uint32_t sessionID, std::shared_ptr<ICEPair> pair)
 {
-  if (sessions_.find(sessionID) == sessions_.end())
-  {
-    Logger::getLogger()->printProgramError(this, "Session for media doesn't exist");
-    return;
-  }
+  // TODO: Find a way to delete these (add sessionID as variable to rows?)
+  selectedICECandidate(sessionID, ui_->table_incoming, pair->local, true);
+  selectedICECandidate(sessionID, ui_->table_outgoing, pair->remote, false);
+}
+
+
+void StatisticsWindow::selectedICECandidate(uint32_t sessionID, QTableWidget* table,
+                                            std::shared_ptr<ICEInfo> candidate,
+                                            bool keepTrack)
+{
+  QString address = candidate->address;
+  QString port = QString::number(candidate->port);
 
   int index = addTableRow(table, sessionMutex_,
-                          {combineList(ipList), combineList(audioPorts),
-                           combineList(videoPorts)});
+                          {candidate->foundation,
+                           QString::number(candidate->component),
+                           candidate->type,
+                           address, port});
 
-  if (sessions_[sessionID].tableIndex == -1 || sessions_[sessionID].tableIndex == index)
+  if (keepTrack)
   {
-    sessions_[sessionID].tableIndex = index;
-  }
-  else
-  {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Wrong table index detected in sessions for media!",
-                                    {"Expected index", "Table index"},
-                                    {QString::number(sessions_[sessionID].tableIndex), QString::number(index)});
-    return;
+    sessionMutex_.lock();
+    sessions_[sessionID].iceIndexes.push_back(index);
+    sessionMutex_.unlock();
   }
 }
+
 
 QString StatisticsWindow::combineList(QStringList &list)
 {
@@ -332,54 +334,70 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
     return;
   }
 
+  Logger::getLogger()->printNormal(this, "Removing session from statistics",
+                                   "SessionID", QString::number(sessionID));
+
+  Logger::getLogger()->printNormal(this, "Removing ICE in/out table rows for this session",
+                                   "Amount of rows", QString::number(sessions_[sessionID].iceIndexes.size()));
+
   sessionMutex_.lock();
-
-  int index = sessions_[sessionID].tableIndex;
-
-  // check that index points to a valid row
-  if (ui_->table_incoming->rowCount() <= index ||
-      ui_->table_outgoing->rowCount() <= index)
+  // remove rows from ICE results
+  for (auto& index : sessions_[sessionID].iceIndexes)
   {
-    sessionMutex_.unlock();
-    Logger::getLogger()->printProgramWarning(this, "Missing participant row for participant");
-    return;
-  }
-
-  // remove row from UI
-  ui_->table_incoming->removeRow(index);
-  ui_->table_outgoing->removeRow(index);
-
-  // adjust the rest of the peers if needed
-  for (auto &peer : sessions_)
-  {
-    if (peer.second.tableIndex > index)
+    if (ui_->table_incoming->rowCount() <= index ||
+        ui_->table_outgoing->rowCount() <= index)
     {
-      --peer.second.tableIndex;
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, this, "Invalid ICE index in stats",
+                                               {"Index", "Table size"},
+                                      {QString::number(index),
+                                       QString::number(ui_->table_incoming->rowCount())});
+    }
+    else
+    {
+      // remove row from UI
+      ui_->table_incoming->removeRow(index);
+      ui_->table_outgoing->removeRow(index);
+      updatePerformanceIndexes(index);
     }
   }
 
-  index += 2; // +1 because it is an ID, not index and +1 for local before peers.
+  sessions_[sessionID].iceIndexes.clear();
 
   // remove line from all charts. Charts automatically adjust their lineID:s
   // after removal
-  ui_->v_bitrate_chart->removeLine(index);
-  ui_->a_bitrate_chart->removeLine(index);
-  ui_->v_delay_chart->removeLine(index);
-  ui_->a_delay_chart->removeLine(index);
-  ui_->v_framerate_chart->removeLine(index);
+  ui_->v_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+  ui_->a_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+  ui_->v_delay_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+  ui_->a_delay_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+  ui_->v_framerate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
 
   // these do not have local so -1 is needed
-  ui_->a_jitter->removeLine(index - 1);
-  ui_->v_jitter->removeLine(index - 1);
-  ui_->a_lost->removeLine(index - 1);
-  ui_->v_lost->removeLine(index - 1);
+  ui_->a_jitter->removeLine(sessions_[sessionID].deliveryGraphIndex);
+  ui_->v_jitter->removeLine(sessions_[sessionID].deliveryGraphIndex);
+  ui_->a_lost->removeLine(sessions_[sessionID].deliveryGraphIndex);
+  ui_->v_lost->removeLine(sessions_[sessionID].deliveryGraphIndex);
 
   // TODO: There is still unreleased memory in session!!
 
   sessions_.erase(sessionID);
 
-
   sessionMutex_.unlock();
+}
+
+
+void StatisticsWindow::updatePerformanceIndexes(int removedIndex)
+{
+  // adjust ICE indexes if needed
+  for (auto &peer : sessions_)
+  {
+    for (auto& index : peer.second.iceIndexes)
+    {
+      if (index > removedIndex)
+      {
+        --index;
+      }
+    }
+  }
 }
 
 
@@ -704,12 +722,12 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
       // jitter and lost charts
       for(auto& d : sessions_)
       {
-        if (d.second.tableIndex != -1)
+        if (d.second.deliveryGraphIndex != -1)
         {
-          ui_->v_jitter->addPoint(d.second.tableIndex + 1, d.second.videoJitter);
-          ui_->v_lost->addPoint(  d.second.tableIndex + 1, d.second.videoLost);
-          ui_->a_jitter->addPoint(d.second.tableIndex + 1, d.second.audioJitter);
-          ui_->a_lost->addPoint(  d.second.tableIndex + 1, d.second.audioLost);
+          ui_->v_jitter->addPoint(d.second.deliveryGraphIndex, d.second.videoJitter);
+          ui_->v_lost->addPoint(  d.second.deliveryGraphIndex, d.second.videoLost);
+          ui_->a_jitter->addPoint(d.second.deliveryGraphIndex, d.second.audioJitter);
+          ui_->a_lost->addPoint(  d.second.deliveryGraphIndex, d.second.audioLost);
         }
         else
         {
@@ -771,11 +789,11 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
           uint32_t audioDelay = calculateAverage(d.second.audioDelay, d.second.audioDelayIndex,
                                                  interval, false);
 
-          ui_->v_bitrate_chart->addPoint(d.second.tableIndex + 2, videoBitrate);
-          ui_->a_bitrate_chart->addPoint(d.second.tableIndex + 2, audioBitrate);
-          ui_->v_delay_chart->addPoint(d.second.tableIndex + 2, videoDelay);
-          ui_->a_delay_chart->addPoint(d.second.tableIndex + 2, audioDelay);
-          ui_->v_framerate_chart->addPoint(d.second.tableIndex + 2, presentationVideoFramerate);
+          ui_->v_bitrate_chart->addPoint(d.second.performanceGraphIndex, videoBitrate);
+          ui_->a_bitrate_chart->addPoint(d.second.performanceGraphIndex, audioBitrate);
+          ui_->v_delay_chart->addPoint(d.second.performanceGraphIndex, videoDelay);
+          ui_->a_delay_chart->addPoint(d.second.performanceGraphIndex, audioDelay);
+          ui_->v_framerate_chart->addPoint(d.second.performanceGraphIndex, presentationVideoFramerate);
 
           sessionMutex_.unlock();
         }
@@ -835,21 +853,14 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 void StatisticsWindow::addSentSIPMessage(const QString& headerType, const QString& header,
                                          const QString& bodyType, const QString& body)
 {
-  addTableRow(ui_->sent_list, sipMutex_, {headerType, bodyType}, {header, body});
+  addTableRow(ui_->sip_list, sipMutex_, {"Out", headerType, bodyType}, {"", header, body});
 }
 
 
 void StatisticsWindow::addReceivedSIPMessage(const QString& headerType, const QString& header,
                                              const QString& bodyType, const QString& body)
 {
-  int row = addTableRow(ui_->received_list, sipMutex_, {headerType, bodyType}, {header, body});
-
-  sipMutex_.lock();
-  ui_->received_list->itemAt(0, row);
-  //first->setBackground(QColor(235,235,235));
-  ui_->received_list->itemAt(1, row);
-  //second->setBackground(QColor(235,235,235));
-  sipMutex_.unlock();
+  addTableRow(ui_->sip_list, sipMutex_, {"In", headerType, bodyType}, {"", header, body});
 }
 
 
@@ -1001,8 +1012,7 @@ void StatisticsWindow::on_save_button_clicked()
 {
   Logger::getLogger()->printNormal(this, "Saving SIP messages");
 
-  if (ui_->sent_list->columnCount() == 0 ||
-      ui_->received_list->columnCount() == 0)
+  if (ui_->sip_list->columnCount() == 0)
   {
     Logger::getLogger()->printProgramWarning(this, "The column count was too low to read tooltip");
     return;
@@ -1011,21 +1021,12 @@ void StatisticsWindow::on_save_button_clicked()
   QString lineEnd = "\r\n";
 
   QString text;
-  text += "Sent SIP Messages" + lineEnd + lineEnd;
+  text += "SIP Messages" + lineEnd + lineEnd;
 
   sipMutex_.lock();
-  for (int i = 0; i < ui_->sent_list->rowCount(); ++i)
+  for (int i = 0; i < ui_->sip_list->rowCount(); ++i)
   {
-    text += ui_->sent_list->item(i, 1)->toolTip() + lineEnd;
-  }
-  sipMutex_.unlock();
-
-  text += "Received SIP Messages" + lineEnd + lineEnd;
-
-  sipMutex_.lock();
-  for (int i = 0; i < ui_->received_list->rowCount(); ++i)
-  {
-    text += ui_->received_list->item(i, 1)->toolTip() + lineEnd;
+    text += ui_->sip_list->item(i, 1)->toolTip() + lineEnd;
   }
   sipMutex_.unlock();
 
@@ -1039,11 +1040,7 @@ void StatisticsWindow::on_clear_button_clicked()
   Logger::getLogger()->printNormal(this, "Clearing SIP messages");
 
   sipMutex_.lock();
-
-  //ui_->sent_list->clearContents();
-  ui_->sent_list->setRowCount(0);
-  //ui_->received_list->clearContents();
-  ui_->received_list->setRowCount(0);
+  ui_->sip_list->setRowCount(0);
   sipMutex_.unlock();
 }
 

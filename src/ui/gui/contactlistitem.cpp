@@ -72,7 +72,7 @@ void ContactListItem::setAccesssible()
 void ContactListItem::call()
 {
   Q_ASSERT(interface_);
-  SetInaccessible(interface_->callToParticipant(name_, username_, address));
+  SetInaccessible(interface_->startINVITETransaction(name_, username_, address));
 }
 
 void ContactListItem::chat()

@@ -28,17 +28,19 @@ public:
 
   // init a session with sessionID to use with add/remove functions
   // returns whether operation was successful
-   bool addPeer(uint32_t sessionID,
-                QString peerAddressType, QString peerAddress,
-                QString localAddressType, QString localAddress);
+   bool addSession(uint32_t sessionID,
+                   QString peerAddressType, QString peerAddress,
+                   QString localAddressType, QString localAddress);
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
-  std::shared_ptr<Filter> addSendStream(uint32_t sessionID, QString remoteAddress,
+  std::shared_ptr<Filter> addSendStream(uint32_t sessionID,
+                                        QString localAddress, QString remoteAddress,
                                         uint16_t localPort, uint16_t peerPort,
                                         QString codec, uint8_t rtpNum);
 
-  std::shared_ptr<Filter> addReceiveStream(uint32_t sessionID, QString localAddress,
+  std::shared_ptr<Filter> addReceiveStream(uint32_t sessionID,
+                                           QString localAddress, QString remoteAddress,
                                            uint16_t localPort, uint16_t peerPort,
                                            QString codec, uint8_t rtpNum);
 
@@ -65,30 +67,42 @@ private:
     std::shared_ptr<UvgRTPReceiver> receiver;
   };
 
-  struct Peer
+  struct DeliverySession
   {
-   uvg_rtp::session *session;
+    uvg_rtp::session *session;
 
-   QString localAddress;
-   QString peerAddress;
+    QString localAddress;
+    QString peerAddress;
 
-   // uses local port as key
-   std::map<uint16_t, MediaStream*> streams;
-   bool dhSelected;
+    // uses local port as key
+    std::map<uint16_t, MediaStream*> streams;
+    bool dhSelected;
   };
 
-  bool initializeStream(uint32_t sessionID, uint16_t localPort, uint16_t peerPort,
+  struct Peer
+  {
+    std::vector<DeliverySession> sessions;
+  };
+
+  bool initializeStream(uint32_t sessionID,
+                        DeliverySession& session,
+                        uint16_t localPort, uint16_t peerPort,
                         rtp_format_t fmt);
 
-  bool addMediaStream(uint32_t sessionID, uint16_t localPort, uint16_t peerPort,
+  bool addMediaStream(uint32_t sessionID,
+                      DeliverySession& session,
+                      uint16_t localPort, uint16_t peerPort,
                       rtp_format_t fmt, bool dhSelected);
-  void removeMediaStream(uint32_t sessionID, uint16_t localPort);
+  void removeMediaStream(uint32_t sessionID, DeliverySession& session, uint16_t localPort);
 
   void parseCodecString(QString codec, rtp_format_t& fmt,
                         DataType& type, QString& mediaName);
 
   void ipv6to4(QHostAddress &address);
   void ipv6to4(QString &address);
+
+  bool findSession(uint32_t sessionID, uint32_t& outIndex,
+                   QString localAddress, QString remoteAddress);
 
   // private variables
   std::map<uint32_t, std::shared_ptr<Peer>> peers_;

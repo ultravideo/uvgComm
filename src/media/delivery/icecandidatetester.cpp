@@ -80,7 +80,7 @@ void ICECandidateTester::endTests()
 }
 
 
-bool ICECandidateTester::performNomination(QList<std::shared_ptr<ICEPair>>& nominated)
+bool ICECandidateTester::performNomination(std::vector<std::shared_ptr<ICEPair>>& nominated)
 {
   workerThreads_.clear();
   workerThreads_.push_back(std::shared_ptr<ICEPairTester>(new ICEPairTester(&udp_)));

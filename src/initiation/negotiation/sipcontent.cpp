@@ -2,13 +2,14 @@
 
 #include "sdptypes.h"
 
-#include "common.h"
 #include "logger.h"
 
 #include <QRegularExpression>
 #include <QSettings>
 
 
+
+// PARSING
 
 // called for every new line in SDP parsing. Parses out the two first characters
 // and gives the first value in first element of words, and the rest of the values are divided to separate words.
@@ -18,7 +19,6 @@ bool nextLine(QStringListIterator &lineIterator, QStringList& words, char& lineT
 // Some fields simply take all the fields and put them in value regardless of spaces.
 // Called after nextLine for this situation.
 void gatherLine(QString& target, QStringList& words);
-
 
 
 // c=
@@ -32,15 +32,43 @@ bool parseBitrate(QStringListIterator& lineIterator, char& type, QStringList& wo
 // k=
 bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringList& words,
                         QString& key);
-// a=
-bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList& words,
-                     QList<SDPAttributeType>& flags, QList<SDPAttribute>& values,
-                     QList<RTPMap>& codecs, QList<std::shared_ptr<ICEInfo>>& candidates);
 
-void parseFlagAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttributeType>& attributes);
-void parseValueAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttribute> valueAttributes);
-void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMap>& codecs);
+// a=
+bool parseFlagAttribute(SDPAttributeType type, QString value, QList<SDPAttributeType>& attributes);
+bool parseValueAttribute(SDPAttributeType type, QString value, QList<SDPAttribute>& valueAttributes);
+bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
+                         QList<SDPAttributeType> &flags, QList<SDPAttribute> &parsedValues,
+                         QList<RTPMap> &parsedCodecs,
+                         std::unordered_map<uint8_t, std::vector<FormatParameter> > &parsedParameters,
+                         QList<std::shared_ptr<ICEInfo> > &candidates, QList<ZRTPHash> &zrtp);
+bool parseSessionAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
+                           QList<SDPAttributeType> &flags, QList<SDPAttribute> &parsedValues,
+                           QList<MediaGroup> &groupings);
+
+void parseRTPMap(QString value, QString secondWord, QList<RTPMap>& codecs);
+void parseGroup(QString value, QStringList& words, QList<MediaGroup>& groups);
 bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& candidates);
+bool parseZRTPHash(QStringList& words, QString& value, QList<ZRTPHash>& zrtp);
+void parseFormatParameters(QString value, QString secondWord,
+                           std::unordered_map<uint8_t, std::vector<FormatParameter>>& parsedParameters);
+
+bool parseAttributeTypeValue(QString word, SDPAttributeType& type, QString &value);
+
+
+// COMPOSING
+void composeFlagAttributes(QString& sdp, const QList<SDPAttributeType>& flags);
+void composeValueAttributes(QString& sdp, const QList<SDPAttribute>& values);
+
+
+// CONVERSION HELPER FUNCTIONS
+SDPAttributeType stringToAttributeType(QString attribute);
+GroupType        stringToGroupType(QString group);
+
+QString          groupTypeToString(GroupType type);
+QString          attributeTypeToString(SDPAttributeType type);
+
+
+const QString LINE_END = "\r\n";
 
 bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
 {
@@ -87,13 +115,13 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
         Logger::getLogger()->printError("SipContent", "Missing global and media address. The SDP is not good");
         return false;
       }
-    }
-  }
 
-  if (sdpInfo.candidates.isEmpty())
-  {
-    Logger::getLogger()->printError("SipContent", "Didn't receive any ICE candidates!");
-    return false;
+      if (media.candidates.isEmpty())
+      {
+        Logger::getLogger()->printError("SipContent", "Didn't receive any ICE candidates for media!");
+        return false;
+      }
+    }
   }
 
   return true;
@@ -116,18 +144,32 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   }
 
   QString sdp = "";
-  QString lineEnd = "\r\n";
-  sdp += "v=" + QString::number(sdpInfo.version) + lineEnd;
+  sdp += "v=" + QString::number(sdpInfo.version) + LINE_END;
   sdp += "o=" + sdpInfo.originator_username + " " + QString::number(sdpInfo.sess_id)  + " "
       + QString::number(sdpInfo.sess_v) + " " + sdpInfo.host_nettype + " "
-      + sdpInfo.host_addrtype + " " + sdpInfo.host_address + lineEnd;
+      + sdpInfo.host_addrtype + " " + sdpInfo.host_address + LINE_END;
 
-  sdp += "s=" + sdpInfo.sessionName + lineEnd;
+  sdp += "s=" + sdpInfo.sessionName + LINE_END;
   sdp += "c=" + sdpInfo.connection_nettype + " " + sdpInfo.connection_addrtype +
-      + " " + sdpInfo.connection_address + " " + lineEnd;
+      + " " + sdpInfo.connection_address + " " + LINE_END;
 
   sdp += "t=" + QString::number(sdpInfo.timeDescriptions.at(0).startTime) + " "
-      + QString::number(sdpInfo.timeDescriptions.at(0).stopTime) + lineEnd;
+      + QString::number(sdpInfo.timeDescriptions.at(0).stopTime) + LINE_END;
+
+  for (auto& grouping : sdpInfo.groupings)
+  {
+    sdp += "a=" + groupTypeToString(grouping.type);
+
+    for (auto& id : grouping.identificationTags)
+    {
+      sdp += " " + id;
+    }
+
+    sdp += LINE_END;
+  }
+
+  composeFlagAttributes(sdp, sdpInfo.flagAttributes);
+  composeValueAttributes(sdp, sdpInfo.valueAttributes);
 
   for(auto& mediaStream : sdpInfo.media)
   {
@@ -145,7 +187,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
     {
       sdp += " " + QString::number(rtpNum);
     }
-    sdp += lineEnd;
+    sdp += LINE_END;
 
     if(!mediaStream.title.isEmpty())
     {
@@ -155,12 +197,12 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
     if(!mediaStream.connection_nettype.isEmpty())
     {
       sdp += "c=" + mediaStream.connection_nettype + " " + mediaStream.connection_addrtype + " "
-          + mediaStream.connection_address + lineEnd;
+          + mediaStream.connection_address + LINE_END;
     }
 
     for (auto& bitrate: mediaStream.bitrate)
     {
-      sdp += "b=" + bitrate + lineEnd;
+      sdp += "b=" + bitrate + LINE_END;
     }
 
     if (!mediaStream.encryptionKey.isEmpty())
@@ -168,69 +210,65 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
       sdp += "k=" + mediaStream.encryptionKey;
     }
 
-    for (auto& rtpmap : mediaStream.codecs)
+    composeFlagAttributes(sdp, mediaStream.flagAttributes);
+    composeValueAttributes(sdp, mediaStream.valueAttributes);
+
+    for (auto& rtpmap : mediaStream.rtpMaps)
     {
       sdp += "a=rtpmap:" + QString::number(rtpmap.rtpNum) + " "
-          + rtpmap.codec + "/" + QString::number(rtpmap.clockFrequency) + lineEnd;
+          + rtpmap.codec + "/" + QString::number(rtpmap.clockFrequency) + LINE_END;
     }
 
-    for (SDPAttributeType flag : mediaStream.flagAttributes)
+    for (auto& info : mediaStream.candidates)
     {
-      switch (flag)
+      sdp += "a=candidate:"
+          + info->foundation + " " + QString::number(info->component) + " "
+          + info->transport  + " " + QString::number(info->priority)  + " "
+          + info->address    + " " + QString::number(info->port)      + " "
+          + "typ " + info->type;
+
+      if (info->rel_address != "" && info->rel_port != 0)
       {
-      case A_SENDRECV:
-      {
-        sdp += "a=sendrecv"  + lineEnd;
-        break;
+        sdp += " raddr " + info->rel_address +
+            " rport " + QString::number(info->rel_port);
       }
-      case A_SENDONLY:
-      {
-        sdp += "a=sendonly"  + lineEnd;
-        break;
-      }
-      case A_RECVONLY:
-      {
-        sdp += "a=recvonly"  + lineEnd;
-        break;
-      }
-      case A_INACTIVE:
-      {
-        sdp += "a=inactive"  + lineEnd;
-        break;
-      }
-      case A_NO_ATTRIBUTE:
-      {
-        break;
-      }
-      default:
-      {
-        Logger::getLogger()->printProgramError("SipContent",
-                                               "Trying to compose SDP flag attribute with unimplemented flag");
-        break;
-      }
-      }
+
+      sdp += LINE_END;
+    }
+
+    for (auto& zhash : mediaStream.zrtp)
+    {
+      sdp += "a=zrtp-hash:" + zhash.version + " " + zhash.hash + LINE_END;
     }
   }
 
-  for (auto& info : sdpInfo.candidates)
-  {
-    sdp += "a=candidate:"
-        + info->foundation + " " + QString::number(info->component) + " "
-        + info->transport  + " " + QString::number(info->priority)  + " "
-        + info->address    + " " + QString::number(info->port)      + " "
-        + "typ " + info->type;
-
-    if (info->rel_address != "" && info->rel_port != 0)
-    {
-      sdp += " raddr " + info->rel_address +
-          " rport " + QString::number(info->rel_port);
-    }
-
-    sdp += lineEnd;
-  }  
-
   return sdp;
 }
+
+
+void composeFlagAttributes(QString& sdp, const QList<SDPAttributeType> &flags)
+{
+  for (const SDPAttributeType& flag : flags)
+  {
+    if (flag != A_NO_ATTRIBUTE)
+    {
+      sdp += "a=" + attributeTypeToString(flag) + LINE_END;
+    }
+  }
+}
+
+
+void composeValueAttributes(QString& sdp, const QList<SDPAttribute>& values)
+{
+  for (const SDPAttribute& valueAttribute : values)
+  {
+    if (valueAttribute.type != A_NO_ATTRIBUTE)
+    {
+      sdp += "a=" + attributeTypeToString(valueAttribute.type) + ":" + valueAttribute.value + LINE_END;
+    }
+  }
+}
+
 
 bool nextLine(QStringListIterator& lineIterator, QStringList& words, char& lineType)
 {
@@ -518,16 +556,9 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     return false;
   }
 
-  QList<RTPMap> noCodecs;
-  if(!parseAttributes(lineIterator, type, words, sdp.flagAttributes, sdp.valueAttributes, noCodecs, sdp.candidates))
+  if(!parseSessionAtributes(lineIterator, type, words, sdp.flagAttributes, sdp.valueAttributes, sdp.groupings))
   {
     Logger::getLogger()->printError("SipContent", "Failed to parse attributes");
-    return false;
-  }
-
-  if(!noCodecs.empty())
-  {
-    Logger::getLogger()->printError("SipContent", "Found rtpmap outside media");
     return false;
   }
 
@@ -576,11 +607,13 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
                         sdp.media.back().connection_addrtype, sdp.media.back().connection_address)
        || !parseBitrate(lineIterator, type, words, sdp.media.back().bitrate)
        || !parseEncryptionKey(lineIterator, type, words, sdp.encryptionKey)
-       || !parseAttributes(lineIterator, type, words,
-                           sdp.media.back().flagAttributes,
-                           sdp.media.back().valueAttributes,
-                           sdp.media.back().codecs,
-                           sdp.candidates))
+       || !parseMediaAtributes(lineIterator, type, words,
+                               sdp.media.back().flagAttributes,
+                               sdp.media.back().valueAttributes,
+                               sdp.media.back().rtpMaps,
+                               sdp.media.back().fmtpAttributes,
+                               sdp.media.back().candidates,
+                               sdp.media.back().zrtp))
     {
       Logger::getLogger()->printError("SipContent", "Failed to parse some media fields");
       return false;
@@ -603,152 +636,139 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   return true;
 }
 
-bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList& words,
-                     QList<SDPAttributeType>& flags, QList<SDPAttribute>& values,
-                     QList<RTPMap>& codecs, QList<std::shared_ptr<ICEInfo>>& candidates)
+
+bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
+                         QList<SDPAttributeType>& flags, QList<SDPAttribute>& parsedValues,
+                         QList<RTPMap>& parsedCodecs,
+                         std::unordered_map<uint8_t, std::vector<FormatParameter>>& parsedParameters,
+                         QList<std::shared_ptr<ICEInfo>>& candidates,
+                         QList<ZRTPHash>& zrtp)
+{
+  bool rValue = true;
+
+  while(type == 'a')
+  {
+    SDPAttributeType attribute = A_NO_ATTRIBUTE;
+    QString value = "";
+    if (!parseAttributeTypeValue(words.at(0), attribute, value))
+    {
+      Logger::getLogger()->printError("SIPContent", "Failed to parse session attribute");
+      return false;
+    }
+
+    switch(attribute)
+    {
+      case A_PTIME:
+      case A_MAXPTIME:
+      case A_ORIENT:
+      case A_SDPLANG:
+      case A_LANG:
+      case A_FRAMERATE:
+      case A_QUALITY:
+      case A_MID: // media stream identification, see RFC 5888
+      case A_LABEL: // RFC 4574
+      {
+        parseValueAttribute(attribute, value, parsedValues);
+        break;
+      }
+      case A_RECVONLY:
+      case A_SENDRECV:
+      case A_SENDONLY:
+      case A_INACTIVE:
+      {
+        parseFlagAttribute(attribute, value, flags);
+        break;
+      }
+      case A_RTPMAP:
+      {
+        if(words.size() != 2)
+        {
+          Logger::getLogger()->printError("SipContent", "Wrong amount of words in rtpmap, expected 2",
+                                          "words", QString::number(words.size()));
+          return false;
+        }
+        parseRTPMap(value, words.at(1), parsedCodecs);
+        break;
+      }
+      case A_FMTP:
+      {
+        parseFormatParameters(value, words.at(1), parsedParameters);
+        break;
+      }
+      case A_CANDIDATE: // RFC 8445
+      {
+        rValue = parseICECandidate(words, candidates);
+        break;
+      }
+      case A_ZRTP_HASH:
+      {
+        rValue = parseZRTPHash(words, value, zrtp);
+        break;
+      }
+      default:
+      {
+        Logger::getLogger()->printWarning("SIPContent", "Unrecognized media attribute, ignoring",
+                                          "Atrribute", words.at(0));
+      }
+    }
+
+    // a=, m= or nothing
+    if(!nextLine(lineIterator, words, type))
+    {
+      return true;
+    }
+  }
+
+  return rValue;
+}
+
+
+bool parseSessionAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
+                           QList<SDPAttributeType>& flags, QList<SDPAttribute>& parsedValues,
+                           QList<MediaGroup>& groupings)
 {
   while(type == 'a')
   {
-    // ignore non recognized attributes.
+    SDPAttributeType attribute = A_NO_ATTRIBUTE;
+    QString value = "";
 
-    QRegularExpression re_attribute("(\\w+)(:(\\S+))?");
-    QRegularExpressionMatch match = re_attribute.match(words.at(0));
-    if(match.hasMatch() && match.lastCapturedIndex() >= 1)
+    if (!parseAttributeTypeValue(words.at(0), attribute, value))
     {
-      QString attribute = match.captured(1);
-
-      std::map<QString, SDPAttributeType> xmap = {
-             {"cat",       A_CAT},      {"keywds",   A_KEYWDS},   {"tool",      A_TOOL},
-             {"maxptime",  A_MAXPTIME}, {"rtpmap",   A_RTPMAP},   {"recvonly",  A_RECVONLY},
-             {"sendrecv",  A_SENDRECV}, {"sendonly", A_SENDONLY}, {"inactive",  A_INACTIVE},
-             {"orient",    A_ORIENT},   {"type",     A_TYPE},     {"charset",   A_CHARSET},
-             {"sdplang",   A_SDPLANG},  {"lang",     A_LANG},     {"framerate", A_FRAMERATE},
-             {"quality",   A_QUALITY},  {"ptime",    A_PTIME},    {"fmtp",      A_FMTP},
-             {"candidate", A_CANDIDATE}};
-
-        if(xmap.find(attribute) != xmap.end())
-        {
-          switch(xmap[attribute])
-          {
-          case A_CAT:
-          {
-            parseValueAttribute(A_CAT, match, values);
-            break;
-          }
-          case A_KEYWDS:
-          {
-            parseValueAttribute(A_KEYWDS, match, values);
-            break;
-          }
-          case A_TOOL:
-          {
-            parseValueAttribute(A_TOOL, match, values);
-            break;
-          }
-          case A_PTIME:
-          {
-            parseValueAttribute(A_PTIME, match, values);
-            break;
-          }
-          case A_MAXPTIME:
-          {
-            parseValueAttribute(A_MAXPTIME, match, values);
-            break;
-          }
-          case A_RTPMAP:
-          {
-            if(words.size() != 2)
-            {
-              Logger::getLogger()->printError("SipContent", "Wrong amount of words in rtpmap, expected 2",
-                                              "words", QString::number(words.size()));
-              return false;
-            }
-            parseRTPMap(match, words.at(1), codecs);
-            break;
-          }
-          case A_RECVONLY:
-          {
-            parseFlagAttribute(A_RECVONLY, match, flags);
-            break;
-          }
-          case A_SENDRECV:
-          {
-            parseFlagAttribute(A_SENDRECV, match, flags);
-            break;
-          }
-          case A_SENDONLY:
-          {
-            parseFlagAttribute(A_SENDONLY, match, flags);
-            break;
-          }
-          case A_INACTIVE:
-          {
-            parseFlagAttribute(A_INACTIVE, match, flags);
-            break;
-          }
-          case A_ORIENT:
-          {
-            parseValueAttribute(A_ORIENT, match, values);
-            break;
-          }
-          case A_TYPE:
-          {
-            parseValueAttribute(A_TYPE, match, values);
-            break;
-          }
-          case A_CHARSET:
-          {
-            parseValueAttribute(A_CHARSET, match, values);
-            break;
-          }
-          case A_SDPLANG:
-          {
-            parseValueAttribute(A_SDPLANG, match, values);
-            break;
-          }
-          case A_LANG:
-          {
-            parseValueAttribute(A_LANG, match, values);
-            break;
-          }
-          case A_FRAMERATE:
-          {
-            parseValueAttribute(A_FRAMERATE, match, values);
-            break;
-          }
-          case A_QUALITY:
-          {
-            parseValueAttribute(A_QUALITY, match, values);
-            break;
-          }
-          case A_FMTP:
-          {
-            parseValueAttribute(A_FMTP, match, values);
-            break;
-          }
-          case A_CANDIDATE:
-          {
-            parseICECandidate(words, candidates);
-            break;
-          }
-          default:
-          {
-            Logger::getLogger()->printError("SipContent", "Did not recognize SDP attribute type");
-            break;
-          }
-          }
-        }
-        else
-        {
-          Logger::getLogger()->printError("SipContent", "Could not find the attribute");
-        }
+      Logger::getLogger()->printError("SIPContent", "Failed to parse session attribute");
+      return false;
     }
-    else
+    switch(attribute)
     {
-      Logger::getLogger()->printError("SipContent", "Failed to parse attribute because of an unknown format");
+      case A_CAT:
+      case A_KEYWDS:
+      case A_TOOL:
+      case A_TYPE:
+      case A_CHARSET:
+      case A_SDPLANG:
+      case A_LANG:
+      {
+        parseValueAttribute(attribute, value, parsedValues);
+        break;
+      }
+      case A_RECVONLY:
+      case A_SENDRECV:
+      case A_SENDONLY:
+      case A_INACTIVE:
+      {
+        parseFlagAttribute(attribute, value, flags);
+        break;
+      }
+      case A_GROUP: // RFC 5888
+      {
+        parseGroup(value, words, groupings);
+        break;
+      }
+      default:
+      {
+        Logger::getLogger()->printWarning("SIPContent", "Unrecognized session attribute, ignoring",
+                                          "Atrribute", words.at(0));
+      }
     }
-
-    // TODO: Check that there are as many codecs as there are rtpnums
 
     // a=, m= or nothing
     if(!nextLine(lineIterator, words, type))
@@ -760,45 +780,49 @@ bool parseAttributes(QStringListIterator &lineIterator, char &type, QStringList&
   return true;
 }
 
-void parseFlagAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttributeType>& attributes)
+
+bool parseFlagAttribute(SDPAttributeType type, QString value, QList<SDPAttributeType>& attributes)
 {
-  if(match.lastCapturedIndex() == 1)
+  if(value == "")
   {
     Logger::getLogger()->printNormal("SipContent", "Correctly matched a flag attribute");
     attributes.push_back(type);
+    return true;
   }
-  else
-  {
-    Logger::getLogger()->printError("SipContent", "Flag attribute did not match correctly");
-  }
+
+  Logger::getLogger()->printError("SipContent", "Flag attribute should not have value",
+                                  "Value", value);
+  return false;
 }
 
-void parseValueAttribute(SDPAttributeType type, QRegularExpressionMatch& match, QList<SDPAttribute> valueAttributes)
+
+bool parseValueAttribute(SDPAttributeType type, QString value,
+                         QList<SDPAttribute> &valueAttributes)
 {
-  if(match.lastCapturedIndex() == 3)
+  if(value != "")
   {
-    Logger::getLogger()->printNormal("SipContent", "Correctly matched an SDP value attribute");
-    QString value = match.captured(2);
+    Logger::getLogger()->printNormal("SipContent", "Correctly matched a value attribute");
     valueAttributes.push_back(SDPAttribute{type, value});
+    return true;
   }
-  else
-  {
-    Logger::getLogger()->printError("SipContent", "Value attribute did not match correctly");
-  }
+
+  Logger::getLogger()->printError("SipContent", "Value attribute has no value!");
+  return false;
 }
 
-void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMap>& codecs)
+
+void parseRTPMap(QString value, QString secondWord, QList<RTPMap>& codecs)
 {
-  if(match.hasMatch() && secondWord != "" && match.lastCapturedIndex() == 3)
+  if(value != "" && secondWord != "")
   {
     QRegularExpression re_rtpParameters("(\\w+)\\/(\\w+)(\\/\\w+)?");
     QRegularExpressionMatch parameter_match = re_rtpParameters.match(secondWord);
     if(parameter_match.hasMatch() && (parameter_match.lastCapturedIndex() == 2 ||
                                       parameter_match.lastCapturedIndex() == 3))
     {
-      codecs.push_back(RTPMap{static_cast<uint8_t>(match.captured(3).toUInt()),
+      codecs.push_back(RTPMap{static_cast<uint8_t>(value.toUInt()),
                               parameter_match.captured(2).toUInt(), parameter_match.captured(1), ""});
-      if(parameter_match.lastCapturedIndex() == 3) // has codec parameters
+      if(parameter_match.lastCapturedIndex() == 3) // has codec parameters (number of audio channels)
       {
         codecs.back().codecParameter = parameter_match.captured(3);
       }
@@ -811,10 +835,25 @@ void parseRTPMap(QRegularExpressionMatch& match, QString secondWord, QList<RTPMa
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, "SipContent", "The first part of "
-                                                               "RTPMap did not match correctly",
-                                    {"last index", "Expected"},
-                                    {QString::number(match.lastCapturedIndex()), "4"});
+    Logger::getLogger()->printDebug(DEBUG_ERROR, "SipContent", "RTPMap was not understood");
+  }
+}
+
+
+void parseGroup(QString value, QStringList& words, QList<MediaGroup>& groups)
+{
+  if (value != "")
+  {
+    groups.push_back(MediaGroup{stringToGroupType(value), {}});
+
+    for (int i = 1; i < words.size() ; ++i)
+    {
+      groups.back().identificationTags.push_back(words.at(i));
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printError("SIPContent", "Group has not type");
   }
 }
 
@@ -883,8 +922,6 @@ bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringLi
     }
 
     key = words.at(0);
-    Logger::getLogger()->printError("SipContent", "Received a encryption key field, "
-                                                  "which is unsupported by us");
 
     // a=, m= or nothing
     if(!nextLine(lineIterator, words, type))
@@ -921,4 +958,197 @@ bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& cand
   candidates.push_back(candidate);
 
   return true;
+}
+
+
+bool parseZRTPHash(QStringList& words, QString &value, QList<ZRTPHash>& zrtp)
+{
+  if (value == "" || words.size() != 2)
+  {
+    return false;
+  }
+
+  // value contains the zrtp version and the second word contains the hash
+  zrtp.push_back({value, words.at(1)});
+
+  return true;
+}
+
+
+bool parseAttributeTypeValue(QString word, SDPAttributeType& type, QString& value)
+{
+  QRegularExpression re_attribute("(\\w+)(?::(\\S+))?");
+  QRegularExpressionMatch match = re_attribute.match(word);
+  if(match.hasMatch() && match.lastCapturedIndex() >= 1)
+  {
+    type = stringToAttributeType(match.captured(1));
+
+    if (match.lastCapturedIndex() == 2)
+    {
+      value = match.captured(2);
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
+
+void parseFormatParameters(QString value, QString secondWord,
+                           std::unordered_map<uint8_t, std::vector<FormatParameter>>& parsedParameters)
+{
+  if (value != "" && secondWord != "")
+  {
+    uint8_t fmt = value.toUInt();
+    std::vector<FormatParameter> parameters;
+
+    QStringList parameterStrings;
+
+#if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
+    parameterStrings = secondWord.split(";", QString::SkipEmptyParts);
+#else
+    parameterStrings = secondWord.split(";", Qt::SkipEmptyParts);
+#endif
+
+    for (auto& parameter : parameterStrings)
+    {
+      QRegularExpression re_attribute("(?:([\\w-]+)=(\\w+))");
+      QRegularExpressionMatch match = re_attribute.match(parameter);
+
+      if (match.hasMatch() && match.lastCapturedIndex() == 2)
+      {
+        parameters.push_back({match.captured(1), match.captured(2)});
+      }
+
+    }
+    parsedParameters[fmt] = parameters;
+  }
+  else
+  {
+    Logger::getLogger()->printError("SipContent", "Invalid format parameter attribute");
+  }
+}
+
+
+SDPAttributeType stringToAttributeType(QString attribute)
+{
+  // see RFC 8866
+  std::map<QString, SDPAttributeType> xmap = {
+    // flags without value
+    {"recvonly",  A_RECVONLY},
+    {"sendrecv",  A_SENDRECV},
+    {"sendonly",  A_SENDONLY},
+    {"inactive",  A_INACTIVE},
+
+    // attribute with type and value
+    {"cat",       A_CAT},
+    {"keywds",    A_KEYWDS},
+    {"tool",      A_TOOL},
+    {"maxptime",  A_MAXPTIME},
+    {"orient",    A_ORIENT},
+    {"type",      A_TYPE},
+    {"charset",   A_CHARSET},
+    {"sdplang",   A_SDPLANG},
+    {"lang",      A_LANG},
+    {"framerate", A_FRAMERATE},
+    {"quality",   A_QUALITY},
+    {"ptime",     A_PTIME},
+    {"fmtp",      A_FMTP},
+    {"candidate", A_CANDIDATE},
+    {"mid",       A_MID}, // see RFC 5888
+
+    // attributes with (possibly) more than one value
+    {"rtpmap",    A_RTPMAP},
+    {"group",     A_GROUP}, // see RFC 5888
+    {"label",     A_LABEL},
+    {"zrtp-hash", A_ZRTP_HASH}
+  };
+
+  if (xmap.find(attribute) == xmap.end())
+  {
+    Logger::getLogger()->printWarning("SIPContent", "Unrecognized attribute",
+                                      "Attribute", attribute);
+    return A_UNKNOWN_ATTRIBUTE;
+  }
+
+  return xmap[attribute];
+}
+
+
+QString attributeTypeToString(SDPAttributeType type)
+{
+  // see RFC 8866
+  std::map<SDPAttributeType, QString> xmap = {
+    {A_CAT,       "cat"},
+    {A_KEYWDS,    "keywds"},
+    {A_TOOL,      "tool"},
+    {A_MAXPTIME,  "maxptime"},
+    {A_RTPMAP,    "rtpmap"},
+    {A_GROUP,     "group" }, // see RFC 5888
+    {A_MID,       "mid" },   // see RFC 5888
+    {A_RECVONLY,  "recvonly"},
+    {A_SENDRECV,  "sendrecv"},
+    {A_SENDONLY,  "sendonly"},
+    {A_INACTIVE,  "inactive"},
+    {A_ORIENT,    "orient"},
+    {A_TYPE,      "type"},
+    {A_CHARSET,   "charset"},
+    {A_SDPLANG,   "sdplang"},
+    {A_LANG,      "lang"},
+    {A_FRAMERATE, "framerate"},
+    {A_QUALITY,   "quality"},
+    {A_PTIME,     "ptime"},
+    {A_FMTP,      "fmtp"},
+    {A_CANDIDATE, "candidate"},
+    {A_LABEL,     "label"},
+    {A_ZRTP_HASH, "zrtp-hash"}
+  };
+
+  if (xmap.find(type) == xmap.end())
+  {
+    Logger::getLogger()->printWarning("SIPContent", "Unrecognized attribute");
+    return "unknown_attribute";
+  }
+
+  return xmap[type];
+}
+
+
+GroupType stringToGroupType(QString group)
+{
+  if (group == "LS")
+  {
+    return G_LS;
+  }
+  else if (group == "FID")
+  {
+    return G_FID;
+  }
+
+  return G_UNRECOGNIZED;
+}
+
+
+QString groupTypeToString(GroupType type)
+{
+  QString string = "Token";
+  switch(type)
+  {
+    case G_LS:
+    {
+      string = "LS";
+      break;
+    }
+    case G_FID:
+    {
+      string = "FID";
+      break;
+    }
+    default:
+      break;
+  }
+
+
+  return string;
 }

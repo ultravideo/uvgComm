@@ -9,7 +9,7 @@
 class QStringListModel;
 class QListWidget;
 class QTableWidget;
-
+struct ICEInfo;
 
 namespace Ui {
 class StatisticsWindow;
@@ -39,10 +39,11 @@ public:
   // media
   virtual void videoInfo(double framerate, QSize resolution);
   virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);
-  virtual void incomingMedia(uint32_t sessionID, QString name, QStringList& ipList,
-                             QStringList& audioPorts, QStringList& videoPorts);
-  virtual void outgoingMedia(uint32_t sessionID, QString name, QStringList& ipList,
-                             QStringList& audioPorts, QStringList& videoPorts);
+  virtual void incomingMedia(uint32_t sessionID, QString name);
+  virtual void outgoingMedia(uint32_t sessionID, QString name);
+
+  virtual void selectedICEPair(uint32_t sessionID, std::shared_ptr<ICEPair> pair);
+
   virtual void sendDelay(QString type, uint32_t delay);
   virtual void receiveDelay(uint32_t sessionID, QString type, int32_t delay);
   virtual void presentPackage(uint32_t sessionID, QString type);
@@ -116,14 +117,17 @@ private:
   int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields,
                   QString tooltip = "");
 
-  void addMedia(QTableWidget* table, uint32_t sessionID, QStringList& ipList,
-                QStringList audioPorts, QStringList videoPorts);
+  void selectedICECandidate(uint32_t sessionID, QTableWidget* table,
+                            std::shared_ptr<ICEInfo> candidate, bool keepTrack);
+
   QString combineList(QStringList& list);
 
   QString getTimeConversion(int valueInMs);
 
   void saveTextToFile(const QString& text, const QString &windowCaption,
                       const QString &options);
+
+  void updatePerformanceIndexes(int removedIndex);
 
   struct SessionInfo
   {
@@ -152,8 +156,10 @@ private:
     uint32_t audioJitter;
     int32_t audioLost;
 
-    // index for all UI tables this peer is part of
-    int tableIndex;
+    int deliveryGraphIndex;
+    int performanceGraphIndex;
+
+    std::vector<int> iceIndexes;
   };
 
   std::map<uint32_t, SessionInfo> sessions_;

@@ -137,4 +137,6 @@ private:
   bool drawIcon_;
 
   bool fullscreen_;
+
+  int bufferFullWarnings_;
 };

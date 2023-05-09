@@ -55,6 +55,7 @@ set(KVAZZUP_SOURCES
     src/initiation/negotiation/sdpnegotiation.cpp       src/initiation/negotiation/sdpnegotiation.h
     src/initiation/negotiation/sdptypes.h
     src/initiation/negotiation/sipcontent.cpp           src/initiation/negotiation/sipcontent.h
+    src/initiation/negotiation/sdpmeshconference.cpp    src/initiation/negotiation/sdpmeshconference.h
     src/initiation/siphelper.cpp                        src/initiation/siphelper.h
     src/initiation/sipmanager.cpp                       src/initiation/sipmanager.h
     src/initiation/sipmessageflow.cpp                   src/initiation/sipmessageflow.h

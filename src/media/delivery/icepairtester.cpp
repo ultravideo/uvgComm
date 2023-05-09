@@ -6,6 +6,7 @@
 #include "logger.h"
 
 #include <QEventLoop>
+#include <memory>
 
 const int STUN_RETRIES = 20;
 const int STUN_RESPONSE_RETRIES = 3;
@@ -22,7 +23,8 @@ ICEPairTester::ICEPairTester(UDPServer* server):
   controller_(false),
   debugType_("Controllee"),
   udp_(server),
-  stunmsg_(),
+  stunOutTransaction_(),
+  stunInTransaction_(),
   interrupted_(false)
 {}
 
@@ -210,15 +212,15 @@ bool ICEPairTester::controllerBinding(ICEPair *pair)
   // if we're the controlling agent, sending binding request is rather straight-forward:
   // send request, wait for response and return
 
-  STUNMessage msg = stunmsg_.createRequest();
+  STUNMessage msg = stunOutTransaction_.createRequest();
   msg.addAttribute(STUN_ATTR_ICE_CONTROLLING);
   msg.addAttribute(STUN_ATTR_PRIORITY, pair->priority);
 
   // we expect a response to this message from remote, by caching the TransactionID
   // and associated address/port pair, we can succesfully validate the response's TransactionID
-  stunmsg_.expectReplyFrom(msg, pair->remote->address, pair->remote->port);
+  stunOutTransaction_.expectReplyFrom(msg, pair->remote->address, pair->remote->port);
 
-  QByteArray message = stunmsg_.hostToNetwork(msg);
+  QByteArray message = stunOutTransaction_.hostToNetwork(msg);
 
   if (!sendRequestWaitResponse(pair, message, STUN_RETRIES, STUN_WAIT_MS))
   {
@@ -238,10 +240,10 @@ bool ICEPairTester::controllerBinding(ICEPair *pair)
         return false;
       }
 
-      msg = stunmsg_.createResponse();
+      msg = stunInTransaction_.createResponse();
       msg.addAttribute(STUN_ATTR_ICE_CONTROLLING);
 
-      message     = stunmsg_.hostToNetwork(msg);
+      message     = stunInTransaction_.hostToNetwork(msg);
       msgReceived = true;
 
       for (int k = 0; k < STUN_RESPONSE_RETRIES; ++k)
@@ -283,8 +285,8 @@ bool ICEPairTester::controlleeBinding(ICEPair *pair)
 
   // Dummy packet sending so the port can be hole-punched.
   bool msgReceived   = false;
-  STUNMessage msg    = stunmsg_.createRequest();
-  QByteArray message = stunmsg_.hostToNetwork(msg);
+  STUNMessage msg    = stunOutTransaction_.createRequest();
+  QByteArray message = stunOutTransaction_.hostToNetwork(msg);
 
   for (int i = 0; i < STUN_RETRIES; ++i)
   {
@@ -304,10 +306,10 @@ bool ICEPairTester::controlleeBinding(ICEPair *pair)
       }
 
       // send response to received request
-      msg = stunmsg_.createResponse();
+      msg = stunInTransaction_.createResponse();
       msg.addAttribute(STUN_ATTR_ICE_CONTROLLED);
 
-      message     = stunmsg_.hostToNetwork(msg);
+      message     = stunInTransaction_.hostToNetwork(msg);
       msgReceived = true;
 
       for (int k = 0; k < STUN_RESPONSE_RETRIES; ++k)
@@ -341,14 +343,14 @@ bool ICEPairTester::controlleeBinding(ICEPair *pair)
 
   // we've succesfully responded to remote's binding request, now it's our turn to
   // send request and remote must respond to them
-  STUNMessage request = stunmsg_.createRequest();
+  STUNMessage request = stunOutTransaction_.createRequest();
   request.addAttribute(STUN_ATTR_ICE_CONTROLLED);
   request.addAttribute(STUN_ATTR_PRIORITY, pair->priority);
 
-  message = stunmsg_.hostToNetwork(request);
+  message = stunOutTransaction_.hostToNetwork(request);
 
   // we're expecting a response from remote to this request
-  stunmsg_.cacheRequest(request);
+  stunOutTransaction_.cacheRequest(request);
 
   // do the connectivity check from our end to theirs
   msgReceived = sendRequestWaitResponse(pair, message, STUN_RETRIES, STUN_WAIT_MS);
@@ -361,14 +363,14 @@ bool ICEPairTester::sendNominationWaitResponse(ICEPair *pair)
 {
   Q_ASSERT(pair != nullptr);
 
-  STUNMessage request = stunmsg_.createRequest();
+  STUNMessage request = stunOutTransaction_.createRequest();
   request.addAttribute(STUN_ATTR_ICE_CONTROLLING);
   request.addAttribute(STUN_ATTR_USE_CANDIDATE);
 
   // expect reply for this message from remote
-  stunmsg_.expectReplyFrom(request, pair->remote->address, pair->remote->port);
+  stunOutTransaction_.expectReplyFrom(request, pair->remote->address, pair->remote->port);
 
-  QByteArray message  = stunmsg_.hostToNetwork(request);
+  QByteArray message  = stunOutTransaction_.hostToNetwork(request);
 
   bool responseRecv = sendRequestWaitResponse(pair, message,
                                               STUN_NOMINATION_RETRIES,
@@ -384,8 +386,8 @@ bool ICEPairTester::waitNominationSendResponse(ICEPair *pair)
 
   // dummy message. TODO: Is this needed?
   bool nominationRecv = false;
-  STUNMessage msg     = stunmsg_.createRequest();
-  QByteArray message = stunmsg_.hostToNetwork(msg);
+  STUNMessage msg     = stunOutTransaction_.createRequest();
+  QByteArray message = stunOutTransaction_.hostToNetwork(msg);
 
   for (int i = 0; i < STUN_NOMINATION_RESPONSE_WAITS; ++i)
   {
@@ -405,10 +407,10 @@ bool ICEPairTester::waitNominationSendResponse(ICEPair *pair)
         return false;
       }
 
-      msg = stunmsg_.createResponse();
+      msg = stunInTransaction_.createResponse();
       msg.addAttribute(STUN_ATTR_ICE_CONTROLLED);
 
-      message = stunmsg_.hostToNetwork(msg);
+      message = stunInTransaction_.hostToNetwork(msg);
       nominationRecv = true;
 
       for (int i = 0; i < STUN_NOMINATION_RESPONSE_RETRIES; ++i)
@@ -446,14 +448,14 @@ void ICEPairTester::recvStunMessage(QNetworkDatagram message)
 {
   QByteArray data     = message.data();
   STUNMessage stunMsg;
-  if (!stunmsg_.networkToHost(data, stunMsg))
+  if (!stunInTransaction_.networkToHost(data, stunMsg))
   {
     return;
   }
 
   if (stunMsg.getType() == STUN_REQUEST)
   {
-    if (stunmsg_.validateStunRequest(stunMsg))
+    if (stunInTransaction_.validateStunRequest(stunMsg))
     {
       if (controller_ && !stunMsg.hasAttribute(STUN_ATTR_ICE_CONTROLLED))
       {
@@ -470,14 +472,14 @@ void ICEPairTester::recvStunMessage(QNetworkDatagram message)
         return; // fail
       }
 
-      stunmsg_.cacheRequest(stunMsg);
+      stunInTransaction_.cacheRequest(stunMsg);
 
       if (stunMsg.hasAttribute(STUN_ATTR_USE_CANDIDATE))
       {
         if (pair_->state != PAIR_SUCCEEDED)
         {
-          Logger::getLogger()->printError(this, "Pair in wrong state "
-                                                "when receiving nomination request");
+          Logger::getLogger()->printWarning(this, "Pair is not in succeeded state when receiving nomination request",
+                                                  "State", stateToString(pair_->state));
           return; // fail
         }
 
@@ -487,8 +489,9 @@ void ICEPairTester::recvStunMessage(QNetworkDatagram message)
       {
         if (pair_->state != PAIR_IN_PROGRESS)
         {
-          Logger::getLogger()->printError(this, "Pair in wrong state "
-                                                "when receiving binding request");
+          Logger::getLogger()->printWarning(this, "Pair is not in progress state "
+                                                  "when receiving binding request",
+                                            "State", stateToString(pair_->state));
           return; // fail
         }
 
@@ -502,15 +505,11 @@ void ICEPairTester::recvStunMessage(QNetworkDatagram message)
   }
   else if (stunMsg.getType() == STUN_RESPONSE)
   {
-    if (stunmsg_.validateStunResponse(stunMsg,
-                                      message.senderAddress(),
-                                      message.senderPort()))
+    if (stunOutTransaction_.validateStunResponse(stunMsg,
+                                                 message.senderAddress(),
+                                                 message.senderPort()))
     {
       emit responseRecv();
-    }
-    else
-    {
-      Logger::getLogger()->printWarning(this, "Received invalid STUN response in ICE");
     }
   }
   else
@@ -563,4 +562,50 @@ bool ICEPairTester::sendRequestWaitResponse(ICEPair* pair, QByteArray& request,
   }
 
   return msgReceived;
+}
+
+
+QString ICEPairTester::stateToString(PairState state)
+{
+  QString string = "";
+  switch (state)
+  {
+    case PAIR_WAITING:
+    {
+      string = "Waiting";
+      break;
+    }
+    case PAIR_IN_PROGRESS:
+    {
+      string = "In Progress";
+      break;
+    }
+    case PAIR_SUCCEEDED:
+    {
+      string = "Succeeded";
+      break;
+    }
+    case PAIR_FAILED:
+    {
+      string = "Failed";
+      break;
+    }
+    case PAIR_FROZEN:
+    {
+      string = "Frozen";
+      break;
+    }
+    case PAIR_NOMINATED:
+    {
+      string = "Nominated";
+      break;
+    }
+    default:
+    {
+      string = "Unknown";
+      break;
+    }
+  }
+
+  return string;
 }

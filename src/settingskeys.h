@@ -104,6 +104,7 @@ const QString localAutoAccept = "local/Auto-Accept";
 
 const QString sipServerAddress = "sip/ServerAddress";
 const QString sipAutoConnect = "sip/AutoConnect";
+const QString sipP2PConferencing = "sip/P2PConferencing";
 
 const QString sipMediaPort = "sip/mediaport";
 const QString sipSTUNEnabled = "sip/stunEnabled";

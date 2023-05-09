@@ -34,7 +34,8 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint8_t borderSize):
   pixelBasedDrawing_(false),
   micIcon_(QString(":/icons/mic_off.svg")),
   drawIcon_(false),
-  fullscreen_(false)
+  fullscreen_(false),
+  bufferFullWarnings_(0)
 {
   micIcon_.setAspectRatioMode(Qt::KeepAspectRatio);
 }
@@ -160,15 +161,24 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
     // delete oldes image if there is too much buffer
     if(frameBuffer_.size() > VIEWBUFFERSIZE)
     {
-      Logger::getLogger()->printWarning(this, "Buffer full when inputting image",
-                                        {"Buffer"}, QString::number(frameBuffer_.size()) + "/"
-                                                    + QString::number(VIEWBUFFERSIZE));
+      if (bufferFullWarnings_ == 0)
+      {
+        Logger::getLogger()->printWarning(this, "Buffer full when inputting image",
+                                         {"Buffer"}, QString::number(frameBuffer_.size()) + "/" +
+                                                     QString::number(VIEWBUFFERSIZE));
+      }
 
-
+      ++bufferFullWarnings_;
       frameBuffer_.pop_back();
 
       //setUpdatesEnabled(true);
       //stats_->packetDropped("view" + QString::number(sessionID_));
+    }
+    else if (bufferFullWarnings_ > 0)
+    {
+      Logger::getLogger()->printWarning(this, "Discarded frames because buffer was full",
+                                        {"Amount discarded"}, QString::number(bufferFullWarnings_));
+      bufferFullWarnings_ = 0;
     }
   }
 }
