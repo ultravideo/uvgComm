@@ -189,7 +189,8 @@ QList<std::shared_ptr<ICEInfo>> SDPICE::generateICECandidates(
   quint32 foundation = 1;
 
   addCandidates(localCandidates, nullptr, foundation, HOST, 65535, iceCandidates, components);
-  addCandidates(globalCandidates, nullptr, foundation, HOST, 65534, iceCandidates, components);
+  addCandidates(globalCandidates, nullptr, foundation, HOST, 65535 - localCandidates->size()/components,
+                iceCandidates, components);
 
   if (stunCandidates->size() == stunBindings->size())
   {
@@ -244,7 +245,7 @@ void SDPICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_
       std::shared_ptr<ICEInfo> candidate = makeCandidate(foundation, type, component,
                                                          addresses->at(j).first,
                                                          addresses->at(j).second,
-                                                         relayAddress, relayPort, localPriority);
+                                                         relayAddress, relayPort, localPriority - i/components);
       sorted[candidate->priority] = candidate;
     }
 
