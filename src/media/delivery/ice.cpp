@@ -140,10 +140,10 @@ void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair>> &streams)
     // change state of media nomination and emit signal for ICE completion
     if (containCandidates(streams, media.candidatePairs))
     {
-      Logger::getLogger()->printNormal(this, "ICE succeeded", "Components",
+      Logger::getLogger()->printNormal(this, "Media ICE succeeded", "Components",
                                        QString::number(streams.size()));
       media.state = ICE_FINISHED;
-      media.succeededPairs = media.candidatePairs;
+      media.succeededPairs = streams;
       media.iceTester->quit();
 
       printSuccessICEPairs(streams);
@@ -209,7 +209,7 @@ void ICE::printSuccessICEPairs(std::vector<std::shared_ptr<ICEPair> > &streams) 
                   component->remote->address + ":" + QString::number(component->remote->port));
   }
 
-  Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this, "ICE succeeded", names, values);
+  Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this, "Nominated media ICE candidates", names, values);
 }
 
 
