@@ -19,6 +19,10 @@
 #include "media/processing/audiomixerfilter.h"
 #include "media/processing/audiooutputfilter.h"
 
+#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+  #include "media/processing/roifilter.h"
+#endif
+
 #include "media/processing/audioframebuffer.h"
 
 #include "media/resourceallocator.h"
@@ -335,6 +339,10 @@ void FilterGraph::initVideoSend()
   std::shared_ptr<Filter> mRoi =
       std::shared_ptr<Filter>(new ROIManualFilter("", stats_, hwResources_, roiInterface_));
   addToGraph(mRoi, cameraGraph_, 1);
+#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+  auto roi = std::shared_ptr<Filter>(new RoiFilter("", stats_, hwResources_, true));
+  addToGraph(roi, cameraGraph_, cameraGraph_.size() - 1);
+#endif
 
   std::shared_ptr<Filter> kvazaar =
       std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));

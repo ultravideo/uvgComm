@@ -28,6 +28,8 @@ void ResourceAllocator::updateSettings()
 {
   Logger::getLogger()->printNormal(this, "Updating automatic resource controller settings");
   manualROI_ = settingEnabled(SettingsKey::manualROIStatus);
+  roiQp_ = settingValue(SettingsKey::roiQp);
+  backgroundQp_ = settingValue(SettingsKey::backgroundQp);
 }
 
 
@@ -190,4 +192,15 @@ void ResourceAllocator::limitBitrate(int& bitrate, DataType type)
       bitrate = MAX_HEVC_BITRATE_BITS;
     }
   }
+}
+
+
+uint8_t ResourceAllocator::getRoiQp() const
+{
+  return roiQp_;
+}
+
+uint8_t ResourceAllocator::getBackgroundQp() const
+{
+  return backgroundQp_;
 }

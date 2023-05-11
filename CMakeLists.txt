@@ -34,15 +34,15 @@ else()
     set(CMAKE_AUTOMOC ON)
 endif()
 
-include(dependencies/FindDependencies.cmake)
-
-include(cmake/Versioning.cmake)
-
 #option(KVAZZUP_ENABLE_SRTP    "Enables media encryption" ON)
 #option(KVAZZUP_ENABLE_PRINTS  "Print Debug prints to command line" ON)
 #option(KVAZZUP_ENABLE_LOGGING "Save log to file" ON)
 #option(KVAZZUP_ENABLE_WERROR  "Fail with compiler warnings" OFF)
+option(KVAZZUP_ENABLE_FACE_DETECTION "Enable face detection in Kvazzup" OFF)
 
+include(dependencies/FindDependencies.cmake)
+
+include(cmake/Versioning.cmake)
 
 set(KVAZZUP_SOURCES
     src/common.cpp src/common.h
@@ -151,6 +151,16 @@ set(KVAZZUP_SOURCES
     src/videoviewfactory.cpp                        src/videoviewfactory.h
 )
 
+find_package(OpenCV)
+
+if (OpenCV_FOUND)
+    target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_OPENCV)
+endif()
+
+if (KVAZZUP_ENABLE_FACE_DETECTION)
+    target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_ONNX_RUNTIME)
+    list(APPEND KVAZZUP_SOURCES cryptopp src/media/processing/roifilter.cpp  src/media/processing/roifilter.h)
+endif()
 
 qt_add_executable(kvazzup WIN32 MACOSX_BUNDLE
     ${KVAZZUP_SOURCES}

@@ -7,6 +7,7 @@ find_package(Opus     1.1 QUIET)
 find_package(SpeexDSP 1.2 QUIET)
 find_package(uvgRTP   2.3 QUIET)
 
+
 # do another check with pkgConfig in case the first one failed
 find_package(PkgConfig QUIET)
 if(PkgConfig_FOUND)
@@ -85,6 +86,10 @@ include(dependencies/kvazaar.cmake)
 include(dependencies/libyuv.cmake)
 include(dependencies/opus.cmake)
 include(dependencies/speexdsp.cmake)
+
+if(KVAZZUP_ENABLE_FACE_DETECTION)
+    # TODO
+endif()
 
 # include and link directories for dependencies. 
 # These are needed when the compilation happens a second time and the library 

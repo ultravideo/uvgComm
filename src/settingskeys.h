@@ -25,6 +25,8 @@ const QString micStatus = "gui/MicrophoneEnabled";
 // automated setting keys
 
 const QString manualROIStatus = "auto/manualRoi";
+const QString backgroundQp = "auto/BackgroundQp";
+const QString roiQp = "auto/RoiQp";
 
 // Video setting keys
 const QString videoDeviceID = "video/DeviceID";
@@ -119,4 +121,12 @@ const QString blocklist = "blocklist";
 
 // contact list setting key
 const QString contactList = "contacts";
+
+// ROI settings
+const QString roiDetectorModel = "roi/Model";
+const QString roiKernelSize = "roi/KernelSize";
+const QString roiKernelType = "roi/KernelType";
+const QString roiFilterDepth = "roi/FilterDepth";
+const QString roiMaxThreads = "roi/Threads";
+const QString roiEnabled = "roi/Enabled";
 }

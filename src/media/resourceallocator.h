@@ -33,6 +33,10 @@ public:
 
   int getBitrate(DataType type);
 
+
+  uint8_t getRoiQp() const;
+  uint8_t getBackgroundQp() const;
+
 private:
 
   void updateGlobalBitrate(int& bitrate,
@@ -54,4 +58,7 @@ private:
   QMutex bitrateMutex_;
   int videoBitrate_;
   int audioBitrate_;
+
+  uint8_t roiQp_;
+  uint8_t backgroundQp_;
 };

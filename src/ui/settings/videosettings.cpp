@@ -26,6 +26,11 @@ VideoSettings::VideoSettings(QWidget* parent,
 {
   videoSettingsUI_->setupUi(this);
 
+
+#ifndef KVAZZUP_HAVE_ONNX_RUNTIME
+  videoSettingsUI_->RoiTab->setEnabled(false);
+#endif
+
   // the buttons are named so that the slots are called automatically
   // Overloads are needed, because QComboBox has overloaded the signal and
   // the connect can't figure out which one to use.
@@ -56,6 +61,9 @@ VideoSettings::VideoSettings(QWidget* parent,
 void VideoSettings::init(int deviceID)
 {
   currentDevice_ = deviceID;
+
+  videoSettingsUI_->kernel_type->addItem("Gaussian");
+  videoSettingsUI_->kernel_type->addItem("Mean");
 
   restoreSettings();
 }
@@ -185,6 +193,14 @@ void VideoSettings::saveSettings()
   settings_.setValue(SettingsKey::videoPreset,      videoSettingsUI_->preset->currentText());
   listGUIToSettings(settingsFile, SettingsKey::videoCustomParameters,
                     QStringList() << "Name" << "Value", videoSettingsUI_->custom_parameters);
+
+  // ROI-tab
+  saveTextValue(SettingsKey::roiDetectorModel, videoSettingsUI_->model_path->text(), settings_);
+  saveTextValue(SettingsKey::roiKernelType, videoSettingsUI_->kernel_type->currentText(), settings_);
+  saveTextValue(SettingsKey::roiKernelSize, videoSettingsUI_->kernel_size->text(), settings_);
+  saveTextValue(SettingsKey::roiFilterDepth, videoSettingsUI_->filter_depth->text(), settings_);
+  saveTextValue(SettingsKey::roiMaxThreads, videoSettingsUI_->roi_threads->text(), settings_);
+  saveCheckBox(SettingsKey::roiEnabled, videoSettingsUI_->roi_enabled, settings_);
 
   // Other-tab
   saveCheckBox(SettingsKey::videoOpenGL,         videoSettingsUI_->opengl, settings_);
@@ -342,8 +358,17 @@ void VideoSettings::restoreSettings()
                     QStringList() << "Name" << "Value",
                     videoSettingsUI_->custom_parameters);
 
+  // ROI-tab
+  videoSettingsUI_->model_path->setText(settings_.value(SettingsKey::roiDetectorModel).toString());
+  videoSettingsUI_->kernel_type->setCurrentText(settings_.value(SettingsKey::roiKernelType).toString());
+  videoSettingsUI_->kernel_size->setValue(settings_.value(SettingsKey::roiKernelSize).toInt());
+  videoSettingsUI_->filter_depth->setValue(settings_.value(SettingsKey::roiFilterDepth).toInt());
+  videoSettingsUI_->roi_threads->setValue(settings_.value(SettingsKey::roiMaxThreads).toInt());
+  videoSettingsUI_->roi_enabled->setChecked(settings_.value(SettingsKey::roiEnabled).toBool());
+
   // other-tab
   restoreCheckBox(SettingsKey::videoOpenGL, videoSettingsUI_->opengl, settings_);
+
 }
 
 
