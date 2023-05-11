@@ -56,16 +56,36 @@ public:
             bool cuda);
 
   ~RoiFilter();
+
+  virtual bool init() override;
+
   void updateSettings() override;
 
 protected:
   void process() override;
 
 private:
-  bool init() override;
+
   void close();
 
+  void copyConvert(uint8_t* src, float* dst, size_t len);
   std::vector<Detection> detect(const Data* input);
+
+  Rect find_largest_bbox(std::vector<Detection> &detections);
+  std::vector<float> letterbox(const std::vector<float>& img, Size original_shape, Size new_shape, uint8_t color = 114,
+                               bool minimum = false, bool scaleFill = false, bool scaleup = true);
+  std::vector<const float *> non_max_suppression_face(Ort::Value const &prediction,
+                                                      double conf_thres = 0.25,
+                                                      double iou_thres = 0.45);
+  std::vector<Detection> scale_coords(Size img1_shape, std::vector<const float *> const &coords,
+                                      Size img0_shape);
+  void clip_coords(std::vector<Rect> &boxes, Size img_shape);
+  bool filter_bb(Rect bb, Size min_size);
+  Rect bbox_to_roi(Rect bb);
+  Size calculate_roi_size(uint32_t img_width, uint32_t img_height);
+  Rect enlarge_bb(Detection face);
+  Ort::SessionOptions get_session_options(bool cuda, int threads);
+  Roi makeRoiMap(const std::vector<Rect> &bbs);
 
   unsigned int prevInputDiscarded_;
   unsigned int skipInput_;
@@ -79,12 +99,12 @@ private:
   std::unique_ptr<Ort::Session> session_;
   std::unique_ptr<Ort::Allocator> allocator_;
 
-  char *inputName_;
+  std::optional<Ort::AllocatedStringPtr> inputName_;
   std::vector<int64_t> inputShape_;
   int inputSize_;
   bool minimum_;
 
-  char* outputName_;
+  std::optional<Ort::AllocatedStringPtr> outputName_;
   std::vector<int64_t> outputShape_;
 
 
