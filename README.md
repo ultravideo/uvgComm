@@ -41,7 +41,6 @@ Kvazzup relies on following external libraries:
 - [Speex DSP](https://www.speex.org/) for audio processing
 - [uvgRTP](https://github.com/ultravideo/uvgRTP) for media delivery
 - [Crypto++](https://cryptopp.com/) for delivery encryption (optional)
-- [Onnx Runtime](https://onnxruntime.ai) for RoI detection (optional)
 
 Kvazzup uses CMake to build itself and missing dependencies with minimal effort from the developer, see [BUILDING.md](BUILDING.md) for build instructions.
 
