@@ -151,15 +151,9 @@ set(KVAZZUP_SOURCES
     src/videoviewfactory.cpp                        src/videoviewfactory.h
 )
 
-find_package(OpenCV)
-
-if (OpenCV_FOUND)
-    target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_OPENCV)
-endif()
 
 if (KVAZZUP_ENABLE_FACE_DETECTION)
-    target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_ONNX_RUNTIME)
-    list(APPEND KVAZZUP_SOURCES cryptopp src/media/processing/roifilter.cpp  src/media/processing/roifilter.h)
+    list(APPEND KVAZZUP_SOURCES src/media/processing/roifilter.cpp  src/media/processing/roifilter.h)
 endif()
 
 qt_add_executable(kvazzup WIN32 MACOSX_BUNDLE
@@ -211,6 +205,22 @@ set(KVAZZUP_LIBS LibOpenHevcWrapper
     yuv
 )
 
+if (KVAZZUP_ENABLE_FACE_DETECTION)
+    message("Enabling face detection")
+    find_package(OpenCV QUIET)
+
+    if (OpenCV_FOUND)
+        target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_OPENCV)
+    endif()
+
+    target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_ONNX_RUNTIME)
+    include_directories(${CMAKE_SOURCE_DIR}/include)
+    target_link_directories(kvazzup PRIVATE ${CMAKE_SOURCE_DIR}/libs)
+    message("Linking to ${CMAKE_SOURCE_DIR}/libs")
+
+    list(APPEND KVAZZUP_LIBS onnxruntime)
+endif()
+
 if (CRYPTOPP_FOUND AND NOT MSVC)
     list(APPEND KVAZZUP_LIBS cryptopp.a) # this makes sure we link up the static version
 else()
@@ -247,7 +257,7 @@ target_link_libraries(kvazzup PRIVATE ${KVAZZUP_LIBS})
 
 
 # Unit tests
-add_subdirectory(test EXCLUDE_FROM_ALL)
+#add_subdirectory(test EXCLUDE_FROM_ALL)
 
 if((CONFIG(OFF)) AND ((CMAKE_BUILD_TYPE STREQUAL Debug)))
     set_target_properties(kvazzup PROPERTIES

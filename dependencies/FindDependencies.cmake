@@ -78,6 +78,9 @@ else()
     message(STATUS "Did not find uvgRTP")
 endif()
 
+if(KVAZZUP_ENABLE_FACE_DETECTION)
+    message("Face detection has been enabled, onnx Runtime is required")
+endif()
 
 include(dependencies/cryptopp.cmake)
 include(dependencies/uvgrtp.cmake)
@@ -87,9 +90,6 @@ include(dependencies/libyuv.cmake)
 include(dependencies/opus.cmake)
 include(dependencies/speexdsp.cmake)
 
-if(KVAZZUP_ENABLE_FACE_DETECTION)
-    # TODO
-endif()
 
 # include and link directories for dependencies. 
 # These are needed when the compilation happens a second time and the library 
