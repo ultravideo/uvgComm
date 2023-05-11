@@ -64,9 +64,7 @@ void RoiFilter::process()
   std::unique_ptr<Data> input = getInput();
   assert(input->type == DT_YUV420VIDEO);
   while(input) {
-    Logger::getLogger()->printNormal(this, "Processing RoI input");
     if(roiEnabled_){
-      Logger::getLogger()->printNormal(this, "RoI enabled");
       QMutexLocker lock(&settingsMutex_);
       if(inputDiscarded_ > prevInputDiscarded_) {
         skipInput_++;
@@ -109,9 +107,9 @@ void RoiFilter::process()
           face_roi_rects.push_back(r);
         }
 
-        //        if(face_roi_rects.size() > 0) {
-        //          Logger::getLogger()->printDebug(DebugType::DEBUG_NORMAL, this, "Found faces", {"Number"}, {QString::number(face_roi_rects.size())});
-        //        }
+//      if(face_roi_rects.size() > 0) {
+//        Logger::getLogger()->printDebug(DebugType::DEBUG_NORMAL, this, "Found faces", {"Number"}, {QString::number(face_roi_rects.size())});
+//      }
 
         Size roi_size = calculate_roi_size(input->vInfo->width, input->vInfo->height);
         roi_.width = roi_size.width;
@@ -275,7 +273,9 @@ std::vector<Detection> RoiFilter::detect(const Data* input)
   auto input_tensor = Ort::Value::CreateTensor<float>(&*memory, Y_input.data(), Y_input.size(), shape, 4);
 
   Ort::RunOptions options;
-  auto detections = session_->Run(options, (const char * const *)inputName_->get(), &input_tensor, 1, (const char* const *)outputName_->get(), 1);
+  const char* input_names[] = {inputName_->get()};
+  char* output_names[] = {outputName_->get()};
+  auto detections = session_->Run(options, input_names, &input_tensor, 1, output_names, 1);
   auto out_shape = detections[0].GetTensorTypeAndShapeInfo().GetShape();
   auto faces = non_max_suppression_face(detections[0]);
 
