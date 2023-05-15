@@ -139,7 +139,11 @@ uint32_t KvazzupController::startINVITETransaction(QString name, QString usernam
                                                    QString ip)
 {
   uint32_t sessionID = sip_.reserveSessionID();
-  waitingToStart_[ip] = {name, username, sessionID};
+
+  // IPv6 address can be concatanated, so here we uniformalize their representation
+  QHostAddress qIP = QHostAddress(ip);
+
+  waitingToStart_[qIP.toString()] = {name, username, sessionID};
 
   // try connecting, if returns immediately or we already have a connection, create Dialog
   if (sip_.connect(SIP_TCP, ip, 5060))
@@ -923,7 +927,7 @@ void KvazzupController::connectionEstablished(QString localAddress, QString remo
     WaitingStart startingSession = waitingToStart_[remoteAddress];
     waitingToStart_.erase(remoteAddress);
 
-    createSIPDialog(startingSession.realname, startingSession.realname,
+    createSIPDialog(startingSession.realname, startingSession.username,
                     remoteAddress,
                     startingSession.sessionID);
   }

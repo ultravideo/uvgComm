@@ -273,6 +273,10 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &remote, QString remo
     Logger::getLogger()->printNormal(this, "Using our proxy address", "Address", ourProxyAddress);
     connectionAddress = ourProxyAddress;
   }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "This is not a proxy address");
+  }
 
   if (!isConnected(connectionAddress))
   {
@@ -864,6 +868,8 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   /* SIP is divided to transport and transaction layers. Here we construct the transaction
    * part of connection with one peer.
    */
+
+  Logger::getLogger()->printNormal(this, "Creating SIP Dialog");
 
   if (dialogs_.find(sessionID) != dialogs_.end())
   {

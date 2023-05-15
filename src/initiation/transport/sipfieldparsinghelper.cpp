@@ -116,8 +116,8 @@ bool parseURI(const QString &word, SIP_URI& uri)
         }
       }
 
-      // TODO: improve this to accept IPv4, Ipv6 and addresses
-      QRegularExpression re_address("(\\[.+\\]|[\\w.]+):?(\\d*)");
+      // TODO: improve this to accept IPv4, Ipv6 and tel numbers
+      QRegularExpression re_address("(\\[.:+\\]|[\\w.:]+):?(\\d*)");
       QRegularExpressionMatch address_match = re_address.match(parameters.first());
 
       if(address_match.hasMatch() &&
