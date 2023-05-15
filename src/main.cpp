@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
   File.open(QFile::ReadOnly);
   QString StyleSheet = QLatin1String(File.readAll());
   a.setStyleSheet(StyleSheet);
+  a.setWindowIcon(QIcon(":/favicon.ico"));
 
   KvazzupController controller;
   controller.init();
