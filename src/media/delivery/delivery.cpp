@@ -66,21 +66,13 @@ bool Delivery::addSession(uint32_t sessionID,
     Logger::getLogger()->printNormal(this, "Reusing existing session", "Connection", connection);
     return true;
   }
-  else if (peerAddressType == "IP4" && localAddressType == "IP4")
+  else
   {
     Logger::getLogger()->printNormal(this, "Adding a new session for peer since we use different route",
                                       "Connection", connection);
 
-    ipv6to4(peerAddress);
     peers_[sessionID]->sessions.push_back({rtp_ctx_->create_session(peerAddress.toStdString(), localAddress.toStdString()),
                                            localAddress, peerAddress, {}, false});
-  }
-  else
-  {
-    Logger::getLogger()->printUnimplemented(this, "Tried to use address type "
-                                                  "that has not been implemented yet!");
-    return false;
-
   }
 
   return true;
@@ -425,26 +417,6 @@ void Delivery::removeAllPeers()
   for (unsigned int i = 0; i < ids.size(); ++i)
   {
     removePeer(i);
-  }
-}
-
-void Delivery::ipv6to4(QHostAddress& address)
-{
-  // check if the IP addresses start with ::ffff: and
-  // remove it, uvgrtp only accepts IPv4 addresses
-  if (address.toString().left(7) == "::ffff:")
-  {
-    address = QHostAddress(address.toString().mid(7));
-  }
-}
-
-void Delivery::ipv6to4(QString &address)
-{
-  // check if the IP addresses start with ::ffff: and
-  // remove it, uvgrtp only accepts IPv4 addresses
-  if (address.left(7) == "::ffff:")
-  {
-    address = address.mid(7);
   }
 }
 

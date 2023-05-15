@@ -98,9 +98,6 @@ private:
   void parseCodecString(QString codec, rtp_format_t& fmt,
                         DataType& type, QString& mediaName);
 
-  void ipv6to4(QHostAddress &address);
-  void ipv6to4(QString &address);
-
   bool findSession(uint32_t sessionID, uint32_t& outIndex,
                    QString localAddress, QString remoteAddress);
 
