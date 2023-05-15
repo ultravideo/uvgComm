@@ -13,6 +13,7 @@
 #include <QTimer>
 #include <QMetaType>
 #include <QDir>
+#include <QHostAddress>
 
 
 CallWindow::CallWindow(QWidget *parent):
@@ -152,20 +153,20 @@ void CallWindow::addContactButton()
 
 void CallWindow::addContact()
 {
+  QHostAddress address = QHostAddress(ui_->address->text());
+
   // TODO: support DNS
-  QRegularExpression re_ip ("\\b((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\\.|$)){4}\\b");
-  QRegularExpressionMatch ip_match = re_ip.match(ui_->address->text());
 
   // has the user inputted correct information
-  if (!ip_match.hasMatch())
-  {
-    ui_->addressLabel->setText("Please set an IP address!");
-    ui_->addressLabel->setStyleSheet("QLabel { color : red; }");
-  }
-  else if (ui_->username->text() == "")
+  if (ui_->username->text() == "")
   {
     ui_->usernameLabel->setText("Please set username!");
     ui_->usernameLabel->setStyleSheet("QLabel { color : red; }");
+  }
+  else if (address.isNull())
+  {
+    ui_->addressLabel->setText("Please set a valid IP address!");
+    ui_->addressLabel->setStyleSheet("QLabel { color : red; }");
   }
   else
   {
