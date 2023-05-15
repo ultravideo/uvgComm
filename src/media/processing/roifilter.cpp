@@ -9,7 +9,6 @@
 #ifdef KVAZZUP_HAVE_OPENCV
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
 #endif
 
 
@@ -149,7 +148,12 @@ bool RoiFilter::init()
   prevInputDiscarded_ = 0;
   skipInput_ = 1;
   QSettings settings(settingsFile, settingsFileFormat);
-  std::wstring newModel = settings.value(SettingsKey::roiDetectorModel).toString().toStdWString();
+  QString newModelQstr = settings.value(SettingsKey::roiDetectorModel).toString();
+#ifdef _WIN32
+  std::wstring newModel = newModelQstr.toStdWstring();
+#else
+  std::string newModel = newModelQstr.toStdString();
+#endif
   kernelType_ = settings.value(SettingsKey::roiKernelType).toString().toStdString();
   kernelSize_ = settings.value(SettingsKey::roiKernelSize).toInt();
   int threads = settings.value(SettingsKey::roiMaxThreads).toInt();

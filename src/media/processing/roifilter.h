@@ -90,7 +90,11 @@ private:
   unsigned int prevInputDiscarded_;
   unsigned int skipInput_;
 
+#ifdef _WIN32
   std::wstring model_;
+#else
+  std::string model_;
+#endif
   std::string kernelType_;
   int kernelSize_;
   int filterDepth_;

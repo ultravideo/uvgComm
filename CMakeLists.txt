@@ -38,7 +38,7 @@ endif()
 #option(KVAZZUP_ENABLE_PRINTS  "Print Debug prints to command line" ON)
 #option(KVAZZUP_ENABLE_LOGGING "Save log to file" ON)
 #option(KVAZZUP_ENABLE_WERROR  "Fail with compiler warnings" OFF)
-option(KVAZZUP_ENABLE_FACE_DETECTION "Enable face detection in Kvazzup" OFF)
+option(KVAZZUP_ENABLE_FACE_DETECTION "Enable face detection in Kvazzup" ON)
 
 include(dependencies/FindDependencies.cmake)
 
@@ -207,10 +207,12 @@ set(KVAZZUP_LIBS LibOpenHevcWrapper
 
 if (KVAZZUP_ENABLE_FACE_DETECTION)
     message("Enabling face detection")
-    find_package(OpenCV QUIET)
+    find_package(OpenCV)
 
     if (OpenCV_FOUND)
         target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_OPENCV)
+        list(APPEND KVAZZUP_LIBS ${OpenCV_LIBS})
+        include_directories( ${OpenCV_INCLUDE_DIRS} )
     endif()
 
     target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_ONNX_RUNTIME)
