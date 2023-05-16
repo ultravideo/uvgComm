@@ -5,6 +5,7 @@
 #include "settingskeys.h"
 
 #include "media/resourceallocator.h"
+#include "common.h"
 
 #ifdef KVAZZUP_HAVE_OPENCV
 #include <opencv2/imgproc.hpp>
@@ -51,7 +52,7 @@ void RoiFilter::updateSettings()
   QSettings settings(settingsFile, settingsFileFormat);
 
   Logger::getLogger()->printNormal(this, "Updating RoI filter settings");
-  roiEnabled_ = false;
+  roiEnabled_ = settingString(SettingsKey::roiMode) == "auto";
   QMutexLocker lock(&settingsMutex_);
   init();
   Filter::updateSettings();

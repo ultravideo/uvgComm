@@ -28,6 +28,7 @@ bool ROIManualFilter::init()
 
 void ROIManualFilter::updateSettings()
 {
+  enabled_ = settingString(SettingsKey::roiMode) == "manual";
   qp_ = settingValue(SettingsKey::videoQP);
   rateControl_ = settingValue(SettingsKey::videoBitrate);
 }
@@ -40,7 +41,7 @@ void ROIManualFilter::process()
   while(input)
   {
     // TODO: Check that rate control is not enabled
-    if (getHWManager()->useManualROI())
+    if (enabled_ && getHWManager()->useManualROI())
     {
       if (rateControl_ == 0)
       {
