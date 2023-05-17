@@ -4,6 +4,7 @@
 #include "initiation/sipmanager.h"
 #include "ui/uimanager.h"
 #include "participantinterface.h"
+#include "mediaid.h"
 
 #include <QObject>
 
@@ -116,6 +117,8 @@ private:
   // this is a huge hack altogether
   bool areWeICEController(bool initialAgent, uint32_t sessionID) const;
 
+  MediaID getMediaID(uint32_t sessionID, const MediaInfo &media);
+
   // call state is used to make sure everything is going according to plan,
   // no surprise ACK messages etc
   enum INVITETransactionState {
@@ -154,6 +157,10 @@ private:
   int ongoingNegotiations_;
 
   QTimer delayedNegotiation_;
+
+  std::map<uint32_t, std::shared_ptr<std::vector<MediaID>>> sessionMedias_;
+
+  std::shared_ptr<VideoviewFactory> viewFactory_;
 
   // if we want to do something, but the TCP connection has not yet been established
   struct WaitingStart

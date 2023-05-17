@@ -32,7 +32,6 @@ bool getReceiveAttribute(const MediaInfo &media, bool local);
 
 void setSDPAddress(QString inAddress, QString& address,
                    QString& nettype, QString& addressType);
-bool areMediasEqual(const MediaInfo first, const MediaInfo second);
 
 bool sameCandidates(std::vector<std::shared_ptr<ICEPair>> newCandidates,
                     std::vector<std::shared_ptr<ICEPair>> oldCandidates);
@@ -42,3 +41,5 @@ bool containCandidates(std::vector<std::shared_ptr<ICEPair> > &streams,
 
 bool sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
                    std::shared_ptr<ICEInfo> secondCandidate);
+
+void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates);

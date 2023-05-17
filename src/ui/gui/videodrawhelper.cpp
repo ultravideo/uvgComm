@@ -1,6 +1,5 @@
 #include "videodrawhelper.h"
 
-#include "common.h"
 #include "logger.h"
 
 #include <QWidget>
@@ -13,8 +12,9 @@ const int maximumQPChange = 25;
 const int CTU_SIZE = 64;
 
 
-VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, uint8_t borderSize):
+VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, LayoutID layoutID, uint8_t borderSize):
   sessionID_(sessionID),
+  layoutID_(layoutID),
   tmpParent_(nullptr),
   firstImageReceived_(false),
   previousSize_(QSize(0,0)),
@@ -548,7 +548,7 @@ void VideoDrawHelper::enterFullscreen(QWidget* widget)
   widget->show();
   widget->setWindowState(Qt::WindowFullScreen);
 
-  emit detach(sessionID_);
+  emit detach(layoutID_);
   widget->raise();
 }
 
@@ -565,7 +565,7 @@ void VideoDrawHelper::exitFullscreen(QWidget* widget)
   widget->show();
   widget->setWindowState(Qt::WindowMaximized);
 
-  emit reattach(sessionID_);
+  emit reattach(layoutID_);
 }
 
 

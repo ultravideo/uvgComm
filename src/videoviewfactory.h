@@ -1,5 +1,8 @@
 #pragma once
 
+#include "global.h"
+#include "mediaid.h"
+
 #include <QList>
 
 #include <stdint.h>
@@ -25,24 +28,22 @@ public:
   // set self view
   void addSelfview(VideoWidget* view);
 
+  void createWidget(uint32_t sessionID, LayoutID layoutID, MediaID& id);
+
   // id is the index of that view or video
-  QWidget*        getView  (uint32_t videoID);
-  VideoInterface* getVideo (uint32_t videoID);
+  QWidget*        getView  (MediaID& id);
+  VideoInterface* getVideo (MediaID& id);
 
   QList<QWidget*>        getSelfViews();
   QList<VideoInterface*> getSelfVideos();
 
   // Does not clear selfview
-  void clearWidgets(uint32_t videoID);
+  void clearWidgets(MediaID& id);
 
 private:
 
-  // conferenceview is needed for connecting reattach signal, because I couldn't get the
-  // the interface signal connected for some reason.
-  void createWidget(uint32_t videoID);
-
-  std::map<uint32_t, QWidget*>        videoIDtoWidgetlist_;
-  std::map<uint32_t, VideoInterface*> videoIDtoVideolist_;
+  std::map<MediaID, QWidget*>        mediaIDtoWidgetlist_;
+  std::map<MediaID, VideoInterface*> mediaIDtoVideolist_;
 
   QList<VideoWidget*> selfViews_;
 

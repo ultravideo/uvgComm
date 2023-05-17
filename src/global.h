@@ -1,5 +1,7 @@
 #pragma once
 
+#include "mediaid.h"
+
 // A place for program defines and constants. See common.h for common functions.
 
 #include <QString>
@@ -48,7 +50,11 @@ const uint16_t MAX_ICE_PORT   = 24000;
 
 struct SDPMediaParticipant
 {
+  MediaID id;
   bool videoEnabled;
   bool audioEnabled;
   QString name;
 };
+
+// type for conference layout location
+typedef uint32_t LayoutID;

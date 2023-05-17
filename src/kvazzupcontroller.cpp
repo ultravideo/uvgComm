@@ -2,6 +2,8 @@
 
 #include "statisticsinterface.h"
 
+#include "videoviewfactory.h"
+
 #include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
@@ -27,6 +29,7 @@ KvazzupController::KvazzupController():
   stats_(nullptr),
   delayAutoAccept_(),
   delayedAutoAccept_(0),
+  viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory())),
   ongoingNegotiations_(0),
   delayedNegotiation_()
 {}
@@ -36,7 +39,7 @@ void KvazzupController::init()
 {
   Logger::getLogger()->printImportant(this, "Kvazzup initiation Started");
 
-  userInterface_.init(this);
+  userInterface_.init(this, viewFactory_);
 
   stats_ = userInterface_.createStatsWindow();
 
@@ -88,7 +91,7 @@ void KvazzupController::init()
   QObject::connect(&media_, &MediaManager::iceMediaFailed,
                    this, &KvazzupController::iceFailed);
 
-  media_.init(userInterface_.getSelfVideos(), stats_);
+  media_.init(viewFactory_->getSelfVideos(), stats_);
 
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
@@ -469,7 +472,13 @@ void KvazzupController::createCall(uint32_t sessionID)
                             states_[sessionID].followOurSDP, sessionID);
   }
 
-  std::vector<VideoInterface*> videos = userInterface_.callStarted(sessionID, uiMedias);
+  userInterface_.callStarted(viewFactory_, sessionID, uiMedias);
+  std::vector<VideoInterface*> videos;
+
+  for (auto& media : *sessionMedias_[sessionID])
+  {
+    videos.push_back(viewFactory_->getVideo(media));
+  }
 
   if (!states_[sessionID].sessionRunning)
   {
@@ -531,7 +540,8 @@ QList<SDPMediaParticipant> KvazzupController::formUIMedias(QList<MediaInfo>& loc
         videoEnabled = getReceiveAttribute(attributeMedia.at(i + 1), followOurSDP);
       }
 
-      uiMedias.push_back({videoEnabled, audioEnabled, states_[sessionID].name});
+      uiMedias.push_back({getMediaID(sessionID, localMedia.at(i)),
+                          videoEnabled, audioEnabled, states_[sessionID].name});
     }
   }
 
@@ -553,6 +563,32 @@ QList<SDPMediaParticipant> KvazzupController::formUIMedias(QList<MediaInfo>& loc
                                   {videoState, audioState});
 
   return uiMedias;
+}
+
+
+MediaID KvazzupController::getMediaID(uint32_t sessionID, const MediaInfo &media)
+{
+
+  if (sessionMedias_.find(sessionID) != sessionMedias_.end())
+  {
+    // try to see if this is an old media
+    for (auto& sMedia : *sessionMedias_[sessionID])
+    {
+      if (sMedia == media)
+      {
+        return sMedia;
+      }
+    }
+  }
+  else
+  {
+    sessionMedias_[sessionID] =
+      std::shared_ptr<std::vector<MediaID>>(new std::vector<MediaID>());
+  }
+
+  // create a new ID for this media
+  sessionMedias_[sessionID]->push_back(MediaID(media));
+  return sessionMedias_[sessionID]->back();
 }
 
 
@@ -645,6 +681,14 @@ void KvazzupController::removeSession(uint32_t sessionID, QString message,
   if(it != states_.end())
   {
     states_.erase(it);
+  }
+
+  if(sessionMedias_.find(sessionID) != sessionMedias_.end())
+  {
+    for (auto& media : *sessionMedias_[sessionID])
+    {
+      viewFactory_->clearWidgets(media);
+    }
   }
 
   if (stats_)

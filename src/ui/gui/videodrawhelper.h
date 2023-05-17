@@ -1,5 +1,7 @@
 #pragma once
 
+#include "global.h"
+
 #include <QObject>
 #include <QSize>
 #include <QImage>
@@ -29,7 +31,7 @@ class VideoDrawHelper : public QObject
 {
   Q_OBJECT
 public:
-  VideoDrawHelper(uint32_t sessionID, uint8_t borderSize);
+  VideoDrawHelper(uint32_t sessionID, LayoutID layoutID, uint8_t borderSize);
   ~VideoDrawHelper();
 
   void initWidget(QWidget* widget);
@@ -72,8 +74,8 @@ public:
 
 signals:
 
-  void reattach(uint32_t sessionID_);
-  void detach(uint32_t sessionID_);
+  void reattach(LayoutID layoutID);
+  void detach(LayoutID layoutID);
 
 private:
   void enterFullscreen(QWidget* widget);
@@ -92,6 +94,7 @@ private:
   QSizeF getSizeMultipliers(int width, int height);
 
   uint32_t sessionID_;
+  LayoutID layoutID_;
 
   QWidget* tmpParent_;
 

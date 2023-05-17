@@ -164,17 +164,6 @@ void setSDPAddress(QString inAddress, QString& address, QString& nettype, QStrin
 }
 
 
-bool areMediasEqual(const MediaInfo first, const MediaInfo second)
-{
-  return first.type == second.type &&
-      first.receivePort == second.receivePort &&
-      first.proto == second.proto &&
-      first.connection_nettype == second.connection_nettype &&
-      first.connection_addrtype == second.connection_addrtype &&
-      first.connection_address == second.connection_address;
-}
-
-
 bool containCandidates(std::vector<std::shared_ptr<ICEPair>> &streams,
                             std::vector<std::shared_ptr<ICEPair>> allCandidates)
 {
@@ -239,4 +228,25 @@ bool sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
       firstCandidate->type == secondCandidate->type &&
       firstCandidate->rel_address == secondCandidate->rel_address &&
       firstCandidate->rel_port == secondCandidate->rel_port;
+}
+
+
+void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates)
+{
+  QStringList names;
+  QStringList values;
+  for (auto& candidate : candidates)
+  {
+    names.append("Candidate");
+    if (candidate->type == "srflx" || candidate->type == "prflx")
+    {
+      values.append(candidate->rel_address + ":" + QString::number(candidate->rel_port));
+    }
+    else
+    {
+      values.append(candidate->address + ":" + QString::number(candidate->port));
+    }
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Common", text, names, values);
 }

@@ -24,9 +24,7 @@ public:
   UIManager();
   ~UIManager();
 
-  QList<VideoInterface*> getSelfVideos () const;
-
-  void init(ParticipantInterface *partInt);
+  void init(ParticipantInterface *partInt, std::shared_ptr<VideoviewFactory> viewFactory);
 
   // functions for managing the GUI
   StatisticsInterface* createStatsWindow();
@@ -37,8 +35,9 @@ public:
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  std::vector<VideoInterface *> callStarted(uint32_t sessionID,
-                              QList<SDPMediaParticipant>& medias);
+  void callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
+                                            uint32_t sessionID,
+                                            QList<SDPMediaParticipant>& medias);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);

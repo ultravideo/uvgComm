@@ -10,8 +10,8 @@
 #include <QSettings>
 
 VideoviewFactory::VideoviewFactory():
-  videoIDtoWidgetlist_(),
-  videoIDtoVideolist_(),
+    mediaIDtoWidgetlist_(),
+    mediaIDtoVideolist_(),
   selfViews_(),
   opengl_(false)
 {}
@@ -19,8 +19,8 @@ VideoviewFactory::VideoviewFactory():
 
 VideoviewFactory::~VideoviewFactory()
 {
-  videoIDtoWidgetlist_.clear(); // these are the same pointers as in videolist
-  videoIDtoVideolist_.clear();
+    mediaIDtoWidgetlist_.clear(); // these are the same pointers as in videolist
+    mediaIDtoVideolist_.clear();
 }
 
 
@@ -56,75 +56,66 @@ QList<VideoInterface*> VideoviewFactory::getSelfVideos()
 }
 
 
-QWidget* VideoviewFactory::getView(uint32_t videoID)
+QWidget* VideoviewFactory::getView(MediaID& id)
 {
-  if(videoIDtoWidgetlist_.find(videoID) == videoIDtoWidgetlist_.end())
-  {
-    createWidget(videoID);
-  }
-  return videoIDtoWidgetlist_[videoID];
+  return mediaIDtoWidgetlist_[id];
 }
 
 
-VideoInterface* VideoviewFactory::getVideo(uint32_t videoID)
+VideoInterface* VideoviewFactory::getVideo(MediaID &id)
 {
-  if(videoIDtoVideolist_.find(videoID) == videoIDtoVideolist_.end())
-  {
-    createWidget(videoID);
-  }
-  return videoIDtoVideolist_[videoID];
+  return mediaIDtoVideolist_[id];
 }
 
 
-void VideoviewFactory::clearWidgets(uint32_t videoID)
+void VideoviewFactory::clearWidgets(MediaID &id)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "VideoviewFactory",  "Clearing widgets",
-                                  {"videoID"}, {QString::number(videoID)});
+                                  {"videoID"}, {id.toString()});
 
   QWidget* widget = nullptr;
 
-  if (videoIDtoWidgetlist_.find(videoID) != videoIDtoWidgetlist_.end())
+  if (mediaIDtoWidgetlist_.find(id) != mediaIDtoWidgetlist_.end())
   {
-    widget = videoIDtoWidgetlist_.at(videoID);
-    videoIDtoWidgetlist_.erase(videoID);
+    widget = mediaIDtoWidgetlist_.at(id);
+    mediaIDtoWidgetlist_.erase(id);
   }
 
-  if (videoIDtoVideolist_.find(videoID) != videoIDtoVideolist_.end())
+  if (mediaIDtoVideolist_.find(id) != mediaIDtoVideolist_.end())
   {
-    videoIDtoVideolist_.erase(videoID);
+    mediaIDtoVideolist_.erase(id);
   }
 
   delete widget;
 }
 
 
-void VideoviewFactory::createWidget(uint32_t videoID)
+void VideoviewFactory::createWidget(uint32_t sessionID, LayoutID layoutID, MediaID& id)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "View Factory",
-                                  "Creating videoWidget", {"videoID"}, {QString::number(videoID)});
+                                  "Creating videoWidget", {"videoID"}, {id.toString()});
 
   bool openGLEnabled = settingEnabled(SettingsKey::videoOpenGL);
 
   QWidget* vw = nullptr;
   VideoInterface* video = nullptr;
 
-
   // couldn't get these to work with videointerface, so the videowidget is used.
   // TODO: try qobject_cast to get the signal working for videointerface
 
   QWidget* parent = nullptr;
 
-    VideoWidget* normal = new VideoWidget(parent, videoID);
+    VideoWidget* normal = new VideoWidget(parent, sessionID, layoutID);
     vw = normal;
     video = normal;
 
   if (vw != nullptr && video != nullptr)
   {
-    videoIDtoWidgetlist_[videoID] = vw;
-    videoIDtoVideolist_[videoID]  = video;
+    mediaIDtoWidgetlist_[id] = vw;
+    mediaIDtoVideolist_[id]  = video;
     Logger::getLogger()->printDebug(DEBUG_NORMAL, "VideoviewFactory",
                                     "Created video widget.", {"videoID"},
-                                    {QString::number(videoID)});
+                                    {id.toString()});
   }
   else
   {

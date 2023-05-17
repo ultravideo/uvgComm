@@ -3,6 +3,7 @@
 #include "conferenceview.h"
 #include "contactlist.h"
 
+#include "mediaid.h"
 
 #include <QMainWindow>
 #include <QPushButton>
@@ -26,9 +27,9 @@ public:
   explicit CallWindow(QWidget *parent);
   ~CallWindow();
 
-  QList<VideoInterface*> getSelfVideos () const;
+  VideoWidget *getSelfView() const;
 
-  void init(ParticipantInterface *partInt, VideoWidget *settingsVideo);
+  void init(ParticipantInterface *partInt);
 
   // sessionID identifies the view slot
   void displayOutgoingCall(uint32_t sessionID, QString name);
@@ -36,7 +37,8 @@ public:
   void displayIncomingCall(uint32_t sessionID, QString caller);
 
   // adds video stream to view
-  std::vector<VideoInterface*> callStarted(uint32_t sessionID, QList<SDPMediaParticipant> &medias);
+  void callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
+                                   uint32_t sessionID, QList<SDPMediaParticipant> &medias);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
@@ -77,11 +79,11 @@ public slots:
 
   void restoreCallUI();
 
-  void removeLayout(uint32_t layoutID);
+  void removeLayout(LayoutID layoutID);
 
-  void layoutAccepts(uint32_t layoutID);
-  void layoutRejects(uint32_t layoutID);
-  void layoutCancels(uint32_t layoutID);
+  void layoutAccepts(LayoutID layoutID);
+  void layoutRejects(LayoutID layoutID);
+  void layoutCancels(LayoutID layoutID);
 
 private slots:
   void expireLayouts();
@@ -105,16 +107,17 @@ private:
   void checkID(uint32_t sessionID);
   bool layoutExists(uint32_t sessionID);
 
-  uint32_t layoutIDToSessionID(uint32_t layoutID);
+  uint32_t layoutIDToSessionID(LayoutID layoutID);
 
   void cleanUp();
+
+  std::vector<uint32_t> sessionLayouts(uint32_t sessionID);
+
+  bool getTempLayoutID(LayoutID& id, uint32_t sessionID);
 
   Ui::CallWindow *ui_;
 
   ConferenceView conference_;
-
-  // video views
-  std::shared_ptr<VideoviewFactory> viewFactory_;
 
   ContactList contacts_;
   ParticipantInterface* partInt_;
@@ -122,6 +125,14 @@ private:
   QTimer removeLayoutTimer_;
   QList<uint32_t> expiringLayouts_;
 
-  // key is sessionID and vector contains all layoutIDs belonging to this sessionID
-  std::map<uint32_t, std::vector<uint32_t>> layoutIDs_;
+  struct LayoutMedia
+  {
+    LayoutID layoutID;
+    MediaID mediaID;
+  };
+
+  std::map<uint32_t, LayoutID> temporaryLayoutIDs_;
+
+  // key is sessionID, used to store layoutID/mediaID combinations
+  std::map<uint32_t, std::vector<LayoutMedia>> layoutIDs_;
 };
