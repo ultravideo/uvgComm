@@ -5,6 +5,7 @@
 #include "media/delivery/delivery.h"
 #include "initiation/negotiation/sdptypes.h"
 #include "statisticsinterface.h"
+#include "videoviewfactory.h"
 
 #include "resourceallocator.h"
 
@@ -30,12 +31,13 @@ MediaManager::~MediaManager()
 }
 
 
-void MediaManager::init(QList<VideoInterface*> selfViews,
+void MediaManager::init(std::shared_ptr<VideoviewFactory> viewFactory,
                         StatisticsInterface *stats)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initiating");
   stats_ = stats;
   streamer_ = std::unique_ptr<Delivery> (new Delivery());
+  viewFactory_ = viewFactory;
 
   connect(
     streamer_.get(),
@@ -52,7 +54,7 @@ void MediaManager::init(QList<VideoInterface*> selfViews,
   std::shared_ptr<ResourceAllocator> hwResources =
       std::shared_ptr<ResourceAllocator>(new ResourceAllocator());
 
-  fg_->init(selfViews, stats, hwResources);
+  fg_->init(viewFactory_->getSelfVideos(), stats, hwResources);
   streamer_->init(stats_, hwResources);
 
   QObject::connect(this, &MediaManager::updateVideoSettings,
@@ -86,7 +88,8 @@ void MediaManager::uninit()
 void MediaManager::addParticipant(uint32_t sessionID,
                                   std::shared_ptr<SDPMessageInfo> peerInfo,
                                   const std::shared_ptr<SDPMessageInfo> localInfo,
-                                  std::vector<VideoInterface *> videoView, bool iceController, bool followOurSDP)
+                                  const QList<MediaID> &allIDs,
+                                  bool iceController, bool followOurSDP)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
   if (!sessionChecks(peerInfo, localInfo))
@@ -122,14 +125,15 @@ void MediaManager::addParticipant(uint32_t sessionID,
                      this, &MediaManager::iceFailed);
   }
 
-  return modifyParticipant(sessionID, peerInfo, localInfo, videoView, iceController, followOurSDP);
+  return modifyParticipant(sessionID, peerInfo, localInfo, allIDs, iceController, followOurSDP);
 }
 
 
 void MediaManager::modifyParticipant(uint32_t sessionID,
-                                  std::shared_ptr<SDPMessageInfo> peerInfo,
-                                  const std::shared_ptr<SDPMessageInfo> localInfo,
-                                  std::vector<VideoInterface *> videoView, bool iceController, bool followOurSDP)
+                                     std::shared_ptr<SDPMessageInfo> peerInfo,
+                                     const std::shared_ptr<SDPMessageInfo> localInfo,
+                                     const QList<MediaID> &allIDs,
+                                     bool iceController, bool followOurSDP)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
   if (!sessionChecks(peerInfo, localInfo))
@@ -156,7 +160,7 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
   {
     participants_[sessionID].localInfo = localInfo;
     participants_[sessionID].peerInfo = peerInfo;
-    participants_[sessionID].freeViews = videoView;
+    participants_[sessionID].allIDs = allIDs;
     participants_[sessionID].followOurSDP = followOurSDP;
 
     // each media has its own separate ICE
@@ -165,9 +169,10 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
       // only test if this is a local candidate
       if (isLocalCandidate(localInfo->media.at(i).candidates.first()))
       {
-        participants_[sessionID].ice->startNomination(localInfo->media.at(i),
-                                                      peerInfo->media.at(i),
-                                                      iceController);
+          participants_[sessionID].ice->startNomination(allIDs.at(i),
+                                                        localInfo->media.at(i),
+                                                        peerInfo->media.at(i),
+                                                        iceController);
       }
     }
   }
@@ -178,15 +183,17 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     Logger::getLogger()->printWarning(this, "Did not find any ICE candidates, not performing ICE");
     for (unsigned int i = 0; i < localInfo->media.size(); ++i)
     {
-      createMediaPair(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                      videoView.front(), followOurSDP);
+      createMediaPair(sessionID, allIDs.at(i), localInfo->media.at(i), peerInfo->media.at(i),
+                      viewFactory_->getVideo(allIDs.at(i)));
     }
   }
 }
 
 
-void MediaManager::createMediaPair(uint32_t sessionID, const MediaInfo &localMedia, const MediaInfo &remoteMedia,
-                                   VideoInterface *videoView, bool followOurSDP)
+void MediaManager::createMediaPair(uint32_t sessionID, const MediaID &id,
+                                   const MediaInfo &localMedia,
+                                   const MediaInfo &remoteMedia,
+                                   VideoInterface *videoView)
 {
   if(!streamer_->addSession(sessionID,
                          remoteMedia.connection_addrtype,
@@ -199,30 +206,20 @@ void MediaManager::createMediaPair(uint32_t sessionID, const MediaInfo &localMed
     return;
   }
 
-  createOutgoingMedia(sessionID, localMedia, remoteMedia, followOurSDP);
-  createIncomingMedia(sessionID, localMedia, remoteMedia, videoView, followOurSDP);
+  createOutgoingMedia(sessionID, localMedia, remoteMedia, id.getSend());
+  createIncomingMedia(sessionID, localMedia, remoteMedia, videoView, id.getReceive());
 }
 
 
 void MediaManager::createOutgoingMedia(uint32_t sessionID,
                                        const MediaInfo& localMedia,
                                        const MediaInfo& remoteMedia,
-                                       bool useOurSDP)
+                                       bool active)
 {
   if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
   {
     Logger::getLogger()->printProgramError(this, "Address was empty when creating outgoing media");
     return;
-  }
-
-  bool send = true;
-  if (useOurSDP)
-  {
-    send = getSendAttribute(localMedia, true);
-  }
-  else
-  {
-    send = getSendAttribute(remoteMedia, false);
   }
 
   QString codec = rtpNumberToCodec(remoteMedia);
@@ -248,7 +245,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
   }
 
   // if we want to send
-  if(send && remoteMedia.receivePort != 0)
+  if(active && remoteMedia.receivePort != 0)
   {
     Q_ASSERT(remoteMedia.receivePort);
     Q_ASSERT(!remoteMedia.rtpNums.empty());
@@ -287,23 +284,12 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 void MediaManager::createIncomingMedia(uint32_t sessionID,
                                        const MediaInfo &localMedia,
                                        const MediaInfo &remoteMedia,
-                                       VideoInterface* videoView,
-                                       bool useOurSDP)
+                                       VideoInterface* videoView, bool active)
 {
   if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
   {
     Logger::getLogger()->printProgramError(this, "Address was empty when creating incoming media");
     return;
-  }
-
-  bool recv = true;
-  if (useOurSDP)
-  {
-    recv = getReceiveAttribute(localMedia, true);
-  }
-  else
-  {
-    recv = getReceiveAttribute(remoteMedia, false);
   }
 
   QString codec = rtpNumberToCodec(localMedia);
@@ -327,7 +313,7 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
     return;
   }
 
-  if(recv)
+  if(active)
   {
     Q_ASSERT(localMedia.receivePort);
     Q_ASSERT(!localMedia.rtpNums.empty());
@@ -385,7 +371,8 @@ void MediaManager::removeParticipant(uint32_t sessionID)
 }
 
 
-void MediaManager::iceSucceeded(uint32_t sessionID, MediaInfo local, MediaInfo remote)
+void MediaManager::iceSucceeded(const MediaID& id, uint32_t sessionID,
+                                MediaInfo local, MediaInfo remote)
 {
   if (participants_.find(sessionID) == participants_.end())
   {
@@ -400,20 +387,36 @@ void MediaManager::iceSucceeded(uint32_t sessionID, MediaInfo local, MediaInfo r
 
   if (local.type == "video")
   {
-    view = reserveView(participants_[sessionID]);
+    for (auto& media : participants_[sessionID].allIDs)
+    {
+      if (media == id)
+      {
+        view = viewFactory_->getVideo(media);
+        if (view == nullptr)
+        {
+            Logger::getLogger()->printProgramError(this, "Media view was not set correctly");
+            return;
+        }
+        break;
+      }
+    }
+
+    if (view == nullptr)
+    {
+      Logger::getLogger()->printProgramError(this, "Could not find a view for media");
+      return;
+    }
   }
 
-  createMediaPair(sessionID, local, remote,
-                  view,
-                  participants_[sessionID].followOurSDP);
+  createMediaPair(sessionID, id, local, remote, view);
 }
 
 
-void MediaManager::iceFailed(uint32_t sessionID, MediaInfo local, MediaInfo remote)
+void MediaManager::iceFailed(const MediaID &id, uint32_t sessionID)
 {
   Logger::getLogger()->printError(this, "ICE failed, removing participant");
 
-  // the participant is removed later
+  // the participant is removed later by receiver of this signal
   emit iceMediaFailed(sessionID);
 }
 
@@ -506,28 +509,4 @@ bool MediaManager::sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
   }
 
   return true;
-}
-
-
-VideoInterface* MediaManager::reserveView(ParticipantMedia& media)
-{
-  if (media.freeViews.empty())
-  {
-    return nullptr;
-  }
-
-  VideoInterface* video = media.freeViews.back();
-  media.freeViews.pop_back();
-  media.reservedViews.push_back(video);
-
-  return video;
-}
-
-
-void MediaManager::freeViews(ParticipantMedia& media)
-{
-  media.freeViews.insert(media.freeViews.end(),
-                         media.reservedViews.begin(),
-                         media.reservedViews.end());
-  media.reservedViews.clear();
 }

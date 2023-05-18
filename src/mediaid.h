@@ -9,6 +9,12 @@ public:
   MediaID(const MediaInfo& media);
   ~MediaID();
 
+  void setReceive(bool status);
+  void setSend(bool status);
+
+  bool getReceive() const;
+  bool getSend() const;
+
   QString toString() const;
 
   uint32_t getID() const;
@@ -21,12 +27,14 @@ public:
   friend bool operator<(const MediaID& l, const MediaID& r);
 
 private:
-  //bool operator=(const MediaID& r);
 
   bool areMediasEqual(const MediaInfo &first, const MediaInfo &second) const;
 
   static uint64_t nextID_;
   uint64_t id_;
+
+  bool send_;
+  bool receive_;
 
   MediaInfo media_;
 };

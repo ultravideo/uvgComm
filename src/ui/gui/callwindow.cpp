@@ -228,15 +228,15 @@ void CallWindow::closeEvent(QCloseEvent *event)
 
 
 void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
-                                             uint32_t sessionID,
-                                             QList<SDPMediaParticipant>& medias)
+                             uint32_t sessionID, QStringList names,
+                             const QList<std::pair<MediaID,MediaID>> &audioVideoIDs)
 {
   // Allow user to end the call
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
 
   // if the number of required layouts has reduced
-  if (layoutIDs_[sessionID].size() > medias.size())
+  if (layoutIDs_[sessionID].size() > audioVideoIDs.size())
   {
     // find out which ones have disappeared
     std::vector<LayoutID> expiredIDs;
@@ -246,10 +246,10 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
     {
       bool expiredLayout = true; // assume the layout is not needed unless proven otherwise
 
-      for (auto& media : medias)
+      for (auto& mid : audioVideoIDs)
       {
           // this layout is still needed
-        if (layout.mediaID == media.id)
+          if (layout.mediaID == mid.second)
         {
           expiredLayout = false;
         }
@@ -279,13 +279,13 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
   else // add more medias if necessary and update current ones status
   {
     // add new medias
-    for (auto& media : medias)
+    for (auto& mid : audioVideoIDs)
     {
       bool newMedia = true; // assume this media is new one unless proven otherwise
 
       for (auto& layout : layoutIDs_[sessionID])
       {
-        if (layout.mediaID == media.id)
+        if (layout.mediaID == mid.second)
         {
           // we already have a layout location for this media
            newMedia = false;
@@ -310,27 +310,27 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
            id = conference_.createLayoutID();
         }
 
-        layoutIDs_[sessionID].push_back({id, media.id});
-        viewFactory->createWidget(sessionID, id, media.id);
+        layoutIDs_[sessionID].push_back({id, mid.second});
+        viewFactory->createWidget(sessionID, id, mid.second);
       }
     }
 
     // change the contents of layouts to medias
-    for (unsigned int i = 0; i < medias.size(); ++i)
+    for (unsigned int i = 0; i < audioVideoIDs.size(); ++i)
     {
       uint32_t layoutID = layoutIDs_[sessionID].at(i).layoutID;
 
-      if (medias.at(i).videoEnabled) // video or avatar
+      if (audioVideoIDs.at(i).second.getReceive()) // video or avatar
       {
         conference_.attachVideoWidget(layoutID, viewFactory->getView(layoutIDs_[sessionID].at(i).mediaID));
       }
       else
       {
-        conference_.attachAvatarWidget(layoutID, medias.at(i).name);
+        conference_.attachAvatarWidget(layoutID, names.at(i));
       }
 
       // update audio icon status
-      viewFactory->getVideo(layoutIDs_[sessionID].at(i).mediaID)->drawMicOffIcon(!medias.at(i).audioEnabled);
+      viewFactory->getVideo(layoutIDs_[sessionID].at(i).mediaID)->drawMicOffIcon(!audioVideoIDs.at(i).first.getReceive());
     }
   }
 }

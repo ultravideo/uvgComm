@@ -104,10 +104,15 @@ private:
 
   void checkBinding();
 
-  QList<SDPMediaParticipant> formUIMedias(QList<MediaInfo>& localMedia,
-                                          QList<MediaInfo> &attributeMedia,
-                                          bool followOurSDP,
-                                          uint32_t sessionID);
+  void updateMediaIDs(uint32_t sessionID,
+                      QList<MediaInfo>& localMedia,
+                      QList<MediaInfo>& remoteMedia,
+                      bool followOurSDP,
+                      QList<std::pair<MediaID, MediaID>>& audioVideoIDs, QList<MediaID>& allIDs);
+
+  void getMediaAttributes(const MediaInfo &local, const MediaInfo& remote,
+                          bool followOurSDP, bool &send,
+                          bool& receive);
 
   bool areWeFocus() const
   {

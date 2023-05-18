@@ -91,7 +91,7 @@ void KvazzupController::init()
   QObject::connect(&media_, &MediaManager::iceMediaFailed,
                    this, &KvazzupController::iceFailed);
 
-  media_.init(viewFactory_->getSelfVideos(), stats_);
+  media_.init(viewFactory_, stats_);
 
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
@@ -457,28 +457,22 @@ void KvazzupController::createCall(uint32_t sessionID)
     return;
   }
 
-  QList<SDPMediaParticipant> uiMedias;
+  QList<std::pair<MediaID, MediaID>> audioVideoIDs;
+  QList<MediaID> allIDs;
 
-  if (states_[sessionID].followOurSDP)
+  updateMediaIDs(sessionID, localSDP->media, remoteSDP->media,
+                 states_[sessionID].followOurSDP, audioVideoIDs, allIDs);
+
+  QStringList names;
+
+  // TODO: We should implement some way to have access
+  // to actual name of participant in conference call
+  for (auto& media : states_[sessionID].localSDP->media)
   {
-    Logger::getLogger()->printNormal(this, "Creating call using attributes from our SDP");
-    uiMedias = formUIMedias(localSDP->media, localSDP->media,
-                            states_[sessionID].followOurSDP, sessionID);
-  }
-  else
-  {
-    Logger::getLogger()->printNormal(this, "Creating call using attributes from remote SDP");
-    uiMedias = formUIMedias(localSDP->media, remoteSDP->media,
-                            states_[sessionID].followOurSDP, sessionID);
+    names.push_back(states_[sessionID].name);
   }
 
-  userInterface_.callStarted(viewFactory_, sessionID, uiMedias);
-  std::vector<VideoInterface*> videos;
-
-  for (auto& media : *sessionMedias_[sessionID])
-  {
-    videos.push_back(viewFactory_->getVideo(media));
-  }
+  userInterface_.callStarted(viewFactory_, sessionID, names, audioVideoIDs);
 
   if (!states_[sessionID].sessionRunning)
   {
@@ -487,7 +481,7 @@ void KvazzupController::createCall(uint32_t sessionID)
       stats_->addSession(sessionID);
     }
 
-    media_.addParticipant(sessionID, remoteSDP, localSDP, videos,
+    media_.addParticipant(sessionID, remoteSDP, localSDP, allIDs,
                           states_[sessionID].iceController,
                           states_[sessionID].followOurSDP);
 
@@ -495,7 +489,7 @@ void KvazzupController::createCall(uint32_t sessionID)
    }
   else
   {
-    media_.modifyParticipant(sessionID, remoteSDP, localSDP, videos,
+    media_.modifyParticipant(sessionID, remoteSDP, localSDP, allIDs,
                              states_[sessionID].iceController,
                              states_[sessionID].followOurSDP);
   }
@@ -506,63 +500,55 @@ void KvazzupController::createCall(uint32_t sessionID)
 }
 
 
-QList<SDPMediaParticipant> KvazzupController::formUIMedias(QList<MediaInfo>& localMedia,
-                                                           QList<MediaInfo>& attributeMedia,
-                                                           bool followOurSDP,
-                                                           uint32_t sessionID)
+void KvazzupController::updateMediaIDs(uint32_t sessionID,
+                                       QList<MediaInfo>& localMedia,
+                                       QList<MediaInfo>& remoteMedia,
+                                       bool followOurSDP,
+                                       QList<std::pair<MediaID, MediaID>> &audioVideoIDs,
+                                       QList<MediaID>& allIDs)
 {
-  bool videoEnabled = false;
-  bool audioEnabled = false;
+  Q_ASSERT(localMedia.size() == remoteMedia.size());
 
-  QList<SDPMediaParticipant> uiMedias;
-
-  // TODO: Use lipsync to determine pairs
-  for (int i = 0; i < attributeMedia.size(); i += 2)
+  // first we set correct attributes
+  for (int i = 0; i < localMedia.size(); i += 1)
   {
+    bool send = false;
+    bool receive = false;
+
     if (!localMedia.at(i).candidates.empty() &&
         isLocalCandidate(localMedia.at(i).candidates.first()))
     {
-      if (attributeMedia.at(i).type == "audio")
-      {
-        audioEnabled = getReceiveAttribute(attributeMedia.at(i), followOurSDP);
-      }
-      else if (attributeMedia.at(i).type == "video")
-      {
-        videoEnabled = getReceiveAttribute(attributeMedia.at(i), followOurSDP);
-      }
+      getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
 
-      if (attributeMedia.at(i + 1).type == "audio")
-      {
-        audioEnabled = getReceiveAttribute(attributeMedia.at(i + 1), followOurSDP);
-      }
-      else if (attributeMedia.at(i + 1).type == "video")
-      {
-        videoEnabled = getReceiveAttribute(attributeMedia.at(i + 1), followOurSDP);
-      }
+      allIDs.push_back(getMediaID(sessionID, localMedia.at(i)));
 
-      uiMedias.push_back({getMediaID(sessionID, localMedia.at(i)),
-                          videoEnabled, audioEnabled, states_[sessionID].name});
+      allIDs.back().setReceive(receive);
+      allIDs.back().setSend(send);
     }
   }
 
-  QString videoState = "no";
-  QString audioState = "no";
-
-  if (videoEnabled)
+  // TODO: Use lipsync to determine pairs
+  for (int i = 0; i < allIDs.size(); i +=2)
   {
-    videoState = "yes";
+    audioVideoIDs.push_back({allIDs.at(i), allIDs.at(i + 1)});
   }
+}
 
-  if (audioEnabled)
+
+void KvazzupController::getMediaAttributes(const MediaInfo &local, const MediaInfo &remote,
+                                           bool followOurSDP,
+                                           bool& send, bool& receive)
+{
+  if (followOurSDP)
   {
-    audioState = "yes";
+    receive = getReceiveAttribute(local, followOurSDP);
+    send =    getSendAttribute(local, followOurSDP);
   }
-
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating call media",
-                                  {"Video Enabled", "Audio Enabled"},
-                                  {videoState, audioState});
-
-  return uiMedias;
+  else
+  {
+    receive = getReceiveAttribute(remote, followOurSDP);
+    send =    getSendAttribute(remote, followOurSDP);
+  }
 }
 
 

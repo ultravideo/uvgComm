@@ -129,10 +129,10 @@ void UIManager::displayIncomingCall(uint32_t sessionID, QString caller)
 
 // adds video stream to view
 void UIManager::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
-                                                    uint32_t sessionID,
-                                                    QList<SDPMediaParticipant> &medias)
+                            uint32_t sessionID, QStringList names,
+                            const QList<std::pair<MediaID, MediaID> > &audioVideoIDs)
 {
-  return window_.callStarted(viewFactory, sessionID, medias);
+  return window_.callStarted(viewFactory, sessionID, names, audioVideoIDs);
 }
 
 

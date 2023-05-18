@@ -6,12 +6,38 @@ uint64_t MediaID::nextID_ = 1;
 
 MediaID::MediaID(const MediaInfo &media):
     id_(++nextID_),
+    send_(true),
+    receive_(true),
     media_(media)
 {}
 
 
 MediaID::~MediaID()
 {}
+
+
+void MediaID::setReceive(bool status)
+{
+  receive_ = status;
+}
+
+
+void MediaID::setSend(bool status)
+{
+  send_ = status;
+}
+
+
+bool MediaID::getReceive() const
+{
+  return receive_;
+}
+
+
+bool MediaID::getSend() const
+{
+  return send_;
+}
 
 
 QString MediaID::toString() const

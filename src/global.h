@@ -48,13 +48,5 @@ const uint16_t MAX_ICE_PORT   = 24000;
 #endif
 
 
-struct SDPMediaParticipant
-{
-  MediaID id;
-  bool videoEnabled;
-  bool audioEnabled;
-  QString name;
-};
-
 // type for conference layout location
 typedef uint32_t LayoutID;

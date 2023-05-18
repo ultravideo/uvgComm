@@ -36,8 +36,8 @@ public:
 
   // adds video stream to view
   void callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
-                                            uint32_t sessionID,
-                                            QList<SDPMediaParticipant>& medias);
+                   uint32_t sessionID, QStringList names,
+                   const QList<std::pair<MediaID, MediaID> > &audioVideoIDs);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);

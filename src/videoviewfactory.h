@@ -28,11 +28,11 @@ public:
   // set self view
   void addSelfview(VideoWidget* view);
 
-  void createWidget(uint32_t sessionID, LayoutID layoutID, MediaID& id);
+  void createWidget(uint32_t sessionID, LayoutID layoutID, const MediaID &id);
 
   // id is the index of that view or video
   QWidget*        getView  (MediaID& id);
-  VideoInterface* getVideo (MediaID& id);
+  VideoInterface* getVideo (const MediaID &id);
 
   QList<QWidget*>        getSelfViews();
   QList<VideoInterface*> getSelfVideos();

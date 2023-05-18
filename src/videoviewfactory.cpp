@@ -62,7 +62,7 @@ QWidget* VideoviewFactory::getView(MediaID& id)
 }
 
 
-VideoInterface* VideoviewFactory::getVideo(MediaID &id)
+VideoInterface* VideoviewFactory::getVideo(const MediaID &id)
 {
   return mediaIDtoVideolist_[id];
 }
@@ -90,7 +90,7 @@ void VideoviewFactory::clearWidgets(MediaID &id)
 }
 
 
-void VideoviewFactory::createWidget(uint32_t sessionID, LayoutID layoutID, MediaID& id)
+void VideoviewFactory::createWidget(uint32_t sessionID, LayoutID layoutID, const MediaID& id)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "View Factory",
                                   "Creating videoWidget", {"videoID"}, {id.toString()});
