@@ -412,7 +412,8 @@ void CallWindow::removeParticipant(uint32_t sessionID)
 void CallWindow::removeWithMessage(uint32_t sessionID, QString message,
                                    bool temporaryMessage)
 {
-  if (layoutExists(sessionID))
+
+  if (layoutIDs_.find(sessionID) != layoutIDs_.end())
   {
     for (auto& layoutID : layoutIDs_.at(sessionID))
     {
@@ -423,15 +424,15 @@ void CallWindow::removeWithMessage(uint32_t sessionID, QString message,
         expiringLayouts_.push_back(layoutID.layoutID);
       }
     }
+  }
 
-    LayoutID id;
-    if (getTempLayoutID(id, sessionID))
+  LayoutID id;
+  if (getTempLayoutID(id, sessionID))
+  {
+    conference_.attachMessageWidget(id, message, !temporaryMessage);
+    if (temporaryMessage)
     {
-      conference_.attachMessageWidget(id, message, !temporaryMessage);
-      if (temporaryMessage)
-      {
-        expiringLayouts_.push_back(id);
-      }
+      expiringLayouts_.push_back(id);
     }
   }
 
