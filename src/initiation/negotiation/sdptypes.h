@@ -38,8 +38,10 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_QUALITY,
                       A_FMTP,
                       A_CANDIDATE,
-                      A_LABEL,    // RFC 4574
-                      A_ZRTP_HASH // RFC 6189
+                      A_LABEL,       // RFC 4574
+                      A_ZRTP_HASH,   // RFC 6189
+                      A_SSRC,        // RFC 5576
+                      A_SSRC_GROUP   // RFC 5576
                      };
 
 struct SDPAttribute
