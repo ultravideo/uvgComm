@@ -16,6 +16,12 @@ const int STUN_INTERVAL_PERIOD = 100;
 
 const int NUMBER_OF_POSSIBLE_PORTS = 1000;
 
+#ifdef KVAZZUP_RTP_MULTIPLEXING
+const bool RTP_MULTIPLEXING = true;
+#else
+const bool RTP_MULTIPLEXING = false;
+#endif
+
 
 NetworkCandidates::NetworkCandidates():
   requests_(),
@@ -263,10 +269,18 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::loc
   {
     if (isPrivateNetwork(interface.first.toStdString()) && availablePorts_[interface.first].size() >= streams)
     {
+
       for (unsigned int i = 0; i < streams; ++i)
       {
-        addresses->push_back({QHostAddress(interface.first),
-                              nextAvailablePort(interface.first, sessionID)});
+        if (!RTP_MULTIPLEXING)
+        {
+          addresses->push_back({QHostAddress(interface.first),
+                                nextAvailablePort(interface.first, sessionID)});
+        }
+        else
+        {
+          addresses->push_back({QHostAddress(interface.first),interface.second.at(i)});
+        }
       }
     }
   }
@@ -289,8 +303,15 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::glo
     {
       for (unsigned int i = 0; i < streams; ++i)
       {
-        addresses->push_back({QHostAddress(interface.first),
-                              nextAvailablePort(interface.first, sessionID)});
+        if (!RTP_MULTIPLEXING)
+        {
+          addresses->push_back({QHostAddress(interface.first),
+                                nextAvailablePort(interface.first, sessionID)});
+        }
+        else
+        {
+          addresses->push_back({QHostAddress(interface.first),interface.second.at(i)});
+        }
       }
     }
   }
@@ -334,11 +355,18 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
     {
       for (unsigned int i = 0; i < streams; ++i)
       {
-        std::pair<QHostAddress, uint16_t> address = stunAddresses_.front();
-        stunAddresses_.pop_front();
-        addresses->push_back(address);
+        if (!RTP_MULTIPLEXING)
+        {
+          std::pair<QHostAddress, uint16_t> address = stunAddresses_.front();
+          stunAddresses_.pop_front();
+          addresses->push_back(address);
+        }
+        else
+        {
+          std::pair<QHostAddress, uint16_t> address = stunAddresses_.at(i);
+          addresses->push_back(address);
+        }
       }
-
     }
     else
     {
@@ -376,13 +404,21 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
     {
       for (unsigned int i = 0; i < streams; ++i)
       {
-        std::pair<QHostAddress, uint16_t> address = stunBindings_.front();
-        stunBindings_.pop_front();
+        if (!RTP_MULTIPLEXING)
+        {
+          std::pair<QHostAddress, uint16_t> address = stunBindings_.front();
+          stunBindings_.pop_front();
 
-        addresses->push_back(address);
+          addresses->push_back(address);
 
-        reservedPorts_[sessionID].push_back(
-              std::pair<QString, uint16_t>({address.first.toString(), address.second}));
+          reservedPorts_[sessionID].push_back(
+                std::pair<QString, uint16_t>({address.first.toString(), address.second}));
+        }
+        else
+        {
+          std::pair<QHostAddress, uint16_t> address = stunBindings_.at(i);
+          addresses->push_back(address);
+        }
       }
     }
     else
@@ -433,6 +469,7 @@ uint16_t NetworkCandidates::nextAvailablePort(QString interface, uint32_t sessio
   availablePorts_[interface].pop_front();
   reservedPorts_[sessionID].push_back(std::pair<QString, uint16_t>(interface, nextPort));
 
+
   // TODO: Check that port works.
   portLock_.unlock();
 
@@ -462,8 +499,11 @@ void NetworkCandidates::cleanupSession(uint32_t sessionID)
 {
   if (reservedPorts_.find(sessionID) == reservedPorts_.end())
   {
-    Logger::getLogger()->printWarning(this, "Tried to cleanup session "
-                                            "with no reserved ports");
+    if (!RTP_MULTIPLEXING)
+    {
+      Logger::getLogger()->printWarning(this, "Tried to cleanup session "
+                                              "with no reserved ports");
+    }
     return;
   }
 

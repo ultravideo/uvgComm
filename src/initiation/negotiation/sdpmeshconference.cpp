@@ -15,6 +15,7 @@ void SDPMeshConference::setConferenceMode(MeshType type)
   type_ = type;
 }
 
+
 void SDPMeshConference::uninit()
 {
   singleSDPTemplates_.clear();
@@ -28,47 +29,10 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp)
   *referenceSDP = sdp;
   singleSDPTemplates_[sessionID] = referenceSDP;
 
-  if (singleSDPTemplates_[sessionID]->media.size() > 2)
+  while (singleSDPTemplates_[sessionID]->media.size() > 2)
   {
-    for(int i = 0;  i < LOCAL_MEDIAS; ++i)
-    {
-      // remove media meant for us
-      singleSDPTemplates_[sessionID]->media.pop_front();
-    }
-  }
-
-  // we remove medias that are duplicates, duplicates happen in multiplexed RTP sessions
-  // since all media will use the same address/port combination
-  std::vector<int> toDelete;
-  for (unsigned int i = 1; i < singleSDPTemplates_[sessionID]->media.size(); ++i)
-  {
-    bool alreadyExists = false;
-
-    for (unsigned int j = 0; j < i; ++j)
-    {
-      if (areMediasEqual(singleSDPTemplates_[sessionID]->media.at(i),
-                         singleSDPTemplates_[sessionID]->media.at(j)) &&
-          !singleSDPTemplates_[sessionID]->media.at(i).candidates.empty() &&
-          singleSDPTemplates_[sessionID]->media.at(i).candidates.size() ==
-          singleSDPTemplates_[sessionID]->media.at(j).candidates.size() &&
-          sameCandidate(singleSDPTemplates_[sessionID]->media.at(i).candidates.first(),
-                        singleSDPTemplates_[sessionID]->media.at(j).candidates.first()))
-      {
-        alreadyExists = true;
-        break;
-      }
-    }
-
-    if (alreadyExists)
-    {
-      toDelete.push_back(i);
-    }
-  }
-
-  for (int i = toDelete.size() - 1; i >= 0; --i)
-  {
-    singleSDPTemplates_[sessionID]->media.erase(singleSDPTemplates_[sessionID]->media.begin() +
-                                                toDelete.at(i));
+    // remove media meant for us
+    singleSDPTemplates_[sessionID]->media.pop_front();
   }
 }
 
@@ -106,7 +70,13 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
     }
     case MESH_WITHOUT_RTP_MULTIPLEXING:
     {
-    // TODO: Add all required medias (non-sessionID) and add suitable ICE candidates for those medias
+      if (meshSDP->media.size() > 2)
+      {
+        for (unsigned int i = meshSDP->media.size(); i > 2; --i)
+        {
+          meshSDP->media.pop_back();
+        }
+      }
 
       for (auto& session : singleSDPTemplates_)
       {

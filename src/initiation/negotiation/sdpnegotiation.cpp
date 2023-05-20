@@ -27,6 +27,7 @@ SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
   setBaseSDP(localSDP);
 }
 
+
 void SDPNegotiation::setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP)
 {
   setSDPAddress(localAddress_,
@@ -35,6 +36,7 @@ void SDPNegotiation::setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP)
                 localSDP->connection_addrtype);
 
   generateOrigin(localSDP, localAddress_, getLocalUsername());
+
   localbaseSDP_ = localSDP;
 }
 
@@ -241,7 +243,7 @@ bool SDPNegotiation::processOfferSDP(QVariant& content)
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
- sdpConf_->addRemoteSDP(sessionID_, retrieved);
+  sdpConf_->addRemoteSDP(sessionID_, retrieved);
 
   // get our final SDP, which is later sent to them
   localSDP_ = findCommonSDP(*localbaseSDP_.get(), retrieved);
@@ -384,7 +386,7 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
       MediaInfo resultMedia;
 
       resultMedia.type = comparedSDP.media.at(i).type;
-      resultMedia.receivePort = 0; // TODO: ICE Should set this to one of its candidates, 0 means it is rejected
+      resultMedia.receivePort = 0; // ICE sets this to one of its candidates
       resultMedia.title = comparedSDP.media.at(i).title;
 
       resultMedia.proto = baseSDP.media.at(matches.at(i)).proto;
