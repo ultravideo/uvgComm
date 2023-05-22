@@ -8,6 +8,7 @@
 #include "logger.h"
 
 #include <QVariant>
+#include <random>
 
 SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
                                std::shared_ptr<SDPMessageInfo> localSDP,
@@ -16,6 +17,8 @@ SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
   localbaseSDP_(nullptr),
   localSDP_(nullptr),
   remoteSDP_(nullptr),
+  audioSSRC_(generateSSRC()),
+  videoSSRC_(generateSSRC()),
   negotiationState_(NEG_NO_STATE),
   peerAcceptsSDP_(false),
   sdpConf_(sdpConf)
@@ -179,6 +182,17 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
     return false;
   }
 
+  for (auto& media : ourSDP->media)
+  {
+    if (media.type == "audio")
+    {
+      media.valueAttributes.push_back({A_SSRC, QString::number(audioSSRC_)});
+    }
+    else
+    {
+      media.valueAttributes.push_back({A_SSRC, QString::number(videoSSRC_)});
+    }
+  }
   ourSDP = sdpConf_->getMeshSDP(sessionID_, ourSDP);
 
   Q_ASSERT(ourSDP != nullptr);
@@ -554,3 +568,12 @@ SDPAttributeType SDPNegotiation::findStatusAttribute(const QList<SDPAttributeTyp
 
   return A_NO_ATTRIBUTE;
 }
+
+uint32_t SDPNegotiation::generateSSRC()
+{
+  std::mt19937 rng{std::random_device{}()};
+  std::uniform_int_distribution<uint32_t> gen32_dist{0, UINT32_MAX};
+
+  return gen32_dist(rng);
+}
+

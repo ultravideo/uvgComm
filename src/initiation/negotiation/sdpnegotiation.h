@@ -87,11 +87,16 @@ private:
 
   SDPAttributeType findStatusAttribute(const QList<SDPAttributeType>& attributes) const;
 
+  uint32_t generateSSRC();
+
   uint32_t sessionID_;
 
   std::shared_ptr<SDPMessageInfo> localbaseSDP_;
   std::shared_ptr<SDPMessageInfo> localSDP_;
   std::shared_ptr<SDPMessageInfo> remoteSDP_;
+
+  uint32_t audioSSRC_;
+  uint32_t videoSSRC_;
 
   NegotiationState negotiationState_;
 
