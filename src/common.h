@@ -1,6 +1,7 @@
 #pragma once
 
 #include "icetypes.h"
+#include "qhostaddress.h"
 
 #include <QString>
 
@@ -43,3 +44,9 @@ bool sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
                    std::shared_ptr<ICEInfo> secondCandidate);
 
 void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates);
+
+
+// helper functions that get either actual address/port or
+// relay address/port if needed
+QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info);
+quint16 getLocalPort(std::shared_ptr<ICEInfo> info);

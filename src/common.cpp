@@ -250,3 +250,34 @@ void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Common", text, names, values);
 }
+
+
+
+QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info)
+{
+  // use relay address
+  if (info->type != "host" &&
+      info->rel_address != "" &&
+      info->rel_port != 0)
+  {
+    return QHostAddress(info->rel_address);
+  }
+
+         // don't use relay address
+  return QHostAddress(info->address);
+}
+
+
+quint16 getLocalPort(std::shared_ptr<ICEInfo> info)
+{
+  // use relay port
+  if (info->type != "host" &&
+      info->rel_address != "" &&
+      info->rel_port != 0)
+  {
+    return info->rel_port;
+  }
+
+         // don't use relay port
+  return info->port;
+}
