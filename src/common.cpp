@@ -90,6 +90,11 @@ bool isLocalCandidate(std::shared_ptr<ICEInfo> info)
     candidateAddress = info->rel_address;
   }
 
+  return isLocalAddress(candidateAddress);
+}
+
+bool isLocalAddress(QString candidateAddress)
+{
   for (const QHostAddress& localInterface : QNetworkInterface::allAddresses())
   {
     if (localInterface.toString() == candidateAddress)

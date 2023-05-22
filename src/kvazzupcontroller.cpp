@@ -79,6 +79,8 @@ void KvazzupController::init()
   sip_.init(stats_);
   sip_.listenToAny(SIP_TCP, 5060);
 
+  sip_.enableICE(settingEnabled(SettingsKey::sipICEEnabled));
+
   checkBinding();
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
@@ -96,7 +98,7 @@ void KvazzupController::init()
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
   QObject::connect(&userInterface_, &UIManager::updateCallSettings,
-                   &sip_, &SIPManager::updateCallSettings);
+                   this, &KvazzupController::updateCallSettings);
 
   QObject::connect(&userInterface_, &UIManager::updateVideoSettings,
                    this, &KvazzupController::updateVideoSettings);
@@ -300,6 +302,8 @@ void KvazzupController::updateCallSettings()
 {
   checkBinding();
   sip_.updateCallSettings();
+
+  sip_.enableICE(settingEnabled(SettingsKey::sipICEEnabled));
 }
 
 
@@ -515,8 +519,19 @@ void KvazzupController::updateMediaIDs(uint32_t sessionID,
     bool send = false;
     bool receive = false;
 
-    if (!localMedia.at(i).candidates.empty() &&
-        isLocalCandidate(localMedia.at(i).candidates.first()))
+    if (!localMedia.at(i).candidates.empty())
+    {
+      if (isLocalCandidate(localMedia.at(i).candidates.first()))
+      {
+        getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
+
+        allIDs.push_back(getMediaID(sessionID, localMedia.at(i)));
+
+        allIDs.back().setReceive(receive);
+        allIDs.back().setSend(send);
+      }
+    }
+    else if (isLocalAddress(localMedia.at(i).connection_address))
     {
       getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
 

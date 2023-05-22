@@ -4,11 +4,12 @@
 
 #include <QTime>
 
-SDPICE::SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID):
+SDPICE::SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID, bool useICE):
   sessionID_(sessionID),
   networkCandidates_(candidates),
-  peerSupportsICE_(false),
-  mediaLimit_(-1)
+  peerSupportsICE_(true), // we assume that peer suppports ICE unless proven otherwise
+  mediaLimit_(-1),
+  useICE_(useICE)
 {}
 
 void SDPICE::uninit()
@@ -23,6 +24,7 @@ void SDPICE::limitMediaCandidates(int limit)
   mediaLimit_ = limit;
 }
 
+
 void SDPICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
   Logger::getLogger()->printNormal(this, "Processing outgoing request");
@@ -30,7 +32,10 @@ void SDPICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
   // Add ice as supported module so the other one can anticipate need for ice
   if (request.method == SIP_INVITE || request.method == SIP_OPTIONS)
   {
-    addICEToSupported(request.message->supported);
+    if (useICE_)
+    {
+      addICEToSupported(request.message->supported);
+    }
   }
 
   if ((request.method == SIP_INVITE ||
@@ -48,10 +53,13 @@ void SDPICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
 {
   if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
-    addICEToSupported(response.message->supported);
+    if (useICE_)
+    {
+      addICEToSupported(response.message->supported);
+    }
   }
 
-  if (peerSupportsICE_ && response.message->contentType == MT_APPLICATION_SDP)
+  if (response.message->contentType == MT_APPLICATION_SDP)
   {
     addLocalCandidatesToSDP(content);
   }
@@ -153,14 +161,52 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
     existingturnCandidates_.push_back(networkCandidates_->turnCandidates(neededComponents, sessionID_));
   }
 
-  // transform network addresses into ICE candidates
-  media.candidates += generateICECandidates(existingLocalCandidates_[mediaIndex], existingGlobalCandidates_[mediaIndex],
-                                            existingStunCandidates_[mediaIndex],  existingStunBindings_[mediaIndex],
-                                            existingturnCandidates_[mediaIndex], neededComponents);
-
-  if (!media.candidates.empty())
+  if (useICE_ && peerSupportsICE_)
   {
-    media.receivePort = media.candidates.first()->port;
+    // transform network addresses into ICE candidates
+    media.candidates += generateICECandidates(
+      existingLocalCandidates_[mediaIndex],
+      existingGlobalCandidates_[mediaIndex],
+      existingStunCandidates_[mediaIndex], existingStunBindings_[mediaIndex],
+      existingturnCandidates_[mediaIndex], neededComponents);
+
+    if (!media.candidates.empty()) {
+      media.receivePort = media.candidates.first()->port;
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Settings connection addresses directly instead of ICE candidates");
+    if (!existingLocalCandidates_[mediaIndex]->empty())
+    {
+      media.connection_address = existingLocalCandidates_[mediaIndex]->first().first.toString();
+      media.receivePort = existingLocalCandidates_[mediaIndex]->first().second;
+      media.connection_nettype = "IN";
+
+      if (existingLocalCandidates_[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv4Protocol)
+      {
+        media.connection_addrtype = "IP4";
+      }
+      else if (existingLocalCandidates_[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv6Protocol)
+      {
+        media.connection_addrtype = "IP6";
+      }
+    }
+    else if (!existingGlobalCandidates_[mediaIndex]->empty())
+    {
+      media.connection_address = existingGlobalCandidates_[mediaIndex]->first().first.toString();
+      media.receivePort = existingGlobalCandidates_[mediaIndex]->first().second;
+      media.connection_nettype = "IN";
+
+      if (existingGlobalCandidates_[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv4Protocol)
+      {
+        media.connection_addrtype = "IP4";
+      }
+      else if (existingGlobalCandidates_[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv6Protocol)
+      {
+        media.connection_addrtype = "IP6";
+      }
+    }
   }
 }
 

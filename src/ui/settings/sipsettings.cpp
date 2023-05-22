@@ -13,6 +13,7 @@
 const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipP2PConferencing,
                                     SettingsKey::sipMediaPort,
+                                    SettingsKey::sipICEEnabled,
                                     SettingsKey::sipSTUNEnabled,
                                     SettingsKey::sipSTUNAddress,
                                     SettingsKey::sipSTUNPort,
@@ -172,14 +173,13 @@ void SIPSettings::on_addUserBlock_clicked()
 
 void SIPSettings::saveAdvancedSettings()
 {
-  Logger::getLogger()->printNormal(this, "Saving SIP settings");
-
   listGUIToSettings(blocklistFile, SettingsKey::blocklist,
                     QStringList() << "userName" << "date", advancedUI_->blockedUsers);
 
   // sip settings.
   saveCheckBox(SettingsKey::localAutoAccept,     advancedUI_->auto_accept, settings_);
   saveCheckBox(SettingsKey::sipSTUNEnabled,      advancedUI_->stun_enabled, settings_);
+  saveCheckBox(SettingsKey::sipICEEnabled,      advancedUI_->ice_checkbox, settings_);
   saveCheckBox(SettingsKey::sipSRTP,             advancedUI_->srtp_enabled, settings_);
   saveCheckBox(SettingsKey::sipP2PConferencing,  advancedUI_->p2p_conferencing, settings_);
 
@@ -200,6 +200,7 @@ void SIPSettings::restoreAdvancedSettings()
   {
     restoreCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings_);
     restoreCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
+    restoreCheckBox(SettingsKey::sipICEEnabled,     advancedUI_->ice_checkbox, settings_);
     restoreCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
     restoreCheckBox(SettingsKey::sipP2PConferencing, advancedUI_->p2p_conferencing, settings_);
 

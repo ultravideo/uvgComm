@@ -129,6 +129,8 @@ public:
 
   void clearCallbacks();
 
+  void enableICE(bool status);
+
 public slots:
   void updateCallSettings();
 
@@ -259,4 +261,6 @@ private:
   std::queue<uint32_t> dMessages_;
 
   std::shared_ptr<SDPMeshConference> sdpConf_;
+
+  bool useICE_;
 };
