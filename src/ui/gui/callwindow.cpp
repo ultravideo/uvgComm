@@ -315,22 +315,30 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
       }
     }
 
-    // change the contents of layouts to medias
-    for (unsigned int i = 0; i < audioVideoIDs.size(); ++i)
+    unsigned int layoutsUsed = audioVideoIDs.size();
+
+    if (layoutIDs_[sessionID].size() < layoutsUsed)
     {
+      Logger::getLogger()->printWarning(this, "Duplicate medias detected!");
+      layoutsUsed = layoutIDs_[sessionID].size();
+    }
+
+    // change the contents of layouts to medias
+    for (unsigned int i = 0; i < layoutsUsed; ++i) {
       uint32_t layoutID = layoutIDs_[sessionID].at(i).layoutID;
 
       if (audioVideoIDs.at(i).second.getReceive()) // video or avatar
       {
-        conference_.attachVideoWidget(layoutID, viewFactory->getView(layoutIDs_[sessionID].at(i).mediaID));
-      }
-      else
-      {
-        conference_.attachAvatarWidget(layoutID, names.at(i));
+         conference_.attachVideoWidget(
+           layoutID,
+           viewFactory->getView(layoutIDs_[sessionID].at(i).mediaID));
+      } else {
+         conference_.attachAvatarWidget(layoutID, names.at(i));
       }
 
       // update audio icon status
-      viewFactory->getVideo(layoutIDs_[sessionID].at(i).mediaID)->drawMicOffIcon(!audioVideoIDs.at(i).first.getReceive());
+      viewFactory->getVideo(layoutIDs_[sessionID].at(i).mediaID)
+        ->drawMicOffIcon(!audioVideoIDs.at(i).first.getReceive());
     }
   }
 }

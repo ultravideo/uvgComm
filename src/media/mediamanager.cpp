@@ -163,16 +163,20 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     participants_[sessionID].allIDs = allIDs;
     participants_[sessionID].followOurSDP = followOurSDP;
 
+     // in mesh conference host, we also have media meant for others, so we don't have and id for those
+    unsigned int idIndex = 0;
+
     // each media has its own separate ICE
     for (unsigned int i = 0; i < localInfo->media.size(); ++i)
     {
       // only test if this is a local candidate
       if (isLocalCandidate(localInfo->media.at(i).candidates.first()))
       {
-          participants_[sessionID].ice->startNomination(allIDs.at(i),
+          participants_[sessionID].ice->startNomination(allIDs.at(idIndex),
                                                         localInfo->media.at(i),
                                                         peerInfo->media.at(i),
                                                         iceController);
+        ++idIndex;
       }
     }
   }
@@ -181,10 +185,24 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     /* Not really used or tested branch, but its not much of a hassle to
      * attempt to support non-ICE implementations */
     Logger::getLogger()->printWarning(this, "Did not find any ICE candidates, not performing ICE");
-    for (unsigned int i = 0; i < localInfo->media.size(); ++i)
+
+    unsigned int medias = localInfo->media.size();
+
+    if (peerInfo->media.size() < medias)
     {
-      createMediaPair(sessionID, allIDs.at(i), localInfo->media.at(i), peerInfo->media.at(i),
-                      viewFactory_->getVideo(allIDs.at(i)));
+      Logger::getLogger()->printProgramError(this, "Different amount of medias in local vs peer");
+      medias = peerInfo->media.size();
+    }
+
+    unsigned int idIndex = 0;
+    for (unsigned int i = 0; i < medias; ++i)
+    {
+      if (isLocalAddress(localInfo->media.at(i).connection_address))
+      {
+          createMediaPair(sessionID, allIDs.at(idIndex), localInfo->media.at(i), peerInfo->media.at(i),
+                          viewFactory_->getVideo(allIDs.at(idIndex)));
+          ++idIndex;
+      }
     }
   }
 }

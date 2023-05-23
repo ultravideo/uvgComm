@@ -461,6 +461,30 @@ void KvazzupController::createCall(uint32_t sessionID)
     return;
   }
 
+  if (localSDP->media.size() != remoteSDP->media.size())
+  {
+    Logger::getLogger()->printError(this, "The SDPs have different amount of medias");
+    return;
+  }
+
+  // Here we remove media which is not ours. This happens in mesh conference, when we are the host
+  std::vector<unsigned int> toDelete;
+  for (unsigned int index = 0; index < localSDP->media.size(); ++index)
+  {
+    if (!isLocalAddress(localSDP->media.at(index).connection_address))
+    {
+      toDelete.push_back(index);
+    }
+  }
+
+  for (unsigned int j = toDelete.size(); j > 0; --j)
+  {
+    unsigned int index = toDelete.at(j - 1);
+
+    localSDP->media.erase(localSDP->media.begin() + index);
+    remoteSDP->media.erase(remoteSDP->media.begin() + index);
+  }
+
   QList<std::pair<MediaID, MediaID>> audioVideoIDs;
   QList<MediaID> allIDs;
 
@@ -513,6 +537,9 @@ void KvazzupController::updateMediaIDs(uint32_t sessionID,
 {
   Q_ASSERT(localMedia.size() == remoteMedia.size());
 
+  Logger::getLogger()->printNormal(this, "Getting mediaIDs for " +
+                                           QString::number(localMedia.size()) + " medias");
+
   // first we set correct attributes
   for (int i = 0; i < localMedia.size(); i += 1)
   {
@@ -521,7 +548,7 @@ void KvazzupController::updateMediaIDs(uint32_t sessionID,
 
     if (!localMedia.at(i).candidates.empty())
     {
-      if (isLocalCandidate(localMedia.at(i).candidates.first()))
+      if (isLocalCandidate(localMedia.at(i).candidates.first())) // if we are using ICE
       {
         getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
 
@@ -531,7 +558,7 @@ void KvazzupController::updateMediaIDs(uint32_t sessionID,
         allIDs.back().setSend(send);
       }
     }
-    else if (isLocalAddress(localMedia.at(i).connection_address))
+    else if (isLocalAddress(localMedia.at(i).connection_address)) // if we are not using ICE
     {
       getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
 
@@ -539,6 +566,11 @@ void KvazzupController::updateMediaIDs(uint32_t sessionID,
 
       allIDs.back().setReceive(receive);
       allIDs.back().setSend(send);
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Remote candidate, not processing. Happens when we are the conference host",
+                                       "Address", localMedia.at(i).connection_address);
     }
   }
 
@@ -577,6 +609,8 @@ MediaID KvazzupController::getMediaID(uint32_t sessionID, const MediaInfo &media
     {
       if (sMedia == media)
       {
+        Logger::getLogger()->printNormal(this, "Using existing MediaID",
+                                         "Media type", media.type);
         return sMedia;
       }
     }
@@ -586,6 +620,9 @@ MediaID KvazzupController::getMediaID(uint32_t sessionID, const MediaInfo &media
     sessionMedias_[sessionID] =
       std::shared_ptr<std::vector<MediaID>>(new std::vector<MediaID>());
   }
+
+  Logger::getLogger()->printNormal(this, "Creating a new MediaID",
+                                   "Media Type", media.type);
 
   // create a new ID for this media
   sessionMedias_[sessionID]->push_back(MediaID(media));
