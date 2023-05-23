@@ -286,3 +286,17 @@ quint16 getLocalPort(std::shared_ptr<ICEInfo> info)
          // don't use relay port
   return info->port;
 }
+
+
+uint32_t findSSRC(const MediaInfo &media)
+{
+  for (auto& attribute : media.valueAttributes)
+  {
+    if (attribute.type == A_SSRC)
+    {
+      return attribute.value.toULong();
+    }
+  }
+
+  return 0;
+}

@@ -136,7 +136,8 @@ void Delivery::parseCodecString(QString codec, rtp_format_t& fmt,
 std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
                                                 QString localAddress, QString remoteAddress,
                                                 uint16_t localPort, uint16_t peerPort,
-                                                QString codec, uint8_t rtpNum)
+                                                QString codec, uint8_t rtpNum,
+                                                uint32_t localSSRC, uint32_t remoteSSRC)
 {
   Q_UNUSED(rtpNum); // TODO in uvgRTP
 
@@ -176,7 +177,8 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
                                                        hwResources_,
                                                        type,
                                                        mediaName,
-                                                       peers_[sessionID]->sessions.at(sessionIndex).streams[localPort]->stream));
+                                                       peers_[sessionID]->sessions.at(sessionIndex).streams[localPort]->stream,
+                                                     localSSRC, remoteSSRC));
 
     connect(
       peers_[sessionID]->sessions.at(sessionIndex).streams[localPort]->sender.get(),
@@ -195,7 +197,8 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
 std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
                                                    QString localAddress, QString remoteAddress,
                                                    uint16_t localPort, uint16_t peerPort,
-                                                   QString codec, uint8_t rtpNum)
+                                                   QString codec, uint8_t rtpNum,
+                                                   uint32_t localSSRC, uint32_t remoteSSRC)
 {
   Q_UNUSED(rtpNum); // TODO in uvgRTP
 
@@ -237,7 +240,8 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
           hwResources_,
           type,
           mediaName,
-          peers_[sessionID]->sessions.at(sessionIndex).streams[localPort]->stream
+          peers_[sessionID]->sessions.at(sessionIndex).streams[localPort]->stream,
+          localSSRC, remoteSSRC
         )
     );
 

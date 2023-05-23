@@ -231,12 +231,16 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
      remoteMedia.proto == "RTP/SAVP" ||
      remoteMedia.proto == "RTP/SAVPF")
   {
+    uint32_t localSSRC = findSSRC(localMedia);
+    uint32_t remoteSSRC = findSSRC(remoteMedia);
+
     senderFilter = streamer_->addSendStream(sessionID,
                                             localMedia.connection_address,
                                             remoteMedia.connection_address,
                                             localMedia.receivePort,
                                             remoteMedia.receivePort,
-                                            codec, remoteMedia.rtpNums.at(0));
+                                            codec, remoteMedia.rtpNums.at(0),
+                                            localSSRC, remoteSSRC);
   }
   else
   {
@@ -300,12 +304,15 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
      localMedia.proto == "RTP/SAVP" ||
      localMedia.proto == "RTP/SAVPF")
   {
+    uint32_t localSSRC = findSSRC(localMedia);
+    uint32_t remoteSSRC = findSSRC(remoteMedia);
+
     receiverFilter = streamer_->addReceiveStream(sessionID,
                                                  localMedia.connection_address,
                                                  remoteMedia.connection_address,
                                                  localMedia.receivePort,
                                                  remoteMedia.receivePort,
-                                                 codec, localMedia.rtpNums.at(0));
+                                                 codec, localMedia.rtpNums.at(0), localSSRC, remoteSSRC);
   }
   else
   {

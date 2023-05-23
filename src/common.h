@@ -51,3 +51,5 @@ void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates
 // relay address/port if needed
 QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info);
 quint16 getLocalPort(std::shared_ptr<ICEInfo> info);
+
+uint32_t findSSRC(const MediaInfo &media);

@@ -1,5 +1,6 @@
-
 #include "mediaid.h"
+
+#include "common.h"
 
 uint64_t MediaID::nextID_ = 1;
 
@@ -84,7 +85,8 @@ bool operator<(const MediaID& l, const MediaID& r)
 
 bool MediaID::areMediasEqual(const MediaInfo& first, const MediaInfo& second) const
 {
-  return first.type == second.type &&
+  return findSSRC(first) == findSSRC(second) &&
+         first.type == second.type &&
          first.receivePort == second.receivePort &&
          first.proto == second.proto &&
          first.connection_nettype == second.connection_nettype &&

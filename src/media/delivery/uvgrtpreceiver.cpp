@@ -25,13 +25,16 @@ static void __receiveHook(void *arg, uvg_rtp::frame::rtp_frame *frame)
 
 UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterface *stats,
                                std::shared_ptr<ResourceAllocator> hwResources,
-                               DataType type, QString media, QFuture<uvg_rtp::media_stream *> stream):
+                               DataType type, QString media, QFuture<uvg_rtp::media_stream *> stream,
+                               uint32_t localSSRC, uint32_t remoteSSRC):
   Filter(id, "RTP Receiver " + media, stats, hwResources, DT_NONE, type),
   discardUntilIntra_(false),
   lastSeq_(0),
   sessionID_(sessionID),
   watcher_(),
-  mstream_(nullptr)
+  mstream_(nullptr),
+  localSSRC_(localSSRC),
+  remoteSSRC_(remoteSSRC)
 {
   connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
           [this]()
@@ -46,6 +49,16 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
               mstream_->install_receive_hook(this, __receiveHook);
               mstream_->get_rtcp()->install_sender_hook(std::bind(&UvgRTPReceiver::processRTCPSenderReport,
                                                                            this, std::placeholders::_1 ));
+
+              if (localSSRC_ != 0)
+              {
+                mstream_->configure_ctx(RCC_SSRC, localSSRC_);
+              }
+
+              if (remoteSSRC_ != 0)
+              {
+                mstream_->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC_);
+              }
             }
           });
 
@@ -70,9 +83,14 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     return;
   }
 
+  //Logger::getLogger()->printNormal(this, "Got a packet", "SSRC", QString::number(frame->header.ssrc));
+
   lastSeq_ = frame->header.seq;
 
   std::unique_ptr<Data> received_picture = initializeData(output_, DS_REMOTE);
+
+  if (!received_picture)
+    return;
 
   // TODO: Get this info from RTP
   received_picture->presentationTime = QDateTime::currentMSecsSinceEpoch();

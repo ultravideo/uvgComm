@@ -37,12 +37,14 @@ public:
   std::shared_ptr<Filter> addSendStream(uint32_t sessionID,
                                         QString localAddress, QString remoteAddress,
                                         uint16_t localPort, uint16_t peerPort,
-                                        QString codec, uint8_t rtpNum);
+                                        QString codec, uint8_t rtpNum,
+                                         uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
 
   std::shared_ptr<Filter> addReceiveStream(uint32_t sessionID,
                                            QString localAddress, QString remoteAddress,
                                            uint16_t localPort, uint16_t peerPort,
-                                           QString codec, uint8_t rtpNum);
+                                           QString codec, uint8_t rtpNum,
+                                           uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
 
   // TODO: Add a way to remove individual streams
   //void removeSendStream(uint32_t sessionID, uint16_t localPort);
