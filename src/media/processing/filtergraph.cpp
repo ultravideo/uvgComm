@@ -543,10 +543,11 @@ void FilterGraph::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoF
   // add participant if necessary
   checkParticipant(sessionID);
 
-  if (!existingConnection(peers_[sessionID]->sendingStreams, {remoteAddress, localPort, peerPort}))
-  {
-    peers_[sessionID]->sendingStreams.push_back({remoteAddress, localPort, peerPort});
+  ConnectionDetails conn = {"video", remoteAddress, localPort, peerPort};
 
+  if (!existingConnection(peers_[sessionID]->sendingStreams, conn))
+  {
+    peers_[sessionID]->sendingStreams.push_back(conn);
     peers_[sessionID]->videoSenders.push_back(videoFramedSource);
 
     cameraGraph_.back()->addOutConnection(videoFramedSource);
@@ -566,10 +567,11 @@ void FilterGraph::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> v
   Q_ASSERT(videoSink);
 
   checkParticipant(sessionID);
+  ConnectionDetails conn = {"video", localAddress, localPort, peerPort};
 
-  if (!existingConnection(peers_[sessionID]->receivingStreams, {localAddress, localPort, peerPort}))
+  if (!existingConnection(peers_[sessionID]->receivingStreams, conn))
   {
-    peers_[sessionID]->receivingStreams.push_back({localAddress, localPort, peerPort});
+    peers_[sessionID]->receivingStreams.push_back(conn);
 
     std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
     peers_[sessionID]->videoReceivers.push_back(graph);
@@ -604,9 +606,11 @@ void FilterGraph::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioF
   // add participant if necessary
   checkParticipant(sessionID);
 
-  if (!existingConnection(peers_[sessionID]->sendingStreams, {remoteAddress, localPort, peerPort}))
+  ConnectionDetails conn = {"audio", remoteAddress, localPort, peerPort};
+
+  if (!existingConnection(peers_[sessionID]->sendingStreams, conn))
   {
-    peers_[sessionID]->sendingStreams.push_back({remoteAddress, localPort, peerPort});
+    peers_[sessionID]->sendingStreams.push_back(conn);
 
     peers_[sessionID]->audioSenders.push_back(audioFramedSource);
 
@@ -636,9 +640,11 @@ void FilterGraph::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> a
   // add participant if necessary
   checkParticipant(sessionID);
 
-  if (!existingConnection(peers_[sessionID]->receivingStreams, {localAddress, localPort, peerPort}))
+  ConnectionDetails conn = {"audio", localAddress, localPort, peerPort};
+
+  if (!existingConnection(peers_[sessionID]->receivingStreams, conn))
   {
-    peers_[sessionID]->receivingStreams.push_back({localAddress, localPort, peerPort});
+    peers_[sessionID]->receivingStreams.push_back(conn);
 
     std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
     peers_[sessionID]->audioReceivers.push_back(graph);
@@ -685,7 +691,8 @@ bool FilterGraph::existingConnection(std::vector<ConnectionDetails>& connections
 {
   for (auto& connection: connections)
   {
-    if (connection.address == details.address &&
+    if (connection.type == details.type && // TODO: Add SSRC here
+        connection.address == details.address &&
         connection.localPort == details.localPort &&
         connection.peerPort == details.peerPort)
     {

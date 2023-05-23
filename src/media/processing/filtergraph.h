@@ -25,6 +25,8 @@ typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
 struct ConnectionDetails
 {
+  // TODO: Add SSRC here for better detection
+  QString type;
   QString address;
   uint16_t localPort;
   uint16_t peerPort;
