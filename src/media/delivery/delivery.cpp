@@ -380,7 +380,7 @@ void Delivery::removePeer(uint32_t sessionID)
   {
     for (auto& session : peers_[sessionID]->sessions)
     {
-      std::vector<uint16_t> streams;
+      std::vector<uint32_t> streams;
 
       // take all keys so we wont get iterator errors
       for (auto& stream : session.streams)
