@@ -76,8 +76,8 @@ private:
     QString localAddress;
     QString peerAddress;
 
-    // uses local port as key
-    std::map<uint16_t, MediaStream*> streams;
+    // uses ssrc as key
+    std::map<uint32_t, MediaStream*> streams;
     bool dhSelected;
   };
 
@@ -89,13 +89,13 @@ private:
   bool initializeStream(uint32_t sessionID,
                         DeliverySession& session,
                         uint16_t localPort, uint16_t peerPort,
-                        rtp_format_t fmt);
+                        rtp_format_t fmt, uint32_t localSSRC);
 
   bool addMediaStream(uint32_t sessionID,
                       DeliverySession& session,
                       uint16_t localPort, uint16_t peerPort,
-                      rtp_format_t fmt, bool dhSelected);
-  void removeMediaStream(uint32_t sessionID, DeliverySession& session, uint16_t localPort);
+                      rtp_format_t fmt, bool dhSelected, uint32_t localSSRC);
+  void removeMediaStream(uint32_t sessionID, DeliverySession& session, uint32_t localSSRC);
 
   void parseCodecString(QString codec, rtp_format_t& fmt,
                         DataType& type, QString& mediaName);
