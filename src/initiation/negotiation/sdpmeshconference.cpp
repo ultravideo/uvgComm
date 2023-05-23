@@ -95,6 +95,8 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
                 media.candidates[i] = updateICECandidate(media.candidates[i],
                                                          components);
               }
+
+              media.receivePort += components;
             }
 
             sdp->media.push_back(copyMedia(media));
