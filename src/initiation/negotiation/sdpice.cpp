@@ -109,7 +109,7 @@ void SDPICE::addLocalCandidatesToSDP(QVariant& content)
   SDPMessageInfo sdp = content.value<SDPMessageInfo>();
   for (unsigned int i = 0; i < sdp.media.size(); ++i)
   {
-    if (sdp.media.at(i).candidates.empty())
+    if (sdp.media.at(i).candidates.empty() && sdp.media.at(i).connection_address == "")
     {
       if (mediaLimit_ > 0)
       {
