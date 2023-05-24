@@ -17,8 +17,6 @@ SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
   localbaseSDP_(nullptr),
   localSDP_(nullptr),
   remoteSDP_(nullptr),
-  audioSSRC_(generateSSRC()),
-  videoSSRC_(generateSSRC()),
   negotiationState_(NEG_NO_STATE),
   peerAcceptsSDP_(false),
   sdpConf_(sdpConf)
@@ -175,6 +173,11 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
   else if (negotiationState_ == NEG_NO_STATE)
   {
     negotiationState_ = NEG_OFFER_SENT;
+
+    for (unsigned int i = 0; i < ourSDP->media.size(); ++i)
+    {
+      setSSRC(i, ourSDP->media[i]);
+    }
   }
   else
   {
@@ -182,17 +185,7 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
     return false;
   }
 
-  for (auto& media : ourSDP->media)
-  {
-    if (media.type == "audio")
-    {
-      media.valueAttributes.push_back({A_SSRC, QString::number(audioSSRC_)});
-    }
-    else
-    {
-      media.valueAttributes.push_back({A_SSRC, QString::number(videoSSRC_)});
-    }
-  }
+
   ourSDP = sdpConf_->getMeshSDP(sessionID_, ourSDP);
 
   Q_ASSERT(ourSDP != nullptr);
@@ -400,7 +393,7 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
       MediaInfo resultMedia;
 
       resultMedia.type = comparedSDP.media.at(i).type;
-      resultMedia.receivePort = 0; // ICE sets this to one of its candidates
+      resultMedia.receivePort = 0; // setting this is handled later outside this class
       resultMedia.title = comparedSDP.media.at(i).title;
 
       resultMedia.proto = baseSDP.media.at(matches.at(i)).proto;
@@ -467,6 +460,11 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
     {
       Logger::getLogger()->printWarning(this, "Did not find match for media, rejecting this one media");
     }
+  }
+
+  for (unsigned int i = 0; i < newInfo->media.size(); ++i)
+  {
+    setSSRC(i, newInfo->media[i]);
   }
 
   return newInfo;
@@ -568,6 +566,29 @@ SDPAttributeType SDPNegotiation::findStatusAttribute(const QList<SDPAttributeTyp
 
   return A_NO_ATTRIBUTE;
 }
+
+void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
+{
+  for (unsigned int j = 0; j < media.valueAttributes.size(); ++j)
+  {
+    if (media.valueAttributes.at(j).type == A_SSRC)
+    {
+      media.valueAttributes.removeAt(j);
+      break;
+    }
+  }
+
+  if (mediaIndex >= ssrcs_.size())
+  {
+    ssrcs_.push_back(generateSSRC());
+    media.valueAttributes.push_back({A_SSRC, QString::number(ssrcs_.back())});
+  }
+  else
+  {
+    media.valueAttributes.push_back({A_SSRC, QString::number(ssrcs_.at(mediaIndex))});
+  }
+}
+
 
 uint32_t SDPNegotiation::generateSSRC()
 {

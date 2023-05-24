@@ -50,6 +50,9 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
               mstream_->get_rtcp()->install_sender_hook(std::bind(&UvgRTPReceiver::processRTCPSenderReport,
                                                                            this, std::placeholders::_1 ));
 
+              Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initializing uvgRTP receiver",
+                                              {"Remote SSRC"}, {QString::number(remoteSSRC_)});
+
               if (localSSRC_ != 0)
               {
                 mstream_->configure_ctx(RCC_SSRC, localSSRC_);
@@ -83,7 +86,12 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     return;
   }
 
-  //Logger::getLogger()->printNormal(this, "Got a packet", "SSRC", QString::number(frame->header.ssrc));
+  if (frame->header.ssrc != remoteSSRC_)
+  {
+    Logger::getLogger()->printError(this, "Got a packet with wrong SSRC", "SSRC",
+                                    QString::number(frame->header.ssrc));
+    return;
+  }
 
   lastSeq_ = frame->header.seq;
 

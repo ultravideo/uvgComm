@@ -87,6 +87,8 @@ private:
 
   SDPAttributeType findStatusAttribute(const QList<SDPAttributeType>& attributes) const;
 
+  void setSSRC(unsigned int mediaIndex, MediaInfo& media);
+
   uint32_t generateSSRC();
 
   uint32_t sessionID_;
@@ -94,9 +96,6 @@ private:
   std::shared_ptr<SDPMessageInfo> localbaseSDP_;
   std::shared_ptr<SDPMessageInfo> localSDP_;
   std::shared_ptr<SDPMessageInfo> remoteSDP_;
-
-  uint32_t audioSSRC_;
-  uint32_t videoSSRC_;
 
   NegotiationState negotiationState_;
 
@@ -106,4 +105,6 @@ private:
   QString localAddress_;
 
   std::shared_ptr<SDPMeshConference> sdpConf_;
+
+  QList<uint32_t> ssrcs_;
 };
