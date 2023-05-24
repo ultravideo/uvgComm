@@ -114,6 +114,10 @@ private:
                           bool followOurSDP, bool &send,
                           bool& receive);
 
+  // the stun addresses are our outward network addresses which our peer uses to send data to us
+  // we cannot however bind to those so we must translate the addresses to our local addresses
+  void getStunBindings(uint32_t sessionID, MediaInfo &media);
+
   bool areWeFocus() const
   {
     return states_.size() > 1;

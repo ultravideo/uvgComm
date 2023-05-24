@@ -1151,3 +1151,11 @@ void SIPManager::re_INVITE_all()
 
   refreshDelayTimer();
 }
+
+
+bool SIPManager::getSTUNBinding(uint32_t sessionID,
+                                std::pair<QHostAddress, uint16_t>& inStunAddress,
+                                std::pair<QHostAddress, uint16_t>& outStunBinding)
+{
+  return nCandidates_->getSTUNBinding(sessionID, inStunAddress, outStunBinding);
+}

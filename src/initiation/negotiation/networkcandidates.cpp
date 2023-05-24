@@ -449,6 +449,34 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::tur
 }
 
 
+bool NetworkCandidates::getSTUNBinding(uint32_t sessionID,
+                                       const std::pair<QHostAddress, uint16_t> &inStunAddress,
+                                       std::pair<QHostAddress, uint16_t> &outStunBinding)
+{
+  for (unsigned int i = 0; i < stunAddresses_.size(); ++i)
+  {
+    if (stunAddresses_.at(i).first == inStunAddress.first)
+    {
+      if (RTP_MULTIPLEXING)
+      {
+        outStunBinding = stunBindings_.at(i);
+        return true;
+      }
+      else
+      {
+        outStunBinding = stunBindings_.at(i);
+        reservedPorts_[sessionID].push_back(
+          std::pair<QString, uint16_t>({outStunBinding.first.toString(), outStunBinding.second}));
+
+        stunBindings_.erase(stunBindings_.begin() + i);
+      }
+    }
+  }
+
+  return false;
+}
+
+
 uint16_t NetworkCandidates::nextAvailablePort(QString interface, uint32_t sessionID)
 {
   uint16_t nextPort = 0;

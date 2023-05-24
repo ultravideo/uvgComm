@@ -485,6 +485,11 @@ void KvazzupController::createCall(uint32_t sessionID)
     remoteSDP->media.erase(remoteSDP->media.begin() + index);
   }
 
+  for(auto& media : localSDP->media)
+  {
+    getStunBindings(sessionID, media);
+  }
+
   QList<std::pair<MediaID, MediaID>> audioVideoIDs;
   QList<MediaID> allIDs;
 
@@ -1022,6 +1027,7 @@ void KvazzupController::connectionEstablished(QString localAddress, QString remo
   }
 }
 
+
 bool KvazzupController::areWeICEController(bool initialAgent, uint32_t sessionID) const
 {
   // one to one calls should follow the specification
@@ -1035,4 +1041,45 @@ bool KvazzupController::areWeICEController(bool initialAgent, uint32_t sessionID
   Logger::getLogger()->printNormal(this, "We select ICE controller based on a hack");
 
   return areWeFocus() || states_.at(sessionID).sessionRunning;
+}
+
+
+void KvazzupController::getStunBindings(uint32_t sessionID, MediaInfo& media)
+{
+  if (media.candidates.empty())
+  {
+    std::pair<QHostAddress, uint16_t> stunAddress(media.connection_address, media.receivePort);
+    std::pair<QHostAddress, uint16_t> stunBinding;
+    if (sip_.getSTUNBinding(sessionID, stunAddress, stunBinding))
+    {
+      media.connection_address = stunBinding.first.toString();
+      media.receivePort = stunBinding.second;
+    }
+  }
+  else
+  {
+    for(auto& candidate : media.candidates)
+    {
+      if (candidate->type == "srflx")
+      {
+        // this happens if we don't want to send our private addresses to peers
+        if (candidate->rel_address == "" || candidate->rel_port == 0)
+        {
+          // these were sent to the other end
+          std::pair<QHostAddress, uint16_t> stunAddress(candidate->address, candidate->port);
+          std::pair<QHostAddress, uint16_t> stunBinding;
+
+          if (sip_.getSTUNBinding(sessionID, stunAddress, stunBinding))
+          {
+            candidate->rel_address = stunBinding.first.toString();
+            candidate->rel_port = stunBinding.second;
+          }
+          else
+          {
+            Logger::getLogger()->printError(this, "Could not get srflx address to bind to");
+          }
+        }
+      }
+    }
+  }
 }

@@ -131,6 +131,11 @@ public:
 
   void enableICE(bool status);
 
+  // TODO: These should be SDP connection details including type (all fields in SDP c= field)
+  bool getSTUNBinding(uint32_t sessionID,
+                      std::pair<QHostAddress, uint16_t> &inStunAddress,
+                      std::pair<QHostAddress, uint16_t> &outStunBinding);
+
 public slots:
   void updateCallSettings();
 
