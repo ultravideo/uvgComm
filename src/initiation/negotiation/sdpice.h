@@ -81,6 +81,9 @@ private:
   void addICEToSupported(std::shared_ptr<QStringList> &supported);
   bool isICEToSupported(std::shared_ptr<QStringList> supported);
 
+  void setMediaAddress(const std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> candidates,
+                       MediaInfo& media, int mediaIndex);
+
   uint32_t sessionID_;
 
   std::shared_ptr<NetworkCandidates> networkCandidates_;

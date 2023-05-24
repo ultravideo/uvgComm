@@ -177,36 +177,44 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
   else
   {
     Logger::getLogger()->printNormal(this, "Settings connection addresses directly instead of ICE candidates");
-    if (!existingLocalCandidates_[mediaIndex]->empty())
+    if (!existingStunCandidates_[mediaIndex]->empty())
     {
-      media.connection_address = existingLocalCandidates_[mediaIndex]->first().first.toString();
-      media.receivePort = existingLocalCandidates_[mediaIndex]->first().second;
-      media.connection_nettype = "IN";
-
-      if (existingLocalCandidates_[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv4Protocol)
-      {
-        media.connection_addrtype = "IP4";
-      }
-      else if (existingLocalCandidates_[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv6Protocol)
-      {
-        media.connection_addrtype = "IP6";
-      }
+      Logger::getLogger()->printNormal(this, "Using STUN address");
+      setMediaAddress(existingStunCandidates_, media, mediaIndex);
     }
     else if (!existingGlobalCandidates_[mediaIndex]->empty())
     {
-      media.connection_address = existingGlobalCandidates_[mediaIndex]->first().first.toString();
-      media.receivePort = existingGlobalCandidates_[mediaIndex]->first().second;
-      media.connection_nettype = "IN";
-
-      if (existingGlobalCandidates_[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv4Protocol)
-      {
-        media.connection_addrtype = "IP4";
-      }
-      else if (existingGlobalCandidates_[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv6Protocol)
-      {
-        media.connection_addrtype = "IP6";
-      }
+      Logger::getLogger()->printNormal(this, "Using Global IP address");
+      setMediaAddress(existingGlobalCandidates_, media, mediaIndex);
     }
+    else if (!existingLocalCandidates_[mediaIndex]->empty())
+    {
+      Logger::getLogger()->printNormal(this, "Using local IP address");
+      setMediaAddress(existingLocalCandidates_, media, mediaIndex);
+    }
+  }
+}
+
+void SDPICE::setMediaAddress(const std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> candidates,
+                             MediaInfo& media, int mediaIndex)
+{
+  if (candidates.size() > mediaIndex) {
+    media.connection_address = candidates[mediaIndex]->first().first.toString();
+    media.receivePort = candidates[mediaIndex]->first().second;
+    media.connection_nettype = "IN";
+
+    if (candidates[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv4Protocol)
+    {
+      media.connection_addrtype = "IP4";
+    }
+    else if (candidates[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv6Protocol)
+    {
+      media.connection_addrtype = "IP6";
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Not enough candidates available");
   }
 }
 
