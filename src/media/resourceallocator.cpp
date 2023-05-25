@@ -27,7 +27,8 @@ ResourceAllocator::ResourceAllocator():
 void ResourceAllocator::updateSettings()
 {
   Logger::getLogger()->printNormal(this, "Updating automatic resource controller settings");
-  manualROI_ = settingEnabled(SettingsKey::manualROIStatus);
+  manualROI_ = settingString(SettingsKey::roiMode) == "manual";
+  autoROI_ = settingString(SettingsKey::roiMode) == "auto";
   roiQp_ = settingValue(SettingsKey::roiQp);
   backgroundQp_ = settingValue(SettingsKey::backgroundQp);
 }
@@ -48,6 +49,11 @@ bool ResourceAllocator::isSSE41Enabled()
 bool ResourceAllocator::useManualROI()
 {
   return manualROI_;
+}
+
+bool ResourceAllocator::useAutoROI()
+{
+  return autoROI_;
 }
 
 

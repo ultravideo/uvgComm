@@ -4,6 +4,8 @@
 
 #include <memory>
 
+#include "media/processing/detection_types.h"
+
 class QWidget;
 class StatisticsInterface;
 
@@ -26,6 +28,10 @@ public:
 
   // Takes ownership of the image data
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp) = 0;
+
+#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+  virtual void inputDetections(std::vector<Detection> detections, QSize original_size, int64_t timestamp) = 0;
+#endif
 
   virtual void drawMicOffIcon(bool status) = 0;
 

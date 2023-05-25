@@ -7,6 +7,7 @@
 
 #include <QDateTime>
 #include <QSettings>
+#include <QPainter>
 
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                              std::shared_ptr<ResourceAllocator> hwResources,
@@ -73,6 +74,9 @@ void DisplayFilter::process()
     switch(input->type)
     {
     case DT_RGB32VIDEO:
+#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+    case DT_DETECTIONS:
+#endif
       format = QImage::Format_RGB32;
       break;
     case DT_YUV420VIDEO:
@@ -111,6 +115,20 @@ void DisplayFilter::process()
       if( sessionID_ != 1111)
         getStats()->receiveDelay(sessionID_, "Video", delay);
     }
+
+#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+    if (input->type == DT_DETECTIONS)
+    {
+      for (int i = widgets_.size() - 1; i > -1; --i)
+      {
+        if (widgets_.at(i)->isVisible())
+        {
+          widgets_.at(i)->inputDetections(input->vInfo->detections, {input->vInfo->width, input->vInfo->height}, input->presentationTime);
+        }
+      }
+    }
+#endif
+
     input = getInput();
   }
 }

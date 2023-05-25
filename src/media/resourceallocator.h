@@ -27,6 +27,7 @@ public:
   bool isSSE41Enabled();
 
   bool useManualROI();
+  bool useAutoROI();
 
   void addRTCPReport(uint32_t sessionID, DataType type,
                      int32_t lost, uint32_t jitter);
@@ -50,6 +51,7 @@ private:
   bool sse41_ = false;
 
   bool manualROI_ = false;
+  bool autoROI_ = false;
 
   // key is sessionID
   std::map<uint32_t, std::shared_ptr<StreamInfo>> audioStreams_;

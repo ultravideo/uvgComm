@@ -134,6 +134,17 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
     return;
   }
 
+#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+
+  QPainter painter(&image);
+  painter.setPen(Qt::green);
+  for (const Detection& d : detections_)
+  {
+    painter.drawRect(d.bbox.x, d.bbox.y, d.bbox.width, d.bbox.height);
+  }
+  painter.end();
+#endif
+
   if(!firstImageReceived_)
   {
     currentFrame_ = timestamp;
@@ -183,6 +194,25 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
   }
 }
 
+#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize original_size, uint64_t timestamp)
+{
+  // Adjust detections to scaling from halfrgbfilter
+  if (original_size.height() >= 720)
+  {
+    double wScale = 0.5;
+    double hScale = 0.5;
+    for (auto& d : detections)
+    {
+      d.bbox.x *= wScale;
+      d.bbox.width *= wScale;
+      d.bbox.y *= hScale;
+      d.bbox.height *= hScale;
+    }
+  }
+  detections_ = detections;
+}
+#endif
 
 bool VideoDrawHelper::getRecentImage(QImage& image)
 {

@@ -153,7 +153,11 @@ set(KVAZZUP_SOURCES
 
 
 if (KVAZZUP_ENABLE_FACE_DETECTION)
-    list(APPEND KVAZZUP_SOURCES src/media/processing/roifilter.cpp  src/media/processing/roifilter.h)
+    list(APPEND KVAZZUP_SOURCES
+      src/media/processing/roifilter.cpp  src/media/processing/roifilter.h
+      src/media/processing/detection_types.h
+      src/media/processing/detectionfilter.h
+    )
 endif()
 
 qt_add_executable(kvazzup WIN32 MACOSX_BUNDLE

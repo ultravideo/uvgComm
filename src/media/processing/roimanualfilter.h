@@ -21,7 +21,6 @@ protected:
 private:
   VideoInterface* roiSurface_;
 
-  bool enabled_;
   int qp_;
   int rateControl_;
 };

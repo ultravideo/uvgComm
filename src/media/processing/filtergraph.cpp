@@ -35,6 +35,7 @@
 #include "settingskeys.h"
 #include "common.h"
 #include "logger.h"
+#include "detectionfilter.h"
 
 #include <QSettings>
 #include <QFile>
@@ -64,6 +65,7 @@ const int AUDIO_INPUT_GAIN = 10; // dB
 const int32_t AUDIO_OUTPUT_VOLUME = INT32_MAX - INT32_MAX/4;
 const int AUDIO_OUTPUT_GAIN = 20; // dB
 
+void changeState(std::shared_ptr<Filter> f, bool state);
 
 FilterGraph::FilterGraph(): QObject(),
   quitting_(false),
@@ -339,15 +341,21 @@ void FilterGraph::initVideoSend()
   std::shared_ptr<Filter> mRoi =
       std::shared_ptr<Filter>(new ROIManualFilter("", stats_, hwResources_, roiInterface_));
   addToGraph(mRoi, cameraGraph_, 1);
+  size_t kvz_idx = cameraGraph_.size() - 1;
 #ifdef KVAZZUP_HAVE_ONNX_RUNTIME
   auto roi = std::shared_ptr<Filter>(new RoiFilter("", stats_, hwResources_, true));
   addToGraph(roi, cameraGraph_, cameraGraph_.size() - 1);
+  kvz_idx = cameraGraph_.size() - 1;
+
+  auto forwarder = std::shared_ptr<Filter>(new DetectionFilter("", stats_, hwResources_));
+  addToGraph(forwarder, cameraGraph_, cameraGraph_.size() - 1);
+  connectFilters(forwarder, cameraGraph_[4]);
 #endif
 
   std::shared_ptr<Filter> kvazaar =
       std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
 
-  addToGraph(kvazaar, cameraGraph_, cameraGraph_.size() - 1);
+  addToGraph(kvazaar, cameraGraph_, kvz_idx);
   addToGraph(kvazaar, screenShareGraph_, 0);
 
   videoSendIniated_ = true;

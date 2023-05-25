@@ -1,5 +1,6 @@
 #pragma once
 
+#include "detection_types.h"
 #include "filter.h"
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
 
@@ -9,28 +10,14 @@
 #include <opencv2/core.hpp>
 #endif
 
-struct Point {
-  int x, y;
-};
-
 struct Size {
   int width, height;
-};
-
-struct Rect {
-  int x, y, width, height;
 };
 
 struct Roi {
   int width;
   int height;
   std::unique_ptr<int8_t[]> data;
-};
-
-struct Detection
-{
-  Rect bbox;
-  std::array<Point, 5> landmarks;
 };
 
 struct RoiMapFilter {
@@ -125,6 +112,8 @@ private:
   int frameCount_;
   Roi roi_;
   RoiMapFilter roiFilter_;
+
+  std::vector<Detection> prevDetections_;
 
   QMutex settingsMutex_;
 };

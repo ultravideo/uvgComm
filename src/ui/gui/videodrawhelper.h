@@ -15,6 +15,8 @@
 #include <deque>
 #include <memory>
 
+#include "media/processing/detection_types.h"
+
 /*
  * Purpose of the VideoDrawHelper is to process all the mouse and keyboard events
  * for video view widgets. It also includes the buffer for images waiting to be drawn.
@@ -44,6 +46,10 @@ public:
   bool readyToDraw();
   void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data,
                   QImage &image, int64_t timestamp);
+
+#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+  void inputDetections(std::vector<Detection> detections, QSize original_size, uint64_t timestamp);
+#endif
 
   // returns whether this is a new image or the previous one
   bool getRecentImage(QImage& image);
@@ -139,4 +145,8 @@ private:
   bool fullscreen_;
 
   int bufferFullWarnings_;
+
+#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+  std::vector<Detection> detections_;
+#endif
 };
