@@ -467,6 +467,11 @@ void KvazzupController::createCall(uint32_t sessionID)
     return;
   }
 
+  for(auto& media : localSDP->media)
+  {
+    getStunBindings(sessionID, media);
+  }
+
   // Here we remove media which is not ours. This happens in mesh conference, when we are the host
   std::vector<unsigned int> toDelete;
   for (unsigned int index = 0; index < localSDP->media.size(); ++index)
@@ -483,11 +488,6 @@ void KvazzupController::createCall(uint32_t sessionID)
 
     localSDP->media.erase(localSDP->media.begin() + index);
     remoteSDP->media.erase(remoteSDP->media.begin() + index);
-  }
-
-  for(auto& media : localSDP->media)
-  {
-    getStunBindings(sessionID, media);
   }
 
   QList<std::pair<MediaID, MediaID>> audioVideoIDs;
