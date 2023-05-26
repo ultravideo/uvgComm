@@ -85,7 +85,8 @@ bool operator<(const MediaID& l, const MediaID& r)
 
 bool MediaID::areMediasEqual(const MediaInfo& first, const MediaInfo& second) const
 {
-  return findSSRC(first) == findSSRC(second) &&
+  return findMID(first) == findMID(second) &&
+         findSSRC(first) == findSSRC(second) &&
          first.type == second.type &&
          first.receivePort == second.receivePort &&
          first.proto == second.proto &&

@@ -300,3 +300,16 @@ uint32_t findSSRC(const MediaInfo &media)
 
   return 0;
 }
+
+uint32_t findMID(const MediaInfo &media)
+{
+  for (auto& attribute : media.valueAttributes)
+  {
+    if (attribute.type == A_MID)
+    {
+      return attribute.value.toULong();
+    }
+  }
+
+  return 0;
+}
