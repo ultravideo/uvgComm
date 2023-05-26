@@ -134,17 +134,6 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
     return;
   }
 
-#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
-
-  QPainter painter(&image);
-  painter.setPen(Qt::green);
-  for (const Detection& d : detections_)
-  {
-    painter.drawRect(d.bbox.x, d.bbox.y, d.bbox.width, d.bbox.height);
-  }
-  painter.end();
-#endif
-
   if(!firstImageReceived_)
   {
     currentFrame_ = timestamp;
@@ -211,6 +200,26 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
     }
   }
   detections_ = detections;
+
+  QPainter painter(&overlay_);
+  painter.setPen(Qt::white);
+  for (const Detection& d : detections_)
+  {
+    int x_adj = d.bbox.x%CTU_SIZE;
+    int y_adj = d.bbox.y%CTU_SIZE;
+    int w_adj = x_adj+CTU_SIZE-d.bbox.width%CTU_SIZE;
+    int h_adj = y_adj+CTU_SIZE-d.bbox.height%CTU_SIZE;
+    painter.fillRect(d.bbox.x-x_adj,
+                     d.bbox.y-y_adj,
+                     d.bbox.width+w_adj,
+                     d.bbox.height+h_adj,
+                     qpToColor(roiQP_));
+  }
+  for (const Detection& d : detections_)
+  {
+    painter.drawRect(d.bbox.x, d.bbox.y, d.bbox.width, d.bbox.height);
+  }
+  painter.end();
 }
 #endif
 
@@ -345,7 +354,6 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     //Logger::getLogger()->printWarning(this, "Tried updating target rect before picture");
   }
 }
-
 
 void VideoDrawHelper::addPointToOverlay(const QPointF& position, bool addPoint, bool removePoint)
 {
