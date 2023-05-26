@@ -38,7 +38,7 @@ endif()
 #option(KVAZZUP_ENABLE_PRINTS  "Print Debug prints to command line" ON)
 #option(KVAZZUP_ENABLE_LOGGING "Save log to file" ON)
 #option(KVAZZUP_ENABLE_WERROR  "Fail with compiler warnings" OFF)
-option(KVAZZUP_ENABLE_FACE_DETECTION "Enable face detection in Kvazzup" ON)
+option(KVAZZUP_ENABLE_FACE_DETECTION "Enable face detection in Kvazzup" OFF)
 
 include(dependencies/FindDependencies.cmake)
 
