@@ -88,6 +88,7 @@ private:
   SDPAttributeType findStatusAttribute(const QList<SDPAttributeType>& attributes) const;
 
   void setSSRC(unsigned int mediaIndex, MediaInfo& media);
+  void setMID(unsigned int mediaIndex, MediaInfo& media);
 
   uint32_t generateSSRC();
 

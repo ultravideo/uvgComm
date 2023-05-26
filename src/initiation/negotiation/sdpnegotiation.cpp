@@ -177,6 +177,7 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
     for (unsigned int i = 0; i < ourSDP->media.size(); ++i)
     {
       setSSRC(i, ourSDP->media[i]);
+      setMID(i, ourSDP->media[i]);
     }
   }
   else
@@ -465,6 +466,7 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
   for (unsigned int i = 0; i < newInfo->media.size(); ++i)
   {
     setSSRC(i, newInfo->media[i]);
+    setMID(i, newInfo->media[i]);
   }
 
   return newInfo;
@@ -573,8 +575,7 @@ void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
   {
     if (media.valueAttributes.at(j).type == A_SSRC)
     {
-      media.valueAttributes.removeAt(j);
-      break;
+      return;
     }
   }
 
@@ -587,6 +588,12 @@ void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
   {
     media.valueAttributes.push_back({A_SSRC, QString::number(ssrcs_.at(mediaIndex))});
   }
+}
+
+
+void SDPNegotiation::setMID(unsigned int mediaIndex, MediaInfo& media)
+{
+  media.valueAttributes.push_back({A_MID, QString::number(mediaIndex + 1)});
 }
 
 
