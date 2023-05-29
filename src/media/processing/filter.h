@@ -17,10 +17,6 @@
 #include <functional>
 #include <chrono>
 
-#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
-#include "detection_types.h"
-#endif
-
 // One of the most fundamental classes of Kvazzup. A filter is an indipendent data processing
 // unit running on its own thread. Filters can be linked together to form a data processing pipeline
 // called filter graph. A class inherited from filter can do any sort of processing to the data it
@@ -50,9 +46,6 @@ enum DataType {DT_NONE        = 0,
 
                DT_RAWAUDIO    = (1 << 15),
                DT_OPUSAUDIO   = (1 << 16),
-#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
-               DT_DETECTIONS  = (1 << 17)
-#endif
 };
 
 enum DataSource {DS_UNKNOWN, DS_LOCAL, DS_REMOTE};
@@ -73,9 +66,6 @@ struct VideoInfo
   int roiWidth = 0;
   int roiHeight = 0;
   std::unique_ptr<int8_t[]> roiArray = nullptr;
-#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
-  std::vector<Detection> detections;
-#endif
 };
 
 struct AudioInfo

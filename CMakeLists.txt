@@ -156,7 +156,6 @@ if (KVAZZUP_ENABLE_FACE_DETECTION)
     list(APPEND KVAZZUP_SOURCES
       src/media/processing/roifilter.cpp  src/media/processing/roifilter.h
       src/media/processing/detection_types.h
-      src/media/processing/detectionfilter.h
     )
 endif()
 

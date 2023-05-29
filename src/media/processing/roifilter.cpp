@@ -1,5 +1,7 @@
 #include "roifilter.h"
 
+#include "ui/gui/videointerface.h"
+
 #include "logger.h"
 
 #include "settingskeys.h"
@@ -26,7 +28,7 @@
 
 
 RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<ResourceAllocator> hwResources,
-                     bool cuda)
+                     bool cuda, VideoInterface* roiInterface)
   : Filter(id, "RoI", stats, hwResources, DT_YUV420VIDEO, DT_YUV420VIDEO),
     inputSize_(-1),
     inputName_(),
@@ -38,7 +40,8 @@ RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<Res
     useCuda_(cuda),
     roiEnabled_(false),
     frameCount_(0),
-    roi_({0,0,nullptr})
+    roi_({0,0,nullptr}),
+    roiSurface_(roiInterface)
 {
 }
 
@@ -70,13 +73,13 @@ void RoiFilter::process()
         prevInputDiscarded_ = inputDiscarded_;
       }
       if(frameCount_ % skipInput_ == 0) {
-        prevDetections_ = detect(input.get());
+        auto detections = detect(input.get());
 
-        auto largest_bbox = find_largest_bbox(prevDetections_);
+        auto largest_bbox = find_largest_bbox(detections);
         double largest_area = largest_bbox.width * largest_bbox.height;
 
         std::vector<Rect> face_roi_rects;
-        for (auto face : prevDetections_)
+        for (auto face : detections)
         {
           if (!filter_bb(face.bbox, minBbSize_))
           {
@@ -128,6 +131,8 @@ void RoiFilter::process()
         Roi roi_mat = roiFilter_.makeRoiMap(face_roi_rects);
         roi_.data = std::make_unique<int8_t[]>(roi_length);
         memcpy(roi_.data.get(), roi_mat.data.get(), roi_length);
+
+        roiSurface_->inputDetections(detections, {input->vInfo->width, input->vInfo->height}, 0);
       }
       if(roi_.data){
         input->vInfo->roiWidth = roi_.width;
@@ -135,8 +140,6 @@ void RoiFilter::process()
         input->vInfo->roiArray = std::make_unique<int8_t[]>(roi_.width*roi_.height);
         memcpy(input->vInfo->roiArray.get(), roi_.data.get(), roi_.width*roi_.height);
       }
-
-      input->vInfo->detections = prevDetections_;
 
       frameCount_++;
     }

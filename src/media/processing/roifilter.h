@@ -36,11 +36,14 @@ struct RoiMapFilter {
 #endif
 };
 
+class VideoInterface;
+
 class RoiFilter : public Filter {
 public:
   RoiFilter(QString id, StatisticsInterface* stats,
             std::shared_ptr<ResourceAllocator> hwResources,
-            bool cuda);
+            bool cuda,
+            VideoInterface* roiInterface);
 
   ~RoiFilter();
 
@@ -113,7 +116,6 @@ private:
   Roi roi_;
   RoiMapFilter roiFilter_;
 
-  std::vector<Detection> prevDetections_;
-
   QMutex settingsMutex_;
+  VideoInterface* roiSurface_;
 };

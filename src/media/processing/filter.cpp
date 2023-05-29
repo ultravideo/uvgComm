@@ -427,9 +427,6 @@ Data* Filter::shallowDataCopy(Data* original) const
       copy->vInfo->framerateDenominator  = original->vInfo->framerateDenominator;
       copy->vInfo->flippedHorizontally = original->vInfo->flippedHorizontally;
       copy->vInfo->flippedVertically   = original->vInfo->flippedVertically;
-#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
-      copy->vInfo->detections          = original->vInfo->detections;
-#endif
     }
 
     if (original->aInfo != nullptr)
