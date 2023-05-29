@@ -153,18 +153,22 @@ bool getReceiveAttribute(const MediaInfo &media, bool local)
 
 void setSDPAddress(QString inAddress, QString& address, QString& nettype, QString& addressType)
 {
-  address = inAddress;
-  nettype = "IN";
-
-  // TODO: Improve the address detection
-  if (inAddress.front() == '[')
+  if (!inAddress.isEmpty())
   {
-    address = inAddress.mid(1, inAddress.size() - 2);
-    addressType = "IP6";
+    address = inAddress;
+    nettype = "IN";
+
+    // TODO: Improve the address detection
+    if (inAddress.front() == '[') {
+      address = inAddress.mid(1, inAddress.size() - 2);
+      addressType = "IP6";
+    } else {
+      addressType = "IP4";
+    }
   }
   else
   {
-    addressType = "IP4";
+    Logger::getLogger()->printError("Common", "Failed to set SDP address");
   }
 }
 
