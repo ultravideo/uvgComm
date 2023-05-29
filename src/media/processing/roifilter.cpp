@@ -532,11 +532,13 @@ bool RoiFilter::filter_bb(Rect bb, Size min_size)
 
 Rect RoiFilter::bbox_to_roi(Rect bb)
 {
+  int x2 = (bb.x+bb.width) / 64;
+  int y2 = (bb.x+bb.width) / 64;
   bb.x /= 64;
   bb.y /= 64;
-  bb.width /= 64;
+  bb.width = x2-bb.x;
   bb.width++;
-  bb.height /= 64;
+  bb.height = y2-bb.y;
   bb.height++;
   return bb;
 }
