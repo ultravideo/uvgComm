@@ -128,7 +128,7 @@ bool TCPConnection::waitUntilConnected()
 
 QString TCPConnection::localAddress() const
 {
-  if (isConnected())
+  if (socket_)
   {
     return socket_->localAddress().toString();
   }
