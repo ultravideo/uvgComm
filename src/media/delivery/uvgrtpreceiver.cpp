@@ -46,12 +46,11 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
             }
             else
             {
-              mstream_->install_receive_hook(this, __receiveHook);
-              mstream_->get_rtcp()->install_sender_hook(std::bind(&UvgRTPReceiver::processRTCPSenderReport,
-                                                                           this, std::placeholders::_1 ));
-
               Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initializing uvgRTP receiver",
-                                              {"Remote SSRC"}, {QString::number(remoteSSRC_)});
+                                              {"LocalSSRC", "Remote SSRC", "Receiver type"},
+                                              {QString::number(localSSRC_),
+                                               QString::number(remoteSSRC_),
+                                               datatypeToString(output_)});
 
               if (localSSRC_ != 0)
               {
@@ -62,6 +61,10 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
               {
                 mstream_->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC_);
               }
+
+              mstream_->install_receive_hook(this, __receiveHook);
+              mstream_->get_rtcp()->install_sender_hook(std::bind(&UvgRTPReceiver::processRTCPSenderReport,
+                                                                  this, std::placeholders::_1 ));
             }
           });
 
@@ -78,6 +81,14 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 {
   Q_ASSERT(frame && frame->payload != nullptr);
 
+  if (!watcher_.isFinished())
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Got a packet before we are ready, discarding..",
+                                    {"Packet SSRC", "Receiver Type"},
+                                    {QString::number(frame->header.ssrc), datatypeToString(output_)});
+    return;
+  }
+
   if (frame == nullptr ||
       frame->payload == nullptr ||
       frame->payload_len == 0)
@@ -88,8 +99,11 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 
   if (frame->header.ssrc != remoteSSRC_)
   {
-    Logger::getLogger()->printError(this, "Got a packet with wrong SSRC", "SSRC",
-                                    QString::number(frame->header.ssrc));
+    Logger::getLogger()->printDebug(DEBUG_ERROR, this, "Got a packet with wrong SSRC",
+                                    {"Expected SSRC", "Packet SSRC", "Receiver Type"},
+                                    {QString::number(remoteSSRC_),
+                                     QString::number(frame->header.ssrc),
+                                     datatypeToString(output_)});
     return;
   }
 
