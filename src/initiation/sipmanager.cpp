@@ -297,10 +297,13 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &remote, QString remo
 
   QString localAddress = getTransport(remoteAddress)->connection->localAddress();
 
-  // get correct local URI
-  NameAddr local = localInfo(useOurProxy, localAddress);
+  if (!localAddress.isEmpty())
+  {
+    // get correct local URI
+    NameAddr local = localInfo(useOurProxy, localAddress);
 
-  createDialog(sessionID, local, remote, localAddress, true);
+    createDialog(sessionID, local, remote, localAddress, true);
+  }
 }
 
 
