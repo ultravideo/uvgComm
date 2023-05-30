@@ -176,8 +176,14 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
   }
   else
   {
+    // TODO: Fix STUN bindings and change this order
     Logger::getLogger()->printNormal(this, "Settings connection addresses directly instead of ICE candidates");
-    if (!existingStunCandidates_[mediaIndex]->empty())
+    if (!existingLocalCandidates_[mediaIndex]->empty())
+    {
+      Logger::getLogger()->printNormal(this, "Using local IP address");
+      setMediaAddress(existingLocalCandidates_, media, mediaIndex);
+    }
+    else if (!existingStunCandidates_[mediaIndex]->empty())
     {
       Logger::getLogger()->printNormal(this, "Using STUN address");
       setMediaAddress(existingStunCandidates_, media, mediaIndex);
@@ -187,10 +193,9 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
       Logger::getLogger()->printNormal(this, "Using Global IP address");
       setMediaAddress(existingGlobalCandidates_, media, mediaIndex);
     }
-    else if (!existingLocalCandidates_[mediaIndex]->empty())
+    else
     {
-      Logger::getLogger()->printNormal(this, "Using local IP address");
-      setMediaAddress(existingLocalCandidates_, media, mediaIndex);
+      Logger::getLogger()->printError(this, "No addresses were found!");
     }
   }
 }
