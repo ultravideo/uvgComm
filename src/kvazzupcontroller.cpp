@@ -8,8 +8,6 @@
 #include "settingskeys.h"
 #include "logger.h"
 
-#include "global.h"
-
 #include <QSettings>
 #include <QHostAddress>
 

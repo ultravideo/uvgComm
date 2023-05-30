@@ -1,6 +1,7 @@
 #pragma once
 
-#include "ui/gui/conferenceview.h"
+#include "global.h"
+
 #include <QImage>
 
 #include <memory>

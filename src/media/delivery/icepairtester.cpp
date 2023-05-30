@@ -480,7 +480,7 @@ void ICEPairTester::recvStunMessage(QNetworkDatagram message)
                                                  message.senderAddress(),
                                                  message.senderPort()))
     {
-      emit responseRecv();
+      emit responseRecv(); // Assert triggers in debug mode sometimes
     }
   }
   else

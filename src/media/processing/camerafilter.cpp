@@ -362,7 +362,7 @@ void CameraFilter::process()
 
   while(!frames_.empty())
   {
-    QVideoFrame frame = frames_.front();
+    QVideoFrame frame = frames_.front(); // TODO: Crash here if call is started before camera has initialized in debugger
     frameMutex_.lock();
     frames_.pop_front();
     frameMutex_.unlock();
