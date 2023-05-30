@@ -105,7 +105,8 @@ private:
 
   QString localAddress_;
 
-  std::shared_ptr<SDPMeshConference> sdpConf_;
+  uint32_t audioSSRC_;
+  uint32_t videoSSRC_;
 
-  QList<uint32_t> ssrcs_;
+  std::shared_ptr<SDPMeshConference> sdpConf_;
 };

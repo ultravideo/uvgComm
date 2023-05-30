@@ -19,6 +19,8 @@ SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
   remoteSDP_(nullptr),
   negotiationState_(NEG_NO_STATE),
   peerAcceptsSDP_(false),
+  audioSSRC_(generateSSRC()),
+  videoSSRC_(generateSSRC()),
   sdpConf_(sdpConf)
 {
   // this makes it possible to send SDP as a signal parameter
@@ -579,20 +581,26 @@ void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
     }
   }
 
-  if (mediaIndex >= ssrcs_.size())
+  if (media.type == "audio")
   {
-    ssrcs_.push_back(generateSSRC());
-    media.valueAttributes.push_back({A_SSRC, QString::number(ssrcs_.back())});
+    media.valueAttributes.push_back({A_SSRC, QString::number(audioSSRC_)});
   }
-  else
+  else if (media.type == "video")
   {
-    media.valueAttributes.push_back({A_SSRC, QString::number(ssrcs_.at(mediaIndex))});
+    media.valueAttributes.push_back({A_SSRC, QString::number(videoSSRC_)});
   }
 }
 
 
 void SDPNegotiation::setMID(unsigned int mediaIndex, MediaInfo& media)
 {
+  for (unsigned int j = 0; j < media.valueAttributes.size(); ++j)
+  {
+    if (media.valueAttributes.at(j).type == A_MID)
+    {
+      return;
+    }
+  }
   media.valueAttributes.push_back({A_MID, QString::number(mediaIndex + 1)});
 }
 
