@@ -9,7 +9,7 @@
 #include <QNetworkInterface>
 #include <QUdpSocket>
 
-const uint16_t STUNADDRESSPOOL = 8;
+
 
 const int AN_HOUR = 1000 * 60 * 60;
 const int STUN_INTERVAL_PERIOD = 100;
@@ -18,8 +18,10 @@ const int NUMBER_OF_POSSIBLE_PORTS = 1000;
 
 #ifdef KVAZZUP_RTP_MULTIPLEXING
 const bool RTP_MULTIPLEXING = true;
+const uint16_t STUNADDRESSPOOL = 2;
 #else
 const bool RTP_MULTIPLEXING = false;
+const uint16_t STUNADDRESSPOOL = 8;
 #endif
 
 
@@ -583,8 +585,16 @@ void NetworkCandidates::moreSTUNCandidates()
       {
         if (stunFailureList_.find(interface.first) == stunFailureList_.end())
         {
-          // use 0 as STUN sessionID
-          uint16_t nextPort = nextAvailablePort(interface.first, 0);
+          uint16_t nextPort = 0;
+          if (!RTP_MULTIPLEXING)
+          {
+            // use 0 as STUN sessionID
+            nextPort = nextAvailablePort(interface.first, 0);
+          }
+          else
+          {
+            nextPort = interface.second.at(stunAddresses_.size() + requests_.size());
+          }
 
           if (nextPort != 0)
           {
