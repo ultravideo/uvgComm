@@ -224,14 +224,15 @@ void MediaManager::createMediaPair(uint32_t sessionID, const MediaID &id,
     return;
   }
 
-  createOutgoingMedia(sessionID, localMedia, remoteMedia, id.getSend());
-  createIncomingMedia(sessionID, localMedia, remoteMedia, videoView, id.getReceive());
+  createOutgoingMedia(sessionID, localMedia, remoteMedia, id, id.getSend());
+  createIncomingMedia(sessionID, localMedia, remoteMedia, id, videoView, id.getReceive());
 }
 
 
 void MediaManager::createOutgoingMedia(uint32_t sessionID,
                                        const MediaInfo& localMedia,
                                        const MediaInfo& remoteMedia,
+                                       const MediaID& id,
                                        bool active)
 {
   if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
@@ -258,7 +259,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
                                             localMedia.receivePort,
                                             remoteMedia.receivePort,
                                             codec, remoteMedia.rtpNums.at(0),
-                                            localSSRC, remoteSSRC);
+                                            id, localSSRC, remoteSSRC);
   }
   else
   {
@@ -279,13 +280,11 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 
     if(remoteMedia.type == "audio")
     {
-      fg_->sendAudioTo(sessionID, senderFilter,
-                       remoteMedia.connection_address, localMedia.receivePort, remoteMedia.receivePort);
+      fg_->sendAudioTo(sessionID, senderFilter, id);
     }
     else if(remoteMedia.type == "video")
     {
-      fg_->sendVideoto(sessionID, senderFilter,
-                       remoteMedia.connection_address, localMedia.receivePort, remoteMedia.receivePort);
+      fg_->sendVideoto(sessionID, senderFilter, id);
     }
     else
     {
@@ -306,6 +305,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 void MediaManager::createIncomingMedia(uint32_t sessionID,
                                        const MediaInfo &localMedia,
                                        const MediaInfo &remoteMedia,
+                                       const MediaID& id,
                                        VideoInterface* videoView, bool active)
 {
   if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
@@ -317,20 +317,20 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
   QString codec = rtpNumberToCodec(localMedia);
   std::shared_ptr<Filter> receiverFilter = nullptr;
 
+  uint32_t localSSRC = findSSRC(localMedia);
+  uint32_t remoteSSRC = findSSRC(remoteMedia);
+
   if(localMedia.proto == "RTP/AVP" ||
      localMedia.proto == "RTP/AVPF" ||
      localMedia.proto == "RTP/SAVP" ||
      localMedia.proto == "RTP/SAVPF")
   {
-    uint32_t localSSRC = findSSRC(localMedia);
-    uint32_t remoteSSRC = findSSRC(remoteMedia);
-
     receiverFilter = streamer_->addReceiveStream(sessionID,
                                                  localMedia.connection_address,
                                                  remoteMedia.connection_address,
                                                  localMedia.receivePort,
                                                  remoteMedia.receivePort,
-                                                 codec, localMedia.rtpNums.at(0), localSSRC, remoteSSRC);
+                                                 codec, localMedia.rtpNums.at(0), id, localSSRC, remoteSSRC);
   }
   else
   {
@@ -350,16 +350,14 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
     Q_ASSERT(receiverFilter != nullptr);
     if(localMedia.type == "audio")
     {
-      fg_->receiveAudioFrom(sessionID, receiverFilter,
-                            localMedia.connection_address, localMedia.receivePort, remoteMedia.receivePort);
+      fg_->receiveAudioFrom(sessionID, receiverFilter, id);
     }
     else if(localMedia.type == "video")
     {
       Q_ASSERT(videoView);
       if (videoView != nullptr)
       {
-        fg_->receiveVideoFrom(sessionID, receiverFilter, videoView,
-                              localMedia.connection_address, localMedia.receivePort, remoteMedia.receivePort);
+        fg_->receiveVideoFrom(sessionID, receiverFilter, videoView, id);
       }
       else
       {

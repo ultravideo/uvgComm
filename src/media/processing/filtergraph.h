@@ -1,5 +1,6 @@
 #pragma once
 
+#include "mediaid.h"
 #include <QWidget>
 #include <QtMultimedia/QAudioFormat>
 #include <QObject>
@@ -23,15 +24,6 @@ class ResourceAllocator;
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
-struct ConnectionDetails
-{
-  // TODO: Add SSRC here for better detection
-  QString type;
-  QString address;
-  uint16_t localPort;
-  uint16_t peerPort;
-};
-
 class FilterGraph : public QObject
 {
   Q_OBJECT
@@ -44,15 +36,15 @@ public:
 
   // These functions are used to manipulate filter graphs regarding a peer
   void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
-                   QString remoteAddress, uint16_t localPort, uint16_t peerPort);
+                   const MediaID &id);
 
   void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
                         VideoInterface *view,
-                        QString localAddress, uint16_t localPort, uint16_t peerPort);
+                        const MediaID &id);
   void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource,
-                   QString remoteAddress, uint16_t localPort, uint16_t peerPort);
+                   const MediaID &id);
   void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
-                        QString localAddress, uint16_t localPort, uint16_t peerPort);
+                        const MediaID &id);
 
   // removes participant and all its associated filter from filter graph.
   void removeParticipant(uint32_t sessionID);
@@ -102,8 +94,8 @@ private:
   struct Peer
   {
     // keep track of existing connections, so we don't duplicate them
-    std::vector<ConnectionDetails> sendingStreams;
-    std::vector<ConnectionDetails> receivingStreams;
+    std::vector<MediaID> sendingStreams;
+    std::vector<MediaID> receivingStreams;
 
     // Arrays of filters which send media, but are not connected to each other.
     std::vector<std::shared_ptr<Filter>> audioSenders; // sends audio
@@ -120,7 +112,7 @@ private:
 
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
 
-  bool existingConnection(std::vector<ConnectionDetails>& connections, ConnectionDetails details);
+  bool existingConnection(std::vector<MediaID>& connections, MediaID id);
 
   // --------------- General stuff ----------------
   bool quitting_;

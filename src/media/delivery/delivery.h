@@ -1,5 +1,6 @@
 #pragma once
 #include "media/processing/filter.h"
+#include "mediaid.h"
 
 #include <QMutex>
 #include <QHostAddress>
@@ -37,13 +38,13 @@ public:
   std::shared_ptr<Filter> addSendStream(uint32_t sessionID,
                                         QString localAddress, QString remoteAddress,
                                         uint16_t localPort, uint16_t peerPort,
-                                        QString codec, uint8_t rtpNum,
+                                        QString codec, uint8_t rtpNum, MediaID id,
                                          uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
 
   std::shared_ptr<Filter> addReceiveStream(uint32_t sessionID,
                                            QString localAddress, QString remoteAddress,
                                            uint16_t localPort, uint16_t peerPort,
-                                           QString codec, uint8_t rtpNum,
+                                           QString codec, uint8_t rtpNum, MediaID id,
                                            uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
 
   // TODO: Add a way to remove individual streams
@@ -76,8 +77,7 @@ private:
     QString localAddress;
     QString peerAddress;
 
-    // uses ssrc as key
-    std::map<uint32_t, MediaStream*> streams;
+    std::map<MediaID, MediaStream*> streams;
     bool dhSelected;
   };
 
@@ -88,14 +88,14 @@ private:
 
   bool initializeStream(uint32_t sessionID,
                         DeliverySession& session,
-                        uint16_t localPort, uint16_t peerPort,
-                        rtp_format_t fmt, uint32_t localSSRC);
+                        uint16_t localPort, uint16_t peerPort, MediaID id,
+                        rtp_format_t fmt);
 
   bool addMediaStream(uint32_t sessionID,
                       DeliverySession& session,
                       uint16_t localPort, uint16_t peerPort,
-                      rtp_format_t fmt, bool dhSelected, uint32_t localSSRC);
-  void removeMediaStream(uint32_t sessionID, DeliverySession& session, uint32_t localSSRC);
+                      rtp_format_t fmt, bool dhSelected, MediaID &id);
+  void removeMediaStream(uint32_t sessionID, DeliverySession& session, MediaID &id);
 
   void parseCodecString(QString codec, rtp_format_t& fmt,
                         DataType& type, QString& mediaName);
@@ -103,7 +103,7 @@ private:
   bool findSession(uint32_t sessionID, uint32_t& outIndex,
                    QString localAddress, QString remoteAddress);
 
-  // private variables
+  // key is sessionID
   std::map<uint32_t, std::shared_ptr<Peer>> peers_;
 
   uvg_rtp::context *rtp_ctx_;

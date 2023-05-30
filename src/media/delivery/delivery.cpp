@@ -137,6 +137,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
                                                 QString localAddress, QString remoteAddress,
                                                 uint16_t localPort, uint16_t peerPort,
                                                 QString codec, uint8_t rtpNum,
+                                                MediaID id,
                                                 uint32_t localSSRC, uint32_t remoteSSRC)
 {
   Q_UNUSED(rtpNum); // TODO in uvgRTP
@@ -159,29 +160,29 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
   }
 
   if (!initializeStream(sessionID, peers_[sessionID]->sessions.at(sessionIndex),
-                        localPort, peerPort, fmt, localSSRC))
+                        localPort, peerPort, id, fmt))
   {
     Logger::getLogger()->printError(this, "Failed to initialize stream");
     return nullptr;
   }
 
   // create filter if it does not exist
-  if (peers_[sessionID]->sessions.at(sessionIndex).streams[localSSRC]->sender == nullptr)
+  if (peers_[sessionID]->sessions.at(sessionIndex).streams[id]->sender == nullptr)
   {
     Logger::getLogger()->printNormal(this, "Creating sender filter");
 
-    peers_[sessionID]->sessions.at(sessionIndex).streams[localSSRC]->sender =
+    peers_[sessionID]->sessions.at(sessionIndex).streams[id]->sender =
         std::shared_ptr<UvgRTPSender>(new UvgRTPSender(sessionID,
                                                        remoteAddress + ":" + QString::number(peerPort),
                                                        stats_,
                                                        hwResources_,
                                                        type,
                                                        mediaName,
-                                                       peers_[sessionID]->sessions.at(sessionIndex).streams[localSSRC]->stream,
-                                                     localSSRC, remoteSSRC));
+                                                       peers_[sessionID]->sessions.at(sessionIndex).streams[id]->stream,
+                                                       localSSRC, remoteSSRC));
 
     connect(
-      peers_[sessionID]->sessions.at(sessionIndex).streams[localSSRC]->sender.get(),
+      peers_[sessionID]->sessions.at(sessionIndex).streams[id]->sender.get(),
       &UvgRTPSender::zrtpFailure,
       this,
       &Delivery::handleZRTPFailure);
@@ -191,13 +192,14 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
     Logger::getLogger()->printNormal(this, "Using existing sender filter");
   }
 
-  return peers_[sessionID]->sessions.at(sessionIndex).streams[localSSRC]->sender;
+  return peers_[sessionID]->sessions.at(sessionIndex).streams[id]->sender;
 }
 
 std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
                                                    QString localAddress, QString remoteAddress,
                                                    uint16_t localPort, uint16_t peerPort,
                                                    QString codec, uint8_t rtpNum,
+                                                   MediaID id,
                                                    uint32_t localSSRC, uint32_t remoteSSRC)
 {
   Q_UNUSED(rtpNum); // TODO in uvgRTP
@@ -222,17 +224,17 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
   }
 
   if (!initializeStream(sessionID, peers_[sessionID]->sessions.at(sessionIndex),
-                        localPort, peerPort, fmt, localSSRC))
+                        localPort, peerPort, id, fmt))
   {
     return nullptr;
   }
 
   // create filter if it does not exist
-  if (peers_[sessionID]->sessions.at(sessionIndex).streams[localSSRC]->receiver == nullptr)
+  if (peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver == nullptr)
   {
     Logger::getLogger()->printNormal(this, "Creating receiver filter", "Interface",
                                      localAddress + ":" + QString::number(localPort));
-    peers_[sessionID]->sessions.at(sessionIndex).streams[localSSRC]->receiver = std::shared_ptr<UvgRTPReceiver>(
+    peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver = std::shared_ptr<UvgRTPReceiver>(
         new UvgRTPReceiver(
           sessionID,
           localAddress + ":" + QString::number(localPort),
@@ -240,13 +242,13 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
           hwResources_,
           type,
           mediaName,
-          peers_[sessionID]->sessions.at(sessionIndex).streams[localSSRC]->stream,
+          peers_[sessionID]->sessions.at(sessionIndex).streams[id]->stream,
           localSSRC, remoteSSRC
         )
     );
 
     connect(
-      peers_[sessionID]->sessions.at(sessionIndex).streams[localSSRC]->receiver.get(),
+      peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver.get(),
       &UvgRTPReceiver::zrtpFailure,
       this,
       &Delivery::handleZRTPFailure);
@@ -256,14 +258,15 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
     Logger::getLogger()->printNormal(this, "Using existing RTP receiver");
   }
 
-  return peers_[sessionID]->sessions.at(sessionIndex).streams[localSSRC]->receiver;
+  return peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver;
 }
 
 
 bool Delivery::initializeStream(uint32_t sessionID,
                                 DeliverySession& session,
                                 uint16_t localPort, uint16_t peerPort,
-                                rtp_format_t fmt, uint32_t localSSRC)
+                                MediaID id,
+                                rtp_format_t fmt)
 {
   bool success = true;
   // add peer if it does not exist
@@ -273,11 +276,11 @@ bool Delivery::initializeStream(uint32_t sessionID,
   }
 
   // create mediastream if it does not exist
-  if (session.streams.find(localSSRC) == session.streams.end())
+  if (session.streams.find(id) == session.streams.end())
   {
     Logger::getLogger()->printNormal(this, "Creating a new uvgRTP mediastream");
     success = addMediaStream(sessionID, session,
-                             localPort, peerPort, fmt, session.dhSelected, localSSRC);
+                             localPort, peerPort, fmt, session.dhSelected, id);
     if (success)
     {
       session.dhSelected = true;
@@ -294,7 +297,7 @@ bool Delivery::initializeStream(uint32_t sessionID,
 
 bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
                               uint16_t localPort, uint16_t peerPort,
-                              rtp_format_t fmt, bool dhSelected, uint32_t localSSRC)
+                              rtp_format_t fmt, bool dhSelected, MediaID& id)
 {
   if (peers_.find(sessionID) == peers_.end())
   {
@@ -347,30 +350,30 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
     session.session, localPort, peerPort, fmt, flags);
 
   // check if there already exists a media session and overwrite
-  if (session.streams.find(localSSRC) != session.streams.end() &&
-      session.streams[localSSRC] != nullptr)
+  if (session.streams.find(id) != session.streams.end() &&
+      session.streams[id] != nullptr)
   {
     Logger::getLogger()->printProgramWarning(this, "Existing mediastream detected. Overwriting."
                               " Will cause a crash if previous filters are attached to filtergraph.");
-    removeMediaStream(sessionID, session, localSSRC);
+    removeMediaStream(sessionID, session, id);
   }
 
   // actually create the mediastream
-  session.streams[localSSRC] = new MediaStream;
-  session.streams[localSSRC]->stream = futureRes;
+  session.streams[id] = new MediaStream;
+  session.streams[id]->stream = futureRes;
 
   return true;
 }
 
 
-void Delivery::removeMediaStream(uint32_t sessionID, DeliverySession &session, uint32_t localSSRC)
+void Delivery::removeMediaStream(uint32_t sessionID, DeliverySession &session, MediaID& id)
 {
   Logger::getLogger()->printNormal(this, "Removing mediastream");
 
-  session.session->destroy_stream(session.streams[localSSRC]->stream.result());
-  delete session.streams[localSSRC];
-  session.streams[localSSRC] = nullptr;
-  session.streams.erase(localSSRC);
+  session.session->destroy_stream(session.streams[id]->stream.result());
+  delete session.streams[id];
+  session.streams[id] = nullptr;
+  session.streams.erase(id);
 }
 
 
@@ -380,7 +383,7 @@ void Delivery::removePeer(uint32_t sessionID)
   {
     for (auto& session : peers_[sessionID]->sessions)
     {
-      std::vector<uint32_t> streams;
+      std::vector<MediaID> streams;
 
       // take all keys so we wont get iterator errors
       for (auto& stream : session.streams)
