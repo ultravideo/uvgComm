@@ -3,7 +3,6 @@
 #include "statisticsinterface.h"
 #include "yuvconversions.h"
 
-#include "common.h"
 #include "logger.h"
 
 #include <QImage>
@@ -11,6 +10,37 @@
 
 #include <thread>
 
+
+const std::map<DataType, QString> typeString = {
+  {DT_NONE, "None"},
+  {DT_YUV420VIDEO, "YUV 420"},
+  {DT_YUV422VIDEO, "YUV 422"},
+  {DT_NV12VIDEO, "NV 12"},
+  {DT_NV21VIDEO, "NV 21"},
+  {DT_YUYVVIDEO, "YUYV"},
+  {DT_UYVYVIDEO, "UYVY"},
+  {DT_ARGBVIDEO, "ARGB"},
+  {DT_BGRAVIDEO, "BGRA"},
+  {DT_ABGRVIDEO, "ABGR"},
+  {DT_RGB32VIDEO, "RGB32"},
+  {DT_RGB24VIDEO, "RGB24"},
+  {DT_BGRXVIDEO, "BGRX"},
+  {DT_MJPEGVIDEO, "MJPEG"},
+  {DT_HEVCVIDEO, "HEVC"},
+  {DT_RAWAUDIO, "RAW"},
+  {DT_OPUSAUDIO, "OPUS"}
+};
+
+
+QString datatypeToString(const DataType type)
+{
+  if (typeString.find(type) == typeString.end())
+  {
+    Logger::getLogger()->printUnimplemented("Filter", "String conversion does not know this datatype!");
+    return "Unknown";
+  }
+  return typeString.at(type);
+}
 
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                std::shared_ptr<ResourceAllocator> hwResources,
@@ -217,6 +247,10 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source) c
   {
     data->aInfo = std::unique_ptr<AudioInfo> (new AudioInfo);
     data->aInfo->sampleRate = 0;
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Could not determine input data type!");
   }
 
   return data;
