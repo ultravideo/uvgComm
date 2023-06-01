@@ -20,7 +20,6 @@ CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
   ui_(new Ui::CallWindow),
   conference_(this),
-  viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory())),
   partInt_(nullptr)
 {
   ui_->setupUi(this);
@@ -32,19 +31,15 @@ CallWindow::~CallWindow()
   delete ui_;
 }
 
-
-QList<VideoInterface*> CallWindow::getSelfVideos () const
+VideoWidget* CallWindow::getSelfView() const
 {
-  return viewFactory_->getSelfVideos();
+  return ui_->SelfView;
 }
 
 
-void CallWindow::init(ParticipantInterface *partInt, VideoWidget* settingsVideo)
+void CallWindow::init(ParticipantInterface *partInt)
 { 
   partInt_ = partInt;
-
-  viewFactory_->addSelfview(ui_->SelfView);
-  viewFactory_->addSelfview(settingsVideo);
 
   ui_->Add_contact_widget->setVisible(false);
 
@@ -193,9 +188,10 @@ void CallWindow::displayOutgoingCall(uint32_t sessionID, QString name)
   contacts_.turnAllItemsToPlus();
   checkID(sessionID);
 
-  for (auto& layoutID : layoutIDs_.at(sessionID))
+  LayoutID id;
+  if (getTempLayoutID(id, sessionID))
   {
-    conference_.attachOutgoingCallWidget(layoutID, name);  // TODO get name from contact list
+    conference_.attachOutgoingCallWidget(id, name);
   }
 }
 
@@ -204,9 +200,10 @@ void CallWindow::displayRinging(uint32_t sessionID)
 {
   checkID(sessionID);
 
-  for (auto& layoutID : layoutIDs_.at(sessionID))
+  LayoutID id;
+  if (getTempLayoutID(id, sessionID))
   {
-    conference_.attachRingingWidget(layoutID);
+    conference_.attachRingingWidget(id);
   }
 }
 
@@ -215,9 +212,10 @@ void CallWindow::displayIncomingCall(uint32_t sessionID, QString caller)
 {
   checkID(sessionID);
 
-  for (auto& layoutID : layoutIDs_.at(sessionID))
+  LayoutID id;
+  if (getTempLayoutID(id, sessionID))
   {
-    conference_.attachIncomingCallWidget(layoutID, caller);
+    conference_.attachIncomingCallWidget(id, caller);
   }
 }
 
@@ -229,40 +227,120 @@ void CallWindow::closeEvent(QCloseEvent *event)
 }
 
 
-std::vector<VideoInterface*> CallWindow::callStarted(uint32_t sessionID,
-                                        QList<SDPMediaParticipant>& medias)
+void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
+                             uint32_t sessionID, QStringList names,
+                             const QList<std::pair<MediaID,MediaID>> &audioVideoIDs)
 {
+  // Allow user to end the call
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
 
-  checkID(sessionID);
-
-  // create the needed amount of layoutIDs
-  for (unsigned int i = layoutIDs_[sessionID].size(); i < medias.size(); ++i)
+  // if the number of required layouts has reduced
+  if (layoutIDs_[sessionID].size() > audioVideoIDs.size())
   {
-    layoutIDs_[sessionID].push_back(conference_.createLayoutID());
+    // find out which ones have disappeared
+    std::vector<LayoutID> expiredIDs;
+
+    // remove expired layout slots
+    for (auto& layout : layoutIDs_[sessionID])
+    {
+      bool expiredLayout = true; // assume the layout is not needed unless proven otherwise
+
+      for (auto& mid : audioVideoIDs)
+      {
+          // this layout is still needed
+          if (layout.mediaID == mid.second)
+        {
+          expiredLayout = false;
+        }
+      }
+
+      if (expiredLayout)
+      {
+        expiredIDs.push_back(layout.layoutID);
+      }
+    }
+
+    Logger::getLogger()->printNormal(this, "Removing " + QString::number(expiredIDs.size()) + " medias from layout");
+
+    for (auto& expired : expiredIDs)
+    {
+      conference_.removeWidget(expired);
+      for (unsigned int i = 0; i < layoutIDs_[sessionID].size(); ++i)
+      {
+        if (expired == layoutIDs_[sessionID][i].layoutID)
+        {
+          layoutIDs_[sessionID].erase(layoutIDs_[sessionID].begin() + i);
+          break;
+        }
+      }
+    }
   }
-
-  std::vector<VideoInterface*> interfaces;
-
-  // change the contents of layouts to medias
-  for (unsigned int i = 0; i < medias.size(); ++i)
+  else // add more medias if necessary and update current ones status
   {
-    uint32_t layoutID = layoutIDs_[sessionID].at(i);
-    if (medias.at(i).videoEnabled)
+    // add new medias
+    for (auto& mid : audioVideoIDs)
     {
-      conference_.attachVideoWidget(layoutID, viewFactory_->getView(layoutID));
-    }
-    else
-    {
-      conference_.attachAvatarWidget(layoutID, medias.at(i).name);
+      bool newMedia = true; // assume this media is new one unless proven otherwise
+
+      for (auto& layout : layoutIDs_[sessionID])
+      {
+        if (layout.mediaID == mid.second)
+        {
+          // we already have a layout location for this media
+           newMedia = false;
+        }
+      }
+
+      // if new, allocate a layout location for it
+      if (newMedia)
+      {
+        LayoutID id;
+        // can we use the temporary layout use for call messages previously
+        if (getTempLayoutID(id, sessionID))
+        {
+           Logger::getLogger()->printNormal(this, "Using existing layout position to show media");
+
+           // move layout from temporary to media layouts
+           temporaryLayoutIDs_.erase(sessionID);
+        }
+        else // no temporary layout available, so we create a new one
+        {
+           Logger::getLogger()->printNormal(this, "Using a new layout position for media");
+           id = conference_.createLayoutID();
+        }
+
+        layoutIDs_[sessionID].push_back({id, mid.second});
+        viewFactory->createWidget(sessionID, id, mid.second);
+      }
     }
 
-    viewFactory_->getVideo(layoutID)->drawMicOffIcon(!medias.at(i).audioEnabled);
-    interfaces.push_back(viewFactory_->getVideo(layoutID));
+    unsigned int layoutsUsed = audioVideoIDs.size();
+
+    if (layoutIDs_[sessionID].size() < layoutsUsed)
+    {
+      Logger::getLogger()->printWarning(this, "Duplicate medias detected!");
+      layoutsUsed = layoutIDs_[sessionID].size();
+    }
+
+    // change the contents of layouts to medias
+    for (unsigned int i = 0; i < layoutsUsed; ++i) {
+      uint32_t layoutID = layoutIDs_[sessionID].at(i).layoutID;
+
+      if (audioVideoIDs.at(i).second.getReceive()) // video or avatar
+      {
+         conference_.attachVideoWidget(
+           layoutID,
+           viewFactory->getView(layoutIDs_[sessionID].at(i).mediaID));
+      } else {
+         conference_.attachAvatarWidget(layoutID, names.at(i));
+      }
+
+      // update audio icon status
+      viewFactory->getVideo(layoutIDs_[sessionID].at(i).mediaID)
+        ->drawMicOffIcon(!audioVideoIDs.at(i).first.getReceive());
+    }
   }
-
-  return interfaces;
 }
 
 
@@ -323,28 +401,46 @@ void CallWindow::removeParticipant(uint32_t sessionID)
   checkID(sessionID);
   for (auto& layoutID : layoutIDs_.at(sessionID))
   {
-    conference_.removeWidget(layoutID);
+    conference_.removeWidget(layoutID.layoutID);
   }
 
   layoutIDs_.erase(sessionID);
+
+  LayoutID id;
+  if (getTempLayoutID(id, sessionID))
+  {
+    conference_.removeWidget(id);
+    temporaryLayoutIDs_.erase(sessionID);
+  }
+
   contacts_.setAccessible(sessionID);
-  viewFactory_->clearWidgets(sessionID);
 }
 
 
 void CallWindow::removeWithMessage(uint32_t sessionID, QString message,
                                    bool temporaryMessage)
 {
-  if (layoutExists(sessionID))
+
+  if (layoutIDs_.find(sessionID) != layoutIDs_.end())
   {
     for (auto& layoutID : layoutIDs_.at(sessionID))
     {
-      conference_.attachMessageWidget(layoutID, message, !temporaryMessage);
+      conference_.attachMessageWidget(layoutID.layoutID, message, !temporaryMessage);
 
       if (temporaryMessage)
       {
-        expiringLayouts_.push_back(layoutID);
+        expiringLayouts_.push_back(layoutID.layoutID);
       }
+    }
+  }
+
+  LayoutID id;
+  if (getTempLayoutID(id, sessionID))
+  {
+    conference_.attachMessageWidget(id, message, !temporaryMessage);
+    if (temporaryMessage)
+    {
+      expiringLayouts_.push_back(id);
     }
   }
 
@@ -394,19 +490,19 @@ void CallWindow::cameraButton(bool checked)
 }
 
 
-void CallWindow::layoutAccepts(uint32_t layoutID)
+void CallWindow::layoutAccepts(LayoutID layoutID)
 {
   emit callAccepted(layoutIDToSessionID(layoutID));
 }
 
 
-void CallWindow::layoutRejects(uint32_t layoutID)
+void CallWindow::layoutRejects(LayoutID layoutID)
 {
   emit callRejected(layoutIDToSessionID(layoutID));
 }
 
 
-void CallWindow::layoutCancels(uint32_t layoutID)
+void CallWindow::layoutCancels(LayoutID layoutID)
 {
   emit callCancelled(layoutIDToSessionID(layoutID));
 }
@@ -431,14 +527,15 @@ void CallWindow::checkID(uint32_t sessionID)
 {
   if (!layoutExists(sessionID))
   {
-    layoutIDs_[sessionID].push_back(conference_.createLayoutID());
+    temporaryLayoutIDs_[sessionID] = conference_.createLayoutID();
   }
 }
 
 
 bool CallWindow::layoutExists(uint32_t sessionID)
 {
-  return layoutIDs_.find(sessionID) != layoutIDs_.end() && !layoutIDs_[sessionID].empty();
+  return temporaryLayoutIDs_.find(sessionID) != temporaryLayoutIDs_.end() ||
+         (layoutIDs_.find(sessionID) != layoutIDs_.end() && !layoutIDs_[sessionID].empty());
 }
 
 
@@ -453,7 +550,7 @@ void CallWindow::expireLayouts()
 }
 
 
-void CallWindow::removeLayout(uint32_t layoutID)
+void CallWindow::removeLayout(LayoutID layoutID)
 {
   conference_.removeWidget(layoutID);
 
@@ -462,7 +559,7 @@ void CallWindow::removeLayout(uint32_t layoutID)
   {
     for (unsigned int i = 0; i < sessionID.second.size(); ++i)
     {
-      if (sessionID.second.at(i) == layoutID)
+      if (sessionID.second.at(i).layoutID == layoutID)
       {
         sessionID.second.erase(sessionID.second.begin() + i);
         break;
@@ -470,20 +567,39 @@ void CallWindow::removeLayout(uint32_t layoutID)
     }
   }
 
+  for (auto sessionID = temporaryLayoutIDs_.begin();
+       sessionID != temporaryLayoutIDs_.end(); ++sessionID)
+  {
+    if (sessionID->second == layoutID)
+    {
+      temporaryLayoutIDs_.erase(sessionID);
+      break;
+    }
+  }
+
+
   cleanUp();
 }
 
 
-uint32_t CallWindow::layoutIDToSessionID(uint32_t layoutID)
+uint32_t CallWindow::layoutIDToSessionID(LayoutID layoutID)
 {
   for (auto& sessionID : layoutIDs_)
   {
     for (auto& ownedLayoutID : sessionID.second)
     {
-      if (ownedLayoutID == layoutID)
+      if (ownedLayoutID.layoutID == layoutID)
       {
         return sessionID.first;
       }
+    }
+  }
+
+  for (auto& sessionID : temporaryLayoutIDs_)
+  {
+    if (sessionID.second == layoutID)
+    {
+      return sessionID.first;
     }
   }
 
@@ -509,9 +625,21 @@ void CallWindow::cleanUp()
     layoutIDs_.erase(sessionID);
   }
 
-  if (layoutIDs_.empty())
+  if (layoutIDs_.empty() && temporaryLayoutIDs_.empty())
   {
     restoreCallUI();
   }
 }
 
+
+bool CallWindow::getTempLayoutID(LayoutID& id, uint32_t sessionID)
+{
+  bool found = temporaryLayoutIDs_.find(sessionID) != temporaryLayoutIDs_.end();
+
+  if (found)
+  {
+    id = temporaryLayoutIDs_[sessionID];
+  }
+
+  return found;
+}

@@ -13,7 +13,8 @@ class SDPICE : public SIPMessageProcessor
   Q_OBJECT
 public:
 
-  SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID);
+  SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID,
+         bool useICE, bool localAddresses);
 
   void limitMediaCandidates(int limit);
 
@@ -74,11 +75,15 @@ private:
   // their candidates.
   void addLocalCandidatesToSDP(QVariant& content);
   void addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex);
+  void setConnectionAddressWithoutICE(MediaInfo& media, int mediaIndex);
 
   void printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates);
 
   void addICEToSupported(std::shared_ptr<QStringList> &supported);
   bool isICEToSupported(std::shared_ptr<QStringList> supported);
+
+  void setMediaAddress(const std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> candidates,
+                       MediaInfo& media, int mediaIndex);
 
   uint32_t sessionID_;
 
@@ -98,4 +103,7 @@ private:
   std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingStunCandidates_;
   std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingStunBindings_;
   std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingturnCandidates_;
+
+  bool useICE_;
+  bool usePrivateAddresses_;
 };

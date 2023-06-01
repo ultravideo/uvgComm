@@ -40,7 +40,11 @@ const int MAX_RANDOM_DELAY_MS = 75;
 // default for SIP, use 5061 for tls encrypted
 const uint16_t SIP_PORT = 5060;
 
+#ifdef KVAZZUP_RTP_MULTIPLEXING
+const MeshType CONFERENCE_MODE = MESH_WITH_RTP_MULTIPLEXING;
+#else
 const MeshType CONFERENCE_MODE = MESH_WITHOUT_RTP_MULTIPLEXING;
+#endif
 
 SIPManager::SIPManager():
   tcpServer_(),
@@ -49,7 +53,9 @@ SIPManager::SIPManager():
   dialogs_(),
   ourSDP_(nullptr),
   delayTimer_(),
-  sdpConf_(std::shared_ptr<SDPMeshConference>(new SDPMeshConference()))
+  sdpConf_(std::shared_ptr<SDPMeshConference>(new SDPMeshConference())),
+  useICE_(false),
+  useLocalAddresses_(false)
 {
   delayTimer_.setSingleShot(true);
   QObject::connect(&delayTimer_, &QTimer::timeout,
@@ -59,6 +65,18 @@ SIPManager::SIPManager():
   {
     sdpConf_->setConferenceMode(CONFERENCE_MODE);
   }
+}
+
+
+void SIPManager::enableICE(bool status)
+{
+  useICE_ = status;
+}
+
+
+void SIPManager::enableLocal(bool status)
+{
+  useLocalAddresses_ = status;
 }
 
 
@@ -286,10 +304,13 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &remote, QString remo
 
   QString localAddress = getTransport(remoteAddress)->connection->localAddress();
 
-  // get correct local URI
-  NameAddr local = localInfo(useOurProxy, localAddress);
+  if (!localAddress.isEmpty())
+  {
+    // get correct local URI
+    NameAddr local = localInfo(useOurProxy, localAddress);
 
-  createDialog(sessionID, local, remote, localAddress, true);
+    createDialog(sessionID, local, remote, localAddress, true);
+  }
 }
 
 
@@ -891,7 +912,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   *sdp = *ourSDP_;
 
   dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sessionID, localAddress, sdp, sdpConf_));
-  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID));
+  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID, useICE_, useLocalAddresses_));
 
   // we need a way to get our final SDP to the SIP user
   QObject::connect(ice.get(), &SDPICE::localSDPWithCandidates,
@@ -1139,4 +1160,12 @@ void SIPManager::re_INVITE_all()
   }
 
   refreshDelayTimer();
+}
+
+
+bool SIPManager::getSTUNBinding(uint32_t sessionID,
+                                std::pair<QHostAddress, uint16_t>& inStunAddress,
+                                std::pair<QHostAddress, uint16_t>& outStunBinding)
+{
+  return nCandidates_->getSTUNBinding(sessionID, inStunAddress, outStunBinding);
 }

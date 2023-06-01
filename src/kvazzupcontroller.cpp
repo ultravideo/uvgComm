@@ -2,11 +2,11 @@
 
 #include "statisticsinterface.h"
 
+#include "videoviewfactory.h"
+
 #include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
-
-#include "global.h"
 
 #include <QSettings>
 #include <QHostAddress>
@@ -27,6 +27,7 @@ KvazzupController::KvazzupController():
   stats_(nullptr),
   delayAutoAccept_(),
   delayedAutoAccept_(0),
+  viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory())),
   ongoingNegotiations_(0),
   delayedNegotiation_()
 {}
@@ -36,7 +37,7 @@ void KvazzupController::init()
 {
   Logger::getLogger()->printImportant(this, "Kvazzup initiation Started");
 
-  userInterface_.init(this);
+  userInterface_.init(this, viewFactory_);
 
   stats_ = userInterface_.createStatsWindow();
 
@@ -76,6 +77,9 @@ void KvazzupController::init()
   sip_.init(stats_);
   sip_.listenToAny(SIP_TCP, 5060);
 
+  sip_.enableICE(settingEnabled(SettingsKey::sipICEEnabled));
+  sip_.enableLocal(settingEnabled(SettingsKey::sipLocalAddress));
+
   checkBinding();
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
@@ -88,12 +92,12 @@ void KvazzupController::init()
   QObject::connect(&media_, &MediaManager::iceMediaFailed,
                    this, &KvazzupController::iceFailed);
 
-  media_.init(userInterface_.getSelfVideos(), stats_);
+  media_.init(viewFactory_, stats_);
 
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
   QObject::connect(&userInterface_, &UIManager::updateCallSettings,
-                   &sip_, &SIPManager::updateCallSettings);
+                   this, &KvazzupController::updateCallSettings);
 
   QObject::connect(&userInterface_, &UIManager::updateVideoSettings,
                    this, &KvazzupController::updateVideoSettings);
@@ -297,6 +301,9 @@ void KvazzupController::updateCallSettings()
 {
   checkBinding();
   sip_.updateCallSettings();
+
+  sip_.enableICE(settingEnabled(SettingsKey::sipICEEnabled));
+  sip_.enableLocal(settingEnabled(SettingsKey::sipLocalAddress));
 }
 
 
@@ -454,22 +461,51 @@ void KvazzupController::createCall(uint32_t sessionID)
     return;
   }
 
-  QList<SDPMediaParticipant> uiMedias;
-
-  if (states_[sessionID].followOurSDP)
+  if (localSDP->media.size() != remoteSDP->media.size())
   {
-    Logger::getLogger()->printNormal(this, "Creating call using attributes from our SDP");
-    uiMedias = formUIMedias(localSDP->media, localSDP->media,
-                            states_[sessionID].followOurSDP, sessionID);
-  }
-  else
-  {
-    Logger::getLogger()->printNormal(this, "Creating call using attributes from remote SDP");
-    uiMedias = formUIMedias(localSDP->media, remoteSDP->media,
-                            states_[sessionID].followOurSDP, sessionID);
+    Logger::getLogger()->printError(this, "The SDPs have different amount of medias");
+    return;
   }
 
-  std::vector<VideoInterface*> videos = userInterface_.callStarted(sessionID, uiMedias);
+  for(auto& media : localSDP->media)
+  {
+    getStunBindings(sessionID, media);
+  }
+
+  // Here we remove media which is not ours. This happens in mesh conference, when we are the host
+  std::vector<unsigned int> toDelete;
+  for (unsigned int index = 0; index < localSDP->media.size(); ++index)
+  {
+    if (!isLocalAddress(localSDP->media.at(index).connection_address))
+    {
+      toDelete.push_back(index);
+    }
+  }
+
+  for (unsigned int j = toDelete.size(); j > 0; --j)
+  {
+    unsigned int index = toDelete.at(j - 1);
+
+    localSDP->media.erase(localSDP->media.begin() + index);
+    remoteSDP->media.erase(remoteSDP->media.begin() + index);
+  }
+
+  QList<std::pair<MediaID, MediaID>> audioVideoIDs;
+  QList<MediaID> allIDs;
+
+  updateMediaIDs(sessionID, localSDP->media, remoteSDP->media,
+                 states_[sessionID].followOurSDP, audioVideoIDs, allIDs);
+
+  QStringList names;
+
+  // TODO: We should implement some way to have access
+  // to actual name of participant in conference call
+  for (auto& media : states_[sessionID].localSDP->media)
+  {
+    names.push_back(states_[sessionID].name);
+  }
+
+  userInterface_.callStarted(viewFactory_, sessionID, names, audioVideoIDs);
 
   if (!states_[sessionID].sessionRunning)
   {
@@ -478,7 +514,7 @@ void KvazzupController::createCall(uint32_t sessionID)
       stats_->addSession(sessionID);
     }
 
-    media_.addParticipant(sessionID, remoteSDP, localSDP, videos,
+    media_.addParticipant(sessionID, remoteSDP, localSDP, allIDs,
                           states_[sessionID].iceController,
                           states_[sessionID].followOurSDP);
 
@@ -486,7 +522,7 @@ void KvazzupController::createCall(uint32_t sessionID)
    }
   else
   {
-    media_.modifyParticipant(sessionID, remoteSDP, localSDP, videos,
+    media_.modifyParticipant(sessionID, remoteSDP, localSDP, allIDs,
                              states_[sessionID].iceController,
                              states_[sessionID].followOurSDP);
   }
@@ -497,62 +533,105 @@ void KvazzupController::createCall(uint32_t sessionID)
 }
 
 
-QList<SDPMediaParticipant> KvazzupController::formUIMedias(QList<MediaInfo>& localMedia,
-                                                           QList<MediaInfo>& attributeMedia,
-                                                           bool followOurSDP,
-                                                           uint32_t sessionID)
+void KvazzupController::updateMediaIDs(uint32_t sessionID,
+                                       QList<MediaInfo>& localMedia,
+                                       QList<MediaInfo>& remoteMedia,
+                                       bool followOurSDP,
+                                       QList<std::pair<MediaID, MediaID>> &audioVideoIDs,
+                                       QList<MediaID>& allIDs)
 {
-  bool videoEnabled = false;
-  bool audioEnabled = false;
+  Q_ASSERT(localMedia.size() == remoteMedia.size());
 
-  QList<SDPMediaParticipant> uiMedias;
+  Logger::getLogger()->printNormal(this, "Getting mediaIDs for " +
+                                           QString::number(localMedia.size()) + " medias");
 
-  // TODO: Use lipsync to determine pairs
-  for (int i = 0; i < attributeMedia.size(); i += 2)
+  // first we set correct attributes
+  for (int i = 0; i < localMedia.size(); i += 1)
   {
-    if (!localMedia.at(i).candidates.empty() &&
-        isLocalCandidate(localMedia.at(i).candidates.first()))
+    bool send = false;
+    bool receive = false;
+
+    if (!localMedia.at(i).candidates.empty())
     {
-      if (attributeMedia.at(i).type == "audio")
+      if (isLocalCandidate(localMedia.at(i).candidates.first())) // if we are using ICE
       {
-        audioEnabled = getReceiveAttribute(attributeMedia.at(i), followOurSDP);
-      }
-      else if (attributeMedia.at(i).type == "video")
-      {
-        videoEnabled = getReceiveAttribute(attributeMedia.at(i), followOurSDP);
-      }
+        getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
 
-      if (attributeMedia.at(i + 1).type == "audio")
-      {
-        audioEnabled = getReceiveAttribute(attributeMedia.at(i + 1), followOurSDP);
-      }
-      else if (attributeMedia.at(i + 1).type == "video")
-      {
-        videoEnabled = getReceiveAttribute(attributeMedia.at(i + 1), followOurSDP);
-      }
+        allIDs.push_back(getMediaID(sessionID, localMedia.at(i)));
 
-      uiMedias.push_back({videoEnabled, audioEnabled, states_[sessionID].name});
+        allIDs.back().setReceive(receive);
+        allIDs.back().setSend(send);
+      }
+    }
+    else if (isLocalAddress(localMedia.at(i).connection_address)) // if we are not using ICE
+    {
+      getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
+
+      allIDs.push_back(getMediaID(sessionID, localMedia.at(i)));
+
+      allIDs.back().setReceive(receive);
+      allIDs.back().setSend(send);
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Remote candidate, not processing. Happens when we are the conference host",
+                                       "Address", localMedia.at(i).connection_address);
     }
   }
 
-  QString videoState = "no";
-  QString audioState = "no";
-
-  if (videoEnabled)
+  // TODO: Use lipsync to determine pairs
+  for (int i = 0; i < allIDs.size(); i +=2)
   {
-    videoState = "yes";
+    audioVideoIDs.push_back({allIDs.at(i), allIDs.at(i + 1)});
+  }
+}
+
+
+void KvazzupController::getMediaAttributes(const MediaInfo &local, const MediaInfo &remote,
+                                           bool followOurSDP,
+                                           bool& send, bool& receive)
+{
+  if (followOurSDP)
+  {
+    receive = getReceiveAttribute(local, followOurSDP);
+    send =    getSendAttribute(local, followOurSDP);
+  }
+  else
+  {
+    receive = getReceiveAttribute(remote, followOurSDP);
+    send =    getSendAttribute(remote, followOurSDP);
+  }
+}
+
+
+MediaID KvazzupController::getMediaID(uint32_t sessionID, const MediaInfo &media)
+{
+
+  if (sessionMedias_.find(sessionID) != sessionMedias_.end())
+  {
+    // try to see if this is an old media
+    for (auto& sMedia : *sessionMedias_[sessionID])
+    {
+      if (sMedia == media)
+      {
+        Logger::getLogger()->printNormal(this, "Using existing MediaID",
+                                         "Media type", media.type);
+        return sMedia;
+      }
+    }
+  }
+  else
+  {
+    sessionMedias_[sessionID] =
+      std::shared_ptr<std::vector<MediaID>>(new std::vector<MediaID>());
   }
 
-  if (audioEnabled)
-  {
-    audioState = "yes";
-  }
+  Logger::getLogger()->printNormal(this, "Creating a new MediaID",
+                                   "Media Type", media.type);
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating call media",
-                                  {"Video Enabled", "Audio Enabled"},
-                                  {videoState, audioState});
-
-  return uiMedias;
+  // create a new ID for this media
+  sessionMedias_[sessionID]->push_back(MediaID(media));
+  return sessionMedias_[sessionID]->back();
 }
 
 
@@ -645,6 +724,14 @@ void KvazzupController::removeSession(uint32_t sessionID, QString message,
   if(it != states_.end())
   {
     states_.erase(it);
+  }
+
+  if(sessionMedias_.find(sessionID) != sessionMedias_.end())
+  {
+    for (auto& media : *sessionMedias_[sessionID])
+    {
+      viewFactory_->clearWidgets(media);
+    }
   }
 
   if (stats_)
@@ -940,6 +1027,7 @@ void KvazzupController::connectionEstablished(QString localAddress, QString remo
   }
 }
 
+
 bool KvazzupController::areWeICEController(bool initialAgent, uint32_t sessionID) const
 {
   // one to one calls should follow the specification
@@ -953,4 +1041,45 @@ bool KvazzupController::areWeICEController(bool initialAgent, uint32_t sessionID
   Logger::getLogger()->printNormal(this, "We select ICE controller based on a hack");
 
   return areWeFocus() || states_.at(sessionID).sessionRunning;
+}
+
+
+void KvazzupController::getStunBindings(uint32_t sessionID, MediaInfo& media)
+{
+  if (media.candidates.empty())
+  {
+    std::pair<QHostAddress, uint16_t> stunAddress(media.connection_address, media.receivePort);
+    std::pair<QHostAddress, uint16_t> stunBinding;
+    if (sip_.getSTUNBinding(sessionID, stunAddress, stunBinding))
+    {
+      media.connection_address = stunBinding.first.toString();
+      media.receivePort = stunBinding.second;
+    }
+  }
+  else
+  {
+    for(auto& candidate : media.candidates)
+    {
+      if (candidate->type == "srflx")
+      {
+        // this happens if we don't want to send our private addresses to peers
+        if (candidate->rel_address == "" || candidate->rel_port == 0)
+        {
+          // these were sent to the other end
+          std::pair<QHostAddress, uint16_t> stunAddress(candidate->address, candidate->port);
+          std::pair<QHostAddress, uint16_t> stunBinding;
+
+          if (sip_.getSTUNBinding(sessionID, stunAddress, stunBinding))
+          {
+            candidate->rel_address = stunBinding.first.toString();
+            candidate->rel_port = stunBinding.second;
+          }
+          else
+          {
+            Logger::getLogger()->printError(this, "Could not get srflx address to bind to");
+          }
+        }
+      }
+    }
+  }
 }

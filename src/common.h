@@ -1,6 +1,7 @@
 #pragma once
 
 #include "icetypes.h"
+#include "qhostaddress.h"
 
 #include <QString>
 
@@ -26,13 +27,13 @@ QString settingString(QString key);
 QString getLocalUsername();
 
 bool isLocalCandidate(std::shared_ptr<ICEInfo> info);
+bool isLocalAddress(QString candidateAddress);
 
 bool getSendAttribute(const MediaInfo &media, bool local);
 bool getReceiveAttribute(const MediaInfo &media, bool local);
 
 void setSDPAddress(QString inAddress, QString& address,
                    QString& nettype, QString& addressType);
-bool areMediasEqual(const MediaInfo first, const MediaInfo second);
 
 bool sameCandidates(std::vector<std::shared_ptr<ICEPair>> newCandidates,
                     std::vector<std::shared_ptr<ICEPair>> oldCandidates);
@@ -42,3 +43,14 @@ bool containCandidates(std::vector<std::shared_ptr<ICEPair> > &streams,
 
 bool sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
                    std::shared_ptr<ICEInfo> secondCandidate);
+
+void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates);
+
+
+// helper functions that get either actual address/port or
+// relay address/port if needed
+QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info);
+quint16 getLocalPort(std::shared_ptr<ICEInfo> info);
+
+uint32_t findSSRC(const MediaInfo &media);
+uint32_t findMID(const MediaInfo &media);

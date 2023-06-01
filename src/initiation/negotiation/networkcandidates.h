@@ -40,6 +40,10 @@ public:
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> turnCandidates(uint8_t streams,
                                                             uint32_t sessionID);
 
+  bool getSTUNBinding(uint32_t sessionID,
+                      const std::pair<QHostAddress, uint16_t>& inStunAddress,
+                      std::pair<QHostAddress, uint16_t>& outStunBinding);
+
   void cleanupSession(uint32_t sessionID);
 
 private slots:

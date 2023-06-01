@@ -4,11 +4,14 @@
 
 #include <QTime>
 
-SDPICE::SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID):
+SDPICE::SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID,
+               bool useICE, bool localAddresses):
   sessionID_(sessionID),
   networkCandidates_(candidates),
-  peerSupportsICE_(false),
-  mediaLimit_(-1)
+  peerSupportsICE_(true), // we assume that peer suppports ICE unless proven otherwise
+  mediaLimit_(-1),
+  useICE_(useICE),
+  usePrivateAddresses_(localAddresses)
 {}
 
 void SDPICE::uninit()
@@ -23,6 +26,7 @@ void SDPICE::limitMediaCandidates(int limit)
   mediaLimit_ = limit;
 }
 
+
 void SDPICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
 {
   Logger::getLogger()->printNormal(this, "Processing outgoing request");
@@ -30,7 +34,10 @@ void SDPICE::processOutgoingRequest(SIPRequest& request, QVariant& content)
   // Add ice as supported module so the other one can anticipate need for ice
   if (request.method == SIP_INVITE || request.method == SIP_OPTIONS)
   {
-    addICEToSupported(request.message->supported);
+    if (useICE_)
+    {
+      addICEToSupported(request.message->supported);
+    }
   }
 
   if ((request.method == SIP_INVITE ||
@@ -48,10 +55,13 @@ void SDPICE::processOutgoingResponse(SIPResponse& response, QVariant& content)
 {
   if (response.message->cSeq.method == SIP_INVITE && response.type == SIP_OK)
   {
-    addICEToSupported(response.message->supported);
+    if (useICE_)
+    {
+      addICEToSupported(response.message->supported);
+    }
   }
 
-  if (peerSupportsICE_ && response.message->contentType == MT_APPLICATION_SDP)
+  if (response.message->contentType == MT_APPLICATION_SDP)
   {
     addLocalCandidatesToSDP(content);
   }
@@ -101,7 +111,7 @@ void SDPICE::addLocalCandidatesToSDP(QVariant& content)
   SDPMessageInfo sdp = content.value<SDPMessageInfo>();
   for (unsigned int i = 0; i < sdp.media.size(); ++i)
   {
-    if (sdp.media.at(i).candidates.empty())
+    if (sdp.media.at(i).candidates.empty() && sdp.media.at(i).connection_address == "")
     {
       if (mediaLimit_ > 0)
       {
@@ -132,7 +142,7 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
     neededComponents = 2; // RTP and RTCP
   }
 
-  if (existingLocalCandidates_.size() <= mediaIndex)
+  if (usePrivateAddresses_ && existingLocalCandidates_.size() <= mediaIndex)
   {
     existingLocalCandidates_.push_back(networkCandidates_->localCandidates(neededComponents, sessionID_));
   }
@@ -144,7 +154,7 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
   {
     existingStunCandidates_.push_back(networkCandidates_->stunCandidates(neededComponents));
   }
-  if (existingStunBindings_.size() <= mediaIndex)
+  if (existingStunBindings_.size() <= mediaIndex) // TODO: usePrivateAddresses_ && for this also
   {
     existingStunBindings_.push_back(networkCandidates_->stunBindings(neededComponents, sessionID_));
   }
@@ -153,14 +163,66 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
     existingturnCandidates_.push_back(networkCandidates_->turnCandidates(neededComponents, sessionID_));
   }
 
-  // transform network addresses into ICE candidates
-  media.candidates += generateICECandidates(existingLocalCandidates_[mediaIndex], existingGlobalCandidates_[mediaIndex],
-                                            existingStunCandidates_[mediaIndex],  existingStunBindings_[mediaIndex],
-                                            existingturnCandidates_[mediaIndex], neededComponents);
-
-  if (!media.candidates.empty())
+  if (useICE_ && peerSupportsICE_)
   {
-    media.receivePort = media.candidates.first()->port;
+    // transform network addresses into ICE candidates
+    media.candidates += generateICECandidates(
+      existingLocalCandidates_[mediaIndex],
+      existingGlobalCandidates_[mediaIndex],
+      existingStunCandidates_[mediaIndex], existingStunBindings_[mediaIndex],
+      existingturnCandidates_[mediaIndex], neededComponents);
+
+    if (!media.candidates.empty()) {
+      media.receivePort = media.candidates.first()->port;
+    }
+  }
+  else
+  {
+    // TODO: Fix STUN bindings and change this order
+    Logger::getLogger()->printNormal(this, "Settings connection addresses directly instead of ICE candidates");
+
+    if (usePrivateAddresses_ && !existingLocalCandidates_[mediaIndex]->empty())
+    {
+      Logger::getLogger()->printNormal(this, "Using local IP address");
+      setMediaAddress(existingLocalCandidates_, media, mediaIndex);
+    }
+    else if (!existingStunCandidates_[mediaIndex]->empty())
+    {
+      Logger::getLogger()->printNormal(this, "Using STUN address");
+      setMediaAddress(existingStunCandidates_, media, mediaIndex);
+    }
+    else if (!existingGlobalCandidates_[mediaIndex]->empty())
+    {
+      Logger::getLogger()->printNormal(this, "Using Global IP address");
+      setMediaAddress(existingGlobalCandidates_, media, mediaIndex);
+    }
+    else
+    {
+      Logger::getLogger()->printError(this, "No addresses were found!");
+    }
+  }
+}
+
+void SDPICE::setMediaAddress(const std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> candidates,
+                             MediaInfo& media, int mediaIndex)
+{
+  if (candidates.size() > mediaIndex) {
+    media.connection_address = candidates[mediaIndex]->first().first.toString();
+    media.receivePort = candidates[mediaIndex]->first().second;
+    media.connection_nettype = "IN";
+
+    if (candidates[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv4Protocol)
+    {
+      media.connection_addrtype = "IP4";
+    }
+    else if (candidates[mediaIndex]->first().first.protocol() == QAbstractSocket::IPv6Protocol)
+    {
+      media.connection_addrtype = "IP6";
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Not enough candidates available");
   }
 }
 

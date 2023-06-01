@@ -1,5 +1,7 @@
 #pragma once
 
+#include "global.h"
+
 #include <QList>
 #include <QString>
 #include <QMutex>
@@ -49,40 +51,40 @@ public:
   uint32_t createLayoutID();
 
   // attach widget to display that someone is calling us
-  void attachIncomingCallWidget(uint32_t layoutID, QString name);
+  void attachIncomingCallWidget(LayoutID layoutID, QString name);
 
   // attach widget to display that we are calling somebody
-  void attachOutgoingCallWidget(uint32_t layoutID, QString name);
+  void attachOutgoingCallWidget(LayoutID layoutID, QString name);
 
   // attach widget to display that we are calling somebody
-  void attachRingingWidget(uint32_t layoutID);
+  void attachRingingWidget(LayoutID layoutID);
 
-  void attachAvatarWidget(uint32_t layoutID, QString name);
+  void attachAvatarWidget(LayoutID layoutID, QString name);
 
-  void attachVideoWidget(uint32_t layoutID, QWidget* widget);
+  void attachVideoWidget(LayoutID layoutID, QWidget* widget);
 
-  void attachMessageWidget(uint32_t layoutID, QString text, bool confirmButton);
+  void attachMessageWidget(LayoutID layoutID, QString text, bool confirmButton);
 
-  void removeWidget(uint32_t layoutID);
+  void removeWidget(LayoutID layoutID);
 
   void close();
 
 signals:
 
   // user clicks a button in view.
-  void acceptCall(uint32_t layoutID);
-  void rejectCall(uint32_t layoutID);
-  void cancelCall(uint32_t layoutID);
+  void acceptCall(LayoutID layoutID);
+  void rejectCall(LayoutID layoutID);
+  void cancelCall(LayoutID layoutID);
 
-  void messageConfirmed(uint32_t layoutID);
+  void messageConfirmed(LayoutID layoutID);
 
 public slots:
 
   // this is currently connected by videoviewfactory
   // slots for attaching and detaching view to/from layout
   // Currently only one widget can be detached for one sessionID
-  void reattachWidget(uint32_t layoutID);
-  void detachWidget(uint32_t layoutID);
+  void reattachWidget(LayoutID layoutID);
+  void detachWidget(LayoutID layoutID);
 
 private slots:
 
@@ -110,15 +112,15 @@ private:
   void resetSlots();
 
   // attach widget to layout
-  void attachWidget(uint32_t layoutID, QLayoutItem *item, LayoutLoc loc, QWidget *view);
+  void attachWidget(LayoutID layoutID, QLayoutItem *item, LayoutLoc loc, QWidget *view);
 
   // update session state and attach widget.
   void updateLayoutState(SessionViewState state, QWidget* widget,
-                          uint32_t layoutID, QString name = "");
+                         LayoutID layoutID, QString name = "");
 
   QLayoutItem* getSessionItem();
 
-  void checkLayout(uint32_t layoutID);
+  void checkLayout(LayoutID layoutID);
 
   struct LayoutView
   {
@@ -137,8 +139,8 @@ private:
 
   void removeItemFromLayout(QLayoutItem* item);
 
-  void initializeLayout(uint32_t layoutID);
-  void unitializeSession(uint32_t layoutID);
+  void initializeLayout(LayoutID layoutID);
+  void unitializeSession(LayoutID layoutID);
   void unitializeSession(std::unique_ptr<LayoutView> peer);
 
   uint32_t nextLayoutID_;

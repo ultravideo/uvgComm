@@ -55,7 +55,9 @@ std::unique_ptr<Data> AudioMixer::mixAudio(std::unique_ptr<Data> input,
   else if (mixingBuffer_.at(sessionID).size() >= MAX_MIX_BUFFER)
   {
     Logger::getLogger()->printWarning(this, "Too many samples from one source and not enough from others. "
-                       "Forced mixing to avoid latency");
+                                            "Forced mixing to avoid latency",
+                                      "Buffer status", QString::number(mixingBuffer_.at(sessionID).size()) + "/" +
+                                                         QString::number(MAX_MIX_BUFFER));
 
     potentialOutput->data = doMixing(data_size);
     mixingMutex_.unlock();

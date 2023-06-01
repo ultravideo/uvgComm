@@ -90,8 +90,8 @@ bool ICECandidateTester::performNomination(std::vector<std::shared_ptr<ICEPair>>
 
   for (auto& pair : nominated)
   {
-    if (!udp_.bindSocket(workerThreads_.back()->getLocalAddress(pair->local),
-                         workerThreads_.back()->getLocalPort(pair->local)))
+    if (!udp_.bindSocket(getLocalAddress(pair->local),
+                         getLocalPort(pair->local)))
     {
       return false;
     }

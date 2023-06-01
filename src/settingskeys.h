@@ -110,6 +110,8 @@ const QString sipP2PConferencing = "sip/P2PConferencing";
 
 const QString sipMediaPort = "sip/mediaport";
 const QString sipSTUNEnabled = "sip/stunEnabled";
+const QString sipICEEnabled = "sip/iceEnabled";
+const QString sipLocalAddress = "sip/localEnabled";
 const QString sipSTUNAddress = "sip/stunAddress";
 const QString sipSTUNPort = "sip/stunPort";
 const QString sipSRTP = "sip/srtpEnabled";

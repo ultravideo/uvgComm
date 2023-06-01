@@ -29,7 +29,7 @@ ICE::~ICE()
 }
 
 
-void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool controller)
+void ICE::startNomination(const MediaID &id, const MediaInfo &local, const MediaInfo &remote, bool controller)
 {
   std::vector<std::shared_ptr<ICEPair>> newCandidates = makeCandidatePairs(local.candidates,
                                                                            remote.candidates, controller);
@@ -41,7 +41,7 @@ void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool 
 
     updateMedia(mediaNominations_[matchIndex].localMedia, local);
     updateMedia(mediaNominations_[matchIndex].remoteMedia, remote);
-    emit mediaNominationSucceeded(sessionID_,
+    emit mediaNominationSucceeded(id, sessionID_,
                                   mediaNominations_[matchIndex].localMedia,
                                   mediaNominations_[matchIndex].remoteMedia);
   }
@@ -69,6 +69,7 @@ void ICE::startNomination(const MediaInfo &local, const MediaInfo &remote, bool 
                                  local,
                                  remote,
                                  false,
+                                 id,
                                  newCandidates,
                                  {},
                                  std::unique_ptr<IceSessionTester> (new IceSessionTester(controller)),
@@ -166,7 +167,7 @@ void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair>> &streams)
         }
       }
 
-      emit mediaNominationSucceeded(sessionID_, media.localMedia, media.remoteMedia);
+      emit mediaNominationSucceeded(media.id, sessionID_, media.localMedia, media.remoteMedia);
 
       return;
     }
@@ -189,7 +190,7 @@ void ICE::handleICEFailure(std::vector<std::shared_ptr<ICEPair> > &candidates)
       media.state = ICE_FAILED;
       media.iceTester->quit();
 
-      emit mediaNominationFailed(sessionID_, media.localMedia, media.remoteMedia);
+      emit mediaNominationFailed(media.id, sessionID_);
     }
   }
 

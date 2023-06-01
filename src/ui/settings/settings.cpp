@@ -43,7 +43,7 @@ Settings::~Settings()
 }
 
 
-VideoWidget* Settings::getSelfViews()
+VideoWidget* Settings::getSelfView()
 {
   return autoSettings_.getRoiSelfView();
 }
