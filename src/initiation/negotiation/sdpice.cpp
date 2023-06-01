@@ -4,12 +4,14 @@
 
 #include <QTime>
 
-SDPICE::SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID, bool useICE):
+SDPICE::SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID,
+               bool useICE, bool localAddresses):
   sessionID_(sessionID),
   networkCandidates_(candidates),
   peerSupportsICE_(true), // we assume that peer suppports ICE unless proven otherwise
   mediaLimit_(-1),
-  useICE_(useICE)
+  useICE_(useICE),
+  usePrivateAddresses_(localAddresses)
 {}
 
 void SDPICE::uninit()
@@ -140,7 +142,7 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
     neededComponents = 2; // RTP and RTCP
   }
 
-  if (existingLocalCandidates_.size() <= mediaIndex)
+  if (usePrivateAddresses_ && existingLocalCandidates_.size() <= mediaIndex)
   {
     existingLocalCandidates_.push_back(networkCandidates_->localCandidates(neededComponents, sessionID_));
   }
@@ -152,7 +154,7 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
   {
     existingStunCandidates_.push_back(networkCandidates_->stunCandidates(neededComponents));
   }
-  if (existingStunBindings_.size() <= mediaIndex)
+  if (existingStunBindings_.size() <= mediaIndex) // TODO: usePrivateAddresses_ && for this also
   {
     existingStunBindings_.push_back(networkCandidates_->stunBindings(neededComponents, sessionID_));
   }
@@ -178,7 +180,8 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
   {
     // TODO: Fix STUN bindings and change this order
     Logger::getLogger()->printNormal(this, "Settings connection addresses directly instead of ICE candidates");
-    if (!existingLocalCandidates_[mediaIndex]->empty())
+
+    if (usePrivateAddresses_ && !existingLocalCandidates_[mediaIndex]->empty())
     {
       Logger::getLogger()->printNormal(this, "Using local IP address");
       setMediaAddress(existingLocalCandidates_, media, mediaIndex);

@@ -13,7 +13,8 @@ class SDPICE : public SIPMessageProcessor
   Q_OBJECT
 public:
 
-  SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID, bool useICE);
+  SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID,
+         bool useICE, bool localAddresses);
 
   void limitMediaCandidates(int limit);
 
@@ -104,4 +105,5 @@ private:
   std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> existingturnCandidates_;
 
   bool useICE_;
+  bool usePrivateAddresses_;
 };

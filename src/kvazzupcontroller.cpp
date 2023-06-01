@@ -78,6 +78,7 @@ void KvazzupController::init()
   sip_.listenToAny(SIP_TCP, 5060);
 
   sip_.enableICE(settingEnabled(SettingsKey::sipICEEnabled));
+  sip_.enableLocal(settingEnabled(SettingsKey::sipLocalAddress));
 
   checkBinding();
 
@@ -302,6 +303,7 @@ void KvazzupController::updateCallSettings()
   sip_.updateCallSettings();
 
   sip_.enableICE(settingEnabled(SettingsKey::sipICEEnabled));
+  sip_.enableLocal(settingEnabled(SettingsKey::sipLocalAddress));
 }
 
 

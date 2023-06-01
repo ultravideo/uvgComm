@@ -54,7 +54,8 @@ SIPManager::SIPManager():
   ourSDP_(nullptr),
   delayTimer_(),
   sdpConf_(std::shared_ptr<SDPMeshConference>(new SDPMeshConference())),
-  useICE_(false)
+  useICE_(false),
+  useLocalAddresses_(false)
 {
   delayTimer_.setSingleShot(true);
   QObject::connect(&delayTimer_, &QTimer::timeout,
@@ -70,6 +71,12 @@ SIPManager::SIPManager():
 void SIPManager::enableICE(bool status)
 {
   useICE_ = status;
+}
+
+
+void SIPManager::enableLocal(bool status)
+{
+  useLocalAddresses_ = status;
 }
 
 
@@ -905,7 +912,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   *sdp = *ourSDP_;
 
   dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sessionID, localAddress, sdp, sdpConf_));
-  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID, useICE_));
+  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID, useICE_, useLocalAddresses_));
 
   // we need a way to get our final SDP to the SIP user
   QObject::connect(ice.get(), &SDPICE::localSDPWithCandidates,

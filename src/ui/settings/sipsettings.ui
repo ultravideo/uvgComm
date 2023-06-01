@@ -94,7 +94,24 @@
        <string>ICE</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_2">
-       <item row="7" column="2">
+       <item row="5" column="0">
+        <widget class="QLabel" name="media_port_label">
+         <property name="text">
+          <string>First media port</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="0" colspan="3">
+        <widget class="QLabel" name="stun_warning_label">
+         <property name="text">
+          <string>Note: Only enable STUN if you are okay with sharing your IP address with the STUN server for address translation purposes.</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="2">
         <widget class="QSpinBox" name="stun_port">
          <property name="minimumSize">
           <size>
@@ -119,35 +136,6 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="0" colspan="3">
-        <widget class="QLabel" name="ice_heading">
-         <property name="font">
-          <font>
-           <pointsize>16</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Interactive Connectivity Establishement (ICE)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="1">
-        <widget class="QLineEdit" name="stun_address">
-         <property name="maximumSize">
-          <size>
-           <width>300</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>stun.l.google.com</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
        <item row="2" column="0" colspan="3">
         <widget class="Line" name="line">
          <property name="enabled">
@@ -155,20 +143,6 @@
          </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="media_port_label">
-         <property name="text">
-          <string>First media port</string>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="0">
-        <widget class="QLabel" name="stun_address_label">
-         <property name="text">
-          <string>STUN server address</string>
          </property>
         </widget>
        </item>
@@ -182,17 +156,47 @@
          </property>
         </widget>
        </item>
-       <item row="8" column="0" colspan="3">
-        <widget class="QLabel" name="stun_warning_label">
+       <item row="3" column="2">
+        <widget class="QCheckBox" name="ice_checkbox">
          <property name="text">
-          <string>Note: Only enable STUN if you are okay with sharing your IP address with the STUN server for address translation purposes.</string>
-         </property>
-         <property name="wordWrap">
-          <bool>true</bool>
+          <string/>
          </property>
         </widget>
        </item>
-       <item row="4" column="2">
+       <item row="0" column="0" colspan="3">
+        <widget class="QLabel" name="ice_heading">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Interactive Connectivity Establishement (ICE)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QLabel" name="stun_address_label">
+         <property name="text">
+          <string>STUN server address</string>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="0" colspan="3">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="5" column="2">
         <widget class="QSpinBox" name="media_port">
          <property name="minimumSize">
           <size>
@@ -217,27 +221,23 @@
          </property>
         </widget>
        </item>
-       <item row="9" column="0" colspan="3">
-        <spacer name="verticalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
+       <item row="8" column="1">
+        <widget class="QLineEdit" name="stun_address">
+         <property name="maximumSize">
           <size>
-           <width>20</width>
-           <height>40</height>
+           <width>300</width>
+           <height>16777215</height>
           </size>
          </property>
-        </spacer>
-       </item>
-       <item row="5" column="2">
-        <widget class="QCheckBox" name="stun_enabled">
          <property name="text">
-          <string/>
+          <string>stun.l.google.com</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
-       <item row="5" column="0">
+       <item row="6" column="0">
         <widget class="QLabel" name="stun_enabled_label">
          <property name="text">
           <string>Enable STUN</string>
@@ -251,8 +251,22 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="2">
-        <widget class="QCheckBox" name="ice_checkbox">
+       <item row="6" column="2">
+        <widget class="QCheckBox" name="stun_enabled">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Use Private Addresses</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="2">
+        <widget class="QCheckBox" name="local_checkbox">
          <property name="text">
           <string/>
          </property>

@@ -129,7 +129,9 @@ public:
 
   void clearCallbacks();
 
+  // configure behavior
   void enableICE(bool status);
+  void enableLocal(bool status);
 
   // TODO: These should be SDP connection details including type (all fields in SDP c= field)
   bool getSTUNBinding(uint32_t sessionID,
@@ -268,4 +270,5 @@ private:
   std::shared_ptr<SDPMeshConference> sdpConf_;
 
   bool useICE_;
+  bool useLocalAddresses_;
 };
