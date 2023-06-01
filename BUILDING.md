@@ -9,7 +9,7 @@ The primary methods for installing dependencies are
 
 Source build is offered whenever the dependency uses CMake as it's build system. Detection of pre-installed packets done using both find_package and pkgconfig. Binary download is offered on Windows for those packets that are not easily built from source using CMake.
 
-These instructions assumes that `git` is installed and the Kvazzup repository has been cloned. 
+These instructions assumes that `git` is installed and the Kvazzup repository has been cloned. Next, go to instructions for selected platform to start installation.
 
 ### Linux with GCC
 
@@ -96,7 +96,7 @@ On Windows Kvazzup relies on source builds with dependency projects that build e
 | Crypto++ |     Yes      |      No      | 
 
 
-You will need a Qt Account to download Qt. Download the open-source Qt Online Installer from https://www.qt.io/download-open-source. You may also use the commercial version if desirable. 
+You will need a Qt Account to download Qt. Download the open-source Qt Online Installer from the bottom of https://www.qt.io/download-open-source page. You may also use the commercial version if desirable. 
 
 Select Custom install and then install the following components:
 ```
