@@ -145,6 +145,7 @@ void CallWindow::initializeMediaStates()
     {
       cameraButton(false);
     }
+    setCameraState(false);
     ui_->camera->setDisabled(true);
   }
   else
@@ -160,6 +161,8 @@ void CallWindow::initializeMediaStates()
     {
       micButton(false);
     }
+
+    setMicState(false);
     ui_->mic->setDisabled(true);
   }
   else
