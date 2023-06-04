@@ -14,7 +14,10 @@
 #include <QMetaType>
 #include <QDir>
 #include <QHostAddress>
+#include <QMediaDevices>
 
+#include <QAudioDevice>
+#include <QCameraDevice>
 
 CallWindow::CallWindow(QWidget *parent):
   QMainWindow(parent),
@@ -107,10 +110,7 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   ui_->EndCallButton->hide();
 
-  // set button icons to correct states
-  setMicState(settingEnabled(SettingsKey::micStatus));
-  setCameraState(settingEnabled(SettingsKey::cameraStatus));
-  setScreenShareState(settingEnabled(SettingsKey::screenShareStatus));
+  initializeMediaStates();
 }
 
 
@@ -132,6 +132,43 @@ void CallWindow::initButton(QString iconPath, QSize size, QSize iconSize,
   {
     Logger::getLogger()->printWarning(this, "Could not find icon", "Path", iconPath);
   }
+}
+
+
+void CallWindow::initializeMediaStates()
+{
+  const QList<QCameraDevice> cameras = QMediaDevices::videoInputs();
+  if (cameras.empty())
+  {
+    // reverse on state to off if no cameras
+    if (settingEnabled(SettingsKey::cameraStatus))
+    {
+      cameraButton(false);
+    }
+    ui_->camera->setDisabled(true);
+  }
+  else
+  {
+    setCameraState(settingEnabled(SettingsKey::cameraStatus));
+  }
+
+  const auto microphones = QMediaDevices::audioInputs();
+  if (microphones.empty())
+  {
+    // reverse audio state if no mics are found
+    if (settingEnabled(SettingsKey::micStatus))
+    {
+      micButton(false);
+    }
+    ui_->mic->setDisabled(true);
+  }
+  else
+  {
+    // set button icons to correct states
+    cameraButton(settingEnabled(SettingsKey::micStatus));
+  }
+
+  setScreenShareState(settingEnabled(SettingsKey::screenShareStatus));
 }
 
 

@@ -105,6 +105,8 @@ private:
   void initButton(QString iconPath, QSize size, QSize iconSize,
                   QPushButton* button);
 
+  void initializeMediaStates();
+
   void checkID(uint32_t sessionID);
   bool layoutExists(uint32_t sessionID);
 
