@@ -266,7 +266,7 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   settings_.setValue(SettingsKey::videoQP, 32);
 
   // video calls work better with high intra period
-  settings_.setValue(SettingsKey::videoIntra, 320);
+  settings_.setValue(SettingsKey::videoIntra, 64); // TODO: Fix faster intra, so this can be increased
   settings_.setValue(SettingsKey::videoTiles, 0);
   settings_.setValue(SettingsKey::videoSlices, 0); // TODO: Fix slices and enable tiles
   settings_.setValue(SettingsKey::videoWPP, 1);
