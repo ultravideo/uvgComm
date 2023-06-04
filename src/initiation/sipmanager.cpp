@@ -54,8 +54,7 @@ SIPManager::SIPManager():
   ourSDP_(nullptr),
   delayTimer_(),
   sdpConf_(std::shared_ptr<SDPMeshConference>(new SDPMeshConference())),
-  useICE_(false),
-  useLocalAddresses_(false)
+  config_()
 {
   delayTimer_.setSingleShot(true);
   QObject::connect(&delayTimer_, &QTimer::timeout,
@@ -65,18 +64,6 @@ SIPManager::SIPManager():
   {
     sdpConf_->setConferenceMode(CONFERENCE_MODE);
   }
-}
-
-
-void SIPManager::enableICE(bool status)
-{
-  useICE_ = status;
-}
-
-
-void SIPManager::enableLocal(bool status)
-{
-  useLocalAddresses_ = status;
 }
 
 
@@ -130,12 +117,10 @@ void SIPManager::refreshDelayTimer()
 
 
 // start listening to incoming
-void SIPManager::init(StatisticsInterface *stats)
+void SIPManager::init(const SIPConfig& config, StatisticsInterface *stats)
 {
   stats_ = stats;
-
-  nCandidates_ = std::shared_ptr<NetworkCandidates> (new NetworkCandidates);
-  nCandidates_->init();
+  setConfig(config);
 }
 
 
@@ -192,6 +177,23 @@ void SIPManager::uninit()
 }
 
 
+void SIPManager::setConfig(const SIPConfig& config)
+{
+  config_ = config;
+  if (nCandidates_ == nullptr)
+  {
+    nCandidates_ = std::shared_ptr<NetworkCandidates> (new NetworkCandidates);
+  }
+  nCandidates_->init(config_.mediaPort, config_.stun, config_.stunServerAddress, config_.stunServerPort);
+}
+
+
+SIPConfig SIPManager::getConfig()
+{
+  return config_;
+}
+
+
 bool SIPManager::listenToAny(SIPConnectionType type, uint16_t port)
 {
   if (type == SIP_TCP)
@@ -239,20 +241,6 @@ uint32_t SIPManager::reserveSessionID()
 {
   ++nextSessionID_;
   return nextSessionID_ - 1;
-}
-
-
-void SIPManager::updateCallSettings()
-{
-  nCandidates_->init();
-  if (settingEnabled(SettingsKey::sipP2PConferencing))
-  {
-    sdpConf_->setConferenceMode(CONFERENCE_MODE);
-  }
-  else
-  {
-    sdpConf_->setConferenceMode(MESH_NO_CONFERENCE);
-  }
 }
 
 
@@ -912,7 +900,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   *sdp = *ourSDP_;
 
   dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sessionID, localAddress, sdp, sdpConf_));
-  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID, useICE_, useLocalAddresses_));
+  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID, config_.ice, config_.privateAddresses));
 
   // we need a way to get our final SDP to the SIP user
   QObject::connect(ice.get(), &SDPICE::localSDPWithCandidates,

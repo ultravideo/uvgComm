@@ -74,13 +74,10 @@ void KvazzupController::init()
 
   sip_.setSDP(sdp);
 
-  sip_.init(stats_);
+  sip_.init(createSIPConfig(), stats_);
   sip_.listenToAny(SIP_TCP, 5060);
 
-  sip_.enableICE(settingEnabled(SettingsKey::sipICEEnabled));
-  sip_.enableLocal(settingEnabled(SettingsKey::sipLocalAddress));
-
-  checkBinding();
+  updateCallSettings();
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
                    this,    &KvazzupController::zrtpFailed);
@@ -130,6 +127,21 @@ void KvazzupController::uninit()
   endTheCall();
   sip_.uninit();
   media_.uninit();
+}
+
+
+SIPConfig KvazzupController::createSIPConfig()
+{
+  return {settingEnabled(SettingsKey::sipAutoConnect),
+          settingString(SettingsKey::sipServerAddress),
+          5060,
+          settingEnabled(SettingsKey::sipP2PConferencing),
+          (uint16_t)settingValue(SettingsKey::sipMediaPort),
+          settingEnabled(SettingsKey::sipICEEnabled),
+          settingEnabled(SettingsKey::privateAddresses),
+          settingEnabled(SettingsKey::sipSTUNEnabled),
+          settingString(SettingsKey::sipSTUNAddress),
+          (uint16_t)settingValue(SettingsKey::sipSTUNPort)};
 }
 
 
@@ -299,11 +311,22 @@ void KvazzupController::updateVideoSettings()
 
 void KvazzupController::updateCallSettings()
 {
-  checkBinding();
-  sip_.updateCallSettings();
+  SIPConfig config = createSIPConfig();
 
-  sip_.enableICE(settingEnabled(SettingsKey::sipICEEnabled));
-  sip_.enableLocal(settingEnabled(SettingsKey::sipLocalAddress));
+  bool autoConnect = config.sendRegister;
+  if(autoConnect)
+  {
+    QString serverAddress = config.sipServerAddress;
+    waitingToBind_.push_back(serverAddress);
+
+    if(sip_.connect(SIP_TCP, serverAddress, config.sipServerPort))
+    {
+      waitingToBind_.removeAll(serverAddress);
+      sip_.bindingAtRegistrar(serverAddress);
+    }
+  }
+
+  sip_.setConfig(config);
 }
 
 
@@ -983,23 +1006,6 @@ void KvazzupController::negotiateNextCall()
 
     states_[sessionID].state = CALL_INVITE_SENT;
     sip_.sendINVITE(sessionID);
-  }
-}
-
-
-void KvazzupController::checkBinding()
-{
-  int autoConnect = settingValue(SettingsKey::sipAutoConnect);
-  if(autoConnect == 1)
-  {
-    QString serverAddress = settingString(SettingsKey::sipServerAddress);
-    waitingToBind_.push_back(serverAddress);
-
-    if(sip_.connect(SIP_TCP, serverAddress, 5060))
-    {
-      waitingToBind_.removeAll(serverAddress);
-      sip_.bindingAtRegistrar(serverAddress);
-    }
   }
 }
 

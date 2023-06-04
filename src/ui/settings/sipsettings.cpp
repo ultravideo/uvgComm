@@ -14,7 +14,7 @@ const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipP2PConferencing,
                                     SettingsKey::sipMediaPort,
                                     SettingsKey::sipICEEnabled,
-                                    SettingsKey::sipLocalAddress,
+                                    SettingsKey::privateAddresses,
                                     SettingsKey::sipSTUNEnabled,
                                     SettingsKey::sipSTUNAddress,
                                     SettingsKey::sipSTUNPort,
@@ -181,7 +181,7 @@ void SIPSettings::saveAdvancedSettings()
   saveCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings_);
   saveCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
   saveCheckBox(SettingsKey::sipICEEnabled,      advancedUI_->ice_checkbox, settings_);
-  saveCheckBox(SettingsKey::sipLocalAddress,    advancedUI_->local_checkbox, settings_);
+  saveCheckBox(SettingsKey::privateAddresses,    advancedUI_->local_checkbox, settings_);
   saveCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
   saveCheckBox(SettingsKey::sipP2PConferencing, advancedUI_->p2p_conferencing, settings_);
 
@@ -203,7 +203,7 @@ void SIPSettings::restoreAdvancedSettings()
     restoreCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings_);
     restoreCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
     restoreCheckBox(SettingsKey::sipICEEnabled,     advancedUI_->ice_checkbox, settings_);
-    restoreCheckBox(SettingsKey::sipLocalAddress,     advancedUI_->local_checkbox, settings_);
+    restoreCheckBox(SettingsKey::privateAddresses,     advancedUI_->local_checkbox, settings_);
     restoreCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
     restoreCheckBox(SettingsKey::sipP2PConferencing, advancedUI_->p2p_conferencing, settings_);
 

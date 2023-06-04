@@ -28,7 +28,7 @@ public:
   NetworkCandidates();
   ~NetworkCandidates();
 
-  void init();
+  void init(uint16_t mediaPort, bool stun, QString stunServerAddress, uint16_t stunServerPort);
 
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> localCandidates(uint8_t streams,
                                                             uint32_t sessionID);
@@ -100,4 +100,6 @@ private:
   QString stunServerAddress_;
   uint16_t stunPort_;
   bool stunEnabled_;
+
+  uint16_t mediaPort_;
 };

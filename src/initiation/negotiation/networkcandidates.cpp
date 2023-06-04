@@ -1,8 +1,6 @@
 #include "networkcandidates.h"
 
-#include "common.h"
 #include "logger.h"
-#include "settingskeys.h"
 
 #include "initiation/siphelper.h"
 
@@ -47,13 +45,23 @@ NetworkCandidates::~NetworkCandidates()
 }
 
 
-void NetworkCandidates::init()
+void NetworkCandidates::init(uint16_t mediaPort, bool stun, QString stunServerAddress, uint16_t stunServerPort)
 {
   stunMutex_.lock();
 
+  bool stunHasChanged = stunEnabled_ != stun ||
+                        stunServerAddress != stunServerAddress_ ||
+                        stunServerPort != stunPort_ ||
+                        mediaPort_ != mediaPort;
+
+  // record current stun state so we can check it next time
+  stunServerAddress_ = stunServerAddress;
+  stunPort_ = stunServerPort;
+  stunEnabled_ = stun;
+  mediaPort_ = mediaPort;
+
   // clear previous STUN stuff if it is not needed
-  if (!settingEnabled(SettingsKey::sipSTUNEnabled) ||
-      settingString(SettingsKey::sipSTUNAddress) != stunServerAddress_)
+  if (stunHasChanged)
   {
     requests_.clear();
     stunAddresses_.clear();
@@ -68,7 +76,7 @@ void NetworkCandidates::init()
   stunMutex_.unlock();
 
 
-  int minPort = settingValue(SettingsKey::sipMediaPort);
+  int minPort = mediaPort;
   int maxPort = minPort + NUMBER_OF_POSSIBLE_PORTS;
 
   // if the settings have changed
@@ -136,14 +144,8 @@ void NetworkCandidates::init()
   }
 
   // Start stun address acquasition if stun was enabled or address has changed
-  if (settingEnabled(SettingsKey::sipSTUNEnabled) &&
-      (!stunEnabled_ ||
-      stunServerAddress_ != settingString(SettingsKey::sipSTUNAddress) ||
-      stunPort_ != settingValue(SettingsKey::sipSTUNPort)))
+  if (stun && stunHasChanged)
   {
-    stunServerAddress_ = settingString(SettingsKey::sipSTUNAddress);
-    stunPort_ = settingValue(SettingsKey::sipSTUNPort);
-
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Looking up STUN server IP",
                                     {"Server address"}, {stunServerAddress_});
 
@@ -166,15 +168,12 @@ void NetworkCandidates::init()
       Logger::getLogger()->printWarning(this, "Invalid STUN server address found in settings");
     }
   }
-
-  // record current stun state so we can check it next time
-  stunEnabled_ = settingEnabled(SettingsKey::sipSTUNEnabled);
 }
 
 
 void NetworkCandidates::refreshSTUN()
 {
-  if (!settingEnabled(SettingsKey::sipSTUNEnabled))
+  if (!stunEnabled_)
   {
     return;
   }
@@ -328,7 +327,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
         new QList<std::pair<QHostAddress, uint16_t>>());
 
-  if (!settingEnabled(SettingsKey::sipSTUNEnabled))
+  if (!stunEnabled_)
   {
     return addresses;
   }
@@ -394,7 +393,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
         new QList<std::pair<QHostAddress, uint16_t>>());
 
-  if (!settingEnabled(SettingsKey::sipSTUNEnabled))
+  if (!stunEnabled_)
   {
     return addresses;
   }
@@ -579,9 +578,7 @@ void NetworkCandidates::moreSTUNCandidates()
   {
     for (auto& interface : availablePorts_)
     {
-      int stunPort = settingValue(SettingsKey::sipSTUNPort);
-
-      if (stunPort != 0)
+      if (stunPort_ != 0)
       {
         if (stunFailureList_.find(interface.first) == stunFailureList_.end())
         {
@@ -599,7 +596,7 @@ void NetworkCandidates::moreSTUNCandidates()
           if (nextPort != 0)
           {
             if (!sendSTUNserverRequest(QHostAddress(interface.first), nextPort,
-                                       stunServerIP_,                 stunPort))
+                                       stunServerIP_,                 stunPort_))
             {
               stunFailureList_.insert(interface.first);
             }

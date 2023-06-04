@@ -89,6 +89,8 @@ public slots:
 private:
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
 
+  SIPConfig createSIPConfig();
+
   void createCall(uint32_t sessionID);
 
   void updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp);
@@ -101,8 +103,6 @@ private:
   void renegotiateAllCalls();
 
   void createSIPDialog(QString name, QString username, QString ip, uint32_t sessionID);
-
-  void checkBinding();
 
   void updateMediaIDs(uint32_t sessionID,
                       QList<MediaInfo>& localMedia,
