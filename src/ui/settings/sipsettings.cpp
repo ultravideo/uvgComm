@@ -180,7 +180,9 @@ void SIPSettings::saveAdvancedSettings()
   // sip settings.
   saveCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings_);
   saveCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
+#ifndef KVAZZUP_RTP_MULTIPLEXING
   saveCheckBox(SettingsKey::sipICEEnabled,      advancedUI_->ice_checkbox, settings_);
+#endif
   saveCheckBox(SettingsKey::privateAddresses,    advancedUI_->local_checkbox, settings_);
   saveCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
   saveCheckBox(SettingsKey::sipP2PConferencing, advancedUI_->p2p_conferencing, settings_);
@@ -202,7 +204,14 @@ void SIPSettings::restoreAdvancedSettings()
   {
     restoreCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings_);
     restoreCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
+
+// TODO: Remove this once ICE works with multiplexing
+#ifndef KVAZZUP_RTP_MULTIPLEXING
     restoreCheckBox(SettingsKey::sipICEEnabled,     advancedUI_->ice_checkbox, settings_);
+#else
+    advancedUI_->ice_label->hide();
+    advancedUI_->ice_checkbox->hide();
+#endif
     restoreCheckBox(SettingsKey::privateAddresses,     advancedUI_->local_checkbox, settings_);
     restoreCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
     restoreCheckBox(SettingsKey::sipP2PConferencing, advancedUI_->p2p_conferencing, settings_);

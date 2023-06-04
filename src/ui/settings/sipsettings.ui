@@ -149,7 +149,7 @@
        <item row="1" column="0" colspan="3">
         <widget class="QLabel" name="tab_explanation">
          <property name="text">
-          <string>ICE is a protocol for finding transport route for the media/RTP in a session. If you are calling from behind a NAT, STUN is used to find the outer IP address, where you can receive packets. STUN is not needed if you have a global IP address or if you are calling inside a LAN.</string>
+          <string>If you are calling from behind a Network Address Translation (NAT), STUN is used to find the outer IP address, where you can receive packets. STUN is not needed if you have a global IP address or if you are calling inside a LAN.</string>
          </property>
          <property name="wordWrap">
           <bool>true</bool>
@@ -172,7 +172,10 @@
           </font>
          </property>
          <property name="text">
-          <string>Interactive Connectivity Establishement (ICE)</string>
+          <string>Media Connectivity</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -245,7 +248,7 @@
         </widget>
        </item>
        <item row="3" column="0">
-        <widget class="QLabel" name="label">
+        <widget class="QLabel" name="ice_label">
          <property name="text">
           <string>Enable ICE</string>
          </property>
