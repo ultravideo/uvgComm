@@ -382,7 +382,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Media Settings</string>
+          <string>Advanced Settings</string>
          </property>
         </widget>
        </item>
