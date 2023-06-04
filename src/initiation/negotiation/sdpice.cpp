@@ -142,9 +142,14 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
     neededComponents = 2; // RTP and RTCP
   }
 
-  if (usePrivateAddresses_ && existingLocalCandidates_.size() <= mediaIndex)
+  if (existingLocalCandidates_.size() <= mediaIndex)
   {
     existingLocalCandidates_.push_back(networkCandidates_->localCandidates(neededComponents, sessionID_));
+
+    if (!usePrivateAddresses_)
+    {
+      existingLocalCandidates_.at(existingLocalCandidates_.size() - 1)->clear();
+    }
   }
   if (existingGlobalCandidates_.size() <= mediaIndex)
   {
