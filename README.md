@@ -1,7 +1,7 @@
 Kvazzup
 =======
 
-Kvazzup is a *High Efficiency Video Coding (HEVC)* video call software written in C++ and built on [Qt](https://www.qt.io/) application framework. The aim of Kvazzup is to be pave way for better quality video calls while valuing usability, security and privacy. 
+Kvazzup is a *High Efficiency Video Coding (HEVC)* video call software written in C++ and built on [Qt](https://www.qt.io/) application framework. Kvazzup aims to provide a testbed for novel video conferencing solutions, while also advancing the field of *Real-Time Communication (RTC)*. 
 
 Kvazzup is under development and new features will become available.
 
@@ -66,7 +66,7 @@ If you are using Kvazzup in your research, please cite one of the following pape
 
 ## Planned features
 
-- Contact presence monitoring
-- Multiparty video conferences
+- Media server integration for better connectivity
 - TLS Encryption for SIP
 - Integrating SRTP & ZRTP
+- Contact presence monitoring
