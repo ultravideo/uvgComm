@@ -1,15 +1,17 @@
 #include "roifilter.h"
 
+#include "ui/gui/videointerface.h"
+
 #include "logger.h"
 
 #include "settingskeys.h"
 
 #include "media/resourceallocator.h"
+#include "common.h"
 
 #ifdef KVAZZUP_HAVE_OPENCV
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
 #endif
 
 
@@ -26,7 +28,7 @@
 
 
 RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<ResourceAllocator> hwResources,
-                     bool cuda)
+                     bool cuda, VideoInterface* roiInterface)
   : Filter(id, "RoI", stats, hwResources, DT_YUV420VIDEO, DT_YUV420VIDEO),
     inputSize_(-1),
     inputName_(),
@@ -38,7 +40,8 @@ RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<Res
     useCuda_(cuda),
     roiEnabled_(false),
     frameCount_(0),
-    roi_({0,0,nullptr})
+    roi_({0,0,nullptr}),
+    roiSurface_(roiInterface)
 {
 }
 
@@ -52,7 +55,6 @@ void RoiFilter::updateSettings()
   QSettings settings(settingsFile, settingsFileFormat);
 
   Logger::getLogger()->printNormal(this, "Updating RoI filter settings");
-  roiEnabled_ = false;
   QMutexLocker lock(&settingsMutex_);
   init();
   Filter::updateSettings();
@@ -64,7 +66,7 @@ void RoiFilter::process()
   std::unique_ptr<Data> input = getInput();
   assert(input->type == DT_YUV420VIDEO);
   while(input) {
-    if(roiEnabled_){
+    if(roiEnabled_ && getHWManager()->useAutoROI()){
       QMutexLocker lock(&settingsMutex_);
       if(inputDiscarded_ > prevInputDiscarded_) {
         skipInput_++;
@@ -129,6 +131,8 @@ void RoiFilter::process()
         Roi roi_mat = roiFilter_.makeRoiMap(face_roi_rects);
         roi_.data = std::make_unique<int8_t[]>(roi_length);
         memcpy(roi_.data.get(), roi_mat.data.get(), roi_length);
+
+        roiSurface_->inputDetections(detections, {input->vInfo->width, input->vInfo->height}, 0);
       }
       if(roi_.data){
         input->vInfo->roiWidth = roi_.width;
@@ -136,6 +140,7 @@ void RoiFilter::process()
         input->vInfo->roiArray = std::make_unique<int8_t[]>(roi_.width*roi_.height);
         memcpy(input->vInfo->roiArray.get(), roi_.data.get(), roi_.width*roi_.height);
       }
+
       frameCount_++;
     }
     sendOutput(std::move(input));
@@ -149,7 +154,12 @@ bool RoiFilter::init()
   prevInputDiscarded_ = 0;
   skipInput_ = 1;
   QSettings settings(settingsFile, settingsFileFormat);
-  std::wstring newModel = settings.value(SettingsKey::roiDetectorModel).toString().toStdWString();
+  QString newModelQstr = settings.value(SettingsKey::roiDetectorModel).toString();
+#ifdef _WIN32
+  std::wstring newModel = newModelQstr.toStdWString();
+#else
+  std::string newModel = newModelQstr.toStdString();
+#endif
   kernelType_ = settings.value(SettingsKey::roiKernelType).toString().toStdString();
   kernelSize_ = settings.value(SettingsKey::roiKernelSize).toInt();
   int threads = settings.value(SettingsKey::roiMaxThreads).toInt();
@@ -177,6 +187,7 @@ bool RoiFilter::init()
       allocator_ = std::make_unique<Ort::Allocator>(*session_, Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault));
     }  catch (std::exception& e) {
       Logger::getLogger()->printError(this, e.what());
+      isOk = false;
       return isOk;
     }
 
@@ -220,7 +231,11 @@ bool RoiFilter::init()
     }
   }
 
-  roiEnabled_ = isOk && settings.value(SettingsKey::roiEnabled).toBool();
+  if(model_.empty()){
+    isOk = false;
+  }
+
+  roiEnabled_ = isOk; // && settings.value(SettingsKey::roiEnabled).toBool();
   return isOk;
 }
 
@@ -287,7 +302,7 @@ std::vector<Detection> RoiFilter::detect(const Data* input)
 
 Rect RoiFilter::find_largest_bbox(std::vector<Detection> &detections)
 {
-  Rect largest;
+  Rect largest = {0, 0, 0, 0};
   int largest_area = 0;
   for (auto &d : detections)
   {
@@ -347,12 +362,12 @@ std::vector<float> RoiFilter::letterbox(const std::vector<float>& img, Size orig
     cv::Mat input(original_shape.height, original_shape.width, CV_32F, (void*)img.data());
     cv::resize(input, scaled, {new_unpad.width, new_unpad.height}, 0.0, 0.0, cv::INTER_NEAREST);
 #else
-    double fx = 1/((double)new_shape.width / (double)original_shape.width);
-    double fy = 1/((double)new_shape.height / (double)original_shape.height);
+    double fx = 1/((double)new_unpad.width / (double)original_shape.width);
+    double fy = 1/((double)new_unpad.height / (double)original_shape.height);
     for(int y = top; y < new_unpad.height+top; y++) {
       for(int x = left; x < new_unpad.width+left; x++) {
         int old_x = std::floor(x*fx),
-            old_y = std::floor(y*fy);
+            old_y = std::floor((y-top)*fy);
         scaled_img[y*(new_unpad.width+dw)+x] = img[old_y*original_shape.width+old_x];
       }
     }
@@ -517,11 +532,13 @@ bool RoiFilter::filter_bb(Rect bb, Size min_size)
 
 Rect RoiFilter::bbox_to_roi(Rect bb)
 {
+  int x2 = (bb.x+bb.width) / 64;
+  int y2 = (bb.x+bb.width) / 64;
   bb.x /= 64;
   bb.y /= 64;
-  bb.width /= 64;
+  bb.width = x2-bb.x;
   bb.width++;
-  bb.height /= 64;
+  bb.height = y2-bb.y;
   bb.height++;
   return bb;
 }

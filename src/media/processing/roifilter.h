@@ -1,5 +1,6 @@
 #pragma once
 
+#include "detection_types.h"
 #include "filter.h"
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
 
@@ -9,28 +10,14 @@
 #include <opencv2/core.hpp>
 #endif
 
-struct Point {
-  int x, y;
-};
-
 struct Size {
   int width, height;
-};
-
-struct Rect {
-  int x, y, width, height;
 };
 
 struct Roi {
   int width;
   int height;
   std::unique_ptr<int8_t[]> data;
-};
-
-struct Detection
-{
-  Rect bbox;
-  std::array<Point, 5> landmarks;
 };
 
 struct RoiMapFilter {
@@ -49,11 +36,14 @@ struct RoiMapFilter {
 #endif
 };
 
+class VideoInterface;
+
 class RoiFilter : public Filter {
 public:
   RoiFilter(QString id, StatisticsInterface* stats,
             std::shared_ptr<ResourceAllocator> hwResources,
-            bool cuda);
+            bool cuda,
+            VideoInterface* roiInterface);
 
   ~RoiFilter();
 
@@ -90,7 +80,11 @@ private:
   unsigned int prevInputDiscarded_;
   unsigned int skipInput_;
 
+#ifdef _WIN32
   std::wstring model_;
+#else
+  std::string model_;
+#endif
   std::string kernelType_;
   int kernelSize_;
   int filterDepth_;
@@ -123,4 +117,5 @@ private:
   RoiMapFilter roiFilter_;
 
   QMutex settingsMutex_;
+  VideoInterface* roiSurface_;
 };

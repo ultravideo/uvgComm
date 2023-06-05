@@ -7,13 +7,34 @@
     <x>0</x>
     <y>0</y>
     <width>560</width>
-    <height>640</height>
+    <height>713</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Media Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
+   <item row="3" column="1">
+    <widget class="QPushButton" name="reset_button">
+     <property name="text">
+      <string>Reset</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0" colspan="3">
+    <widget class="Line" name="line">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="2">
+    <widget class="QPushButton" name="close_button">
+     <property name="text">
+      <string>Finished</string>
+     </property>
+    </widget>
+   </item>
    <item row="3" column="0">
     <spacer name="horizontalSpacer">
      <property name="orientation">
@@ -27,25 +48,12 @@
      </property>
     </spacer>
    </item>
-   <item row="3" column="1">
-    <widget class="QPushButton" name="reset_button">
-     <property name="text">
-      <string>Reset</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="2">
-    <widget class="QPushButton" name="close_button">
-     <property name="text">
-      <string>Finished</string>
-     </property>
-    </widget>
-   </item>
    <item row="0" column="0" colspan="3">
     <widget class="QLabel" name="title_label">
      <property name="font">
       <font>
        <pointsize>16</pointsize>
+       <weight>75</weight>
        <bold>true</bold>
       </font>
      </property>
@@ -57,17 +65,10 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="0" colspan="3">
-    <widget class="Line" name="line">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
    <item row="2" column="0" colspan="3">
     <widget class="QTabWidget" name="tabs">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="main">
       <attribute name="title">
@@ -80,24 +81,102 @@
        <string>RoI</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="0" column="0" colspan="5">
-        <widget class="VideoWidget" name="roi_surface" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
+       <item row="4" column="1">
+        <widget class="QSpinBox" name="background_qp">
+         <property name="minimum">
+          <number>22</number>
+         </property>
+         <property name="maximum">
+          <number>47</number>
+         </property>
+         <property name="value">
+          <number>47</number>
          </property>
         </widget>
        </item>
-       <item row="7" column="0">
+       <item row="1" column="0">
+        <widget class="QGroupBox" name="groupBox">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>100</height>
+          </size>
+         </property>
+         <property name="title">
+          <string>RoI mode</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QRadioButton" name="roi_manual_button">
+            <property name="text">
+             <string>Manual</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="roi_auto_button">
+            <property name="text">
+             <string>Automatic</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="roi_off_button">
+            <property name="text">
+             <string>Off</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="3" column="4">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="2" column="1">
+        <widget class="QSpinBox" name="brush_size">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>3</number>
+         </property>
+         <property name="value">
+          <number>3</number>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0">
         <widget class="QCheckBox" name="ctu_based">
          <property name="text">
           <string>CTU based drawing</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="1">
+       <item row="7" column="0">
+        <widget class="QCheckBox" name="show_grid">
+         <property name="text">
+          <string>Show grid</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
         <widget class="QSpinBox" name="roi_qp">
          <property name="suffix">
           <string/>
@@ -113,70 +192,34 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="roi_lable">
-         <property name="text">
-          <string>RoI QP</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0">
-        <widget class="QCheckBox" name="show_grid">
-         <property name="text">
-          <string>Show grid</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="4">
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="3" column="1">
-        <widget class="QSpinBox" name="background_qp">
-         <property name="minimum">
-          <number>22</number>
-         </property>
-         <property name="maximum">
-          <number>47</number>
-         </property>
-         <property name="value">
-          <number>47</number>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
+       <item row="4" column="0">
         <widget class="QLabel" name="background_label">
          <property name="text">
           <string>Global QP</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="brush_size_label">
-         <property name="text">
-          <string>Brush Size</string>
+       <item row="0" column="0" colspan="5">
+        <widget class="VideoWidget" name="roi_surface" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QSpinBox" name="brush_size">
-         <property name="minimum">
-          <number>1</number>
+       <item row="3" column="0">
+        <widget class="QLabel" name="roi_lable">
+         <property name="text">
+          <string>RoI QP</string>
          </property>
-         <property name="maximum">
-          <number>3</number>
-         </property>
-         <property name="value">
-          <number>3</number>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="brush_size_label">
+         <property name="text">
+          <string>Brush Size</string>
          </property>
         </widget>
        </item>

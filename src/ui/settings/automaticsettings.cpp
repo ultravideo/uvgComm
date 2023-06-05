@@ -41,6 +41,15 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
   QObject::connect(ui_->ctu_based, &QCheckBox::stateChanged,
                    this,           &AutomaticSettings::updateConfigAndReset);
 
+  QObject::connect(ui_->roi_auto_button, &QRadioButton::toggled,
+                   this,                 &AutomaticSettings::updateConfigAndReset);
+
+  QObject::connect(ui_->roi_manual_button, &QRadioButton::toggled,
+                   this,                 &AutomaticSettings::updateConfigAndReset);
+
+  QObject::connect(ui_->roi_off_button, &QRadioButton::toggled,
+                   this,                 &AutomaticSettings::updateConfigAndReset);
+
   settings_.setValue(SettingsKey::manualROIStatus,          "0");
 
   ui_->roi_surface->enableOverlay(ui_->roi_qp->value(),
@@ -66,6 +75,13 @@ void AutomaticSettings::updateVideoConfig()
 
   settings_.setValue(SettingsKey::roiQp, ui_->roi_qp->value());
   settings_.setValue(SettingsKey::backgroundQp, ui_->background_qp->value());
+  QString roiMode = "off";
+  if (ui_->roi_auto_button->isChecked()) {
+      roiMode = "auto";
+  } else if (ui_->roi_manual_button->isChecked()) {
+      roiMode = "manual";
+  }
+  settings_.setValue(SettingsKey::roiMode, roiMode);
   emit updateAutomaticSettings();
 }
 

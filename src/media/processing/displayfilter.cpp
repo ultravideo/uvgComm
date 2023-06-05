@@ -7,6 +7,7 @@
 
 #include <QDateTime>
 #include <QSettings>
+#include <QPainter>
 
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                              std::shared_ptr<ResourceAllocator> hwResources,
@@ -111,6 +112,7 @@ void DisplayFilter::process()
       if( sessionID_ != 1111)
         getStats()->receiveDelay(sessionID_, "Video", delay);
     }
+
     input = getInput();
   }
 }

@@ -62,6 +62,7 @@ const int AUDIO_INPUT_GAIN = 10; // dB
 const int32_t AUDIO_OUTPUT_VOLUME = INT32_MAX - INT32_MAX/4;
 const int AUDIO_OUTPUT_GAIN = 20; // dB
 
+void changeState(std::shared_ptr<Filter> f, bool state);
 
 FilterGraph::FilterGraph(): QObject(),
   quitting_(false),
@@ -338,7 +339,7 @@ void FilterGraph::initVideoSend()
       std::shared_ptr<Filter>(new ROIManualFilter("", stats_, hwResources_, roiInterface_));
   addToGraph(mRoi, cameraGraph_, 1);
 #ifdef KVAZZUP_HAVE_ONNX_RUNTIME
-  auto roi = std::shared_ptr<Filter>(new RoiFilter("", stats_, hwResources_, true));
+  auto roi = std::shared_ptr<Filter>(new RoiFilter("", stats_, hwResources_, true, roiInterface_));
   addToGraph(roi, cameraGraph_, cameraGraph_.size() - 1);
 #endif
 

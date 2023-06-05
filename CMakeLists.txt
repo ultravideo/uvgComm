@@ -154,7 +154,10 @@ set(KVAZZUP_SOURCES
 
 
 if (KVAZZUP_ENABLE_FACE_DETECTION)
-    list(APPEND KVAZZUP_SOURCES src/media/processing/roifilter.cpp  src/media/processing/roifilter.h)
+    list(APPEND KVAZZUP_SOURCES
+      src/media/processing/roifilter.cpp  src/media/processing/roifilter.h
+      src/media/processing/detection_types.h
+    )
 endif()
 
 qt_add_executable(kvazzup WIN32 MACOSX_BUNDLE
@@ -208,10 +211,12 @@ set(KVAZZUP_LIBS LibOpenHevcWrapper
 
 if (KVAZZUP_ENABLE_FACE_DETECTION)
     message("Enabling face detection")
-    find_package(OpenCV QUIET)
+    find_package(OpenCV)
 
     if (OpenCV_FOUND)
         target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_OPENCV)
+        list(APPEND KVAZZUP_LIBS ${OpenCV_LIBS})
+        include_directories( ${OpenCV_INCLUDE_DIRS} )
     endif()
 
     target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_ONNX_RUNTIME)

@@ -45,7 +45,8 @@ enum DataType {DT_NONE        = 0,
                DT_HEVCVIDEO   = (1 << 14),
 
                DT_RAWAUDIO    = (1 << 15),
-               DT_OPUSAUDIO   = (1 << 16)};
+               DT_OPUSAUDIO   = (1 << 16),
+};
 
 enum DataSource {DS_UNKNOWN, DS_LOCAL, DS_REMOTE};
 

@@ -70,6 +70,13 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image,
   drawMutex_.unlock();
 }
 
+#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+void VideoWidget::inputDetections(std::vector<Detection> detections, QSize original_size, int64_t timestamp)
+{
+  helper_.inputDetections(detections, original_size, timestamp);
+}
+#endif
+
 void VideoWidget::paintEvent(QPaintEvent *event)
 {
   QPainter painter(this);
