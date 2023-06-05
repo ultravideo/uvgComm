@@ -71,6 +71,8 @@ private:
   // if it is worth including in candidates
   bool sanityCheck(QHostAddress interface, uint16_t port);
 
+  void unbindRequestSockets();
+
   // IP address corresponding to the used STUN server address
   QHostAddress stunServerIP_;
 

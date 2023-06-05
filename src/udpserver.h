@@ -19,6 +19,8 @@ public:
 
   bool bindSocket(const QHostAddress& address, quint16 port);
 
+  void disconnect();
+
   void unbind();
 
   // sends the data using Qt UDP classes.
@@ -27,7 +29,7 @@ public:
 
   bool isBound()
   {
-    return socket_ && socket_->state() == QAbstractSocket::BoundState;
+    return socket_.state() == QAbstractSocket::BoundState;
   }
 
 signals:
@@ -40,6 +42,6 @@ private slots:
   void readDatagram();
 
 private:
-  QUdpSocket* socket_;
+  QUdpSocket socket_;
   uint16_t sendPort_;
 };

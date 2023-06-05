@@ -41,11 +41,14 @@ NetworkCandidates::NetworkCandidates():
 
 NetworkCandidates::~NetworkCandidates()
 {
+  unbindRequestSockets();
   requests_.clear();
 }
 
 
-void NetworkCandidates::init(uint16_t mediaPort, bool stun, QString stunServerAddress, uint16_t stunServerPort)
+void NetworkCandidates::init(uint16_t mediaPort, bool stun,
+                             QString stunServerAddress,
+                             uint16_t stunServerPort)
 {
   stunMutex_.lock();
 
@@ -196,24 +199,6 @@ void NetworkCandidates::refreshSTUN()
 
   // The socket unbinding cannot happen in processreply, because that would destroy the socket
   // leading to heap corruption. Instead we do the unbinding here.
-
-  QStringList removed;
-  for (auto& request : requests_)
-  {
-    if (request.second->finished)
-    {
-      request.second->udp.unbind();
-      removed.push_back(request.first);
-    }
-  }
-
-  // remove requests so we know how many requests we have going on.
-  for (auto& removal : removed)
-  {
-    requests_.erase(removal);
-    //Logger::getLogger()->printNormal(this, "Removed", {"Left"}, 
-    //                                 {QString::number(requests_.size())});
-  }
 }
 
 
@@ -454,6 +439,8 @@ bool NetworkCandidates::getSTUNBinding(uint32_t sessionID,
                                        const std::pair<QHostAddress, uint16_t> &inStunAddress,
                                        std::pair<QHostAddress, uint16_t> &outStunBinding)
 {
+  unbindRequestSockets();
+
   for (unsigned int i = 0; i < stunAddresses_.size(); ++i)
   {
     if (stunAddresses_.at(i).first == inStunAddress.first)
@@ -792,4 +779,27 @@ bool NetworkCandidates::sanityCheck(QHostAddress interface, uint16_t port)
   testSocket.abort();
 
   return true;
+}
+
+
+void NetworkCandidates::unbindRequestSockets()
+{
+  // unbind all sockets so they can be used elsewhere
+  QStringList removed;
+  for (auto& request : requests_)
+  {
+    if (request.second->finished)
+    {
+          request.second->udp.unbind();
+          removed.push_back(request.first);
+    }
+  }
+
+         // remove requests so we know how many requests we have going on.
+  for (auto& removal : removed)
+  {
+    requests_.erase(removal);
+    //Logger::getLogger()->printNormal(this, "Removed", {"Left"},
+    //                                 {QString::number(requests_.size())});
+  }
 }

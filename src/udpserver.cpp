@@ -1,26 +1,24 @@
 #include "udpserver.h"
 
-#include "common.h"
-
 #include <QUdpSocket>
 #include <QMetaObject>
 
 #include "logger.h"
 
 UDPServer::UDPServer():
-  socket_(nullptr),
+  socket_(this),
   sendPort_(0)
-{}
+{
+  unbind();
+}
 
 bool UDPServer::bindSocket(const QHostAddress& address, quint16 port)
 {
   this->unbind();
 
   sendPort_ = port;
-  socket_ = new QUdpSocket(this);
-
   QString addressDebug = address.toString() + ":" + QString::number(port);
-  if(!socket_->bind(address, port))
+  if(!socket_.bind(address, port))
   {
     Logger::getLogger()->printError(this, "Failed to bind UDP Socket to", 
                                     {"Interface"}, {addressDebug});
@@ -32,22 +30,22 @@ bool UDPServer::bindSocket(const QHostAddress& address, quint16 port)
     //                                  addressDebug);
   }
 
-  connect(socket_, &QUdpSocket::readyRead, this, &UDPServer::readDatagram);
+  connect(&socket_, &QUdpSocket::readyRead, this, &UDPServer::readDatagram);
 
   return true;
 }
+
 
 
 void UDPServer::unbind()
 {
   sendPort_ = 0;
 
-  if (socket_)
+  if (socket_.state() != QAbstractSocket::ClosingState &&
+      socket_.state() != QAbstractSocket::UnconnectedState)
   {
-    socket_->blockSignals(true);
-    socket_->close();
-    delete socket_;
-    socket_ = nullptr;
+    socket_.blockSignals(true);
+    socket_.close();
   }
 }
 
@@ -67,7 +65,7 @@ bool UDPServer::sendData(QByteArray& data, const QHostAddress &local,
   QNetworkDatagram datagram = QNetworkDatagram(data, remote, remotePort);
   datagram.setSender(local, (quint16)sendPort_);
 
-  if (socket_->writeDatagram(datagram) < 0)
+  if (socket_.writeDatagram(datagram) < 0)
   {
     //Logger::getLogger()->printWarning(this, "Failed to send UDP datagram!", {"Path"},
     //                                  {local.toString() + ":" + QString::number(sendPort_) + " -> " +
@@ -81,9 +79,9 @@ bool UDPServer::sendData(QByteArray& data, const QHostAddress &local,
 
 void UDPServer::readDatagram()
 {
-  while (socket_ && socket_->hasPendingDatagrams())
+  while (socket_.hasPendingDatagrams())
   {
-    emit datagramAvailable(socket_->receiveDatagram());
+    emit datagramAvailable(socket_.receiveDatagram());
   }
 }
 
