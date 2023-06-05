@@ -59,11 +59,6 @@ SIPManager::SIPManager():
   delayTimer_.setSingleShot(true);
   QObject::connect(&delayTimer_, &QTimer::timeout,
                    this, &SIPManager::delayedMessage);
-
-  if (settingEnabled(SettingsKey::sipP2PConferencing))
-  {
-    sdpConf_->setConferenceMode(CONFERENCE_MODE);
-  }
 }
 
 
@@ -185,6 +180,15 @@ void SIPManager::setConfig(const SIPConfig& config)
     nCandidates_ = std::shared_ptr<NetworkCandidates> (new NetworkCandidates);
   }
   nCandidates_->init(config_.mediaPort, config_.stun, config_.stunServerAddress, config_.stunServerPort);
+
+  if (config.conferencing)
+  {
+    sdpConf_->setConferenceMode(CONFERENCE_MODE);
+  }
+  else
+  {
+    sdpConf_->setConferenceMode(MESH_NO_CONFERENCE);
+  }
 }
 
 
