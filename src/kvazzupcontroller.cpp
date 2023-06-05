@@ -565,8 +565,18 @@ void KvazzupController::updateMediaIDs(uint32_t sessionID,
 {
   Q_ASSERT(localMedia.size() == remoteMedia.size());
 
-  Logger::getLogger()->printNormal(this, "Getting mediaIDs for " +
-                                           QString::number(localMedia.size()) + " medias");
+  QStringList medias = {"SessionID"};
+  QStringList ssrcs = {QString::number(sessionID)};
+
+  for (auto& media : localMedia)
+  {
+    medias.push_back(media.type + " ssrc");
+    ssrcs.push_back(QString::number(findSSRC(media)));
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Getting mediaIDs for " +
+                                                        QString::number(localMedia.size()) + " medias",
+                                  {medias}, {ssrcs});
 
   // first we set correct attributes
   for (int i = 0; i < localMedia.size(); i += 1)
@@ -650,7 +660,7 @@ MediaID KvazzupController::getMediaID(uint32_t sessionID, const MediaInfo &media
   }
 
   Logger::getLogger()->printNormal(this, "Creating a new MediaID",
-                                   "Media Type", media.type);
+                                   "SSRC", QString::number(findSSRC(media)));
 
   // create a new ID for this media
   sessionMedias_[sessionID]->push_back(MediaID(media));
