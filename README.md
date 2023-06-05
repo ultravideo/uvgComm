@@ -48,6 +48,10 @@ Kvazzup uses CMake to build itself and missing dependencies with minimal effort 
 
 Kvazzup has been tested together with *Kamailio Open Source SIP Server*. Easy to follow instructions are hard to come by on the internet, so we provide our own [instructions](kamailio/README.md) for setting up Kamailio.
 
+## Instructions
+
+You can find instructions on how to use Kvazzup [here](INSTRUCTIONS.md).
+
 ## Papers
 
 If you are using Kvazzup in your research, please cite one of the following papers: <br>
