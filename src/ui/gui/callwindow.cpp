@@ -143,7 +143,7 @@ void CallWindow::initializeMediaStates()
     // reverse on state to off if no cameras
     if (settingEnabled(SettingsKey::cameraStatus))
     {
-      cameraButton(false);
+      cameraButton(false); // reverses state
     }
     setCameraState(false);
     ui_->camera->setDisabled(true);
@@ -159,7 +159,7 @@ void CallWindow::initializeMediaStates()
     // reverse audio state if no mics are found
     if (settingEnabled(SettingsKey::micStatus))
     {
-      micButton(false);
+      micButton(false); // reverses state
     }
 
     setMicState(false);
@@ -168,7 +168,7 @@ void CallWindow::initializeMediaStates()
   else
   {
     // set button icons to correct states
-    cameraButton(settingEnabled(SettingsKey::micStatus));
+    setMicState(settingEnabled(SettingsKey::micStatus));
   }
 
   setScreenShareState(settingEnabled(SettingsKey::screenShareStatus));
