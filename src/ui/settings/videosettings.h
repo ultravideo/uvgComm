@@ -65,6 +65,8 @@ public slots:
   void updateTilesStatus();
   void updateObaStatus(int index);
 
+  void browse();
+
 protected:
 
   // if user closes the window
