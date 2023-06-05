@@ -98,7 +98,7 @@
           </size>
          </property>
          <property name="toolTip">
-          <string extracomment="Settings"/>
+          <string>Settings</string>
          </property>
          <property name="text">
           <string>Settings</string>
@@ -130,7 +130,7 @@
           </size>
          </property>
          <property name="toolTip">
-          <string extracomment="Mic off">Mic</string>
+          <string extracomment="Mic off">Microphone</string>
          </property>
          <property name="text">
           <string>Mic off</string>
@@ -259,7 +259,7 @@
              </size>
             </property>
             <property name="toolTip">
-             <string extracomment="End call"/>
+             <string extracomment="End call">End Call</string>
             </property>
             <property name="text">
              <string>End call</string>
@@ -622,7 +622,7 @@
           </size>
          </property>
          <property name="toolTip">
-          <string/>
+          <string>Add Contact</string>
          </property>
          <property name="text">
           <string>Add Contact</string>

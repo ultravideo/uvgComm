@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Advanced Settings</string>
+   <string>Call Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="3" column="2">

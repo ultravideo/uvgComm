@@ -10,6 +10,12 @@
     <height>640</height>
    </rect>
   </property>
+  <property name="maximumSize">
+   <size>
+    <width>960</width>
+    <height>720</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>Settings</string>
   </property>
@@ -168,7 +174,7 @@
           </size>
          </property>
          <property name="text">
-          <string>Media Settings</string>
+          <string>Demos</string>
          </property>
         </widget>
        </item>
