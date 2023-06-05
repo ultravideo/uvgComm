@@ -227,7 +227,7 @@ if (KVAZZUP_ENABLE_FACE_DETECTION)
     list(APPEND KVAZZUP_LIBS onnxruntime)
 endif()
 
-target_compile_definitions(kvazzup PRIVATE KVAZZUP_RTP_MULTIPLEXING)
+#target_compile_definitions(kvazzup PRIVATE KVAZZUP_NO_RTP_MULTIPLEXING)
 
 if (CRYPTOPP_FOUND AND NOT MSVC)
     list(APPEND KVAZZUP_LIBS cryptopp.a) # this makes sure we link up the static version

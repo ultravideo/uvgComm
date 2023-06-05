@@ -13,7 +13,9 @@
 const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipP2PConferencing,
                                     SettingsKey::sipMediaPort,
+#ifdef KVAZZUP_NO_RTP_MULTIPLEXING
                                     SettingsKey::sipICEEnabled,
+#endif
                                     SettingsKey::privateAddresses,
                                     SettingsKey::sipSTUNEnabled,
                                     SettingsKey::sipSTUNAddress,
@@ -180,7 +182,7 @@ void SIPSettings::saveAdvancedSettings()
   // sip settings.
   saveCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings_);
   saveCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
-#ifndef KVAZZUP_RTP_MULTIPLEXING
+#ifdef KVAZZUP_NO_RTP_MULTIPLEXING
   saveCheckBox(SettingsKey::sipICEEnabled,      advancedUI_->ice_checkbox, settings_);
 #endif
   saveCheckBox(SettingsKey::privateAddresses,    advancedUI_->local_checkbox, settings_);
@@ -206,7 +208,7 @@ void SIPSettings::restoreAdvancedSettings()
     restoreCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
 
 // TODO: Remove this once ICE works with multiplexing
-#ifndef KVAZZUP_RTP_MULTIPLEXING
+#ifdef KVAZZUP_NO_RTP_MULTIPLEXING
     restoreCheckBox(SettingsKey::sipICEEnabled,     advancedUI_->ice_checkbox, settings_);
 #else
     advancedUI_->ice_label->hide();
