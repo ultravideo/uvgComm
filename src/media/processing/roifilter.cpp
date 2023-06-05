@@ -155,6 +155,13 @@ bool RoiFilter::init()
   skipInput_ = 1;
   QSettings settings(settingsFile, settingsFileFormat);
   QString newModelQstr = settings.value(SettingsKey::roiDetectorModel).toString();
+  roiEnabled_ = settingValue(SettingsKey::roiEnabled) && !newModelQstr.isEmpty();
+
+  if (!roiEnabled_)
+  {
+    return true;
+  }
+
 #ifdef _WIN32
   std::wstring newModel = newModelQstr.toStdWString();
 #else
