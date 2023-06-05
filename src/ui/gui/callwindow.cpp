@@ -105,6 +105,7 @@ void CallWindow::init(ParticipantInterface *partInt)
   QObject::connect(ui_->actionStatistics, &QAction::triggered, this, &CallWindow::openStatistics);
   QObject::connect(ui_->actionClose,      &QAction::triggered, this, &CallWindow::close);
 
+  QObject::connect(ui_->addContact, &QPushButton::pressed, this, &CallWindow::addContactButton);
 
   ui_->contactListContainer->layout()->setAlignment(ui_->addContact, Qt::AlignHCenter);
 
@@ -177,7 +178,7 @@ void CallWindow::initializeMediaStates()
 
 void CallWindow::addContactButton()
 {
-  Logger::getLogger()->printNormal(this, "Clicked");
+  Logger::getLogger()->printNormal(this, "Add contact menu opened");
   QString serverAddress = settingString(SettingsKey::sipServerAddress);
   ui_->address->setText(serverAddress);
   ui_->username->setText("username");
