@@ -189,15 +189,12 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
   QSizeF viewMultiplier = getSizeMultipliers(videoResolution_.width(),
                                              videoResolution_.height());
   QPointF viewCTUSize = {CTU_SIZE*viewMultiplier.width(), CTU_SIZE*viewMultiplier.height()};
-  if (original_size.height() >= 720)
+  for (auto& d : detections)
   {
-    for (auto& d : detections)
-    {
-      d.bbox.x *= viewMultiplier.width();
-      d.bbox.width *= viewMultiplier.width();
-      d.bbox.y *= viewMultiplier.height();
-      d.bbox.height *= viewMultiplier.height();
-    }
+    d.bbox.x *= viewMultiplier.width();
+    d.bbox.width *= viewMultiplier.width();
+    d.bbox.y *= viewMultiplier.height();
+    d.bbox.height *= viewMultiplier.height();
   }
   detections_ = detections;
 
