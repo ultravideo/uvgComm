@@ -198,7 +198,7 @@ bool RoiFilter::init()
       isOk = false;
     }
 
-    inputName_.emplace(session_->GetInputNameAllocated(0, *allocator_));
+    inputName_ = session_->GetInputNameAllocated(0, *allocator_);
     inputShape_ = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
 
     if (inputShape_.size() != 4)
@@ -219,7 +219,7 @@ bool RoiFilter::init()
       isOk = false;
     }
 
-    outputName_.emplace(session_->GetOutputNameAllocated(0, *allocator_));
+    outputName_ = session_->GetOutputNameAllocated(0, *allocator_);
     outputShape_ = session_->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
     //size_t output_count = session.GetOutputCount();
 
