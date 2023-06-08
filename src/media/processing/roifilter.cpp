@@ -34,9 +34,9 @@ RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<Res
     inputName_(),
     minimum_(false),
     outputName_(),
-    minBbSize_{10, 10},
+    minBbSize_{0, 0},
     drawBbox_(false),
-    minRelativeBbSize_(0.5),
+    minRelativeBbSize_(0),
     useCuda_(cuda),
     roiEnabled_(false),
     frameCount_(0),
@@ -532,14 +532,22 @@ bool RoiFilter::filter_bb(Rect bb, Size min_size)
 
 Rect RoiFilter::bbox_to_roi(Rect bb)
 {
-  int x2 = (bb.x+bb.width) / 64;
-  int y2 = (bb.x+bb.width) / 64;
-  bb.x /= 64;
-  bb.y /= 64;
+  int x2 = (bb.x+bb.width - 64/3) / 64;
+  int y2 = (bb.x+bb.width - 64/3) / 64;
+  bb.x = (bb.x + 64/3)/64;
+  bb.y = (bb.y + 64/3)/64;
   bb.width = x2-bb.x;
   bb.width++;
   bb.height = y2-bb.y;
   bb.height++;
+  if (bb.width < 1)
+  {
+    bb.width = 1;
+  }
+  if (bb.height < 1)
+  {
+    bb.height = 1;
+  }
   return bb;
 }
 

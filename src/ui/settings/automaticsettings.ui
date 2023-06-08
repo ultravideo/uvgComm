@@ -14,24 +14,19 @@
    <string>Media Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="3" column="1">
-    <widget class="QPushButton" name="reset_button">
-     <property name="text">
-      <string>Reset</string>
+   <item row="0" column="0" colspan="3">
+    <widget class="QLabel" name="title_label">
+     <property name="font">
+      <font>
+       <pointsize>16</pointsize>
+       <bold>true</bold>
+      </font>
      </property>
-    </widget>
-   </item>
-   <item row="1" column="0" colspan="3">
-    <widget class="Line" name="line">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="2">
-    <widget class="QPushButton" name="close_button">
      <property name="text">
-      <string>Finished</string>
+      <string>Media Settings</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
      </property>
     </widget>
    </item>
@@ -48,20 +43,24 @@
      </property>
     </spacer>
    </item>
-   <item row="0" column="0" colspan="3">
-    <widget class="QLabel" name="title_label">
-     <property name="font">
-      <font>
-       <pointsize>16</pointsize>
-       <weight>75</weight>
-       <bold>true</bold>
-      </font>
+   <item row="1" column="0" colspan="3">
+    <widget class="Line" name="line">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
+    </widget>
+   </item>
+   <item row="3" column="2">
+    <widget class="QPushButton" name="close_button">
      <property name="text">
-      <string>Media Settings</string>
+      <string>Finished</string>
      </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QPushButton" name="reset_button">
+     <property name="text">
+      <string>Reset</string>
      </property>
     </widget>
    </item>
@@ -92,48 +91,6 @@
          <property name="value">
           <number>47</number>
          </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QGroupBox" name="groupBox">
-         <property name="enabled">
-          <bool>true</bool>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>100</height>
-          </size>
-         </property>
-         <property name="title">
-          <string>RoI mode</string>
-         </property>
-         <layout class="QVBoxLayout" name="verticalLayout_2">
-          <item>
-           <widget class="QRadioButton" name="roi_manual_button">
-            <property name="text">
-             <string>Manual</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="roi_auto_button">
-            <property name="text">
-             <string>Automatic</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="roi_off_button">
-            <property name="text">
-             <string>Off</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
         </widget>
        </item>
        <item row="3" column="4">
@@ -221,6 +178,64 @@
          <property name="text">
           <string>Brush Size</string>
          </property>
+        </widget>
+       </item>
+       <item row="2" column="3" rowspan="7">
+        <widget class="QGroupBox" name="groupBox">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>100</height>
+          </size>
+         </property>
+         <property name="title">
+          <string>RoI mode</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QRadioButton" name="roi_manual_button">
+            <property name="text">
+             <string>Manual</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="roi_auto_button">
+            <property name="text">
+             <string>Automatic</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="roi_off_button">
+            <property name="text">
+             <string>Off</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Preferred</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </widget>
        </item>
       </layout>
