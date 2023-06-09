@@ -198,10 +198,12 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
     d.bbox.height *= viewMultiplier.height();
   }
 
-  if(drawOverlay_ && !oldDetections.empty())
+  if(drawOverlay_)
   {
     resetOverlay();
-
+  }
+  if(drawOverlay_ && !oldDetections.empty())
+  {
     QPainter painter(&overlay_);
     QBrush brush(qpToColor(roiQP_));
     painter.setPen(Qt::white);
