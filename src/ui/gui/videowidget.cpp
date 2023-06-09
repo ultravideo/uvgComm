@@ -1,7 +1,6 @@
 #include "videowidget.h"
 
 #include "statisticsinterface.h"
-#include "logger.h"
 
 #include <QPaintEvent>
 #include <QCoreApplication>
@@ -9,11 +8,12 @@
 #include <QKeyEvent>
 #include <QLayout>
 
-VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize)
+VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID,
+                         LayoutID layoutID, uint8_t borderSize)
   : QWidget(parent),
   stats_(nullptr),
   sessionID_(sessionID),
-  helper_(sessionID, borderSize)
+  helper_(sessionID, layoutID, borderSize)
 {
   helper_.initWidget(this);
 
@@ -23,7 +23,6 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID, uint8_t borderSize
   QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoWidget::reattach);
 
   helper_.updateTargetRect(this);
-
 }
 
 

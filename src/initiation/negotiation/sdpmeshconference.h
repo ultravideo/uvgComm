@@ -37,8 +37,17 @@ private:
 
   MeshType type_;
 
-  /* Collection of SDPs that can be used to form the next SDP,
-   * the ports are update whenever a new participant joins.
-   * Key: sessionID */
+  // needed for keeping track of connections if connection multiplexing is not supported
+  typedef std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> MeshConnections;
+  std::map<uint32_t, MeshConnections> remoteConnections_;
+
+  /* These are the templates used to form new connections between other participants that us.
+   *
+   * In mesh with multiplexing, there is no need to update the candidate ports and therefore
+   * these templates can be used as is for each participant without further modifications.
+   *
+   * If multiplexing is not used in mesh, then the ports must be increased for each participant
+   * that is added to the call.
+   */
   std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> singleSDPTemplates_;
 };

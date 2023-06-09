@@ -4,6 +4,7 @@
 #include "initiation/sipmanager.h"
 #include "ui/uimanager.h"
 #include "participantinterface.h"
+#include "mediaid.h"
 
 #include <QObject>
 
@@ -88,6 +89,8 @@ public slots:
 private:
   void removeSession(uint32_t sessionID, QString message, bool temporaryMessage);
 
+  SIPConfig createSIPConfig();
+
   void createCall(uint32_t sessionID);
 
   void updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp);
@@ -101,12 +104,19 @@ private:
 
   void createSIPDialog(QString name, QString username, QString ip, uint32_t sessionID);
 
-  void checkBinding();
+  void updateMediaIDs(uint32_t sessionID,
+                      QList<MediaInfo>& localMedia,
+                      QList<MediaInfo>& remoteMedia,
+                      bool followOurSDP,
+                      QList<std::pair<MediaID, MediaID>>& audioVideoIDs, QList<MediaID>& allIDs);
 
-  QList<SDPMediaParticipant> formUIMedias(QList<MediaInfo>& localMedia,
-                                          QList<MediaInfo> &attributeMedia,
-                                          bool followOurSDP,
-                                          uint32_t sessionID);
+  void getMediaAttributes(const MediaInfo &local, const MediaInfo& remote,
+                          bool followOurSDP, bool &send,
+                          bool& receive);
+
+  // the stun addresses are our outward network addresses which our peer uses to send data to us
+  // we cannot however bind to those so we must translate the addresses to our local addresses
+  void getStunBindings(uint32_t sessionID, MediaInfo &media);
 
   bool areWeFocus() const
   {
@@ -115,6 +125,8 @@ private:
 
   // this is a huge hack altogether
   bool areWeICEController(bool initialAgent, uint32_t sessionID) const;
+
+  MediaID getMediaID(uint32_t sessionID, const MediaInfo &media);
 
   // call state is used to make sure everything is going according to plan,
   // no surprise ACK messages etc
@@ -154,6 +166,10 @@ private:
   int ongoingNegotiations_;
 
   QTimer delayedNegotiation_;
+
+  std::map<uint32_t, std::shared_ptr<std::vector<MediaID>>> sessionMedias_;
+
+  std::shared_ptr<VideoviewFactory> viewFactory_;
 
   // if we want to do something, but the TCP connection has not yet been established
   struct WaitingStart

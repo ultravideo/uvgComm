@@ -149,6 +149,7 @@ set(KVAZZUP_SOURCES
     src/ui/settings/videosettings.cpp               src/ui/settings/videosettings.h     src/ui/settings/videosettings.ui
     src/ui/uimanager.cpp                            src/ui/uimanager.h
     src/videoviewfactory.cpp                        src/videoviewfactory.h
+    src/mediaid.h                                   src/mediaid.cpp
 )
 
 
@@ -225,6 +226,8 @@ if (KVAZZUP_ENABLE_FACE_DETECTION)
 
     list(APPEND KVAZZUP_LIBS onnxruntime)
 endif()
+
+#target_compile_definitions(kvazzup PRIVATE KVAZZUP_NO_RTP_MULTIPLEXING)
 
 if (CRYPTOPP_FOUND AND NOT MSVC)
     list(APPEND KVAZZUP_LIBS cryptopp.a) # this makes sure we link up the static version

@@ -59,7 +59,7 @@ public:
   void setCameraState(bool enabled);
   void setScreenShareState(bool enabled);
 
-  VideoWidget* getSelfViews();
+  VideoWidget* getSelfView();
 
 signals:
 

@@ -13,6 +13,10 @@
 const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipP2PConferencing,
                                     SettingsKey::sipMediaPort,
+#ifdef KVAZZUP_NO_RTP_MULTIPLEXING
+                                    SettingsKey::sipICEEnabled,
+#endif
+                                    SettingsKey::privateAddresses,
                                     SettingsKey::sipSTUNEnabled,
                                     SettingsKey::sipSTUNAddress,
                                     SettingsKey::sipSTUNPort,
@@ -172,16 +176,18 @@ void SIPSettings::on_addUserBlock_clicked()
 
 void SIPSettings::saveAdvancedSettings()
 {
-  Logger::getLogger()->printNormal(this, "Saving SIP settings");
-
   listGUIToSettings(blocklistFile, SettingsKey::blocklist,
                     QStringList() << "userName" << "date", advancedUI_->blockedUsers);
 
   // sip settings.
-  saveCheckBox(SettingsKey::localAutoAccept,     advancedUI_->auto_accept, settings_);
-  saveCheckBox(SettingsKey::sipSTUNEnabled,      advancedUI_->stun_enabled, settings_);
-  saveCheckBox(SettingsKey::sipSRTP,             advancedUI_->srtp_enabled, settings_);
-  saveCheckBox(SettingsKey::sipP2PConferencing,  advancedUI_->p2p_conferencing, settings_);
+  saveCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings_);
+  saveCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
+#ifdef KVAZZUP_NO_RTP_MULTIPLEXING
+  saveCheckBox(SettingsKey::sipICEEnabled,      advancedUI_->ice_checkbox, settings_);
+#endif
+  saveCheckBox(SettingsKey::privateAddresses,    advancedUI_->local_checkbox, settings_);
+  saveCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
+  saveCheckBox(SettingsKey::sipP2PConferencing, advancedUI_->p2p_conferencing, settings_);
 
   saveTextValue(SettingsKey::sipSTUNAddress, advancedUI_->stun_address->text(),
                 settings_);
@@ -200,6 +206,15 @@ void SIPSettings::restoreAdvancedSettings()
   {
     restoreCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings_);
     restoreCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
+
+// TODO: Remove this once ICE works with multiplexing
+#ifdef KVAZZUP_NO_RTP_MULTIPLEXING
+    restoreCheckBox(SettingsKey::sipICEEnabled,     advancedUI_->ice_checkbox, settings_);
+#else
+    advancedUI_->ice_label->hide();
+    advancedUI_->ice_checkbox->hide();
+#endif
+    restoreCheckBox(SettingsKey::privateAddresses,     advancedUI_->local_checkbox, settings_);
     restoreCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
     restoreCheckBox(SettingsKey::sipP2PConferencing, advancedUI_->p2p_conferencing, settings_);
 

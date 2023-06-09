@@ -656,6 +656,8 @@ bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringL
       return false;
     }
 
+    // TODO: A_SSRC_GROUP in RFC 5567
+
     switch(attribute)
     {
       case A_PTIME:
@@ -667,6 +669,7 @@ bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringL
       case A_QUALITY:
       case A_MID: // media stream identification, see RFC 5888
       case A_LABEL: // RFC 4574
+      case A_SSRC:  // RFC 5567, TODO: SSRC attributes such as CNAME
       {
         parseValueAttribute(attribute, value, parsedValues);
         break;
@@ -1042,27 +1045,29 @@ SDPAttributeType stringToAttributeType(QString attribute)
     {"inactive",  A_INACTIVE},
 
     // attribute with type and value
-    {"cat",       A_CAT},
-    {"keywds",    A_KEYWDS},
-    {"tool",      A_TOOL},
-    {"maxptime",  A_MAXPTIME},
-    {"orient",    A_ORIENT},
-    {"type",      A_TYPE},
-    {"charset",   A_CHARSET},
-    {"sdplang",   A_SDPLANG},
-    {"lang",      A_LANG},
-    {"framerate", A_FRAMERATE},
-    {"quality",   A_QUALITY},
-    {"ptime",     A_PTIME},
-    {"fmtp",      A_FMTP},
-    {"candidate", A_CANDIDATE},
-    {"mid",       A_MID}, // see RFC 5888
+    {"cat",        A_CAT},
+    {"keywds",     A_KEYWDS},
+    {"tool",       A_TOOL},
+    {"maxptime",   A_MAXPTIME},
+    {"orient",     A_ORIENT},
+    {"type",       A_TYPE},
+    {"charset",    A_CHARSET},
+    {"sdplang",    A_SDPLANG},
+    {"lang",       A_LANG},
+    {"framerate",  A_FRAMERATE},
+    {"quality",    A_QUALITY},
+    {"ptime",      A_PTIME},
+    {"fmtp",       A_FMTP},
+    {"candidate",  A_CANDIDATE},
+    {"mid",        A_MID}, // see RFC 5888
 
     // attributes with (possibly) more than one value
-    {"rtpmap",    A_RTPMAP},
-    {"group",     A_GROUP}, // see RFC 5888
-    {"label",     A_LABEL},
-    {"zrtp-hash", A_ZRTP_HASH}
+    {"rtpmap",     A_RTPMAP},
+    {"group",      A_GROUP}, // see RFC 5888
+    {"label",      A_LABEL},
+    {"zrtp-hash",  A_ZRTP_HASH},
+    {"ssrc",       A_SSRC},
+    {"ssrc-group", A_SSRC_GROUP}
   };
 
   if (xmap.find(attribute) == xmap.end())
@@ -1080,29 +1085,31 @@ QString attributeTypeToString(SDPAttributeType type)
 {
   // see RFC 8866
   std::map<SDPAttributeType, QString> xmap = {
-    {A_CAT,       "cat"},
-    {A_KEYWDS,    "keywds"},
-    {A_TOOL,      "tool"},
-    {A_MAXPTIME,  "maxptime"},
-    {A_RTPMAP,    "rtpmap"},
-    {A_GROUP,     "group" }, // see RFC 5888
-    {A_MID,       "mid" },   // see RFC 5888
-    {A_RECVONLY,  "recvonly"},
-    {A_SENDRECV,  "sendrecv"},
-    {A_SENDONLY,  "sendonly"},
-    {A_INACTIVE,  "inactive"},
-    {A_ORIENT,    "orient"},
-    {A_TYPE,      "type"},
-    {A_CHARSET,   "charset"},
-    {A_SDPLANG,   "sdplang"},
-    {A_LANG,      "lang"},
-    {A_FRAMERATE, "framerate"},
-    {A_QUALITY,   "quality"},
-    {A_PTIME,     "ptime"},
-    {A_FMTP,      "fmtp"},
-    {A_CANDIDATE, "candidate"},
-    {A_LABEL,     "label"},
-    {A_ZRTP_HASH, "zrtp-hash"}
+    {A_CAT,        "cat"},
+    {A_KEYWDS,     "keywds"},
+    {A_TOOL,       "tool"},
+    {A_MAXPTIME,   "maxptime"},
+    {A_RTPMAP,     "rtpmap"},
+    {A_GROUP,      "group" }, // see RFC 5888
+    {A_MID,        "mid" },   // see RFC 5888
+    {A_RECVONLY,   "recvonly"},
+    {A_SENDRECV,   "sendrecv"},
+    {A_SENDONLY,   "sendonly"},
+    {A_INACTIVE,   "inactive"},
+    {A_ORIENT,     "orient"},
+    {A_TYPE,       "type"},
+    {A_CHARSET,    "charset"},
+    {A_SDPLANG,    "sdplang"},
+    {A_LANG,       "lang"},
+    {A_FRAMERATE,  "framerate"},
+    {A_QUALITY,    "quality"},
+    {A_PTIME,      "ptime"},
+    {A_FMTP,       "fmtp"},
+    {A_CANDIDATE,  "candidate"},
+    {A_LABEL,      "label"},
+    {A_ZRTP_HASH,  "zrtp-hash"},
+    {A_SSRC,       "ssrc"},
+    {A_SSRC_GROUP, "ssrc-group"}
   };
 
   if (xmap.find(type) == xmap.end())

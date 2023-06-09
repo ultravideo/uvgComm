@@ -90,6 +90,11 @@ bool isLocalCandidate(std::shared_ptr<ICEInfo> info)
     candidateAddress = info->rel_address;
   }
 
+  return isLocalAddress(candidateAddress);
+}
+
+bool isLocalAddress(QString candidateAddress)
+{
   for (const QHostAddress& localInterface : QNetworkInterface::allAddresses())
   {
     if (localInterface.toString() == candidateAddress)
@@ -148,30 +153,23 @@ bool getReceiveAttribute(const MediaInfo &media, bool local)
 
 void setSDPAddress(QString inAddress, QString& address, QString& nettype, QString& addressType)
 {
-  address = inAddress;
-  nettype = "IN";
-
-  // TODO: Improve the address detection
-  if (inAddress.front() == '[')
+  if (!inAddress.isEmpty())
   {
-    address = inAddress.mid(1, inAddress.size() - 2);
-    addressType = "IP6";
+    address = inAddress;
+    nettype = "IN";
+
+    // TODO: Improve the address detection
+    if (inAddress.front() == '[') {
+      address = inAddress.mid(1, inAddress.size() - 2);
+      addressType = "IP6";
+    } else {
+      addressType = "IP4";
+    }
   }
   else
   {
-    addressType = "IP4";
+    Logger::getLogger()->printError("Common", "Failed to set SDP address");
   }
-}
-
-
-bool areMediasEqual(const MediaInfo first, const MediaInfo second)
-{
-  return first.type == second.type &&
-      first.receivePort == second.receivePort &&
-      first.proto == second.proto &&
-      first.connection_nettype == second.connection_nettype &&
-      first.connection_addrtype == second.connection_addrtype &&
-      first.connection_address == second.connection_address;
 }
 
 
@@ -239,4 +237,83 @@ bool sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
       firstCandidate->type == secondCandidate->type &&
       firstCandidate->rel_address == secondCandidate->rel_address &&
       firstCandidate->rel_port == secondCandidate->rel_port;
+}
+
+
+void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates)
+{
+  QStringList names;
+  QStringList values;
+  for (auto& candidate : candidates)
+  {
+    names.append("Candidate");
+    if (candidate->type == "srflx" || candidate->type == "prflx")
+    {
+      values.append(candidate->rel_address + ":" + QString::number(candidate->rel_port));
+    }
+    else
+    {
+      values.append(candidate->address + ":" + QString::number(candidate->port));
+    }
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Common", text, names, values);
+}
+
+
+
+QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info)
+{
+  // use relay address
+  if (info->type != "host" &&
+      info->rel_address != "" &&
+      info->rel_port != 0)
+  {
+    return QHostAddress(info->rel_address);
+  }
+
+         // don't use relay address
+  return QHostAddress(info->address);
+}
+
+
+quint16 getLocalPort(std::shared_ptr<ICEInfo> info)
+{
+  // use relay port
+  if (info->type != "host" &&
+      info->rel_address != "" &&
+      info->rel_port != 0)
+  {
+    return info->rel_port;
+  }
+
+         // don't use relay port
+  return info->port;
+}
+
+
+uint32_t findSSRC(const MediaInfo &media)
+{
+  for (auto& attribute : media.valueAttributes)
+  {
+    if (attribute.type == A_SSRC)
+    {
+      return attribute.value.toULong();
+    }
+  }
+
+  return 0;
+}
+
+uint32_t findMID(const MediaInfo &media)
+{
+  for (auto& attribute : media.valueAttributes)
+  {
+    if (attribute.type == A_MID)
+    {
+      return attribute.value.toULong();
+    }
+  }
+
+  return 0;
 }

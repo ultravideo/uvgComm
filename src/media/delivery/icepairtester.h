@@ -30,11 +30,6 @@ public:
 
   void recvStunMessage(QNetworkDatagram message);
 
-  // helper functions that get either actual address/port or
-  // relay address/port if needed
-  QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info);
-  quint16 getLocalPort(std::shared_ptr<ICEInfo> info);
-
 public slots:
   // Call this when you want to stop testing.
   // Also stops eventloop.

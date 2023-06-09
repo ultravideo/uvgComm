@@ -26,5 +26,8 @@ bool isPrivateNetwork(const std::string &address)
     }
   }
 
+
+  //TODO: IPv6 support!
+
   return false;
 }

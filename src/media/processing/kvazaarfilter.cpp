@@ -2,7 +2,6 @@
 
 #include "statisticsinterface.h"
 
-#include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
 

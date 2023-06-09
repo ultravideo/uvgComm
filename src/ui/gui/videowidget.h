@@ -3,6 +3,8 @@
 #include "videointerface.h"
 #include "videodrawhelper.h"
 
+#include "global.h"
+
 #include <QPainter>
 #include <QRect>
 #include <QSize>
@@ -18,7 +20,7 @@ class VideoWidget : public QWidget, public VideoInterface
   Q_OBJECT
   //Q_INTERFACES(VideoInterface)
 public:
-  VideoWidget(QWidget* parent = nullptr, uint32_t sessionID = 0,
+  VideoWidget(QWidget* parent = nullptr, uint32_t sessionID = 0, LayoutID layoutID = 0,
               uint8_t borderSize = 1);
   ~VideoWidget();
 
@@ -54,8 +56,8 @@ public:
 
 signals:
 
-  void reattach(uint32_t sessionID);
-  void detach(uint32_t sessionID);
+  void reattach(LayoutID layoutID_);
+  void detach(LayoutID layoutID_);
 
   void newImage();
 protected:
@@ -77,6 +79,7 @@ private:
 
   StatisticsInterface* stats_;
   uint32_t sessionID_;
+
 
   VideoDrawHelper helper_;
 };

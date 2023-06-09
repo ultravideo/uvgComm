@@ -33,35 +33,6 @@ ICEPairTester::~ICEPairTester()
 {}
 
 
-QHostAddress ICEPairTester::getLocalAddress(std::shared_ptr<ICEInfo> info)
-{
-  // use relay address
-  if (info->type != "host" &&
-      info->rel_address != "" &&
-      info->rel_port != 0)
-  {
-    return QHostAddress(info->rel_address);
-  }
-
-  // don't use relay address
-  return QHostAddress(info->address);
-}
-
-
-quint16 ICEPairTester::getLocalPort(std::shared_ptr<ICEInfo> info)
-{
-  // use relay port
-  if (info->type != "host" &&
-      info->rel_address != "" &&
-      info->rel_port != 0)
-  {
-    return info->rel_port;
-  }
-
-  // don't use relay port
-  return info->port;
-}
-
 void ICEPairTester::setCandidatePair(std::shared_ptr<ICEPair> pair)
 {
   Q_ASSERT(pair != nullptr);
@@ -509,7 +480,7 @@ void ICEPairTester::recvStunMessage(QNetworkDatagram message)
                                                  message.senderAddress(),
                                                  message.senderPort()))
     {
-      emit responseRecv();
+      emit responseRecv(); // Assert triggers in debug mode sometimes
     }
   }
   else

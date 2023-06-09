@@ -41,7 +41,7 @@ uint32_t ConferenceView::createLayoutID()
 }
 
 
-void ConferenceView::removeWidget(uint32_t layoutID)
+void ConferenceView::removeWidget(LayoutID layoutID)
 {
   if(activeViews_.find(layoutID) != activeViews_.end())
   {
@@ -76,7 +76,7 @@ void ConferenceView::updateLayoutState(SessionViewState state,
 }
 
 
-void ConferenceView::attachIncomingCallWidget(uint32_t layoutID, QString name)
+void ConferenceView::attachIncomingCallWidget(LayoutID layoutID, QString name)
 {
   checkLayout(layoutID);
 
@@ -118,7 +118,7 @@ void ConferenceView::attachIncomingCallWidget(uint32_t layoutID, QString name)
 }
 
 
-void ConferenceView::attachOutgoingCallWidget(uint32_t layoutID, QString name)
+void ConferenceView::attachOutgoingCallWidget(LayoutID layoutID, QString name)
 {
   checkLayout(layoutID);
 
@@ -150,7 +150,7 @@ void ConferenceView::attachOutgoingCallWidget(uint32_t layoutID, QString name)
 }
 
 
-void ConferenceView::attachRingingWidget(uint32_t layoutID)
+void ConferenceView::attachRingingWidget(LayoutID layoutID)
 {
   if(activeViews_[layoutID]->out)
   {
@@ -159,7 +159,7 @@ void ConferenceView::attachRingingWidget(uint32_t layoutID)
 }
 
 
-void ConferenceView::attachAvatarWidget(uint32_t layoutID, QString name)
+void ConferenceView::attachAvatarWidget(LayoutID layoutID, QString name)
 {
   checkLayout(layoutID);
   if (activeViews_[layoutID]->item == nullptr)
@@ -186,7 +186,7 @@ void ConferenceView::attachAvatarWidget(uint32_t layoutID, QString name)
 
 
 // if our call is accepted or we accepted their call
-void ConferenceView::attachVideoWidget(uint32_t layoutID, QWidget* widget)
+void ConferenceView::attachVideoWidget(LayoutID layoutID, QWidget* widget)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
                                   "Adding Videostream.", {"layoutID"}, {QString::number(layoutID)});
@@ -199,10 +199,10 @@ void ConferenceView::attachVideoWidget(uint32_t layoutID, QWidget* widget)
     updateLayoutState(VIEW_VIDEO, widget, layoutID);
 
     // signals for double click attach/detach
-    QObject::connect(widget, SIGNAL(reattach(uint32_t)),
-                     this,  SLOT(reattachWidget(uint32_t)));
-    QObject::connect(widget, SIGNAL(detach(uint32_t)),
-                     this,  SLOT(detachWidget(uint32_t)));
+    QObject::connect(widget, SIGNAL(reattach(LayoutID)),
+                     this,  SLOT(reattachWidget(LayoutID)));
+    QObject::connect(widget, SIGNAL(detach(LayoutID)),
+                     this,  SLOT(detachWidget(LayoutID)));
 
     widget->show();
   }
@@ -215,7 +215,7 @@ void ConferenceView::attachVideoWidget(uint32_t layoutID, QWidget* widget)
 }
 
 
-void ConferenceView::attachMessageWidget(uint32_t layoutID, QString text, bool confirmButton)
+void ConferenceView::attachMessageWidget(LayoutID layoutID, QString text, bool confirmButton)
 {
   if (activeViews_.find(layoutID) != activeViews_.end() && activeViews_[layoutID] != nullptr)
   {
@@ -268,7 +268,7 @@ void ConferenceView::attachWidget(uint32_t layoutID, QLayoutItem* item, LayoutLo
 }
 
 
-void ConferenceView::reattachWidget(uint32_t layoutID)
+void ConferenceView::reattachWidget(LayoutID layoutID)
 {
   Q_ASSERT(layoutID != 0);
 
@@ -288,7 +288,7 @@ void ConferenceView::reattachWidget(uint32_t layoutID)
 }
 
 
-void ConferenceView::detachWidget(uint32_t layoutID)
+void ConferenceView::detachWidget(LayoutID layoutID)
 {
   Q_ASSERT(layoutID != 0);
 
@@ -382,7 +382,7 @@ void ConferenceView::close()
 }
 
 
-void ConferenceView::unitializeSession(uint32_t layoutID)
+void ConferenceView::unitializeSession(LayoutID layoutID)
 {
   unitializeSession(std::move(activeViews_[layoutID]));
   activeViews_.erase(layoutID);
@@ -521,7 +521,7 @@ void ConferenceView::updateTimes()
 }
 
 
-void ConferenceView::initializeLayout(uint32_t layoutID)
+void ConferenceView::initializeLayout(LayoutID layoutID)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
                                   "Initializing session", {"layoutID"},
@@ -533,7 +533,7 @@ void ConferenceView::initializeLayout(uint32_t layoutID)
 }
 
 
-void ConferenceView::checkLayout(uint32_t layoutID)
+void ConferenceView::checkLayout(LayoutID layoutID)
 {
   if (activeViews_.find(layoutID) == activeViews_.end())
   {

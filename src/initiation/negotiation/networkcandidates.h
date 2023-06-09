@@ -28,7 +28,7 @@ public:
   NetworkCandidates();
   ~NetworkCandidates();
 
-  void init();
+  void init(uint16_t mediaPort, bool stun, QString stunServerAddress, uint16_t stunServerPort);
 
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> localCandidates(uint8_t streams,
                                                             uint32_t sessionID);
@@ -39,6 +39,10 @@ public:
                                                             uint32_t sessionID);
   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> turnCandidates(uint8_t streams,
                                                             uint32_t sessionID);
+
+  bool getSTUNBinding(uint32_t sessionID,
+                      const std::pair<QHostAddress, uint16_t>& inStunAddress,
+                      std::pair<QHostAddress, uint16_t>& outStunBinding);
 
   void cleanupSession(uint32_t sessionID);
 
@@ -66,6 +70,8 @@ private:
   // Tries to bind to port and send a UDP packet just to check
   // if it is worth including in candidates
   bool sanityCheck(QHostAddress interface, uint16_t port);
+
+  void unbindRequestSockets();
 
   // IP address corresponding to the used STUN server address
   QHostAddress stunServerIP_;
@@ -96,4 +102,6 @@ private:
   QString stunServerAddress_;
   uint16_t stunPort_;
   bool stunEnabled_;
+
+  uint16_t mediaPort_;
 };

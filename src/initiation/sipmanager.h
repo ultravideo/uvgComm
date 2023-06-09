@@ -71,6 +71,26 @@ enum SIPConnectionType
   SIP_TLS
 };
 
+
+struct SIPConfig
+{
+  bool sendRegister;
+  QString sipServerAddress;
+  uint16_t sipServerPort;
+
+  bool conferencing;
+
+  uint16_t mediaPort;
+
+  bool ice;
+  bool privateAddresses;
+
+  bool stun;
+  QString stunServerAddress;
+  uint16_t stunServerPort;
+};
+
+
 class SIPManager : public QObject
 {
   Q_OBJECT
@@ -86,9 +106,8 @@ public:
 
   void setSDP(std::shared_ptr<SDPMessageInfo> sdp);
 
-
   // start listening to incoming SIP messages
-  void init(StatisticsInterface *stats);
+  void init(const SIPConfig& config, StatisticsInterface *stats);
   void uninit();
 
   bool listenToAny(SIPConnectionType type, uint16_t port);
@@ -129,8 +148,14 @@ public:
 
   void clearCallbacks();
 
-public slots:
-  void updateCallSettings();
+  // configure behavior
+  void setConfig(const SIPConfig& config);
+  SIPConfig getConfig();
+
+  // TODO: These should be SDP connection details including type (all fields in SDP c= field)
+  bool getSTUNBinding(uint32_t sessionID,
+                      std::pair<QHostAddress, uint16_t> &inStunAddress,
+                      std::pair<QHostAddress, uint16_t> &outStunBinding);
 
 signals:
 
@@ -259,4 +284,6 @@ private:
   std::queue<uint32_t> dMessages_;
 
   std::shared_ptr<SDPMeshConference> sdpConf_;
+
+  SIPConfig config_;
 };

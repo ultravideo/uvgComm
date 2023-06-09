@@ -1,6 +1,7 @@
 #include "uimanager.h"
 
 #include "gui/statisticswindow.h"
+#include "videoviewfactory.h"
 
 #include "logger.h"
 
@@ -26,13 +27,7 @@ UIManager::~UIManager()
 }
 
 
-QList<VideoInterface*> UIManager::getSelfVideos () const
-{
-  return window_.getSelfVideos();
-}
-
-
-void UIManager::init(ParticipantInterface *partInt)
+void UIManager::init(ParticipantInterface *partInt, std::shared_ptr<VideoviewFactory> viewFactory)
 {
   aboutWidget_ = new Ui::AboutWidget;
   aboutWidget_->setupUi(&about_);
@@ -84,7 +79,9 @@ void UIManager::init(ParticipantInterface *partInt)
                    this,     &UIManager::endCall);
 
   settingsView_.init();
-  window_.init(partInt, settingsView_.getSelfViews());
+  window_.init(partInt);
+  viewFactory->addSelfview(settingsView_.getSelfView());
+  viewFactory->addSelfview(window_.getSelfView());
 }
 
 
@@ -131,10 +128,11 @@ void UIManager::displayIncomingCall(uint32_t sessionID, QString caller)
 
 
 // adds video stream to view
-std::vector<VideoInterface*> UIManager::callStarted(uint32_t sessionID,
-                                       QList<SDPMediaParticipant> &medias)
+void UIManager::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
+                            uint32_t sessionID, QStringList names,
+                            const QList<std::pair<MediaID, MediaID> > &audioVideoIDs)
 {
-  return window_.callStarted(sessionID, medias);
+  return window_.callStarted(viewFactory, sessionID, names, audioVideoIDs);
 }
 
 

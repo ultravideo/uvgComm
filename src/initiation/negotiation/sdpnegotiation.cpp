@@ -8,6 +8,7 @@
 #include "logger.h"
 
 #include <QVariant>
+#include <random>
 
 SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
                                std::shared_ptr<SDPMessageInfo> localSDP,
@@ -18,6 +19,8 @@ SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
   remoteSDP_(nullptr),
   negotiationState_(NEG_NO_STATE),
   peerAcceptsSDP_(false),
+  audioSSRC_(generateSSRC()),
+  videoSSRC_(generateSSRC()),
   sdpConf_(sdpConf)
 {
   // this makes it possible to send SDP as a signal parameter
@@ -27,6 +30,7 @@ SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
   setBaseSDP(localSDP);
 }
 
+
 void SDPNegotiation::setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP)
 {
   setSDPAddress(localAddress_,
@@ -35,6 +39,7 @@ void SDPNegotiation::setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP)
                 localSDP->connection_addrtype);
 
   generateOrigin(localSDP, localAddress_, getLocalUsername());
+
   localbaseSDP_ = localSDP;
 }
 
@@ -170,12 +175,19 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
   else if (negotiationState_ == NEG_NO_STATE)
   {
     negotiationState_ = NEG_OFFER_SENT;
+
+    for (unsigned int i = 0; i < ourSDP->media.size(); ++i)
+    {
+      setSSRC(i, ourSDP->media[i]);
+      setMID(i, ourSDP->media[i]);
+    }
   }
   else
   {
     Logger::getLogger()->printWarning(this, "SDP negotiation in wrong state when including SDP");
     return false;
   }
+
 
   ourSDP = sdpConf_->getMeshSDP(sessionID_, ourSDP);
 
@@ -241,7 +253,7 @@ bool SDPNegotiation::processOfferSDP(QVariant& content)
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
- sdpConf_->addRemoteSDP(sessionID_, retrieved);
+  sdpConf_->addRemoteSDP(sessionID_, retrieved);
 
   // get our final SDP, which is later sent to them
   localSDP_ = findCommonSDP(*localbaseSDP_.get(), retrieved);
@@ -384,7 +396,7 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
       MediaInfo resultMedia;
 
       resultMedia.type = comparedSDP.media.at(i).type;
-      resultMedia.receivePort = 0; // TODO: ICE Should set this to one of its candidates, 0 means it is rejected
+      resultMedia.receivePort = 0; // setting this is handled later outside this class
       resultMedia.title = comparedSDP.media.at(i).title;
 
       resultMedia.proto = baseSDP.media.at(matches.at(i)).proto;
@@ -451,6 +463,12 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
     {
       Logger::getLogger()->printWarning(this, "Did not find match for media, rejecting this one media");
     }
+  }
+
+  for (unsigned int i = 0; i < newInfo->media.size(); ++i)
+  {
+    setSSRC(i, newInfo->media[i]);
+    setMID(i, newInfo->media[i]);
   }
 
   return newInfo;
@@ -552,3 +570,46 @@ SDPAttributeType SDPNegotiation::findStatusAttribute(const QList<SDPAttributeTyp
 
   return A_NO_ATTRIBUTE;
 }
+
+void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
+{
+  for (unsigned int j = 0; j < media.valueAttributes.size(); ++j)
+  {
+    if (media.valueAttributes.at(j).type == A_SSRC)
+    {
+      return;
+    }
+  }
+
+  if (media.type == "audio")
+  {
+    media.valueAttributes.push_back({A_SSRC, QString::number(audioSSRC_)});
+  }
+  else if (media.type == "video")
+  {
+    media.valueAttributes.push_back({A_SSRC, QString::number(videoSSRC_)});
+  }
+}
+
+
+void SDPNegotiation::setMID(unsigned int mediaIndex, MediaInfo& media)
+{
+  for (unsigned int j = 0; j < media.valueAttributes.size(); ++j)
+  {
+    if (media.valueAttributes.at(j).type == A_MID)
+    {
+      return;
+    }
+  }
+  media.valueAttributes.push_back({A_MID, QString::number(mediaIndex + 1)});
+}
+
+
+uint32_t SDPNegotiation::generateSSRC()
+{
+  std::mt19937 rng{std::random_device{}()};
+  std::uniform_int_distribution<uint32_t> gen32_dist{0, UINT32_MAX};
+
+  return gen32_dist(rng);
+}
+

@@ -1,20 +1,26 @@
 #include "networkcandidates.h"
 
-#include "common.h"
 #include "logger.h"
-#include "settingskeys.h"
 
 #include "initiation/siphelper.h"
 
 #include <QNetworkInterface>
 #include <QUdpSocket>
 
-const uint16_t STUNADDRESSPOOL = 8;
+
 
 const int AN_HOUR = 1000 * 60 * 60;
 const int STUN_INTERVAL_PERIOD = 100;
 
 const int NUMBER_OF_POSSIBLE_PORTS = 1000;
+
+#ifndef KVAZZUP_NO_RTP_MULTIPLEXING
+const bool RTP_MULTIPLEXING = true;
+const uint16_t STUNADDRESSPOOL = 2;
+#else
+const bool RTP_MULTIPLEXING = false;
+const uint16_t STUNADDRESSPOOL = 8;
+#endif
 
 
 NetworkCandidates::NetworkCandidates():
@@ -35,17 +41,30 @@ NetworkCandidates::NetworkCandidates():
 
 NetworkCandidates::~NetworkCandidates()
 {
+  unbindRequestSockets();
   requests_.clear();
 }
 
 
-void NetworkCandidates::init()
+void NetworkCandidates::init(uint16_t mediaPort, bool stun,
+                             QString stunServerAddress,
+                             uint16_t stunServerPort)
 {
   stunMutex_.lock();
 
+  bool stunHasChanged = stunEnabled_ != stun ||
+                        stunServerAddress != stunServerAddress_ ||
+                        stunServerPort != stunPort_ ||
+                        mediaPort_ != mediaPort;
+
+  // record current stun state so we can check it next time
+  stunServerAddress_ = stunServerAddress;
+  stunPort_ = stunServerPort;
+  stunEnabled_ = stun;
+  mediaPort_ = mediaPort;
+
   // clear previous STUN stuff if it is not needed
-  if (!settingEnabled(SettingsKey::sipSTUNEnabled) ||
-      settingString(SettingsKey::sipSTUNAddress) != stunServerAddress_)
+  if (stunHasChanged)
   {
     requests_.clear();
     stunAddresses_.clear();
@@ -60,7 +79,7 @@ void NetworkCandidates::init()
   stunMutex_.unlock();
 
 
-  int minPort = settingValue(SettingsKey::sipMediaPort);
+  int minPort = mediaPort;
   int maxPort = minPort + NUMBER_OF_POSSIBLE_PORTS;
 
   // if the settings have changed
@@ -128,14 +147,8 @@ void NetworkCandidates::init()
   }
 
   // Start stun address acquasition if stun was enabled or address has changed
-  if (settingEnabled(SettingsKey::sipSTUNEnabled) &&
-      (!stunEnabled_ ||
-      stunServerAddress_ != settingString(SettingsKey::sipSTUNAddress) ||
-      stunPort_ != settingValue(SettingsKey::sipSTUNPort)))
+  if (stun && stunHasChanged)
   {
-    stunServerAddress_ = settingString(SettingsKey::sipSTUNAddress);
-    stunPort_ = settingValue(SettingsKey::sipSTUNPort);
-
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Looking up STUN server IP",
                                     {"Server address"}, {stunServerAddress_});
 
@@ -158,15 +171,12 @@ void NetworkCandidates::init()
       Logger::getLogger()->printWarning(this, "Invalid STUN server address found in settings");
     }
   }
-
-  // record current stun state so we can check it next time
-  stunEnabled_ = settingEnabled(SettingsKey::sipSTUNEnabled);
 }
 
 
 void NetworkCandidates::refreshSTUN()
 {
-  if (!settingEnabled(SettingsKey::sipSTUNEnabled))
+  if (!stunEnabled_)
   {
     return;
   }
@@ -189,24 +199,6 @@ void NetworkCandidates::refreshSTUN()
 
   // The socket unbinding cannot happen in processreply, because that would destroy the socket
   // leading to heap corruption. Instead we do the unbinding here.
-
-  QStringList removed;
-  for (auto& request : requests_)
-  {
-    if (request.second->finished)
-    {
-      request.second->udp.unbind();
-      removed.push_back(request.first);
-    }
-  }
-
-  // remove requests so we know how many requests we have going on.
-  for (auto& removal : removed)
-  {
-    requests_.erase(removal);
-    //Logger::getLogger()->printNormal(this, "Removed", {"Left"}, 
-    //                                 {QString::number(requests_.size())});
-  }
 }
 
 
@@ -263,10 +255,18 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::loc
   {
     if (isPrivateNetwork(interface.first.toStdString()) && availablePorts_[interface.first].size() >= streams)
     {
+
       for (unsigned int i = 0; i < streams; ++i)
       {
-        addresses->push_back({QHostAddress(interface.first),
-                              nextAvailablePort(interface.first, sessionID)});
+        if (!RTP_MULTIPLEXING)
+        {
+          addresses->push_back({QHostAddress(interface.first),
+                                nextAvailablePort(interface.first, sessionID)});
+        }
+        else
+        {
+          addresses->push_back({QHostAddress(interface.first),interface.second.at(i)});
+        }
       }
     }
   }
@@ -289,8 +289,15 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::glo
     {
       for (unsigned int i = 0; i < streams; ++i)
       {
-        addresses->push_back({QHostAddress(interface.first),
-                              nextAvailablePort(interface.first, sessionID)});
+        if (!RTP_MULTIPLEXING)
+        {
+          addresses->push_back({QHostAddress(interface.first),
+                                nextAvailablePort(interface.first, sessionID)});
+        }
+        else
+        {
+          addresses->push_back({QHostAddress(interface.first),interface.second.at(i)});
+        }
       }
     }
   }
@@ -305,7 +312,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
         new QList<std::pair<QHostAddress, uint16_t>>());
 
-  if (!settingEnabled(SettingsKey::sipSTUNEnabled))
+  if (!stunEnabled_)
   {
     return addresses;
   }
@@ -334,11 +341,18 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
     {
       for (unsigned int i = 0; i < streams; ++i)
       {
-        std::pair<QHostAddress, uint16_t> address = stunAddresses_.front();
-        stunAddresses_.pop_front();
-        addresses->push_back(address);
+        if (!RTP_MULTIPLEXING)
+        {
+          std::pair<QHostAddress, uint16_t> address = stunAddresses_.front();
+          stunAddresses_.pop_front();
+          addresses->push_back(address);
+        }
+        else
+        {
+          std::pair<QHostAddress, uint16_t> address = stunAddresses_.at(i);
+          addresses->push_back(address);
+        }
       }
-
     }
     else
     {
@@ -364,7 +378,7 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
       =   std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> (
         new QList<std::pair<QHostAddress, uint16_t>>());
 
-  if (!settingEnabled(SettingsKey::sipSTUNEnabled))
+  if (!stunEnabled_)
   {
     return addresses;
   }
@@ -376,13 +390,21 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::stu
     {
       for (unsigned int i = 0; i < streams; ++i)
       {
-        std::pair<QHostAddress, uint16_t> address = stunBindings_.front();
-        stunBindings_.pop_front();
+        if (!RTP_MULTIPLEXING)
+        {
+          std::pair<QHostAddress, uint16_t> address = stunBindings_.front();
+          stunBindings_.pop_front();
 
-        addresses->push_back(address);
+          addresses->push_back(address);
 
-        reservedPorts_[sessionID].push_back(
-              std::pair<QString, uint16_t>({address.first.toString(), address.second}));
+          reservedPorts_[sessionID].push_back(
+                std::pair<QString, uint16_t>({address.first.toString(), address.second}));
+        }
+        else
+        {
+          std::pair<QHostAddress, uint16_t> address = stunBindings_.at(i);
+          addresses->push_back(address);
+        }
       }
     }
     else
@@ -413,6 +435,36 @@ std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>> NetworkCandidates::tur
 }
 
 
+bool NetworkCandidates::getSTUNBinding(uint32_t sessionID,
+                                       const std::pair<QHostAddress, uint16_t> &inStunAddress,
+                                       std::pair<QHostAddress, uint16_t> &outStunBinding)
+{
+  unbindRequestSockets();
+
+  for (unsigned int i = 0; i < stunAddresses_.size(); ++i)
+  {
+    if (stunAddresses_.at(i).first == inStunAddress.first)
+    {
+      if (RTP_MULTIPLEXING)
+      {
+        outStunBinding = stunBindings_.at(i);
+        return true;
+      }
+      else
+      {
+        outStunBinding = stunBindings_.at(i);
+        reservedPorts_[sessionID].push_back(
+          std::pair<QString, uint16_t>({outStunBinding.first.toString(), outStunBinding.second}));
+
+        stunBindings_.erase(stunBindings_.begin() + i);
+      }
+    }
+  }
+
+  return false;
+}
+
+
 uint16_t NetworkCandidates::nextAvailablePort(QString interface, uint32_t sessionID)
 {
   uint16_t nextPort = 0;
@@ -432,6 +484,7 @@ uint16_t NetworkCandidates::nextAvailablePort(QString interface, uint32_t sessio
   nextPort = availablePorts_[interface].at(0);
   availablePorts_[interface].pop_front();
   reservedPorts_[sessionID].push_back(std::pair<QString, uint16_t>(interface, nextPort));
+
 
   // TODO: Check that port works.
   portLock_.unlock();
@@ -462,8 +515,11 @@ void NetworkCandidates::cleanupSession(uint32_t sessionID)
 {
   if (reservedPorts_.find(sessionID) == reservedPorts_.end())
   {
-    Logger::getLogger()->printWarning(this, "Tried to cleanup session "
-                                            "with no reserved ports");
+    if (!RTP_MULTIPLEXING)
+    {
+      Logger::getLogger()->printWarning(this, "Tried to cleanup session "
+                                              "with no reserved ports");
+    }
     return;
   }
 
@@ -509,19 +565,25 @@ void NetworkCandidates::moreSTUNCandidates()
   {
     for (auto& interface : availablePorts_)
     {
-      int stunPort = settingValue(SettingsKey::sipSTUNPort);
-
-      if (stunPort != 0)
+      if (stunPort_ != 0)
       {
         if (stunFailureList_.find(interface.first) == stunFailureList_.end())
         {
-          // use 0 as STUN sessionID
-          uint16_t nextPort = nextAvailablePort(interface.first, 0);
+          uint16_t nextPort = 0;
+          if (!RTP_MULTIPLEXING)
+          {
+            // use 0 as STUN sessionID
+            nextPort = nextAvailablePort(interface.first, 0);
+          }
+          else
+          {
+            nextPort = interface.second.at(stunAddresses_.size() + requests_.size());
+          }
 
           if (nextPort != 0)
           {
             if (!sendSTUNserverRequest(QHostAddress(interface.first), nextPort,
-                                       stunServerIP_,                 stunPort))
+                                       stunServerIP_,                 stunPort_))
             {
               stunFailureList_.insert(interface.first);
             }
@@ -717,4 +779,27 @@ bool NetworkCandidates::sanityCheck(QHostAddress interface, uint16_t port)
   testSocket.abort();
 
   return true;
+}
+
+
+void NetworkCandidates::unbindRequestSockets()
+{
+  // unbind all sockets so they can be used elsewhere
+  QStringList removed;
+  for (auto& request : requests_)
+  {
+    if (request.second->finished)
+    {
+          request.second->udp.unbind();
+          removed.push_back(request.first);
+    }
+  }
+
+         // remove requests so we know how many requests we have going on.
+  for (auto& removal : removed)
+  {
+    requests_.erase(removal);
+    //Logger::getLogger()->printNormal(this, "Removed", {"Left"},
+    //                                 {QString::number(requests_.size())});
+  }
 }

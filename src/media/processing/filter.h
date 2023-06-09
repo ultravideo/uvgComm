@@ -53,6 +53,8 @@ enum DataSource {DS_UNKNOWN, DS_LOCAL, DS_REMOTE};
 enum HEVC_NAL_UNIT_TYPE {TRAIL_R = 1, IDR_W_RADL = 19,
                          VPS_NUT = 32, SPS_NUT = 33, PPS_NUT = 34};
 
+QString datatypeToString(const DataType type);
+
 struct VideoInfo
 {
   int16_t width;
