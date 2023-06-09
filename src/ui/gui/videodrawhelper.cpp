@@ -186,6 +186,7 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
 #ifdef KVAZZUP_HAVE_ONNX_RUNTIME
 void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize original_size, uint64_t timestamp)
 {
+  auto oldDetections = detectionsBuffer_.back();
   QSizeF viewMultiplier = getSizeMultipliers(videoResolution_.width(),
                                              videoResolution_.height());
   QPointF viewCTUSize = {CTU_SIZE*viewMultiplier.width(), CTU_SIZE*viewMultiplier.height()};
@@ -196,9 +197,8 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
     d.bbox.y *= viewMultiplier.height();
     d.bbox.height *= viewMultiplier.height();
   }
-  detections_ = detections;
 
-  if(drawOverlay_ && !detections_.empty())
+  if(drawOverlay_ && !oldDetections.empty())
   {
     resetOverlay();
 
@@ -209,7 +209,7 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
     painter.setCompositionMode(QPainter::CompositionMode_Source);
 
 
-    for (const Detection& d : detections_)
+    for (const Detection& d : oldDetections)
     {
       int x_adj = d.bbox.x - floor((d.bbox.x + viewCTUSize.x()/3) / viewCTUSize.x()) * viewCTUSize.x();
       int y_adj = d.bbox.y - floor((d.bbox.y + viewCTUSize.y()/3) / viewCTUSize.y()) * viewCTUSize.y();
@@ -221,12 +221,18 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
                        d.bbox.height+h_adj,
                        brush);
     }
-    for (const Detection& d : detections_)
+    for (const Detection& d : oldDetections)
     {
       painter.drawRect(d.bbox.x, d.bbox.y, d.bbox.width, d.bbox.height);
     }
     painter.end();
   }
+
+  for (size_t i = detectionsBuffer_.size()-1; i > 0; i--)
+  {
+    detectionsBuffer_[i] = detectionsBuffer_[i-1];
+  }
+
 }
 #endif
 
