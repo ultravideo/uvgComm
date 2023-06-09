@@ -190,6 +190,12 @@ bool RoiFilter::init()
   if(newModel != model_){
     model_ = newModel;
     try {
+      if (session_)
+      {
+        // Deallocate previous strings before destroying their allocator.
+        inputName_ = std::nullopt;
+        outputName_ = std::nullopt;
+      }
       Ort::SessionOptions options = get_session_options(false, threads);
       session_ = std::make_unique<Ort::Session>(env_, model_.c_str(), options);
       allocator_ = std::make_unique<Ort::Allocator>(*session_, Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault));
