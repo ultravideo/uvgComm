@@ -211,10 +211,10 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
 
     for (const Detection& d : oldDetections)
     {
-      int x_adj = d.bbox.x - floor((d.bbox.x + viewCTUSize.x()/3) / viewCTUSize.x()) * viewCTUSize.x();
-      int y_adj = d.bbox.y - floor((d.bbox.y + viewCTUSize.y()/3) / viewCTUSize.y()) * viewCTUSize.y();
-      int w_adj = -(d.bbox.width + d.bbox.x) + ceil((d.bbox.width+d.bbox.x - viewCTUSize.x()/3) / viewCTUSize.x()) * viewCTUSize.x() + x_adj;
-      int h_adj = -(d.bbox.height + d.bbox.y) + ceil((d.bbox.height+d.bbox.y - viewCTUSize.y()/3) / viewCTUSize.y()) * viewCTUSize.y() + y_adj;
+      int x_adj = d.bbox.x - floor((d.bbox.x + viewCTUSize.x()/10) / viewCTUSize.x()) * viewCTUSize.x();
+      int y_adj = d.bbox.y - floor((d.bbox.y + viewCTUSize.y()/10) / viewCTUSize.y()) * viewCTUSize.y();
+      int w_adj = -(d.bbox.width + d.bbox.x) + ceil((d.bbox.width+d.bbox.x - viewCTUSize.x()/10) / viewCTUSize.x()) * viewCTUSize.x() + x_adj;
+      int h_adj = -(d.bbox.height + d.bbox.y) + ceil((d.bbox.height+d.bbox.y - viewCTUSize.y()/10) / viewCTUSize.y()) * viewCTUSize.y() + y_adj;
       painter.fillRect(d.bbox.x-x_adj,
                        d.bbox.y-y_adj,
                        d.bbox.width+w_adj,
