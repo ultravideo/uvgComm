@@ -69,8 +69,6 @@ void RoiFilter::process()
   while(input) {
     if(roiEnabled_ && getHWManager()->useAutoROI()){
 
-      Logger::getLogger()->printNormal(this, "Detect object", "Object", QString::number(getHWManager()->getRoiObject()));
-
       QMutexLocker lock(&settingsMutex_);
       if(inputDiscarded_ > prevInputDiscarded_) {
         skipInput_++;
@@ -113,9 +111,9 @@ void RoiFilter::process()
           face_roi_rects.push_back(r);
         }
 
-//      if(face_roi_rects.size() > 0) {
-//        Logger::getLogger()->printDebug(DebugType::DEBUG_NORMAL, this, "Found faces", {"Number"}, {QString::number(face_roi_rects.size())});
-//      }
+ //     if(face_roi_rects.size() > 0) {
+ //       Logger::getLogger()->printDebug(DebugType::DEBUG_NORMAL, this, "Found faces", {"Number"}, {QString::number(face_roi_rects.size())});
+ //     }
 
         Size roi_size = calculate_roi_size(input->vInfo->width, input->vInfo->height);
         roi_.width = roi_size.width;
@@ -534,6 +532,8 @@ std::vector<const float*> RoiFilter::non_max_suppression_obj(
     const float *data = prediction.GetTensorData<float>();
     int64_t row_size = shape[2];
 
+    size_t target_object = getHWManager()->getRoiObject();
+
     std::vector<const float *> candidates;
     for (int64_t i = 0; i < shape[1]; i++)
     {
@@ -542,8 +542,10 @@ std::vector<const float*> RoiFilter::non_max_suppression_obj(
       {
         continue;
       }
-      // TODO: label filtering
-      candidates.push_back(row);
+      if (row[target_object+5] > conf_thres)
+      {
+        candidates.push_back(row);
+      }
     }
 
 
