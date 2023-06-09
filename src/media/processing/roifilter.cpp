@@ -111,10 +111,6 @@ void RoiFilter::process()
           face_roi_rects.push_back(r);
         }
 
- //     if(face_roi_rects.size() > 0) {
- //       Logger::getLogger()->printDebug(DebugType::DEBUG_NORMAL, this, "Found faces", {"Number"}, {QString::number(face_roi_rects.size())});
- //     }
-
         Size roi_size = calculate_roi_size(input->vInfo->width, input->vInfo->height);
         roi_.width = roi_size.width;
         roi_.height = roi_size.height;
@@ -130,6 +126,14 @@ void RoiFilter::process()
         roiFilter_.backgroundQP = getHWManager()->getBackgroundQp();
 
         clip_coords(face_roi_rects, roi_size);
+        if(face_roi_rects.size() > 0) {
+          Logger::getLogger()->printDebug(DebugType::DEBUG_NORMAL, this, "Found faces", {"Number"}, {QString::number(face_roi_rects.size())});
+          Logger::getLogger()->printDebug(DebugType::DEBUG_NORMAL, this, "", {"X", "Y", "W", "H"},
+                                          {QString::number(face_roi_rects[0].x),
+                                          QString::number(face_roi_rects[0].y),
+                                          QString::number(face_roi_rects[0].width),
+                                          QString::number(face_roi_rects[0].height)});
+        }
         Roi roi_mat = roiFilter_.makeRoiMap(face_roi_rects);
         roi_.data = std::make_unique<int8_t[]>(roi_length);
         memcpy(roi_.data.get(), roi_mat.data.get(), roi_length);
@@ -737,6 +741,7 @@ Rect RoiFilter::enlarge_bb(Detection face)
   double hor_offset = landm_hor_centre - box_hor_centre;
   //increase box size on the opposite size
   double bb_side_enlargement = 1.0;
+  /* Doesn't work with object detector. No landmarks
   if (hor_offset < 0)
   {
     ret.width += hor_offset * bb_side_enlargement;
@@ -746,7 +751,7 @@ Rect RoiFilter::enlarge_bb(Detection face)
     ret.x -= hor_offset * bb_side_enlargement;
     ret.width += hor_offset * bb_side_enlargement;
   }
-
+  */
   return ret;
 }
 
