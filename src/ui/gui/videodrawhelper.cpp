@@ -232,6 +232,7 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
   {
     detectionsBuffer_[i] = detectionsBuffer_[i-1];
   }
+  detectionsBuffer_[0] = detections;
 
 }
 #endif
