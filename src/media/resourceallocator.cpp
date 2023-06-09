@@ -20,7 +20,8 @@ ResourceAllocator::ResourceAllocator():
   videoStreams_(),
   bitrateMutex_(),
   videoBitrate_(MAX_HEVC_BITRATE_BITS),
-  audioBitrate_(MAX_OPUS_BITRATE_BITS)
+  audioBitrate_(MAX_OPUS_BITRATE_BITS),
+  roiObject_(0)
 {}
 
 
@@ -31,6 +32,7 @@ void ResourceAllocator::updateSettings()
   autoROI_ = settingString(SettingsKey::roiMode) == "auto";
   roiQp_ = settingValue(SettingsKey::roiQp);
   backgroundQp_ = settingValue(SettingsKey::backgroundQp);
+  roiObject_ = settingValue(SettingsKey::roiObject);
 }
 
 
@@ -54,6 +56,11 @@ bool ResourceAllocator::useManualROI()
 bool ResourceAllocator::useAutoROI()
 {
   return autoROI_;
+}
+
+uint16_t ResourceAllocator::getRoiObject() const
+{
+  return roiObject_;
 }
 
 

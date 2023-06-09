@@ -68,6 +68,9 @@ void RoiFilter::process()
   assert(input->type == DT_YUV420VIDEO);
   while(input) {
     if(roiEnabled_ && getHWManager()->useAutoROI()){
+
+      Logger::getLogger()->printNormal(this, "Detect object", "Object", QString::number(getHWManager()->getRoiObject()));
+
       QMutexLocker lock(&settingsMutex_);
       if(inputDiscarded_ > prevInputDiscarded_) {
         skipInput_++;

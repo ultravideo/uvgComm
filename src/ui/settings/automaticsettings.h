@@ -32,6 +32,7 @@ public slots:
   void updateConfigAndReset(int i);
   void updateConfig(int i);
 
+  void selectObject(int index);
 
 signals:
   void updateAutomaticSettings();

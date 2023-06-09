@@ -8,6 +8,21 @@ enum TabType {
   MAIN_TAB = 0, ROI_TAB = 1
 };
 
+
+const std::vector<std::pair<QString, uint16_t>> OBJECT_TYPES =
+{
+    {"Person", 0},
+    {"Handbag", 26},
+    {"Bottle", 39},
+    {"Cup", 41},
+    {"Bowl", 45},
+    {"Orange", 49},
+    {"Cell phone", 67},
+    {"Book", 73},
+    {"Clock", 74},
+    {"Toothbrush", 79}
+};
+
 AutomaticSettings::AutomaticSettings(QWidget *parent):
   QDialog(parent),
   ui_(new Ui::AutomaticSettings),
@@ -58,6 +73,23 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
                                   ui_->show_grid->isChecked(),
                                   !ui_->ctu_based->isChecked(),
                                   getSettingsResolution());
+
+  for(auto type : OBJECT_TYPES)
+  {
+    ui_->objectSelection->addItem(type.first);
+  }
+
+  settings_.setValue(SettingsKey::roiObject,   "0");
+
+  QObject::connect(ui_->objectSelection, QOverload<int>::of(&QComboBox::activated),
+                   this, &AutomaticSettings::selectObject);
+}
+
+
+void AutomaticSettings::selectObject(int index)
+{
+  settings_.setValue(SettingsKey::roiObject, OBJECT_TYPES.at(index).second);
+  emit updateAutomaticSettings();
 }
 
 

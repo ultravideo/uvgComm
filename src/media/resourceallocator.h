@@ -29,6 +29,8 @@ public:
   bool useManualROI();
   bool useAutoROI();
 
+  uint16_t getRoiObject() const;
+
   void addRTCPReport(uint32_t sessionID, DataType type,
                      int32_t lost, uint32_t jitter);
 
@@ -63,4 +65,6 @@ private:
 
   uint8_t roiQp_;
   uint8_t backgroundQp_;
+
+  uint16_t roiObject_;
 };
