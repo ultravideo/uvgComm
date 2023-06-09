@@ -67,6 +67,18 @@ private:
   std::vector<const float *> non_max_suppression_face(Ort::Value const &prediction,
                                                       double conf_thres = 0.25,
                                                       double iou_thres = 0.45);
+  std::vector<const float*> non_max_suppression_obj(
+          Ort::Value const &prediction,
+          double conf_thres=0.25,
+          double iou_thres=0.45,
+          //classes=None,
+          //agnostic=False,
+          bool multi_label=false,
+          //labels=(),
+          int max_det=300,
+          int nm=0  // number of masks
+  );
+
   std::vector<Detection> scale_coords(Size img1_shape, std::vector<const float *> const &coords,
                                       Size img0_shape);
   void clip_coords(std::vector<Rect> &boxes, Size img_shape);
@@ -105,6 +117,7 @@ private:
   Size minBbSize_;
   bool drawBbox_;
   double minRelativeBbSize_;
+  bool faceDetection_;
 
 #ifdef KVAZZUP_HAVE_OPENCV
   cv::Mat filterKernel_;

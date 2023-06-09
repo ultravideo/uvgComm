@@ -106,7 +106,7 @@ void FilterGraph::init(QList<VideoInterface *> selfViews, StatisticsInterface* s
 
   if (selfViews.size() > 1)
   {
-    roiInterface_ = selfViews.at(1);
+    roiInterface_ = selfViews.at(0);
   }
   else
   {

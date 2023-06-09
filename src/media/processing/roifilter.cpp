@@ -41,7 +41,8 @@ RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<Res
     roiEnabled_(false),
     frameCount_(0),
     roi_({0,0,nullptr}),
-    roiSurface_(roiInterface)
+    roiSurface_(roiInterface),
+    faceDetection_(false)
 {
 }
 
@@ -228,6 +229,14 @@ bool RoiFilter::init()
 
     outputName_ = session_->GetOutputNameAllocated(0, *allocator_);
     outputShape_ = session_->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+    if (outputShape_[2] == 16)
+    {
+      //yolov5-face
+      faceDetection_ = true;
+    } else if(outputShape_[2] == 85) {
+      //yolov5 object
+      faceDetection_ = false;
+    }
     //size_t output_count = session.GetOutputCount();
 
     if (inputShape_[2] != -1)
@@ -299,9 +308,16 @@ std::vector<Detection> RoiFilter::detect(const Data* input)
   char* output_names[] = {outputName_->get()};
   auto detections = session_->Run(options, input_names, &input_tensor, 1, output_names, 1);
   auto out_shape = detections[0].GetTensorTypeAndShapeInfo().GetShape();
-  auto faces = non_max_suppression_face(detections[0]);
+  std::vector<const float*> objects;
+  if (faceDetection_)
+  {
+    objects = non_max_suppression_face(detections[0]);
+  } else {
+    objects = non_max_suppression_obj(detections[0]);
+  }
 
-  auto scaled_detections = scale_coords({inputSize_, inputSize_}, faces, original_size);
+
+  auto scaled_detections = scale_coords({inputSize_, inputSize_}, objects, original_size);
 
   return scaled_detections;
 }
@@ -476,6 +492,128 @@ std::vector<const float *> RoiFilter::non_max_suppression_face(Ort::Value const 
     faces.push_back(detection);
   }
   return faces;
+}
+
+std::vector<const float*> RoiFilter::non_max_suppression_obj(
+        Ort::Value const &prediction,
+        double conf_thres,
+        double iou_thres,
+        //classes=None,
+        //agnostic=False,
+        bool multi_label,
+        //labels=(),
+        int max_det,
+        int nm  // number of masks
+)
+{
+    // Non-Maximum Suppression (NMS) on inference results to reject overlapping detections
+
+    // list of detections, on (n,6) tensor per image [xyxy, conf, cls]
+
+    assert( 0 <= conf_thres <= 1 && "Invalid Confidence threshold {conf_thres}, valid values are between 0.0 and 1.0");
+    assert( 0 <= iou_thres <= 1 && "Invalid IoU {iou_thres}, valid values are between 0.0 and 1.0");
+
+    assert(prediction.GetTensorTypeAndShapeInfo().GetElementType() == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
+    assert(!prediction.IsSparseTensor());
+    assert(prediction.IsTensor());
+
+    auto shape = prediction.GetTensorTypeAndShapeInfo().GetShape();
+    assert(shape.size() == 3 && shape[0] == 1 && shape[2] == 85);
+    int bs = shape[0];  // batch size
+    int nc = shape[2] - nm - 5;  // number of classes
+
+    const float *data = prediction.GetTensorData<float>();
+    int64_t row_size = shape[2];
+
+    std::vector<const float *> candidates;
+    for (int64_t i = 0; i < shape[1]; i++)
+    {
+      const float *row = data + i * row_size;
+      if (row[4] < conf_thres)
+      {
+        continue;
+      }
+      // TODO: label filtering
+      candidates.push_back(row);
+    }
+
+
+    // Settings
+    int min_wh = 2; // (pixels) minimum box width and height
+    int max_wh = 7680; // (pixels) maximum box width and height
+    int max_nms = 30000; // maximum number of boxes into torchvision.ops.nms()
+
+    bool redundant = true; // require redundant detections
+    multi_label &= nc > 1;  // multiple labels per box
+    bool merge = false; // use merge-NMS
+
+    int mi = 5 + nc;  // mask start index
+
+    std::vector<size_t> order(candidates.size());
+    std::iota(order.begin(), order.end(), 0);
+    std::sort(order.begin(), order.end(),
+              [&candidates](size_t i1, size_t i2)
+              {
+                  return candidates[i1] < candidates[i2];
+              });
+    std::vector<uint8_t> suppressed(candidates.size(), 0);
+    std::vector<size_t> keep(candidates.size(), 0);
+    size_t num_to_keep = 0;
+
+    // output = [torch.zeros((0, 6 + nm), device=prediction.device)] * bs
+    std::vector<Rect> output;
+    for (size_t i_ = 0; i_ < candidates.size(); i_++)
+    {
+      auto i = order[i_];
+      if (suppressed[i] == 1)
+      {
+        continue;
+      }
+      keep[num_to_keep++] = i;
+      const float *x = candidates[i];
+      auto ix1 = x[0] - x[2] / 2;
+      auto iy1 = x[1] - x[3] / 2;
+      auto ix2 = x[0] + x[2] / 2;
+      auto iy2 = x[1] + x[3] / 2;
+      auto iarea = (ix2 - ix1) * (iy2 - iy1);
+      //cv::Rect2f box(x[0] - x[2] / 2, x[1] - x[3] / 2, x[2], x[3]);
+
+      for (size_t j_ = i_ + 1; j_ < candidates.size(); j_++)
+      {
+        auto j = order[j_];
+        if (suppressed[j] == 1)
+        {
+          continue;
+        }
+
+        const float *xj = candidates[j];
+        auto jx1 = xj[0] - xj[2] / 2;
+        auto jy1 = xj[1] - xj[3] / 2;
+        auto jx2 = xj[0] + xj[2] / 2;
+        auto jy2 = xj[1] + xj[3] / 2;
+        auto jarea = (jx2 - jx1) * (jy2 - jy1);
+
+        auto xx1 = std::max(ix1, jx1);
+        auto yy1 = std::max(iy1, jy1);
+        auto xx2 = std::min(ix2, jx2);
+        auto yy2 = std::min(iy2, jy2);
+
+        auto w = std::max(0.0f, xx2 - xx1);
+        auto h = std::max(0.0f, yy2 - yy1);
+        auto inter = w * h;
+        auto ovr = inter / (iarea + jarea - inter);
+        if (ovr > iou_thres)
+          suppressed[j] = 1;
+      }
+    }
+
+    std::vector<const float *> objects;
+    for (size_t i = 0; i < num_to_keep; i++)
+    {
+      const float *detection = candidates[keep[i]];
+      objects.push_back(detection);
+    }
+    return objects;
 }
 
 std::vector<Detection> RoiFilter::scale_coords(Size img1_shape, std::vector<const float *> const &coords,

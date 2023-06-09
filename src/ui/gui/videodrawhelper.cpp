@@ -190,7 +190,7 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
   QSizeF viewMultiplier = getSizeMultipliers(videoResolution_.width(),
                                              videoResolution_.height());
   QPointF viewCTUSize = {CTU_SIZE*viewMultiplier.width(), CTU_SIZE*viewMultiplier.height()};
-  for (auto& d : detections)
+  for (auto& d : oldDetections)
   {
     d.bbox.x *= viewMultiplier.width();
     d.bbox.width *= viewMultiplier.width();
@@ -227,7 +227,6 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
     }
     painter.end();
   }
-
   for (size_t i = detectionsBuffer_.size()-1; i > 0; i--)
   {
     detectionsBuffer_[i] = detectionsBuffer_[i-1];
