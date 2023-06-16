@@ -157,6 +157,7 @@
          <property name="font">
           <font>
            <pointsize>14</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -190,6 +191,7 @@
          <property name="font">
           <font>
            <pointsize>16</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -371,6 +373,7 @@
          <property name="font">
           <font>
            <pointsize>14</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -400,6 +403,7 @@
          <property name="font">
           <font>
            <pointsize>14</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -482,6 +486,7 @@
          <property name="font">
           <font>
            <pointsize>14</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -509,6 +514,7 @@
          <property name="font">
           <font>
            <pointsize>16</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -567,6 +573,7 @@
          <property name="font">
           <font>
            <pointsize>14</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -652,6 +659,7 @@
          <property name="font">
           <font>
            <pointsize>14</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -931,6 +939,7 @@
          <property name="font">
           <font>
            <pointsize>16</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -1217,6 +1226,7 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
          <property name="font">
           <font>
            <pointsize>16</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -1233,6 +1243,7 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
          <property name="font">
           <font>
            <pointsize>11</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -1246,6 +1257,7 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
          <property name="font">
           <font>
            <pointsize>14</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -1378,17 +1390,48 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
        <string>RoI</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_7">
+       <item row="7" column="2">
+        <widget class="QSpinBox" name="filter_depth">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="3">
+        <widget class="QLabel" name="Input_1">
+         <property name="font">
+          <font>
+           <pointsize>14</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Input Settings</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QLabel" name="label_14">
+         <property name="text">
+          <string>Max Threads</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2">
+        <widget class="QCheckBox" name="roi_enabled">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
        <item row="5" column="0">
         <widget class="QLabel" name="label_30">
          <property name="text">
           <string>Kernel type</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="label_31">
-         <property name="text">
-          <string>Kernel size</string>
          </property>
         </widget>
        </item>
@@ -1399,39 +1442,20 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
          </property>
         </widget>
        </item>
-       <item row="0" column="0" colspan="3">
-        <widget class="QLabel" name="label_29">
-         <property name="font">
-          <font>
-           <pointsize>16</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
+       <item row="4" column="0">
+        <widget class="QLabel" name="model_label">
          <property name="text">
-          <string>Face Detection</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
+          <string>Model path</string>
          </property>
         </widget>
        </item>
-       <item row="9" column="0" colspan="3">
-        <spacer name="verticalSpacer_7">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
+       <item row="5" column="2">
+        <widget class="QComboBox" name="kernel_type"/>
        </item>
-       <item row="8" column="0">
-        <widget class="QLabel" name="label_14">
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_31">
          <property name="text">
-          <string>Max Threads</string>
+          <string>Kernel size</string>
          </property>
         </widget>
        </item>
@@ -1449,10 +1473,20 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
          </property>
         </widget>
        </item>
-       <item row="7" column="2">
-        <widget class="QSpinBox" name="filter_depth">
-         <property name="minimum">
-          <number>1</number>
+       <item row="0" column="0" colspan="3">
+        <widget class="QLabel" name="label_29">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Face Detection</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
@@ -1463,35 +1497,18 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
          </property>
         </widget>
        </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="model_label">
-         <property name="text">
-          <string>Model path</string>
+       <item row="9" column="0" colspan="3">
+        <spacer name="verticalSpacer_7">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
-        </widget>
-       </item>
-       <item row="4" column="2">
-        <widget class="QLineEdit" name="model_path">
-         <property name="text">
-          <string/>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
          </property>
-        </widget>
-       </item>
-       <item row="1" column="0" colspan="3">
-        <widget class="QLabel" name="Input_1">
-         <property name="font">
-          <font>
-           <pointsize>14</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Input Settings</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="2">
-        <widget class="QComboBox" name="kernel_type"/>
+        </spacer>
        </item>
        <item row="3" column="0">
         <widget class="QLabel" name="label_34">
@@ -1500,15 +1517,23 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
          </property>
         </widget>
        </item>
-       <item row="3" column="2">
-        <widget class="QCheckBox" name="roi_enabled">
-         <property name="text">
-          <string/>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
+       <item row="4" column="2">
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <widget class="QLineEdit" name="model_path">
+           <property name="text">
+            <string/>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="model_button">
+           <property name="text">
+            <string>Browse</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>
@@ -1535,6 +1560,7 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
          <property name="font">
           <font>
            <pointsize>16</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -1565,6 +1591,7 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
          <property name="font">
           <font>
            <pointsize>14</pointsize>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>

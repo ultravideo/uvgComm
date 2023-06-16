@@ -12,6 +12,7 @@
 #include <QTableWidgetItem>
 #include <QThread>
 #include <QComboBox>
+#include <QFileDialog>
 
 
 VideoSettings::VideoSettings(QWidget* parent,
@@ -55,6 +56,9 @@ VideoSettings::VideoSettings(QWidget* parent,
   connect(videoSettingsUI_->rc_algorithm,
           QOverload<int>::of(&QComboBox::currentIndexChanged),
           this, &VideoSettings::updateObaStatus);
+
+  connect(videoSettingsUI_->model_button, &QPushButton::clicked,
+          this, &VideoSettings::browse);
 }
 
 
@@ -644,6 +648,22 @@ void VideoSettings::updateObaStatus(int index)
     videoSettingsUI_->oba_clip_neighbour_label->setDisabled(true);
     videoSettingsUI_->oba_clip_neighbours->setDisabled(true);
     videoSettingsUI_->oba_clip_neighbours->setCheckState(Qt::CheckState::Unchecked);
+  }
+}
+
+void VideoSettings::browse()
+{
+  QString file = videoSettingsUI_->model_path->text();
+  if (file.isEmpty())
+  {
+    file = QDir::currentPath();
+  }
+  QString fileName = QFileDialog::getOpenFileName(this,
+    tr("Select Weights"), file, tr("Weights (*.onnx)"));
+
+  if (!fileName.isEmpty())
+  {
+    videoSettingsUI_->model_path->setText(fileName);
   }
 }
 

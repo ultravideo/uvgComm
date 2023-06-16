@@ -14,24 +14,19 @@
    <string>Media Settings</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="3" column="1">
-    <widget class="QPushButton" name="reset_button">
-     <property name="text">
-      <string>Reset</string>
+   <item row="0" column="0" colspan="3">
+    <widget class="QLabel" name="title_label">
+     <property name="font">
+      <font>
+       <pointsize>16</pointsize>
+       <bold>true</bold>
+      </font>
      </property>
-    </widget>
-   </item>
-   <item row="1" column="0" colspan="3">
-    <widget class="Line" name="line">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="2">
-    <widget class="QPushButton" name="close_button">
      <property name="text">
-      <string>Finished</string>
+      <string>Media Settings</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
      </property>
     </widget>
    </item>
@@ -48,20 +43,24 @@
      </property>
     </spacer>
    </item>
-   <item row="0" column="0" colspan="3">
-    <widget class="QLabel" name="title_label">
-     <property name="font">
-      <font>
-       <pointsize>16</pointsize>
-       <weight>75</weight>
-       <bold>true</bold>
-      </font>
+   <item row="1" column="0" colspan="3">
+    <widget class="Line" name="line">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
      </property>
+    </widget>
+   </item>
+   <item row="3" column="2">
+    <widget class="QPushButton" name="close_button">
      <property name="text">
-      <string>Media Settings</string>
+      <string>Finished</string>
      </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
+    </widget>
+   </item>
+   <item row="3" column="1">
+    <widget class="QPushButton" name="reset_button">
+     <property name="text">
+      <string>Reset</string>
      </property>
     </widget>
    </item>
@@ -81,20 +80,37 @@
        <string>RoI</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="4" column="1">
-        <widget class="QSpinBox" name="background_qp">
+       <item row="3" column="1">
+        <widget class="QSpinBox" name="roi_qp">
+         <property name="suffix">
+          <string/>
+         </property>
+         <property name="prefix">
+          <string/>
+         </property>
          <property name="minimum">
           <number>22</number>
          </property>
          <property name="maximum">
           <number>47</number>
          </property>
-         <property name="value">
-          <number>47</number>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="brush_size_label">
+         <property name="text">
+          <string>Brush Size</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
+       <item row="8" column="0">
+        <widget class="QCheckBox" name="ctu_based">
+         <property name="text">
+          <string>CTU based drawing</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="3" rowspan="7">
         <widget class="QGroupBox" name="groupBox">
          <property name="enabled">
           <bool>true</bool>
@@ -115,7 +131,7 @@
              <string>Manual</string>
             </property>
             <property name="checked">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -131,23 +147,46 @@
             <property name="text">
              <string>Off</string>
             </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
            </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Preferred</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </widget>
        </item>
-       <item row="3" column="4">
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+       <item row="4" column="0">
+        <widget class="QLabel" name="background_label">
+         <property name="text">
+          <string>Global QP</string>
          </property>
-         <property name="sizeHint" stdset="0">
+        </widget>
+       </item>
+       <item row="2" column="5">
+        <widget class="QComboBox" name="objectSelection">
+         <property name="minimumSize">
           <size>
-           <width>40</width>
-           <height>20</height>
+           <width>120</width>
+           <height>0</height>
           </size>
          </property>
-        </spacer>
+        </widget>
        </item>
        <item row="2" column="1">
         <widget class="QSpinBox" name="brush_size">
@@ -162,10 +201,46 @@
          </property>
         </widget>
        </item>
-       <item row="8" column="0">
-        <widget class="QCheckBox" name="ctu_based">
+       <item row="0" column="0" colspan="7">
+        <widget class="VideoWidget" name="roi_surface" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="6">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="roi_lable">
          <property name="text">
-          <string>CTU based drawing</string>
+          <string>RoI QP</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QSpinBox" name="background_qp">
+         <property name="minimum">
+          <number>22</number>
+         </property>
+         <property name="maximum">
+          <number>47</number>
+         </property>
+         <property name="value">
+          <number>47</number>
          </property>
         </widget>
        </item>
@@ -176,52 +251,18 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="1">
-        <widget class="QSpinBox" name="roi_qp">
-         <property name="suffix">
-          <string/>
+       <item row="2" column="4">
+        <spacer name="horizontalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
          </property>
-         <property name="prefix">
-          <string/>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
          </property>
-         <property name="minimum">
-          <number>22</number>
-         </property>
-         <property name="maximum">
-          <number>47</number>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="background_label">
-         <property name="text">
-          <string>Global QP</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0" colspan="5">
-        <widget class="VideoWidget" name="roi_surface" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="roi_lable">
-         <property name="text">
-          <string>RoI QP</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="brush_size_label">
-         <property name="text">
-          <string>Brush Size</string>
-         </property>
-        </widget>
+        </spacer>
        </item>
       </layout>
      </widget>

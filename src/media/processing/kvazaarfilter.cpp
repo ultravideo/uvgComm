@@ -24,7 +24,7 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
   inputPics_(),
   nextInputPic_(-1)
 {
-  maxBufferSize_ = 3;
+  maxBufferSize_ = 30;
 }
 
 

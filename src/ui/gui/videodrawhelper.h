@@ -150,6 +150,6 @@ private:
   int bufferFullWarnings_;
 
 #ifdef KVAZZUP_HAVE_ONNX_RUNTIME
-  std::vector<Detection> detections_;
+  std::array<std::vector<Detection>, 3> detectionsBuffer_;
 #endif
 };
