@@ -8,14 +8,22 @@ if (NOT LIBYUV_FOUND)
     # libyuv
     FetchContent_Declare(
             yuv
-            GIT_REPOSITORY https://github.com/jrsnen/libyuv.git
-            GIT_TAG        3e10a91ba61d175109a19f282cb9bca756c057e8
+            GIT_REPOSITORY https://chromium.googlesource.com/libyuv/libyuv
+            GIT_TAG        eb6e7bb63738e29efd82ea3cf2a115238a89fa51 # stable
     )
 
     set(TEST OFF CACHE BOOL "" FORCE)
     set(LIBYUV_INSTALL OFF CACHE BOOL "" FORCE)
 
-    FetchContent_MakeAvailable(yuv)
+    if (FALSE) # use this if libyuv CMakeLists.txt becomes workable
+        FetchContent_MakeAvailable(yuv)
+    else()
+        FetchContent_Populate(yuv)
+
+        configure_file(dependencies/libyuv_CMakeLists.txt ${yuv_SOURCE_DIR}/CMakeLists.txt COPYONLY)
+        add_subdirectory(${yuv_SOURCE_DIR} ${yuv_BINARY_DIR} EXCLUDE_FROM_ALL)
+
+    endif()
 
     unset(TEST)
     unset(LIBYUV_INSTALL)
