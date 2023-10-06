@@ -1,7 +1,7 @@
 Kvazzup
 =======
 
-Kvazzup is a *High Efficiency Video Coding (HEVC)* video call software written in C++ and built on [Qt](https://www.qt.io/) application framework. Kvazzup aims to provide a testbed for novel video conferencing solutions, while also advancing the field of *Real-Time Communication (RTC)*. 
+Kvazzup is a *High Efficiency Video Coding (HEVC)* video call software written in C++ and built on [Qt](https://www.qt.io/) application framework. Kvazzup aims to provide a testbed for novel video conferencing solutions, while also advancing the field of *Real-Time Communication (RTC)*. Kvazzup is licensed under permissive ISC-license.
 
 Kvazzup is under development and new features will become available.
 
@@ -56,15 +56,15 @@ You can find instructions on how to use Kvazzup [here](INSTRUCTIONS.md).
 
 If you are using Kvazzup in your research, please cite one of the following papers: <br>
 
-[Kvazzup: open software for HEVC video calls](https://urn.fi/URN:NBN:fi:tty-201908262019)
+[Kvazzup: open software for HEVC video calls](https://researchportal.tuni.fi/en/publications/kvazzup-open-software-for-hevc-video-calls)
 
 `J. Räsänen, M. Viitanen, J. Vanne, and T. D. Hämäläinen, “Kvazzup: open software for HEVC video calls,” in Proc. IEEE Int. Symp. Multimedia, Taichung, Taiwan, Dec. 2017. `
 
-[Live Demonstration: Kvazzup 4K HEVC Video Call](https://urn.fi/URN:NBN:fi:tty-201908231999)
+[Live Demonstration: Kvazzup 4K HEVC Video Call](https://researchportal.tuni.fi/en/publications/live-demonstration-kvazzup-4k-hevc-video-call)
 
 `J. Räsänen, M. Viitanen, J. Vanne, and T. D. Hämäläinen, “Live Demonstration: Kvazzup 4K HEVC Video Call,” in Proc. IEEE Int. Symp. Multimedia, Taichung, Taiwan, Dec. 2018. `
 
-[Live Demonstration : Interactive Quality of Experience Evaluation in Kvazzup Video Call](https://urn.fi/URN:NBN:fi:tuni-202102041923)
+[Live Demonstration : Interactive Quality of Experience Evaluation in Kvazzup Video Call](https://researchportal.tuni.fi/en/publications/live-demonstration-interactive-quality-of-experience-evaluation-i)
 
 `J. Räsänen, A. Altonen, A. Mercat, and J. Vanne, “Live Demonstration : Interactive Quality of Experience Evaluation in Kvazzup Video Call,” in Proc. IEEE Int. Symp. Multimedia, Naples, Italy, Dec. 2020. `
 

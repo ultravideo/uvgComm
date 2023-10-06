@@ -22,7 +22,7 @@ Kvazzup can also be used to directly call other computers provided that the TCP 
 
 ### Session Description Protocol (SDP)
 
-Some SIP messages carry an SDP messages as a payload during call initiation. SDP is used for describing the media parameters wanted for the call and is used to negotiatiate various aspects of the starting call.
+Some SIP messages carry an SDP messages as a payload during call initiation. SDP is used for describing the media parameters wanted for the call and is used to negotiatiate various aspects of the call.
 
 **Specifications**
 - [RFC 8866 SDP: Session Description Protocol](https://datatracker.ietf.org/doc/html/rfc8866)
@@ -104,7 +104,7 @@ In addition to codec settings, the settings enable changing other aspects of aud
 
 ### Automatic selection of best media settings with option for live manual adjustment
 
-To not require user to be fully insvested in codec parameters, Kvazzup also tries to guess the optimal parameters for currently used computer. This process is subject to constant improvement.
+To not require user to be fully knowledgeable in codec parameters, Kvazzup also tries to guess the optimal parameters for currently used computer. This process is subject to improvements.
 
 ### All settings are recorded to the disk and loaded at startup
 
