@@ -60,7 +60,9 @@ Filter::Filter(QString id, QString name, StatisticsInterface *stats,
   filterID_(0),
   enforceFramerate_(enforceFramerate),
   synchronizationPoint_(std::chrono::high_resolution_clock::now()),
-  framesSinceSynchronization_(0)
+  framesSinceSynchronization_(0),
+  framerateNumerator_(0),
+  framerateDenominator_(0)
 {
   Q_ASSERT(hwResources != nullptr);
 }
