@@ -417,7 +417,7 @@ uint64_t DefaultSettings::calculatePoints(QString format, QSize resolution, doub
 {
   // we give much lower score to low fps values
 
-  int formatPoints = 0;
+  uint64_t formatPoints = 0;
 
   if (format == "YUV420P")
   {
@@ -445,13 +445,13 @@ uint64_t DefaultSettings::calculatePoints(QString format, QSize resolution, doub
     formatPoints = 1; // has been encoded, so we try to avoid this
   }
 
-  // try to use fps values between 30 and 60, since these offer good
-  if (fps < 30.0 || 61.0 < fps)
+  // I would consider 30 fps the bare minimum in terms of framerate and over 60 seems excessive
+  if (fps < 30.0 || fps > 61.0)
   {
-    return (resolution.width()*resolution.height() + (int)fps)*10 + formatPoints;
+    return 0;
   }
 
-  return (resolution.width()*resolution.height() + (int)fps)*100 + formatPoints;
+  return (resolution.width()*resolution.height() * (int)fps) + formatPoints;
 }
 
 
