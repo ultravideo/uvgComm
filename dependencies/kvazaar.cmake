@@ -10,13 +10,13 @@ if (NOT KVAZAAR_FOUND)
     FetchContent_Declare(
             kvazaar
             GIT_REPOSITORY https://github.com/ultravideo/kvazaar.git
-            GIT_TAG        37a0404bc8ccdc39515a5aed706205dc53810019 # 2.2.0 release
+            GIT_TAG        f49af6386c9c7cddaa9d00e85cfe30cfe1d6a60f # 2.3.1 release
     )
 
     set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
     set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
-    if (FALSE) # use this if kvazaar gets a CMake in the main repo
+    if (TRUE) # use this if kvazaar gets a CMake in the main repo
         FetchContent_MakeAvailable(kvazaar)
     else()
         FetchContent_Populate(kvazaar)
