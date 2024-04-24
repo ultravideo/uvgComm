@@ -1,4 +1,4 @@
-#include "roifilter.h"
+#include "roiyolofilter.h"
 
 #include "ui/gui/videointerface.h"
 
@@ -27,7 +27,7 @@
 #include <algorithm>
 
 
-RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<ResourceAllocator> hwResources,
+ROIYoloFilter::ROIYoloFilter(QString id, StatisticsInterface *stats, std::shared_ptr<ResourceAllocator> hwResources,
                      bool cuda, VideoInterface* roiInterface)
   : Filter(id, "RoI", stats, hwResources, DT_YUV420VIDEO, DT_YUV420VIDEO),
     inputSize_(-1),
@@ -43,15 +43,14 @@ RoiFilter::RoiFilter(QString id, StatisticsInterface *stats, std::shared_ptr<Res
     roi_({0,0,nullptr}),
     roiSurface_(roiInterface),
     faceDetection_(false)
+{}
+
+ROIYoloFilter::~ROIYoloFilter()
 {
+
 }
 
-RoiFilter::~RoiFilter()
-{
-
-}
-
-void RoiFilter::updateSettings()
+void ROIYoloFilter::updateSettings()
 {
   QSettings settings(settingsFile, settingsFileFormat);
 
@@ -62,77 +61,85 @@ void RoiFilter::updateSettings()
   Logger::getLogger()->printNormal(this, "RoI filter settings updated");
 }
 
-void RoiFilter::process()
+void ROIYoloFilter::process()
 {
   std::unique_ptr<Data> input = getInput();
-  assert(input->type == DT_YUV420VIDEO);
-  while(input) {
-    if(roiEnabled_ && getHWManager()->useAutoROI()){
 
+  while(input)
+  {
+    if(roiEnabled_ && getHWManager()->useAutoROI())
+    {
       QMutexLocker lock(&settingsMutex_);
-      if(inputDiscarded_ > prevInputDiscarded_) {
+
+      if(inputDiscarded_ > prevInputDiscarded_)
+      {
         skipInput_++;
         prevInputDiscarded_ = inputDiscarded_;
       }
-      if(frameCount_ % skipInput_ == 0) {
-        auto detections = detect(input.get());
 
-        auto largest_bbox = find_largest_bbox(detections);
-        double largest_area = largest_bbox.width * largest_bbox.height;
+      if(frameCount_ % skipInput_ == 0)
+      {
+        // run onnx yolo face detection
+        std::vector<Detection> detections = onnx_detection(input.get());
+
+        // find detection with largest bounding box
+        Rect largest_bbox = find_largest_bbox(detections);
+        double largest_area_pix = largest_bbox.width * largest_bbox.height;
 
         std::vector<Rect> face_roi_rects;
-        for (auto face : detections)
+        for (Detection& face : detections)
         {
-          if (!filter_bb(face.bbox, minBbSize_))
-          {
-            continue;
-          }
-
           double area = face.bbox.width * face.bbox.height;
-          if (area / largest_area < minRelativeBbSize_)
+
+          // filter out small faces
+          if (!filter_bb(face.bbox, minBbSize_) || area / largest_area_pix < minRelativeBbSize_)
           {
             continue;
           }
 
           face.bbox = enlarge_bb(face);
+          Rect roi = bbox_to_roi(face.bbox);
+          face_roi_rects.push_back(roi);
 
+#ifdef KVAZZUP_HAVE_OPENCV
           if (drawBbox_)
           {
-            //              cv::rectangle(rgb, face.bbox, {255, 0, 0}, 3);
-            //              auto &landmarks = face.landmarks;
-            //              cv::Vec3i colours[5] = {{255, 0, 0}, {0, 255, 0}, {0, 0, 255}, {255, 255, 0}, {0, 255, 255}};
-            //              for (size_t i = 0; i < 5; i++)
-            //              {
-            //                cv::circle(rgb, landmarks[i], 2, colours[i]);
-            //              }
+            cv::rectangle(rgb, face.bbox, {255, 0, 0}, 3);
+            auto &landmarks = face.landmarks;
+            cv::Vec3i colours[5] = {{255, 0, 0}, {0, 255, 0}, {0, 0, 255}, {255, 255, 0}, {0, 255, 255}};
+            for (size_t i = 0; i < 5; i++)
+            {
+              cv::circle(rgb, landmarks[i], 2, colours[i]);
+            }
           }
-
-          auto r = bbox_to_roi(face.bbox);
-          face_roi_rects.push_back(r);
+#endif
         }
 
         Size roi_size = calculate_roi_size(input->vInfo->width, input->vInfo->height);
         roi_.width = roi_size.width;
         roi_.height = roi_size.height;
-        if(roi_.width != roiFilter_.width || roi_.height != roiFilter_.height) {
-          roiFilter_.roi_maps.clear();
-          roiFilter_.width = roi_size.width;
-          roiFilter_.height = roi_size.height;
+
+        if(roi_.width != roiSettings_.width || roi_.height != roiSettings_.height)
+        {
+          roiSettings_.width = roi_size.width;
+          roiSettings_.height = roi_size.height;
         }
 
         int roi_length = (roi_size.width+1)*(roi_size.height+1);
 
-        roiFilter_.roiQP = getHWManager()->getRoiQp();
-        roiFilter_.backgroundQP = getHWManager()->getBackgroundQp();
+        roiSettings_.roiQP = getHWManager()->getRoiQp();
+        roiSettings_.backgroundQP = getHWManager()->getBackgroundQp();
 
         clip_coords(face_roi_rects, roi_size);
-        Roi roi_mat = roiFilter_.makeRoiMap(face_roi_rects);
+        Roi roi_mat = makeRoiMap(face_roi_rects);
         roi_.data = std::make_unique<int8_t[]>(roi_length);
         memcpy(roi_.data.get(), roi_mat.data.get(), roi_length);
 
         roiSurface_->inputDetections(detections, {input->vInfo->width, input->vInfo->height}, 0);
       }
-      if(roi_.data){
+
+      if(roi_.data)
+      {
         input->vInfo->roiWidth = roi_.width;
         input->vInfo->roiHeight = roi_.height;
         input->vInfo->roiArray = std::make_unique<int8_t[]>(roi_.width*roi_.height);
@@ -141,12 +148,14 @@ void RoiFilter::process()
 
       frameCount_++;
     }
+
     sendOutput(std::move(input));
     input = getInput();
   }
 }
 
-bool RoiFilter::init()
+
+bool ROIYoloFilter::init()
 {
   bool isOk = true;
   prevInputDiscarded_ = 0;
@@ -161,7 +170,7 @@ bool RoiFilter::init()
   }
 
 #ifdef _WIN32
-  std::wstring newModel = newModelQstr.toStdWString();
+  std::wstring newModelPath = newModelQstr.toStdWString();
 #else
   std::string newModel = newModelQstr.toStdString();
 #endif
@@ -178,14 +187,13 @@ bool RoiFilter::init()
   }
 #endif
 
-  roiFilter_.depth = settings.value(SettingsKey::roiFilterDepth).toInt();
+  roiSettings_.depth = settings.value(SettingsKey::roiFilterDepth).toInt();
+  roiSettings_.roiQP = settings.value(SettingsKey::roiQp).toInt();
+  roiSettings_.backgroundQP = settings.value(SettingsKey::backgroundQp).toInt();
+  roiSettings_.qp = settings.value(SettingsKey::videoQP).toInt();
 
-  roiFilter_.roiQP = settings.value(SettingsKey::roiQp).toInt();
-  roiFilter_.backgroundQP = settings.value(SettingsKey::backgroundQp).toInt();
-  roiFilter_.qp = settings.value(SettingsKey::videoQP).toInt();
-
-  if(newModel != model_){
-    model_ = newModel;
+  if(newModelPath != modelPath_){
+    modelPath_ = newModelPath;
     try {
       if (session_)
       {
@@ -194,7 +202,7 @@ bool RoiFilter::init()
         outputName_ = std::nullopt;
       }
       Ort::SessionOptions options = get_session_options(false, threads);
-      session_ = std::make_unique<Ort::Session>(env_, model_.c_str(), options);
+      session_ = std::make_unique<Ort::Session>(env_, modelPath_.c_str(), options);
       allocator_ = std::make_unique<Ort::Allocator>(*session_, Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault));
     }  catch (std::exception& e) {
       Logger::getLogger()->printError(this, e.what());
@@ -250,7 +258,7 @@ bool RoiFilter::init()
     }
   }
 
-  if(model_.empty()){
+  if(modelPath_.empty()){
     isOk = false;
   }
 
@@ -258,91 +266,82 @@ bool RoiFilter::init()
   return isOk;
 }
 
-void RoiFilter::close()
+
+void ROIYoloFilter::close()
 {
   allocator_.reset();
   session_.reset();
 }
 
 
-void RoiFilter::copyConvert(uint8_t* src, float* dst, size_t len) {
-  for(size_t i = 0; i < len; i++) {
-    dst[i] = float(src[i]) / 255.0f;
+void ROIYoloFilter::YUVToFloat(uint8_t* src, float* dst, size_t len)
+{
+  for(size_t i = 0; i < len; i++)
+  {
+    dst[i] = float(src[i]) / 255.0f; // divide color space to 0-1
   }
 }
 
 
-std::vector<Detection> RoiFilter::detect(const Data* input)
+std::vector<Detection> ROIYoloFilter::onnx_detection(const Data* input)
 {
   Size original_size{input->vInfo->width, input->vInfo->height};
   std::vector<float> Y_f(original_size.width*original_size.height);
-  copyConvert(input->data.get(), Y_f.data(), original_size.width*original_size.height);
+  YUVToFloat(input->data.get(), Y_f.data(), original_size.width*original_size.height);
 
-  //cv::Mat Y(input->vInfo->height, input->vInfo->width, CV_8U, input->data.get());
+  const uint8_t COLOR = 114;
+  auto Y_input = scaleToLetterbox(Y_f, original_size,{inputSize_, inputSize_}, COLOR, minimum_);
+  size_t channel_size = Y_input.size();
 
-  auto Y_input = letterbox(Y_f, original_size,{inputSize_, inputSize_}, 114, minimum_);
-  auto channel_size = Y_input.size();
   Y_input.resize(Y_input.size()*3);
-  std::memcpy(Y_input.data()+channel_size, Y_input.data(), channel_size);
-  std::memcpy(Y_input.data()+channel_size*2, Y_input.data(), channel_size);
+  std::memcpy(Y_input.data() + channel_size,   Y_input.data(), channel_size);
+  std::memcpy(Y_input.data() + 2*channel_size, Y_input.data(), channel_size);
 
-/*
-  //cv::cvtColor(input, input, cv::COLOR_RGBA2RGB);
-  Y_input.convertTo(Y_input, CV_32FC3, 1.0 / 255.0);
-
-  // Copy Y to r, g and b channels fow bw rgb image avoiding color conversions
-  int size[] = {3, Y_input.size[0], Y_input.size[1]};
-  cv::Mat channels(3, size, CV_32F);
-
-  cv::Mat out[3] = {cv::Mat(Y_input.size[0], Y_input.size[1], CV_32F, channels.data),
-                    cv::Mat(Y_input.size[0], Y_input.size[1], CV_32F, channels.data + channels.step[0]),
-                    cv::Mat(Y_input.size[0], Y_input.size[1], CV_32F, channels.data + channels.step[0] * 2)};
-  Y_input.copyTo(out[0]);
-  Y_input.copyTo(out[1]);
-  Y_input.copyTo(out[2]);
-*/
-
-  int64_t shape[4] = {1, 3, inputSize_, inputSize_};
+  const size_t SHAPE_LEN = 4;
+  int64_t shape[SHAPE_LEN] = {1, 3, inputSize_, inputSize_};
   auto memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-  auto input_tensor = Ort::Value::CreateTensor<float>(&*memory, Y_input.data(), Y_input.size(), shape, 4);
+
+  auto input_tensor = Ort::Value::CreateTensor<float>(&*memory, Y_input.data(), Y_input.size(), shape, SHAPE_LEN);
 
   Ort::RunOptions options;
   const char* input_names[] = {inputName_->get()};
-  char* output_names[] = {outputName_->get()};
+  char* output_names[]      = {outputName_->get()};
+
+  // run the detection model
   auto detections = session_->Run(options, input_names, &input_tensor, 1, output_names, 1);
+
   auto out_shape = detections[0].GetTensorTypeAndShapeInfo().GetShape();
+
   std::vector<const float*> objects;
-  if (faceDetection_)
-  {
-    objects = non_max_suppression_face(detections[0]);
-  } else {
-    objects = non_max_suppression_obj(detections[0]);
-  }
 
+  objects = non_max_suppression_obj(detections[0], faceDetection_);
 
-  auto scaled_detections = scale_coords({inputSize_, inputSize_}, objects, original_size);
+  // Additional detections/tracking goes here
 
-  return scaled_detections;
+  // return scaled detections
+  return scale_coords({inputSize_, inputSize_}, objects, original_size);
 }
 
 
-Rect RoiFilter::find_largest_bbox(std::vector<Detection> &detections)
+Rect ROIYoloFilter::find_largest_bbox(std::vector<Detection> &detections)
 {
   Rect largest = {0, 0, 0, 0};
   int largest_area = 0;
+
   for (auto &d : detections)
   {
-    int area = d.bbox.height * d.bbox.width;
-    if (area > largest_area)
+    int areaPix = d.bbox.height * d.bbox.width;
+    if (areaPix > largest_area)
     {
-      largest_area = area;
+      largest_area = areaPix;
       largest = d.bbox;
     }
   }
   return largest;
 }
 
-std::vector<float> RoiFilter::letterbox(const std::vector<float>& img, Size original_shape, Size new_shape, uint8_t color,
+
+std::vector<float> ROIYoloFilter::scaleToLetterbox(const std::vector<float>& img, Size original_shape, Size new_shape, uint8_t color,
                              bool minimum, bool scaleFill, bool scaleup)
 {
   //Resize image to a 32 - pixel - multiple rectangle https://github.com/ultralytics/yolov3/issues/232
@@ -408,106 +407,10 @@ std::vector<float> RoiFilter::letterbox(const std::vector<float>& img, Size orig
   return scaled_img;
 }
 
-std::vector<const float *> RoiFilter::non_max_suppression_face(Ort::Value const &prediction, double conf_thres, double iou_thres)
-{
-  assert(prediction.GetTensorTypeAndShapeInfo().GetElementType() == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT);
-  assert(!prediction.IsSparseTensor());
-  assert(prediction.IsTensor());
 
-  auto shape = prediction.GetTensorTypeAndShapeInfo().GetShape();
-  assert(shape.size() == 3 && shape[0] == 1 && shape[2] == 16);
-
-  const float *data = prediction.GetTensorData<float>();
-  int64_t row_size = shape[2];
-
-  std::vector<const float *> candidates;
-  for (int64_t i = 0; i < shape[1]; i++)
-  {
-    const float *row = data + i * row_size;
-    if (row[4] > conf_thres)
-    {
-      candidates.push_back(row);
-    }
-  }
-  std::vector<size_t> order(candidates.size());
-  std::iota(order.begin(), order.end(), 0);
-  std::sort(order.begin(), order.end(),
-            [&candidates](size_t i1, size_t i2)
-            {
-                return candidates[i1] < candidates[i2];
-            });
-  std::vector<uint8_t> suppressed(candidates.size(), 0);
-  std::vector<size_t> keep(candidates.size(), 0);
-  size_t num_to_keep = 0;
-
-  // Settings
-  // (pixels) minimum and maximum box width and height
-  std::vector<Rect> output;
-  for (size_t i_ = 0; i_ < candidates.size(); i_++)
-  {
-    auto i = order[i_];
-    if (suppressed[i] == 1)
-    {
-      continue;
-    }
-    keep[num_to_keep++] = i;
-    const float *x = candidates[i];
-    auto ix1 = x[0] - x[2] / 2;
-    auto iy1 = x[1] - x[3] / 2;
-    auto ix2 = x[0] + x[2] / 2;
-    auto iy2 = x[1] + x[3] / 2;
-    auto iarea = (ix2 - ix1) * (iy2 - iy1);
-    //cv::Rect2f box(x[0] - x[2] / 2, x[1] - x[3] / 2, x[2], x[3]);
-
-    for (size_t j_ = i_ + 1; j_ < candidates.size(); j_++)
-    {
-      auto j = order[j_];
-      if (suppressed[j] == 1)
-      {
-        continue;
-      }
-
-      const float *xj = candidates[j];
-      auto jx1 = xj[0] - xj[2] / 2;
-      auto jy1 = xj[1] - xj[3] / 2;
-      auto jx2 = xj[0] + xj[2] / 2;
-      auto jy2 = xj[1] + xj[3] / 2;
-      auto jarea = (jx2 - jx1) * (jy2 - jy1);
-
-      auto xx1 = std::max(ix1, jx1);
-      auto yy1 = std::max(iy1, jy1);
-      auto xx2 = std::min(ix2, jx2);
-      auto yy2 = std::min(iy2, jy2);
-
-      auto w = std::max(0.0f, xx2 - xx1);
-      auto h = std::max(0.0f, yy2 - yy1);
-      auto inter = w * h;
-      auto ovr = inter / (iarea + jarea - inter);
-      if (ovr > iou_thres)
-        suppressed[j] = 1;
-    }
-  }
-
-  std::vector<const float *> faces;
-  for (size_t i = 0; i < num_to_keep; i++)
-  {
-    const float *detection = candidates[keep[i]];
-    faces.push_back(detection);
-  }
-  return faces;
-}
-
-std::vector<const float*> RoiFilter::non_max_suppression_obj(
-        Ort::Value const &prediction,
-        double conf_thres,
-        double iou_thres,
-        //classes=None,
-        //agnostic=False,
-        bool multi_label,
-        //labels=(),
-        int max_det,
-        int nm  // number of masks
-)
+std::vector<const float*> ROIYoloFilter::non_max_suppression_obj(
+        Ort::Value const &prediction, bool faceDetection,
+        double conf_thres, double iou_thres)
 {
     // Non-Maximum Suppression (NMS) on inference results to reject overlapping detections
 
@@ -522,42 +425,42 @@ std::vector<const float*> RoiFilter::non_max_suppression_obj(
 
     auto shape = prediction.GetTensorTypeAndShapeInfo().GetShape();
     assert(shape.size() == 3 && shape[0] == 1 && shape[2] == 85);
-    int bs = shape[0];  // batch size
-    int nc = shape[2] - nm - 5;  // number of classes
 
-    const float *data = prediction.GetTensorData<float>();
+    const float *tensorData = prediction.GetTensorData<float>();
     int64_t row_size = shape[2];
 
-    size_t target_object = getHWManager()->getRoiObject();
-
     std::vector<const float *> candidates;
-    for (int64_t i = 0; i < shape[1]; i++)
+    if (faceDetection)
     {
-      const float *row = data + i * row_size;
-      if (row[4] < conf_thres)
+      for (int64_t i = 0; i < shape[1]; i++)
       {
-        continue;
+        const float *row = tensorData + i * row_size;
+        if (row[4] > conf_thres)
+        {
+          candidates.push_back(row);
+        }
       }
-      if (row[target_object+5] > conf_thres)
+    }
+    else
+    {
+      size_t target_object = getHWManager()->getRoiObject();
+
+      for (int64_t i = 0; i < shape[1]; i++)
       {
-        candidates.push_back(row);
+        const float *row = tensorData + i * row_size;
+        if (row[4] < conf_thres)
+        {
+          continue;
+        }
+        if (row[target_object+5] > conf_thres)
+        {
+          candidates.push_back(row);
+        }
       }
     }
 
-
-    // Settings
-    int min_wh = 2; // (pixels) minimum box width and height
-    int max_wh = 7680; // (pixels) maximum box width and height
-    int max_nms = 30000; // maximum number of boxes into torchvision.ops.nms()
-
-    bool redundant = true; // require redundant detections
-    multi_label &= nc > 1;  // multiple labels per box
-    bool merge = false; // use merge-NMS
-
-    int mi = 5 + nc;  // mask start index
-
     std::vector<size_t> order(candidates.size());
-    std::iota(order.begin(), order.end(), 0);
+    std::iota(order.begin(), order.end(), 0); // 0, 1, 2, 3, ...
     std::sort(order.begin(), order.end(),
               [&candidates](size_t i1, size_t i2)
               {
@@ -567,7 +470,6 @@ std::vector<const float*> RoiFilter::non_max_suppression_obj(
     std::vector<size_t> keep(candidates.size(), 0);
     size_t num_to_keep = 0;
 
-    // output = [torch.zeros((0, 6 + nm), device=prediction.device)] * bs
     std::vector<Rect> output;
     for (size_t i_ = 0; i_ < candidates.size(); i_++)
     {
@@ -576,6 +478,7 @@ std::vector<const float*> RoiFilter::non_max_suppression_obj(
       {
         continue;
       }
+
       keep[num_to_keep++] = i;
       const float *x = candidates[i];
       auto ix1 = x[0] - x[2] / 2;
@@ -583,7 +486,6 @@ std::vector<const float*> RoiFilter::non_max_suppression_obj(
       auto ix2 = x[0] + x[2] / 2;
       auto iy2 = x[1] + x[3] / 2;
       auto iarea = (ix2 - ix1) * (iy2 - iy1);
-      //cv::Rect2f box(x[0] - x[2] / 2, x[1] - x[3] / 2, x[2], x[3]);
 
       for (size_t j_ = i_ + 1; j_ < candidates.size(); j_++)
       {
@@ -623,7 +525,8 @@ std::vector<const float*> RoiFilter::non_max_suppression_obj(
     return objects;
 }
 
-std::vector<Detection> RoiFilter::scale_coords(Size img1_shape, std::vector<const float *> const &coords,
+
+std::vector<Detection> ROIYoloFilter::scale_coords(Size img1_shape, std::vector<const float *> const &coords,
                                     Size img0_shape)
 {
   // Rescale coords (centre-x, centre-y, width, height) from img1_shape to img0_shape
@@ -651,7 +554,8 @@ std::vector<Detection> RoiFilter::scale_coords(Size img1_shape, std::vector<cons
   return scaled;
 }
 
-void RoiFilter::clip_coords(std::vector<Rect> &boxes, Size img_shape)
+
+void ROIYoloFilter::clip_coords(std::vector<Rect> &boxes, Size img_shape)
 {
   //     // Clip bounding xyxy bounding boxes to image shape(height, width)
   //     boxes[:, 0].clamp_(0, img_shape[1]); // x1
@@ -660,29 +564,35 @@ void RoiFilter::clip_coords(std::vector<Rect> &boxes, Size img_shape)
   //     boxes[:, 3].clamp_(0, img_shape[0]); // y2
   for (auto& d : boxes)
   {
-    if(d.x < 0){
+    if (d.x < 0)
+    {
       d.width+=d.x;
       d.x=0;
     }
-    if(d.y < 0){
+    if (d.y < 0)
+    {
       d.height+=d.y;
       d.y=0;
     }
-    if(d.x+d.width > img_shape.width){
+    if (d.x+d.width > img_shape.width)
+    {
       d.width=img_shape.width-d.x;
     }
-    if(d.y+d.height > img_shape.height){
+    if (d.y+d.height > img_shape.height)
+    {
       d.height=img_shape.height-d.y;
     }
   }
 }
 
-bool RoiFilter::filter_bb(Rect bb, Size min_size)
+
+bool ROIYoloFilter::filter_bb(Rect bb, Size min_size)
 {
   return bb.width >= min_size.width && bb.height >= min_size.height;
 }
 
-Rect RoiFilter::bbox_to_roi(Rect bb)
+
+Rect ROIYoloFilter::bbox_to_roi(Rect bb)
 {
   int x2 = (bb.x+bb.width - 64/10) / 64;
   int y2 = (bb.y+bb.height - 64/10) / 64;
@@ -703,7 +613,8 @@ Rect RoiFilter::bbox_to_roi(Rect bb)
   return bb;
 }
 
-Size RoiFilter::calculate_roi_size(uint32_t img_width, uint32_t img_height)
+
+Size ROIYoloFilter::calculate_roi_size(uint32_t img_width, uint32_t img_height)
 {
   int map_width = ceil(img_width / 64.0);
   int map_height = ceil(img_height / 64.0);
@@ -711,7 +622,8 @@ Size RoiFilter::calculate_roi_size(uint32_t img_width, uint32_t img_height)
   return {map_width, map_height};
 }
 
-Rect RoiFilter::enlarge_bb(Detection face)
+
+Rect ROIYoloFilter::enlarge_bb(Detection face)
 {
   Rect ret = face.bbox;
 
@@ -747,7 +659,8 @@ Rect RoiFilter::enlarge_bb(Detection face)
   return ret;
 }
 
-Ort::SessionOptions RoiFilter::get_session_options(bool cuda, int threads)
+
+Ort::SessionOptions ROIYoloFilter::get_session_options(bool cuda, int threads)
 {
   using namespace std::literals;
   auto providers = Ort::GetAvailableProviders();
@@ -770,8 +683,14 @@ Ort::SessionOptions RoiFilter::get_session_options(bool cuda, int threads)
 }
 
 
-Roi RoiMapFilter::makeRoiMap(const std::vector<Rect> &bbs)
+Roi ROIYoloFilter::makeRoiMap(const std::vector<Rect> &bbs)
 {
+  int width = roiSettings_.width;
+  int height = roiSettings_.width;
+  int roiQP = roiSettings_.roiQP;
+  int backgroundQP = roiSettings_.backgroundQP;
+  int qp = roiSettings_.qp;
+
   Roi roi_map {width, height, std::make_unique<int8_t[]>(width*height)};
 
 #ifdef KVAZZUP_HAVE_OPENCV
@@ -791,13 +710,13 @@ Roi RoiMapFilter::makeRoiMap(const std::vector<Rect> &bbs)
   filtered.convertTo(converted, CV_8S);
   memcpy(roi_map.data.get(), converted.datastart, width*height);
 #else
-  memset(roi_map.data.get(), backgroundQP-qp, roi_map.width*roi_map.height);
+  memset(roi_map.data.get(), backgroundQP - qp, roi_map.width*roi_map.height);
   for (auto roi : bbs)
   {
     for (int y = roi.y; y < roi.y + roi.height; y++)
       for (int x = roi.x; x < roi.x + roi.width; x++)
       {
-        roi_map.data[width*y+x] = (roiQP-qp);
+        roi_map.data[width*y+x] = (roiQP - qp);
       }
   }
 #endif

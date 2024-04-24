@@ -155,7 +155,7 @@ set(KVAZZUP_SOURCES
 
 if (KVAZZUP_ENABLE_FACE_DETECTION)
     list(APPEND KVAZZUP_SOURCES
-      src/media/processing/roifilter.cpp  src/media/processing/roifilter.h
+      src/media/processing/roiyolofilter.cpp  src/media/processing/roiyolofilter.h
       src/media/processing/detection_types.h
     )
 endif()

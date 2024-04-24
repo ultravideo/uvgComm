@@ -11,7 +11,8 @@
 #endif
 
 struct Size {
-  int width, height;
+  int width;
+  int height;
 };
 
 struct Roi {
@@ -20,10 +21,7 @@ struct Roi {
   std::unique_ptr<int8_t[]> data;
 };
 
-struct RoiMapFilter {
-  Roi makeRoiMap(const std::vector<Rect> &bbs);
-
-  std::vector<Roi> roi_maps;
+struct RoiSettings {
   int depth = 1;
   int width = 0;
   int height = 0;
@@ -38,14 +36,14 @@ struct RoiMapFilter {
 
 class VideoInterface;
 
-class RoiFilter : public Filter {
+class ROIYoloFilter : public Filter {
 public:
-  RoiFilter(QString id, StatisticsInterface* stats,
+  ROIYoloFilter(QString id, StatisticsInterface* stats,
             std::shared_ptr<ResourceAllocator> hwResources,
             bool cuda,
             VideoInterface* roiInterface);
 
-  ~RoiFilter();
+  ~ROIYoloFilter();
 
   virtual bool init() override;
 
@@ -58,26 +56,16 @@ private:
 
   void close();
 
-  void copyConvert(uint8_t* src, float* dst, size_t len);
-  std::vector<Detection> detect(const Data* input);
+  void YUVToFloat(uint8_t* src, float* dst, size_t len);
+  std::vector<Detection> onnx_detection(const Data* input);
 
   Rect find_largest_bbox(std::vector<Detection> &detections);
-  std::vector<float> letterbox(const std::vector<float>& img, Size original_shape, Size new_shape, uint8_t color = 114,
+  std::vector<float> scaleToLetterbox(const std::vector<float>& img, Size original_shape, Size new_shape, uint8_t color = 114,
                                bool minimum = false, bool scaleFill = false, bool scaleup = true);
-  std::vector<const float *> non_max_suppression_face(Ort::Value const &prediction,
-                                                      double conf_thres = 0.25,
-                                                      double iou_thres = 0.45);
-  std::vector<const float*> non_max_suppression_obj(
-          Ort::Value const &prediction,
+
+  std::vector<const float*> non_max_suppression_obj(Ort::Value const &prediction, bool faceDetection,
           double conf_thres=0.25,
-          double iou_thres=0.45,
-          //classes=None,
-          //agnostic=False,
-          bool multi_label=false,
-          //labels=(),
-          int max_det=300,
-          int nm=0  // number of masks
-  );
+          double iou_thres=0.45);
 
   std::vector<Detection> scale_coords(Size img1_shape, std::vector<const float *> const &coords,
                                       Size img0_shape);
@@ -93,7 +81,7 @@ private:
   unsigned int skipInput_;
 
 #ifdef _WIN32
-  std::wstring model_;
+  std::wstring modelPath_;
 #else
   std::string model_;
 #endif
@@ -127,7 +115,9 @@ private:
   QAtomicInt roiEnabled_;
   int frameCount_;
   Roi roi_;
-  RoiMapFilter roiFilter_;
+  RoiSettings roiSettings_;
+
+
 
   QMutex settingsMutex_;
   VideoInterface* roiSurface_;
