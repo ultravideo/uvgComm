@@ -29,6 +29,7 @@ VideoSettings::VideoSettings(QWidget* parent,
 
 
 #ifndef KVAZZUP_HAVE_ONNX_RUNTIME
+  videoSettingsUI_->model_label->setText("Model Settings (ONNX runtime not available)");
   videoSettingsUI_->RoiTab->setEnabled(false);
 #endif
 
@@ -200,9 +201,10 @@ void VideoSettings::saveSettings()
 
   // ROI-tab
   saveTextValue(SettingsKey::roiDetectorModel, videoSettingsUI_->model_path->text(), settings_);
+
   saveTextValue(SettingsKey::roiKernelType, videoSettingsUI_->kernel_type->currentText(), settings_);
   saveTextValue(SettingsKey::roiKernelSize, videoSettingsUI_->kernel_size->text(), settings_);
-  saveTextValue(SettingsKey::roiFilterDepth, videoSettingsUI_->filter_depth->text(), settings_);
+
   saveTextValue(SettingsKey::roiMaxThreads, videoSettingsUI_->roi_threads->text(), settings_);
   saveCheckBox(SettingsKey::roiEnabled, videoSettingsUI_->roi_enabled, settings_);
 
@@ -364,9 +366,16 @@ void VideoSettings::restoreSettings()
 
   // ROI-tab
   videoSettingsUI_->model_path->setText(settings_.value(SettingsKey::roiDetectorModel).toString());
+
   videoSettingsUI_->kernel_type->setCurrentText(settings_.value(SettingsKey::roiKernelType).toString());
   videoSettingsUI_->kernel_size->setValue(settings_.value(SettingsKey::roiKernelSize).toInt());
-  videoSettingsUI_->filter_depth->setValue(settings_.value(SettingsKey::roiFilterDepth).toInt());
+
+#ifndef KVAZZUP_HAVE_OPENCV
+  videoSettingsUI_->opencv_label->setText("OpenCV (not available)");
+  videoSettingsUI_->kernel_type->setEnabled(false);
+  videoSettingsUI_->kernel_size->setEnabled(false);
+#endif
+
   videoSettingsUI_->roi_threads->setValue(settings_.value(SettingsKey::roiMaxThreads).toInt());
   videoSettingsUI_->roi_enabled->setChecked(settings_.value(SettingsKey::roiEnabled).toBool());
 
