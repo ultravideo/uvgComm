@@ -14,8 +14,6 @@
 #include <opencv2/imgcodecs.hpp>
 #endif
 
-
-
 #ifdef max
 #undef max
 #endif
@@ -30,10 +28,8 @@
 ROIYoloFilter::ROIYoloFilter(QString id, StatisticsInterface *stats, std::shared_ptr<ResourceAllocator> hwResources,
                      bool cuda, VideoInterface* roiInterface)
   : Filter(id, "RoI", stats, hwResources, DT_YUV420VIDEO, DT_YUV420VIDEO),
-    inputSize_(-1),
-    inputName_(),
-    minimum_(false),
-    outputName_(),
+    prevInputDiscarded_(0),
+    skipInput_(1),
     minBbSize_{0, 0},
     drawBbox_(false),
     minRelativeBbSize_(0),
@@ -45,21 +41,43 @@ ROIYoloFilter::ROIYoloFilter(QString id, StatisticsInterface *stats, std::shared
     faceDetection_(false)
 {}
 
-ROIYoloFilter::~ROIYoloFilter()
-{
 
-}
+ROIYoloFilter::~ROIYoloFilter()
+{}
+
 
 void ROIYoloFilter::updateSettings()
 {
-  QSettings settings(settingsFile, settingsFileFormat);
-
   Logger::getLogger()->printNormal(this, "Updating RoI filter settings");
   QMutexLocker lock(&settingsMutex_);
+  prevInputDiscarded_ = 0;
+  skipInput_ = 1;
+
   init();
   Filter::updateSettings();
-  Logger::getLogger()->printNormal(this, "RoI filter settings updated");
 }
+
+
+bool ROIYoloFilter::init()
+{
+  QSettings settings(settingsFile, settingsFileFormat);
+
+  roiSettings_.roiQP = settings.value(SettingsKey::roiQp).toInt();
+  roiSettings_.backgroundQP = settings.value(SettingsKey::backgroundQp).toInt();
+  roiSettings_.qp = settings.value(SettingsKey::videoQP).toInt();
+  QString newModelQstr = settings.value(SettingsKey::roiDetectorModel).toString();
+
+  roiEnabled_ = settingValue(SettingsKey::roiEnabled) && !newModelQstr.isEmpty();
+  int threads = settings.value(SettingsKey::roiMaxThreads).toInt();
+  if (roiEnabled_)
+  {
+    roiEnabled_ = initYolo(threads, newModelQstr);
+    return roiEnabled_;
+  }
+
+  return true;
+}
+
 
 void ROIYoloFilter::process()
 {
@@ -80,7 +98,7 @@ void ROIYoloFilter::process()
       if(frameCount_ % skipInput_ == 0)
       {
         // run onnx yolo face detection
-        std::vector<Detection> detections = onnx_detection(input.get());
+        std::vector<Detection> detections = yolo_detection(input.get());
 
         // find detection with largest bounding box
         Rect largest_bbox = find_largest_bbox(detections);
@@ -155,122 +173,107 @@ void ROIYoloFilter::process()
 }
 
 
-bool ROIYoloFilter::init()
+bool ROIYoloFilter::initYolo(int threads, QString newModelQstr)
 {
-  bool isOk = true;
-  prevInputDiscarded_ = 0;
-  skipInput_ = 1;
-  QSettings settings(settingsFile, settingsFileFormat);
-  QString newModelQstr = settings.value(SettingsKey::roiDetectorModel).toString();
-  roiEnabled_ = settingValue(SettingsKey::roiEnabled) && !newModelQstr.isEmpty();
-
-  if (!roiEnabled_)
-  {
-    return true;
-  }
-
 #ifdef _WIN32
   std::wstring newModelPath = newModelQstr.toStdWString();
 #else
-  std::string newModel = newModelQstr.toStdString();
+  std::string newModelPath = newModelQstr.toStdString();
 #endif
-  kernelType_ = settings.value(SettingsKey::roiKernelType).toString().toStdString();
-  kernelSize_ = settings.value(SettingsKey::roiKernelSize).toInt();
-  int threads = settings.value(SettingsKey::roiMaxThreads).toInt();
 
 #ifdef KVAZZUP_HAVE_OPENCV
-  if(kernelType_ == "Gaussian"){
-    roiFilter_.kernel = cv::getGaussianKernel(kernelSize_, 1.0);
-  } else {
-    // Default to median
-    roiFilter_.kernel = cv::Mat(kernelSize_, 1, 1.0/kernelSize_);
-  }
+    kernelSize_ = settings.value(SettingsKey::roiKernelSize).toInt();
+    kernelType_ = settings.value(SettingsKey::roiKernelType).toString().toStdString();
+    if (kernelType_ == "Gaussian") {
+      roiSettings_.kernel = cv::getGaussianKernel(kernelSize_, 1.0);
+    } else {
+      // Default to median
+      roiSettings_.kernel = cv::Mat(kernelSize_, 1, 1.0 / kernelSize_);
+    }
 #endif
 
-  roiSettings_.depth = settings.value(SettingsKey::roiFilterDepth).toInt();
-  roiSettings_.roiQP = settings.value(SettingsKey::roiQp).toInt();
-  roiSettings_.backgroundQP = settings.value(SettingsKey::backgroundQp).toInt();
-  roiSettings_.qp = settings.value(SettingsKey::videoQP).toInt();
+  if (newModelPath != yoloModelPath_)
+  {
+    Logger::getLogger()->printNormal(this, "Initializing Yolo model");
 
-  if(newModelPath != modelPath_){
-    modelPath_ = newModelPath;
-    try {
-      if (session_)
+      yoloModelPath_ = newModelPath;
+    try
+    {
+      if (yoloModel_.session)
       {
         // Deallocate previous strings before destroying their allocator.
-        inputName_ = std::nullopt;
-        outputName_ = std::nullopt;
+        yoloModel_.inputName = std::nullopt;
+        yoloModel_.outputName = std::nullopt;
       }
+
       Ort::SessionOptions options = get_session_options(false, threads);
-      session_ = std::make_unique<Ort::Session>(env_, modelPath_.c_str(), options);
-      allocator_ = std::make_unique<Ort::Allocator>(*session_, Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault));
-    }  catch (std::exception& e) {
+      yoloModel_.session = std::make_unique<Ort::Session>(onnxEnv_, yoloModelPath_.c_str(), options);
+      yoloModel_.allocator = std::make_unique<Ort::Allocator>(*yoloModel_.session,
+                                                        Ort::MemoryInfo::CreateCpu(OrtArenaAllocator,
+                                                                                   OrtMemTypeDefault));
+    }
+    catch (std::exception &e)
+    {
       Logger::getLogger()->printError(this, e.what());
-      isOk = false;
-      return isOk;
+      return false;
     }
 
-    size_t input_count = session_->GetInputCount();
+    size_t input_count = yoloModel_.session->GetInputCount();
     if (input_count != 1)
     {
       Logger::getLogger()->printError(this, "Expected model input count to be 1");
-      isOk = false;
+      return false;
     }
 
-    inputName_ = session_->GetInputNameAllocated(0, *allocator_);
-    inputShape_ = session_->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+    yoloModel_.inputName = yoloModel_.session->GetInputNameAllocated(0, *yoloModel_.allocator);
+    yoloModel_.inputShape = yoloModel_.session->GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
 
-    if (inputShape_.size() != 4)
+    if (yoloModel_.inputShape.size() != 4 ||
+        yoloModel_.inputShape[0] > 1 ||
+        yoloModel_.inputShape[1] != 3 ||
+        (yoloModel_.inputShape[2] == -1 || yoloModel_.inputShape[3] == -1) && yoloModel_.inputShape[2] != yoloModel_.inputShape[3])
     {
       Logger::getLogger()->printError(this, "Expected model input dimensions to be 4");
-      isOk = false;
-    }
-
-    if (inputShape_[0] > 1 || inputShape_[1] != 3)
-    {
       Logger::getLogger()->printError(this, "Expected model with input shape [-1, 3, height, width]");
-      isOk = false;
-    }
-
-    if ((inputShape_[2] == -1 || inputShape_[3] == -1) && inputShape_[2] != inputShape_[3])
-    {
       Logger::getLogger()->printError(this, "Model width or height is dynamic while the other is not");
-      isOk = false;
+      return false;
     }
 
-    outputName_ = session_->GetOutputNameAllocated(0, *allocator_);
-    outputShape_ = session_->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
-    if (outputShape_[2] == 16)
+    yoloModel_.outputName = yoloModel_.session->GetOutputNameAllocated(0, *yoloModel_.allocator);
+    yoloModel_.outputShape = yoloModel_.session->GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+
+    if (yoloModel_.outputShape[2] == 16)
     {
       //yolov5-face
       faceDetection_ = true;
-    } else if(outputShape_[2] == 85) {
+    }
+    else if (yoloModel_.outputShape[2] == 85)
+    {
       //yolov5 object
       faceDetection_ = false;
     }
-    //size_t output_count = session.GetOutputCount();
 
-    if (inputShape_[2] != -1)
+    if (yoloModel_.inputShape[2] != -1)
     {
-      Logger::getLogger()->printWarning(this,"Using model with fixed input size.\nUser provided input size ignored.\n", "Input shape", QString::number(inputShape_[3])+","+QString::number(inputShape_[2]));
-      inputSize_ = std::max(inputShape_[2], inputShape_[3]);
-      minimum_ = false;
+      Logger::getLogger()->printWarning(this, "Using model with fixed input size.\n"
+                                              "User provided input size ignored.\n",
+                                        "Input shape", QString::number(yoloModel_.inputShape[3]) + "," + QString::number(yoloModel_.inputShape[2]));
+
+      yoloModel_.inputSize = std::max(yoloModel_.inputShape[2], yoloModel_.inputShape[3]);
+      yoloModel_.minimum = false;
     }
+
+    Logger::getLogger()->printNormal(this, "Yolo model initialized");
   }
 
-  if(modelPath_.empty()){
-    isOk = false;
-  }
-
-  roiEnabled_ = isOk; // && settings.value(SettingsKey::roiEnabled).toBool();
-  return isOk;
+  return true;
 }
 
 
 void ROIYoloFilter::close()
 {
-  allocator_.reset();
-  session_.reset();
+  yoloModel_.allocator.reset();
+  yoloModel_.session.reset();
 }
 
 
@@ -283,14 +286,14 @@ void ROIYoloFilter::YUVToFloat(uint8_t* src, float* dst, size_t len)
 }
 
 
-std::vector<Detection> ROIYoloFilter::onnx_detection(const Data* input)
+std::vector<Detection> ROIYoloFilter::yolo_detection(const Data* input)
 {
   Size original_size{input->vInfo->width, input->vInfo->height};
   std::vector<float> Y_f(original_size.width*original_size.height);
   YUVToFloat(input->data.get(), Y_f.data(), original_size.width*original_size.height);
 
   const uint8_t COLOR = 114;
-  auto Y_input = scaleToLetterbox(Y_f, original_size,{inputSize_, inputSize_}, COLOR, minimum_);
+  auto Y_input = scaleToLetterbox(Y_f, original_size,{yoloModel_.inputSize, yoloModel_.inputSize}, COLOR, yoloModel_.minimum);
   size_t channel_size = Y_input.size();
 
   Y_input.resize(Y_input.size()*3);
@@ -298,28 +301,26 @@ std::vector<Detection> ROIYoloFilter::onnx_detection(const Data* input)
   std::memcpy(Y_input.data() + 2*channel_size, Y_input.data(), channel_size);
 
   const size_t SHAPE_LEN = 4;
-  int64_t shape[SHAPE_LEN] = {1, 3, inputSize_, inputSize_};
+  int64_t shape[SHAPE_LEN] = {1, 3, yoloModel_.inputSize, yoloModel_.inputSize};
   auto memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 
   auto input_tensor = Ort::Value::CreateTensor<float>(&*memory, Y_input.data(), Y_input.size(), shape, SHAPE_LEN);
 
   Ort::RunOptions options;
-  const char* input_names[] = {inputName_->get()};
-  char* output_names[]      = {outputName_->get()};
+  const char* input_names[] = {yoloModel_.inputName->get()};
+  char* output_names[]      = {yoloModel_.outputName->get()};
 
   // run the detection model
-  auto detections = session_->Run(options, input_names, &input_tensor, 1, output_names, 1);
+  auto detections = yoloModel_.session->Run(options, input_names, &input_tensor, 1, output_names, 1);
 
   auto out_shape = detections[0].GetTensorTypeAndShapeInfo().GetShape();
 
+  // remove overlapping detections
   std::vector<const float*> objects;
-
   objects = non_max_suppression_obj(detections[0], faceDetection_);
 
-  // Additional detections/tracking goes here
-
   // return scaled detections
-  return scale_coords({inputSize_, inputSize_}, objects, original_size);
+  return scale_coords({yoloModel_.inputSize, yoloModel_.inputSize}, objects, original_size);
 }
 
 
@@ -371,14 +372,14 @@ std::vector<float> ROIYoloFilter::scaleToLetterbox(const std::vector<float>& img
   double ddh = (double)dh / 2.0; // divide padding into 2 sides
   double ddw = (double)dw / 2.0;
   int top = int(std::round(ddh - 0.1));
-  int bottom = int(std::round(ddh + 0.1));
   int left = int(std::round(ddw - 0.1));
-  int right = int(std::round(ddw + 0.1));
 
 #ifdef KVAZZUP_HAVE_OPENCV
+  int bottom = int(std::round(ddh + 0.1));
+  int right = int(std::round(ddw + 0.1));
   cv::Mat scaled;
 #else
-  std::vector<float> scaled_img((dw+new_unpad.width)*(dh+new_unpad.height), color/255.0f);
+  std::vector<float> scaled_img((dw + new_unpad.width)*(dh + new_unpad.height), color/255.0f);
 #endif
 
   if (original_shape.width != new_unpad.width && original_shape.height != new_unpad.height) // resize
@@ -392,8 +393,8 @@ std::vector<float> ROIYoloFilter::scaleToLetterbox(const std::vector<float>& img
     for(int y = top; y < new_unpad.height+top; y++) {
       for(int x = left; x < new_unpad.width+left; x++) {
         int old_x = std::floor(x*fx),
-            old_y = std::floor((y-top)*fy);
-        scaled_img[y*(new_unpad.width+dw)+x] = img[old_y*original_shape.width+old_x];
+            old_y = std::floor((y - top)*fy);
+        scaled_img[y*(new_unpad.width + dw)+x] = img[old_y*original_shape.width + old_x];
       }
     }
 #endif
@@ -424,7 +425,6 @@ std::vector<const float*> ROIYoloFilter::non_max_suppression_obj(
     assert(prediction.IsTensor());
 
     auto shape = prediction.GetTensorTypeAndShapeInfo().GetShape();
-    assert(shape.size() == 3 && shape[0] == 1 && shape[2] == 85);
 
     const float *tensorData = prediction.GetTensorData<float>();
     int64_t row_size = shape[2];
@@ -633,29 +633,6 @@ Rect ROIYoloFilter::enlarge_bb(Detection face)
   ret.y -= addition;
   ret.height += 2 * addition;
 
-  //enlarge bounding box from a side using face direction
-  double box_hor_centre = face.bbox.x + face.bbox.width / 2.0;
-  double landm_hor_centre = 0.0;
-  for (auto point : face.landmarks)
-  {
-    landm_hor_centre += point.x;
-  }
-  landm_hor_centre /= 5.0;
-
-  double hor_offset = landm_hor_centre - box_hor_centre;
-  //increase box size on the opposite size
-  double bb_side_enlargement = 1.0;
-  /* Doesn't work with object detector. No landmarks
-  if (hor_offset < 0)
-  {
-    ret.width += hor_offset * bb_side_enlargement;
-  }
-  else
-  {
-    ret.x -= hor_offset * bb_side_enlargement;
-    ret.width += hor_offset * bb_side_enlargement;
-  }
-  */
   return ret;
 }
 

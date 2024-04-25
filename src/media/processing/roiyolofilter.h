@@ -22,7 +22,6 @@ struct Roi {
 };
 
 struct RoiSettings {
-  int depth = 1;
   int width = 0;
   int height = 0;
   int backgroundQP = 0;
@@ -54,10 +53,12 @@ protected:
 
 private:
 
+  bool initYolo(int threads, QString newModelQstr);
+
   void close();
 
   void YUVToFloat(uint8_t* src, float* dst, size_t len);
-  std::vector<Detection> onnx_detection(const Data* input);
+  std::vector<Detection> yolo_detection(const Data* input);
 
   Rect find_largest_bbox(std::vector<Detection> &detections);
   std::vector<float> scaleToLetterbox(const std::vector<float>& img, Size original_shape, Size new_shape, uint8_t color = 114,
@@ -81,26 +82,30 @@ private:
   unsigned int skipInput_;
 
 #ifdef _WIN32
-  std::wstring modelPath_;
+  std::wstring yoloModelPath_;
 #else
-  std::string model_;
+  std::string modelPath_;
 #endif
-  std::string kernelType_;
-  int kernelSize_;
-  int filterDepth_;
 
-  Ort::Env env_;
-  std::unique_ptr<Ort::Session> session_;
-  std::unique_ptr<Ort::Allocator> allocator_;
+  struct ModelData
+  {
+    std::string modelPath = "";
+    std::unique_ptr<Ort::Session> session = nullptr;
+    std::unique_ptr<Ort::Allocator> allocator = nullptr;
 
-  std::optional<Ort::AllocatedStringPtr> inputName_;
-  std::vector<int64_t> inputShape_;
-  int inputSize_;
-  bool minimum_;
+    int inputSize = -1;
 
-  std::optional<Ort::AllocatedStringPtr> outputName_;
-  std::vector<int64_t> outputShape_;
+    std::optional<Ort::AllocatedStringPtr> inputName;
+    std::vector<int64_t> inputShape;
+    std::optional<Ort::AllocatedStringPtr> outputName;
+    std::vector<int64_t> outputShape;
 
+    bool minimum = false;
+  };
+
+  Ort::Env onnxEnv_;
+
+  ModelData yoloModel_;
 
   Size minBbSize_;
   bool drawBbox_;
@@ -108,6 +113,8 @@ private:
   bool faceDetection_;
 
 #ifdef KVAZZUP_HAVE_OPENCV
+  std::string kernelType_;
+  int kernelSize_;
   cv::Mat filterKernel_;
 #endif
 
@@ -116,8 +123,6 @@ private:
   int frameCount_;
   Roi roi_;
   RoiSettings roiSettings_;
-
-
 
   QMutex settingsMutex_;
   VideoInterface* roiSurface_;
