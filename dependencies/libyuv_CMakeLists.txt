@@ -28,7 +28,7 @@ ADD_LIBRARY				( ${ly_lib_static} STATIC ${ly_source_files} )
 INCLUDE ( FindJPEG )
 if (JPEG_FOUND)
   include_directories( ${JPEG_INCLUDE_DIR} )
-  target_link_libraries( yuvconvert ${JPEG_LIBRARY} )
+  # target_link_libraries( yuvconvert ${JPEG_LIBRARY} )
   add_definitions( -DHAVE_JPEG )
 endif()
 
