@@ -46,6 +46,8 @@ bool sameCandidate(std::shared_ptr<ICEInfo> firstCandidate,
 
 void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates);
 
+uint64_t msecToNTP(int64_t msec);
+int64_t NTPToMsec(uint64_t ntp);
 
 // helper functions that get either actual address/port or
 // relay address/port if needed

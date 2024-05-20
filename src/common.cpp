@@ -261,6 +261,30 @@ void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates
 }
 
 
+uint32_t const EPOCH_NTP_DIFFERENCE = 2208988800;
+
+
+uint64_t msecToNTP(int64_t msec)
+{
+  uint64_t msw = msec/1000 + EPOCH_NTP_DIFFERENCE;
+  double modulo_msecs = msec%1000;
+  uint32_t lsw = (modulo_msecs/1000)*UINT32_MAX;
+
+  return (msw << 32 | lsw);
+}
+
+
+int64_t NTPToMsec(uint64_t ntp)
+{
+  uint64_t msw = ntp >> 32; // seconds
+  uint32_t lsw = ntp & 0xffffffff; // partial seconds
+
+  uint32_t msw_ms = msw*1000 - EPOCH_NTP_DIFFERENCE;
+  uint32_t lsw_ms = double(1/lsw)*1000;
+
+  return msw_ms + lsw_ms;
+}
+
 
 QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info)
 {
