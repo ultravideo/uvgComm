@@ -3,7 +3,6 @@
 #include "ui_statisticswindow.h"
 #include "icetypes.h"
 
-#include "common.h"
 #include "logger.h"
 
 #include <QCloseEvent>
@@ -54,6 +53,10 @@ StatisticsInterface(),
   videoEncDelay_(BUFFERSIZE,nullptr),
   audioEncDelayIndex_(0),
   audioEncDelay_(BUFFERSIZE,nullptr),
+  videoDecDelayIndex_(0),
+  videoDecDelay_(BUFFERSIZE,nullptr),
+  audioDecDelayIndex_(0),
+  audioDecDelay_(BUFFERSIZE,nullptr),
   guiTimer_(),
   guiUpdates_(0),
   lastTabIndex_(254) // an invalid value so we will update the tab immediately
@@ -85,13 +88,16 @@ StatisticsInterface(),
   ui_->a_delay_chart->init(    10, 5, false, CHARTVALUES, "Latencies (ms)");
   ui_->v_framerate_chart->init(30, 5, false, CHARTVALUES, "Frame rates (fps)");
 
-  chartVideoID_ = ui_->v_bitrate_chart->addLine("Outgoing");
-  chartAudioID_ = ui_->a_bitrate_chart->addLine("Outgoing");
+  chartVideoID_ = ui_->v_bitrate_chart->addLine("Encoding");
+  chartAudioID_ = ui_->a_bitrate_chart->addLine("Encoding");
 
-  ui_->v_delay_chart->addLine("Outgoing");
-  ui_->a_delay_chart->addLine("Outgoing");
+  ui_->v_delay_chart->addLine("Encoding");
+  ui_->a_delay_chart->addLine("Encoding");
 
-  ui_->v_framerate_chart->addLine("Outgoing");
+  chartVideoDecID_ = ui_->v_delay_chart->addLine("Decoding");
+  chartAudioDecID_ = ui_->a_delay_chart->addLine("Decoding");
+
+  ui_->v_framerate_chart->addLine("Encoding");
 
   // init headers of call parameter table
   fillTableHeaders(ui_->table_outgoing, sessionMutex_,
@@ -185,20 +191,22 @@ void StatisticsWindow::addSession(uint32_t sessionID)
                           0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
                           0, std::vector<ValueInfo*>(BUFFERSIZE, nullptr),
                           0,0, 0,0, // jitter and lost
-                          -1, -1, {}};
+                          -1, -1, -1, {}};
 }
 
 
 void StatisticsWindow::incomingMedia(uint32_t sessionID, QString name)
 {
-  int lineID = ui_->v_delay_chart->addLine(name);
+  int delayID = ui_->v_delay_chart->addLine(name);
   ui_->a_delay_chart->addLine(name);
-  ui_->v_bitrate_chart->addLine(name);
+
+  int perfID= ui_->v_bitrate_chart->addLine(name);
   ui_->a_bitrate_chart->addLine(name);
   ui_->v_framerate_chart->addLine(name);
 
   sessionMutex_.lock();
-  sessions_[sessionID].performanceGraphIndex = lineID;
+  sessions_[sessionID].delayGraphIndex = delayID;
+  sessions_[sessionID].performanceGraphIndex = perfID;
   sessionMutex_.unlock();
 }
 
@@ -367,8 +375,8 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
   // after removal
   ui_->v_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
   ui_->a_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
-  ui_->v_delay_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
-  ui_->a_delay_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+  ui_->v_delay_chart->removeLine(sessions_[sessionID].delayGraphIndex);
+  ui_->a_delay_chart->removeLine(sessions_[sessionID].delayGraphIndex);
   ui_->v_framerate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
 
   // these do not have local so -1 is needed
@@ -401,7 +409,7 @@ void StatisticsWindow::updatePerformanceIndexes(int removedIndex)
 }
 
 
-void StatisticsWindow::sendDelay(QString type, uint32_t delay)
+void StatisticsWindow::encodingDelay(QString type, uint32_t delay)
 {
   if(type == "video" || type == "Video")
   {
@@ -416,7 +424,22 @@ void StatisticsWindow::sendDelay(QString type, uint32_t delay)
 }
 
 
-void StatisticsWindow::receiveDelay(uint32_t sessionID, QString type, int32_t delay)
+void StatisticsWindow::decodingDelay(QString type, uint32_t delay)
+{
+  if(type == "video" || type == "Video")
+  {
+    updateValueBuffer(videoDecDelay_,
+                      videoDecDelayIndex_, delay);
+  }
+  else if(type == "audio" || type == "Audio")
+  {
+    updateValueBuffer(audioDecDelay_,
+                      audioDecDelayIndex_, delay);
+  }
+}
+
+
+void StatisticsWindow::totalDelay(uint32_t sessionID, QString type, int32_t delay)
 {
   if(sessions_.find(sessionID) != sessions_.end())
   {
@@ -768,6 +791,12 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         ui_->a_delay_chart->addPoint(chartAudioID_, audioEncoderDelay);
         ui_->v_framerate_chart->addPoint(chartVideoID_, videoFramerate);
 
+        uint32_t videoDecoderDelay = calculateAverage(videoDecDelay_, videoDecDelayIndex_, interval, false);
+        uint32_t audioDecoderDelay = calculateAverage(audioDecDelay_, audioDecDelayIndex_, interval, false);
+
+        ui_->v_delay_chart->addPoint(chartVideoDecID_, videoDecoderDelay);
+        ui_->a_delay_chart->addPoint(chartAudioDecID_, audioDecoderDelay);
+
         // add points for all existing sessions
         for(auto& d : sessions_)
         {
@@ -791,8 +820,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
           ui_->v_bitrate_chart->addPoint(d.second.performanceGraphIndex, videoBitrate);
           ui_->a_bitrate_chart->addPoint(d.second.performanceGraphIndex, audioBitrate);
-          ui_->v_delay_chart->addPoint(d.second.performanceGraphIndex, videoDelay);
-          ui_->a_delay_chart->addPoint(d.second.performanceGraphIndex, audioDelay);
+          ui_->v_delay_chart->addPoint(d.second.delayGraphIndex, videoDelay);
+          ui_->a_delay_chart->addPoint(d.second.delayGraphIndex, audioDelay);
           ui_->v_framerate_chart->addPoint(d.second.performanceGraphIndex, presentationVideoFramerate);
 
           sessionMutex_.unlock();

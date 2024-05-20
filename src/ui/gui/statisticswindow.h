@@ -44,8 +44,9 @@ public:
 
   virtual void selectedICEPair(uint32_t sessionID, std::shared_ptr<ICEPair> pair);
 
-  virtual void sendDelay(QString type, uint32_t delay);
-  virtual void receiveDelay(uint32_t sessionID, QString type, int32_t delay);
+  virtual void encodingDelay(QString type, uint32_t delay);
+  virtual void decodingDelay(QString type, uint32_t delay);
+  virtual void totalDelay(uint32_t sessionID, QString type, int32_t delay);
   virtual void presentPackage(uint32_t sessionID, QString type);
   virtual void addEncodedPacket(QString type, uint32_t size);
 
@@ -101,8 +102,6 @@ private:
   uint32_t calculateAverage(std::vector<ValueInfo*>& packets, uint32_t index,
                             int64_t interval, bool kbitConversion);
 
-
-
   void updateValueBuffer(std::vector<ValueInfo*>& packets,
                          uint32_t& index, uint32_t value);
 
@@ -157,6 +156,7 @@ private:
     int32_t audioLost;
 
     int deliveryGraphIndex;
+    int delayGraphIndex;
     int performanceGraphIndex;
 
     std::vector<int> iceIndexes;
@@ -208,11 +208,17 @@ private:
 
   uint64_t packetsDropped_;
 
+  // encoder latencies
   uint32_t videoEncDelayIndex_;
   std::vector<ValueInfo*> videoEncDelay_;
   uint32_t audioEncDelayIndex_;
   std::vector<ValueInfo*> audioEncDelay_;
 
+  // decoder latencies
+  uint32_t videoDecDelayIndex_;
+  std::vector<ValueInfo*> videoDecDelay_;
+  uint32_t audioDecDelayIndex_;
+  std::vector<ValueInfo*> audioDecDelay_;
 
   // a timer for reducing number of gui updates and making it more readable
   QElapsedTimer guiTimer_;
@@ -223,4 +229,7 @@ private:
 
   int chartVideoID_;
   int chartAudioID_;
+
+  int chartVideoDecID_;
+  int chartAudioDecID_;
 };

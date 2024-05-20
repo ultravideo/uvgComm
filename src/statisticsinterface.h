@@ -37,18 +37,19 @@ public:
   virtual void selectedICEPair(uint32_t sessionID, std::shared_ptr<ICEPair> pair) = 0;
 
   // the delay it takes from input to the point when input is encoded
-  virtual void sendDelay(QString type, uint32_t delay) = 0;
+  virtual void encodingDelay(QString type, uint32_t delay) = 0;
+
+  // the delay it takes from receiving the packet to the point when media presented
+  virtual void decodingDelay(QString type, uint32_t delay) = 0;
 
   // the delay until the presentation of the packet
-  virtual void receiveDelay(uint32_t sessionID, QString type, int32_t delay) = 0;
+  virtual void totalDelay(uint32_t sessionID, QString type, int32_t delay) = 0;
 
   // one packet has been presented to user
   virtual void presentPackage(uint32_t sessionID, QString type) = 0;
 
   // For tracking of encoding bitrate and possibly other information.
   virtual void addEncodedPacket(QString type, uint32_t size) = 0;
-
-
 
   // DELIVERY
   // Tracking of sent packets
