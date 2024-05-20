@@ -27,7 +27,7 @@ On Linux, Kvazzup offers both detection of installed packages as well as install
 | libyuv   |     Yes       |  Not compatible   | 
 | Crypto++ |     Yes       |        Often      | 
 
-At the time of testing, pre-installed libyuv package cannot be found with either of used methods because the package does not contain either file used for detection.
+At the time of testing, pre-installed libyuv package cannot be detected because the package does not contain either file used for detection.
 
 **Required packages**
 
@@ -36,6 +36,8 @@ On linux you must install the following packages to build kvazzup:
 ```
 apt install cmake qt6-base-dev libqt6svg6-dev qt6-multimedia-dev libspeexdsp-dev libomp-dev
 ```
+
+Also make sure that you have OpenGL installed as Qt cannot be used without it.
 
 **Recommended packages**
 
