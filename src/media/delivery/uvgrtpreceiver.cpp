@@ -113,9 +113,9 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 
   if (!received_picture)
     return;
-
-  // TODO: Get this info from RTP
-  received_picture->presentationTime = QDateTime::currentMSecsSinceEpoch();
+  
+  received_picture->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+  received_picture->presentationTimestamp = received_picture->creationTimestamp;
 
   // check if the uvgRTP added start code and if not, add it ourselves
   if (output_ == DT_HEVCVIDEO &&
@@ -148,8 +148,15 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   (void)uvg_rtp::frame::dealloc_frame(frame);
   sendOutput(std::move(received_picture));
 }
+
+
 void UvgRTPReceiver::processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr)
 {
+  //TODO: Record the newest NTP and RTP timestamps from sender report
+
+  //uint64_t msw = sr->sender_info.ntp_msw;
+  //uint64_t ntp = msw << 32 | sr->sender_info.ntp_lsw;
+
   uint32_t ourSSRC = mstream_->get_ssrc();
 
   for (auto& block : sr->report_blocks)

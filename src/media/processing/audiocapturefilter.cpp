@@ -212,7 +212,8 @@ void AudioCaptureFilter::readMore()
       std::unique_ptr<Data> audioFrame = initializeData(DT_RAWAUDIO, DS_LOCAL);
 
       // create audio data packet to be sent to filter graph
-      audioFrame->presentationTime = QDateTime::currentMSecsSinceEpoch();
+      audioFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+      audioFrame->presentationTimestamp = audioFrame->creationTimestamp;
 
       audioFrame->data_size = buffer_->getDesiredSize();
       audioFrame->data = std::unique_ptr<uint8_t[]>(frame);

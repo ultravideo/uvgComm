@@ -143,7 +143,7 @@ void OpenHEVCFilter::process()
       }
 
       int gotPicture = libOpenHevcDecode(handle_, input->data.get(),
-                                         input->data_size, input->presentationTime);
+                                         input->data_size, input->presentationTimestamp);
 
       // only VCL frames result in output from decoder (at least I think so)
       if (vcl)

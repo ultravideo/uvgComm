@@ -98,7 +98,8 @@ void ScreenShareFilter::process()
 
   // capture the frame data
   std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
-  newImage->presentationTime = QDateTime::currentMSecsSinceEpoch();
+  newImage->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+  newImage->presentationTimestamp = newImage->creationTimestamp;
   newImage->data = std::unique_ptr<uchar[]>(new uchar[image.sizeInBytes()]);
 
   image = image.mirrored(false, true);

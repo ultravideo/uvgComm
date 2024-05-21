@@ -107,10 +107,10 @@ void DisplayFilter::process()
         }
       }
 
-      int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->presentationTime;
 
       if( sessionID_ != 1111)
       {
+        int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->creationTimestamp;
         getStats()->decodingDelay("Video", delay);
         //getStats()->totalDelay(sessionID_, "Video", delay);
       }
@@ -148,8 +148,8 @@ std::unique_ptr<Data> DisplayFilter::deliverFrame(VideoInterface* screen,
         input->vInfo->width,
         input->vInfo->height,
         format);
-
-  screen->inputImage(std::move(input->data), image, input->presentationTime);
+  
+  screen->inputImage(std::move(input->data), image, input->presentationTimestamp);
 
   if (useCopy)
   {

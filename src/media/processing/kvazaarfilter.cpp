@@ -474,8 +474,8 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   }
   api_->chunk_free(data_out);
   api_->picture_free(recon_pic);
-
-  uint32_t delay = QDateTime::currentMSecsSinceEpoch() - info.data->presentationTime;
+  
+  uint32_t delay = QDateTime::currentMSecsSinceEpoch() - info.data->creationTimestamp;
   getStats()->encodingDelay("video", delay);
   getStats()->addEncodedPacket("video", len_out);
 

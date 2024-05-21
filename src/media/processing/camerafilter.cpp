@@ -377,7 +377,9 @@ void CameraFilter::process()
 
     // capture the frame data
     std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
-    newImage->presentationTime = QDateTime::currentMSecsSinceEpoch();
+    newImage->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+    newImage->presentationTimestamp = newImage->creationTimestamp;
+
     newImage->type = output_;
 
     QVideoFrame cloneFrame(frame);

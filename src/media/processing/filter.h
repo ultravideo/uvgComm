@@ -82,7 +82,11 @@ struct Data
   std::unique_ptr<uchar[]> data = nullptr;
   uint32_t data_size = 0;
 
-  int64_t presentationTime = -1;
+  // indicate the moment of creation for this sample for latency calculations
+  int64_t creationTimestamp = -1;
+
+  // indicate the intended presentation timestamp
+  int64_t presentationTimestamp = -1;
 
   std::unique_ptr<VideoInfo> vInfo = nullptr;
   std::unique_ptr<AudioInfo> aInfo = nullptr;
