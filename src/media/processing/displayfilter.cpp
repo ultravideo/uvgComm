@@ -111,8 +111,8 @@ void DisplayFilter::process()
       if( sessionID_ != 1111)
       {
         int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->creationTimestamp;
-        getStats()->decodingDelay("Video", delay);
-        //getStats()->totalDelay(sessionID_, "Video", delay);
+        //getStats()->decodingDelay("Video", delay);
+        getStats()->totalDelay(sessionID_, "Video", delay);
       }
     }
 

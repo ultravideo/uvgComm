@@ -94,8 +94,8 @@ StatisticsInterface(),
   ui_->v_delay_chart->addLine("Encoding");
   ui_->a_delay_chart->addLine("Encoding");
 
-  chartVideoDecID_ = ui_->v_delay_chart->addLine("Decoding");
-  chartAudioDecID_ = ui_->a_delay_chart->addLine("Decoding");
+  //chartVideoDecID_ = ui_->v_delay_chart->addLine("Decoding");
+  //chartAudioDecID_ = ui_->a_delay_chart->addLine("Decoding");
 
   ui_->v_framerate_chart->addLine("Encoding");
 
@@ -791,11 +791,12 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
         ui_->a_delay_chart->addPoint(chartAudioID_, audioEncoderDelay);
         ui_->v_framerate_chart->addPoint(chartVideoID_, videoFramerate);
 
+        /* Decoding delay, can be enabled when the values are fixed
         uint32_t videoDecoderDelay = calculateAverage(videoDecDelay_, videoDecDelayIndex_, interval, false);
         uint32_t audioDecoderDelay = calculateAverage(audioDecDelay_, audioDecDelayIndex_, interval, false);
-
         ui_->v_delay_chart->addPoint(chartVideoDecID_, videoDecoderDelay);
         ui_->a_delay_chart->addPoint(chartAudioDecID_, audioDecoderDelay);
+        */
 
         // add points for all existing sessions
         for(auto& d : sessions_)
