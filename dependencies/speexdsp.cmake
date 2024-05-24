@@ -19,6 +19,8 @@ if (NOT SPEEXDSP_FOUND)
 
         file(GLOB SPEEXDSP_LIB "${libspeexdsp_SOURCE_DIR}/libspeexdsp.*")
 
+        file(COPY ${SPEEXDSP_LIB} DESTINATION ${CMAKE_BINARY_DIR})
+
         # install libspeexdsp dll with Kvazzup install
         install(FILES ${SPEEXDSP_LIB} DESTINATION ${CMAKE_INSTALL_BINDIR})
     else()

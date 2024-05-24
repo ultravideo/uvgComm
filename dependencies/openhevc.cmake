@@ -43,6 +43,7 @@ if (NOT OPENHEVC_FOUND)
 
         file(GLOB OPENHEVC_LIB "${libopenhevcwrapper_SOURCE_DIR}/LibOpenHevcWrapper.*")
         list(APPEND OPENHEVC_LIB ${libopenhevcwrapper_SOURCE_DIR}/pthreadVC2.dll)
+        file(COPY ${OPENHEVC_LIB} DESTINATION ${CMAKE_BINARY_DIR})
 
         # Install openhevc dll with Kvazzup install
         install(FILES ${OPENHEVC_LIB} DESTINATION ${CMAKE_INSTALL_BINDIR})
