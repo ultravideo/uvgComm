@@ -137,7 +137,11 @@ SIPConfig KvazzupController::createSIPConfig()
           5060,
           settingEnabled(SettingsKey::sipP2PConferencing),
           (uint16_t)settingValue(SettingsKey::sipMediaPort),
+#ifdef KVAZZUP_NO_RTP_MULTIPLEXING
           settingEnabled(SettingsKey::sipICEEnabled),
+#else
+        false,
+#endif
           settingEnabled(SettingsKey::privateAddresses),
           settingEnabled(SettingsKey::sipSTUNEnabled),
           settingString(SettingsKey::sipSTUNAddress),
