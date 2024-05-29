@@ -8,16 +8,18 @@
 #include "logger.h"
 
 #include <QSettings>
+#include <QtConcurrent>
+#include <QFuture>
 
 #include <functional>
 
 UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
                            std::shared_ptr<ResourceAllocator> hwResources,
                            DataType type, QString media,
-                           QFuture<uvg_rtp::media_stream *> mstream,
+                           uvg_rtp::media_stream* mstream,
                            uint32_t localSSRC, uint32_t remoteSSRC):
   Filter(id, "RTP Sender " + media, stats, hwResources, type, DT_NONE, false),
-  mstream_(nullptr),
+  mstream_(mstream),
   sessionID_(sessionID),
   rtpFlags_(RTP_NO_FLAGS),
   framerateNumerator_(0),
@@ -25,35 +27,40 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *
   localSSRC_(localSSRC),
   remoteSSRC_(remoteSSRC)
 {
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initializing uvgRTP sender",
+                                  {"LocalSSRC", "Remote SSRC", "Sender type"},
+                                  {QString::number(localSSRC_),
+                                   QString::number(remoteSSRC_),
+                                   datatypeToString(input_)});
+
   UvgRTPSender::updateSettings();
 
-  connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
-          [this]()
-          {
-            mstream_ = watcher_.result(); // TODO: This can crash in sending
-            if (!mstream_)
-            {
-              emit zrtpFailure(sessionID_);
-            }
-            else if (dataFormat_ == RTP_FORMAT_H264 ||
-                     dataFormat_ == RTP_FORMAT_H265 ||
-                     dataFormat_ == RTP_FORMAT_H266)
-            {
-              mstream_->configure_ctx(RCC_FPS_NUMERATOR, framerateNumerator_);
-              mstream_->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
+  if (localSSRC_ != 0)
+  {
+    mstream_->configure_ctx(RCC_SSRC, localSSRC_);
+  }
+  if (remoteSSRC_ != 0)
+  {
+    mstream_->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC_);
+  }
 
-              if (localSSRC_ != 0)
-              {
-                mstream_->configure_ctx(RCC_SSRC, localSSRC_);
-              }
-              if (remoteSSRC_ != 0)
-              {
-                mstream_->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC_);
-              }
-            }
-          });
+  if (dataFormat_ == RTP_FORMAT_H264 ||
+      dataFormat_ == RTP_FORMAT_H265 ||
+      dataFormat_ == RTP_FORMAT_H266)
+  {
+    mstream_->configure_ctx(RCC_FPS_NUMERATOR, framerateNumerator_);
+    mstream_->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
+  }
 
-  watcher_.setFuture(mstream);
+  if (settingEnabled(SettingsKey::sipSRTP))
+  {
+    futureRes_ =
+        QtConcurrent::run([=](uvg_rtp::media_stream *ms)
+                          {
+                            return ms->start_zrtp();
+                          },
+                          mstream_);
+  }
 }
 
 
@@ -90,6 +97,12 @@ void UvgRTPSender::process()
 {
   if (!mstream_)
     return;
+
+  if (futureRes_.isRunning())
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Waiting for ZRTP to finish");
+    return;
+  }
 
   rtp_error_t ret = RTP_OK;
   std::unique_ptr<Data> input = getInput();

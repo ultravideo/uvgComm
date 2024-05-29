@@ -64,7 +64,7 @@ private:
 
   struct MediaStream
   {
-    QFuture<uvg_rtp::media_stream *> stream;
+    uvg_rtp::media_stream* stream;
 
     std::shared_ptr<UvgRTPSender> sender;
     std::shared_ptr<UvgRTPReceiver> receiver;

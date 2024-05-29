@@ -9,8 +9,7 @@
 #include <QtEndian>
 #include <QHostInfo>
 #include <QCoreApplication>
-#include <QtConcurrent>
-#include <QFuture>
+
 #include <uvgrtp/lib.hh>
 
 #include <iostream>
@@ -325,7 +324,9 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
 
     // enable srtp + zrtp
     flags |= RCE_SRTP;
-    flags |= RCE_SRTP_KMNGMNT_ZRTP;
+
+    // zrtp will always be performed explicitly
+    //flags |= RCE_SRTP_KMNGMNT_ZRTP;
 
     if (!dhSelected)
     {
@@ -341,13 +342,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
     Logger::getLogger()->printWarning(this, "No media encryption");
   }
 
-  QFuture<uvg_rtp::media_stream *> futureRes =
-    QtConcurrent::run([=](uvg_rtp::session *session, uint16_t local, uint16_t peer,
-          rtp_format_t fmt, int flags)
-    {
-        return session->create_stream(local, peer, fmt, flags);
-    },
-    session.session, localPort, peerPort, fmt, flags);
+  uvg_rtp::media_stream* stream = session.session->create_stream(localPort, peerPort, fmt, flags);
 
   // check if there already exists a media session and overwrite
   if (session.streams.find(id) != session.streams.end() &&
@@ -360,7 +355,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
 
   // actually create the mediastream
   session.streams[id] = new MediaStream;
-  session.streams[id]->stream = futureRes;
+  session.streams[id]->stream = stream;
 
   return true;
 }
@@ -370,7 +365,7 @@ void Delivery::removeMediaStream(uint32_t sessionID, DeliverySession &session, M
 {
   Logger::getLogger()->printNormal(this, "Removing mediastream");
 
-  session.session->destroy_stream(session.streams[id]->stream.result());
+  session.session->destroy_stream(session.streams[id]->stream);
   delete session.streams[id];
   session.streams[id] = nullptr;
   session.streams.erase(id);

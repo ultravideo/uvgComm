@@ -3,9 +3,10 @@
 #include "statisticsinterface.h"
 #include "src/media/resourceallocator.h"
 
-#include "common.h"
 #include "logger.h"
 
+#include <QtConcurrent>
+#include <QFuture>
 #include <QDateTime>
 #include <QDebug>
 
@@ -25,51 +26,27 @@ static void __receiveHook(void *arg, uvg_rtp::frame::rtp_frame *frame)
 
 UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterface *stats,
                                std::shared_ptr<ResourceAllocator> hwResources,
-                               DataType type, QString media, QFuture<uvg_rtp::media_stream *> stream,
+                               DataType type, QString media, uvg_rtp::media_stream* stream,
                                uint32_t localSSRC, uint32_t remoteSSRC):
   Filter(id, "RTP Receiver " + media, stats, hwResources, DT_NONE, type),
   discardUntilIntra_(false),
   lastSeq_(0),
   sessionID_(sessionID),
-  watcher_(),
-  mstream_(nullptr),
+  mstream_(stream),
   localSSRC_(localSSRC),
   remoteSSRC_(remoteSSRC)
 {
-  connect(&watcher_, &QFutureWatcher<uvg_rtp::media_stream *>::finished,
-          [this]()
-          {
-            mstream_ = watcher_.result();
-            if (!mstream_)
-            {
-              emit zrtpFailure(sessionID_);
-            }
-            else
-            {
-              Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initializing uvgRTP receiver",
-                                              {"LocalSSRC", "Remote SSRC", "Receiver type"},
-                                              {QString::number(localSSRC_),
-                                               QString::number(remoteSSRC_),
-                                               datatypeToString(output_)});
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initializing uvgRTP receiver",
+                                  {"LocalSSRC", "Remote SSRC", "Receiver type"},
+                                  {QString::number(localSSRC_),
+                                   QString::number(remoteSSRC_),
+                                   datatypeToString(output_)});
 
-              if (localSSRC_ != 0)
-              {
-                mstream_->configure_ctx(RCC_SSRC, localSSRC_);
-              }
-
-              if (remoteSSRC_ != 0)
-              {
-                mstream_->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC_);
-              }
-
-              mstream_->install_receive_hook(this, __receiveHook);
-              mstream_->get_rtcp()->install_sender_hook(std::bind(&UvgRTPReceiver::processRTCPSenderReport,
-                                                                  this, std::placeholders::_1 ));
-            }
-          });
-
-  watcher_.setFuture(stream);
+  mstream_->install_receive_hook(this, __receiveHook);
+  mstream_->get_rtcp()->install_sender_hook(std::bind(&UvgRTPReceiver::processRTCPSenderReport,
+                                                      this, std::placeholders::_1 ));
 }
+
 
 UvgRTPReceiver::~UvgRTPReceiver()
 {}
@@ -80,14 +57,6 @@ void UvgRTPReceiver::process()
 void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 {
   Q_ASSERT(frame && frame->payload != nullptr);
-
-  if (!watcher_.isFinished())
-  {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Got a packet before we are ready, discarding..",
-                                    {"Packet SSRC", "Receiver Type"},
-                                    {QString::number(frame->header.ssrc), datatypeToString(output_)});
-    return;
-  }
 
   if (frame == nullptr ||
       frame->payload == nullptr ||

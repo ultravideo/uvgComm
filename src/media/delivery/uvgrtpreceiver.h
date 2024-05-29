@@ -1,7 +1,7 @@
 #pragma once
 
 #include <uvgrtp/lib.hh>
-#include <QFutureWatcher>
+
 #include "media/processing/filter.h"
 
 class UvgRTPReceiver : public Filter
@@ -10,7 +10,7 @@ class UvgRTPReceiver : public Filter
 public:
   UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterface *stats,
                  std::shared_ptr<ResourceAllocator> hwResources, DataType type,
-                 QString media, QFuture<uvg_rtp::media_stream *> mstream,
+                 QString media, uvg_rtp::media_stream * mstream,
                  uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
   ~UvgRTPReceiver();
 
@@ -33,7 +33,6 @@ private:
   uint16_t lastSeq_;
   uint32_t sessionID_;
 
-  QFutureWatcher<uvg_rtp::media_stream *> watcher_;
   uvg_rtp::media_stream * mstream_;
 
   uint32_t localSSRC_;
