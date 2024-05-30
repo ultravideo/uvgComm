@@ -1,5 +1,6 @@
 #include "camerafilter.h"
 
+#include "cameraformats.h"
 #include "statisticsinterface.h"
 
 #include "settingskeys.h"
@@ -194,9 +195,10 @@ bool CameraFilter::cameraSetup()
     resolutionHeight_ = settings.value(SettingsKey::videoResolutionHeight).toInt();
     framerateNumerator_ = settings.value(SettingsKey::videoFramerateNumerator).toInt();
     framerateDenominator_ = settings.value(SettingsKey::videoFramerateDenominator).toInt();
-    float framerate = (float)framerateNumerator_/framerateDenominator_;
+    output_ = stringToDatatype(currentInputFormat_);
 
-    QVideoFrameFormat::PixelFormat format = convertFormat(currentInputFormat_);
+    float framerate = (float)framerateNumerator_/framerateDenominator_;
+    QVideoFrameFormat::PixelFormat format = stringToPixelFormat(currentInputFormat_);
     QList<QCameraFormat> options = camera_->cameraDevice().videoFormats();
 
     QCameraFormat selectedOption;
@@ -235,91 +237,6 @@ bool CameraFilter::cameraSetup()
     return false;
   }
   return true;
-}
-
-QVideoFrameFormat::PixelFormat CameraFilter::convertFormat(QString formatString)
-{
-  if(currentInputFormat_ == "YUV420P")
-  {
-    output_ = DT_YUV420VIDEO;
-    return QVideoFrameFormat::Format_YUV420P;
-  }
-  else if(currentInputFormat_ == "YUV422P")
-  {
-    output_ = DT_YUV422VIDEO;
-    return QVideoFrameFormat::Format_YUV422P;
-  }
-
-  else if(currentInputFormat_ == "NV12")
-  {
-    output_ = DT_NV12VIDEO;
-    return QVideoFrameFormat::Format_NV12;
-  }
-  else if(currentInputFormat_ == "NV21")
-  {
-    output_ = DT_NV21VIDEO;
-    return QVideoFrameFormat::Format_NV21;
-  }
-
-  else if(currentInputFormat_ == "YUYV")
-  {
-    output_ = DT_YUYVVIDEO;
-    return QVideoFrameFormat::Format_YUYV;
-  }
-  else if(currentInputFormat_ == "UYVY")
-  {
-    output_ = DT_UYVYVIDEO;
-    return QVideoFrameFormat::Format_UYVY;
-  }
-
-  else if(currentInputFormat_ == "ARGB32")
-  {
-    output_ = DT_ARGBVIDEO;
-    return QVideoFrameFormat::Format_ARGB8888;
-  }
-  else if(currentInputFormat_ == "BGRA32")
-  {
-    output_ = DT_BGRAVIDEO;
-    return QVideoFrameFormat::Format_BGRA8888;
-  }
-  else if(currentInputFormat_ == "ABGR")
-  {
-    output_ = DT_ABGRVIDEO;
-    return QVideoFrameFormat::Format_ABGR8888;
-  }
-  else if (currentInputFormat_ == "RGB32")
-  {
-    output_ = DT_RGB32VIDEO;
-    return QVideoFrameFormat::Format_RGBA8888;
-  }
-  else if (currentInputFormat_ == "RGB24")
-  {
-    output_ = DT_RGB24VIDEO;
-    return QVideoFrameFormat::Format_RGBX8888;
-  }
-  else if (currentInputFormat_ == "BGR24")
-  {
-    output_ = DT_BGRXVIDEO;
-    return QVideoFrameFormat::Format_BGRX8888;
-  }
-  else if(currentInputFormat_ == "MJPG")
-  {
-#if QT_VERSION_MAJOR == 6 && QT_VERSION_MINOR >= 5
-    // Qt 6.5 starts using ffmpeg as backend, resulting in actual mjpeg support
-    output_ = DT_MJPEGVIDEO;
-#else
-    // Qt versions before 6.5 seem to always give RGB32 when asked for motion jpeg
-    output_ = DT_RGB32VIDEO;
-#endif
-
-    return QVideoFrameFormat::Format_Jpeg;
-  }
-
-  Logger::getLogger()->printError(this, "Input format not supported",
-                                  {"Format"}, {currentInputFormat_});
-  output_ = DT_NONE;
-
-  return QVideoFrameFormat::Format_Invalid;
 }
 
 
@@ -366,14 +283,6 @@ void CameraFilter::process()
     frameMutex_.lock();
     frames_.pop_front();
     frameMutex_.unlock();
-
-    /*
-    if (frame.pixelFormat() == QVideoFrameFormat::Format_Jpeg)
-    {
-      Logger::getLogger()->printWarning(this, "Unsupported frame format");
-      return;
-    }*/
-
 
     // capture the frame data
     std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);

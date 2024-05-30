@@ -1,12 +1,12 @@
 #pragma once
 
+#include "deviceinfointerface.h"
+
 #include <QStringList>
 #include <QSize>
 #include <QtMultimedia/QCamera>
 
 #include <memory>
-
-#include "deviceinfointerface.h"
 
 struct SettingsCameraFormat
 {
@@ -49,22 +49,12 @@ public:
 
 private:
 
-#if QT_VERSION_MAJOR == 6
-  QString videoFormatToString(QVideoFrameFormat::PixelFormat format);
-  QVideoFrameFormat::PixelFormat stringToPixelFormat(QString format);
-#else
-  QString videoFormatToString(QVideoFrame::PixelFormat format);
-  QVideoFrame::PixelFormat stringToPixelFormat(QString format);
-#endif
-
   void getAllowedFormats(QList<QVideoFrameFormat::PixelFormat>& p_formats,
                          QStringList& allowedFormats);
 
   std::unique_ptr<QCamera> loadCamera(int deviceID);
 
   void printFormatOption(QCameraFormat& formatOption) const;
-
-  QString resolutionToString(QSize resolution) const;
 
   bool goodResolution(QSize resolution);
 };

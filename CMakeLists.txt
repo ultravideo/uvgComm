@@ -164,6 +164,7 @@ qt_add_executable(kvazzup WIN32 MACOSX_BUNDLE
     ${KVAZZUP_SOURCES}
     src/main.cpp
     version.cpp
+    src/cameraformats.h src/cameraformats.cpp
 )
 
 set(KVAZZUP_RESOURCES

@@ -48,8 +48,6 @@ private:
   // setup camera device. For some reason this has to be called from main thread
   bool cameraSetup();
 
-  QVideoFrameFormat::PixelFormat convertFormat(QString formatString);
-
   QCamera *camera_;
 
   int32_t framerateNumerator_;
