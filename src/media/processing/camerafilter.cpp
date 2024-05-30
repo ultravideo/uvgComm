@@ -195,7 +195,7 @@ bool CameraFilter::cameraSetup()
     resolutionHeight_ = settings.value(SettingsKey::videoResolutionHeight).toInt();
     framerateNumerator_ = settings.value(SettingsKey::videoFramerateNumerator).toInt();
     framerateDenominator_ = settings.value(SettingsKey::videoFramerateDenominator).toInt();
-    output_ = stringToDatatype(currentInputFormat_);
+    output_ = stringToDataType(currentInputFormat_);
 
     float framerate = (float)framerateNumerator_/framerateDenominator_;
     QVideoFrameFormat::PixelFormat format = stringToPixelFormat(currentInputFormat_);
@@ -283,6 +283,19 @@ void CameraFilter::process()
     frameMutex_.lock();
     frames_.pop_front();
     frameMutex_.unlock();
+
+    if (output_ == DT_NONE)
+    {
+      Logger::getLogger()->printWarning(this, "No input format found but got a frame, using frame format");
+      output_ = videoFormatToDataType(frame.pixelFormat());
+
+      if (output_ == DT_NONE)
+      {
+        Logger::getLogger()->printWarning(this, "Unsupported format, stopping camera");
+        camera_->stop();
+        return;
+      }
+    }
 
     // capture the frame data
     std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);

@@ -63,6 +63,12 @@ QString videoFormatToString(QVideoFrameFormat::PixelFormat format)
 }
 
 
+DataType videoFormatToDataType(QVideoFrameFormat::PixelFormat format)
+{
+  return stringToDataType(videoFormatToString(format));
+}
+
+
 QVideoFrameFormat::PixelFormat stringToPixelFormat(QString format)
 {
   for(auto& type : pixelFormatStrings)
@@ -77,7 +83,7 @@ QVideoFrameFormat::PixelFormat stringToPixelFormat(QString format)
 }
 
 
-DataType stringToDatatype(QString format)
+DataType stringToDataType(QString format)
 {
   if(format == "YUV420P")
   {
