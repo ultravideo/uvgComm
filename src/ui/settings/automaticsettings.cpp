@@ -55,15 +55,11 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
 
   QObject::connect(ui_->ctu_based, &QCheckBox::stateChanged,
                    this,           &AutomaticSettings::updateConfigAndReset);
+  
 
-  QObject::connect(ui_->roi_auto_button, &QRadioButton::toggled,
-                   this,                 &AutomaticSettings::updateConfigAndReset);
+  QObject::connect(ui_->buttonGroup, &QButtonGroup ::buttonClicked,
+                   this,             &AutomaticSettings::radioButton);
 
-  QObject::connect(ui_->roi_manual_button, &QRadioButton::toggled,
-                   this,                 &AutomaticSettings::updateConfigAndReset);
-
-  QObject::connect(ui_->roi_off_button, &QRadioButton::toggled,
-                   this,                 &AutomaticSettings::updateConfigAndReset);
 
   settings_.setValue(SettingsKey::manualROIStatus,          "0");
 
@@ -83,6 +79,14 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
 
   QObject::connect(ui_->objectSelection, QOverload<int>::of(&QComboBox::activated),
                    this, &AutomaticSettings::selectObject);
+
+  ui_->objectSelection->hide();
+  ui_->ctu_based->hide();
+
+  ui_->brush_size->hide();
+  ui_->brush_size_label->hide();
+
+
 }
 
 
@@ -108,7 +112,7 @@ void AutomaticSettings::updateVideoConfig()
   settings_.setValue(SettingsKey::roiQp, ui_->roi_qp->value());
   settings_.setValue(SettingsKey::backgroundQp, ui_->background_qp->value());
   QString roiMode = "off";
-  if (ui_->roi_auto_button->isChecked()) {
+  if (ui_->roi_yolo_button->isChecked()) {
       roiMode = "auto";
   } else if (ui_->roi_manual_button->isChecked()) {
       roiMode = "manual";
@@ -122,6 +126,48 @@ void AutomaticSettings::updateConfigAndReset(int i)
 {
   updateVideoConfig();
 }
+
+
+void AutomaticSettings::radioButton(QAbstractButton * button)
+{
+  switch (ui_->buttonGroup->id(button))
+  {
+    case -2:
+    {
+      Logger::getLogger()->printNormal(this, "Off");
+      ui_->ctu_based->hide();
+      ui_->brush_size->hide();
+      ui_->brush_size_label->hide();
+      ui_->objectSelection->hide();
+      break;
+    }
+    case -3:
+    {
+      Logger::getLogger()->printNormal(this, "Manual");
+      ui_->ctu_based->show();
+      ui_->brush_size->show();
+      ui_->brush_size_label->show();
+      ui_->objectSelection->hide();
+      break;
+    }
+    case -4:
+    {
+      Logger::getLogger()->printNormal(this, "Model");
+      ui_->ctu_based->hide();
+      ui_->brush_size->hide();
+      ui_->brush_size_label->hide();
+      ui_->objectSelection->show();
+      break;
+    }
+    default:
+    {
+      break;
+    }
+  }
+
+  updateVideoConfig();
+}
+
 
 void AutomaticSettings::updateConfig(int i)
 {

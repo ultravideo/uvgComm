@@ -80,37 +80,31 @@
        <string>RoI</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="3" column="1">
-        <widget class="QSpinBox" name="roi_qp">
-         <property name="suffix">
-          <string/>
-         </property>
-         <property name="prefix">
-          <string/>
-         </property>
-         <property name="minimum">
-          <number>22</number>
-         </property>
-         <property name="maximum">
-          <number>47</number>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="brush_size_label">
-         <property name="text">
-          <string>Brush Size</string>
-         </property>
-        </widget>
-       </item>
-       <item row="8" column="0">
+       <item row="10" column="1">
         <widget class="QCheckBox" name="ctu_based">
          <property name="text">
           <string>CTU based drawing</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="3" rowspan="7">
+       <item row="9" column="1">
+        <widget class="QCheckBox" name="show_grid">
+         <property name="text">
+          <string>Show grid</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0" colspan="3">
+        <widget class="VideoWidget" name="roi_surface" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0" rowspan="9">
         <widget class="QGroupBox" name="groupBox">
          <property name="enabled">
           <bool>true</bool>
@@ -126,23 +120,6 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <item>
-           <widget class="QRadioButton" name="roi_manual_button">
-            <property name="text">
-             <string>Manual</string>
-            </property>
-            <property name="checked">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="roi_auto_button">
-            <property name="text">
-             <string>Automatic</string>
-            </property>
-           </widget>
-          </item>
-          <item>
            <widget class="QRadioButton" name="roi_off_button">
             <property name="text">
              <string>Off</string>
@@ -150,6 +127,32 @@
             <property name="checked">
              <bool>true</bool>
             </property>
+            <attribute name="buttonGroup">
+             <string notr="true">buttonGroup</string>
+            </attribute>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="roi_manual_button">
+            <property name="text">
+             <string>Manual</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+            <attribute name="buttonGroup">
+             <string notr="true">buttonGroup</string>
+            </attribute>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="roi_yolo_button">
+            <property name="text">
+             <string>Object Detection</string>
+            </property>
+            <attribute name="buttonGroup">
+             <string notr="true">buttonGroup</string>
+            </attribute>
            </widget>
           </item>
           <item>
@@ -171,67 +174,37 @@
          </layout>
         </widget>
        </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="background_label">
-         <property name="text">
-          <string>Global QP</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="5">
-        <widget class="QComboBox" name="objectSelection">
-         <property name="minimumSize">
-          <size>
-           <width>120</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
-       </item>
        <item row="2" column="1">
-        <widget class="QSpinBox" name="brush_size">
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>3</number>
-         </property>
-         <property name="value">
-          <number>3</number>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0" colspan="7">
-        <widget class="VideoWidget" name="roi_surface" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="6">
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="3" column="0">
         <widget class="QLabel" name="roi_lable">
          <property name="text">
           <string>RoI QP</string>
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
+       <item row="2" column="2">
+        <widget class="QSpinBox" name="roi_qp">
+         <property name="suffix">
+          <string/>
+         </property>
+         <property name="prefix">
+          <string/>
+         </property>
+         <property name="minimum">
+          <number>22</number>
+         </property>
+         <property name="maximum">
+          <number>47</number>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLabel" name="background_label">
+         <property name="text">
+          <string>Global QP</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2">
         <widget class="QSpinBox" name="background_qp">
          <property name="minimum">
           <number>22</number>
@@ -244,22 +217,48 @@
          </property>
         </widget>
        </item>
-       <item row="7" column="0">
-        <widget class="QCheckBox" name="show_grid">
+       <item row="4" column="1">
+        <widget class="QLabel" name="brush_size_label">
          <property name="text">
-          <string>Show grid</string>
+          <string>Brush Size</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="4">
-        <spacer name="horizontalSpacer_3">
+       <item row="4" column="2">
+        <widget class="QSpinBox" name="brush_size">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>3</number>
+         </property>
+         <property name="value">
+          <number>3</number>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1" colspan="2">
+        <widget class="QComboBox" name="objectSelection">
+         <property name="minimumSize">
+          <size>
+           <width>120</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1" rowspan="3" colspan="2">
+        <spacer name="verticalSpacer_2">
          <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Preferred</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
-           <width>40</width>
-           <height>20</height>
+           <width>20</width>
+           <height>40</height>
           </size>
          </property>
         </spacer>
@@ -280,4 +279,7 @@
  </customwidgets>
  <resources/>
  <connections/>
+ <buttongroups>
+  <buttongroup name="buttonGroup"/>
+ </buttongroups>
 </ui>

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "qabstractbutton.h"
 #include "ui/gui/videowidget.h"
 
 #include <QDialog>
@@ -31,6 +32,8 @@ public slots:
   void updateVideoConfig();
   void updateConfigAndReset(int i);
   void updateConfig(int i);
+
+  void radioButton(QAbstractButton * button);
 
   void selectObject(int index);
 
