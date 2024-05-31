@@ -40,6 +40,7 @@ public:
 
   void enableOverlay(int roiQP, int backgroundQP, int brushSize, bool showGrid, bool pixelBased,
                      QSize videoResolution);
+  void disableOverlay();
   void resetOverlay();
   void updateROIMask();
 

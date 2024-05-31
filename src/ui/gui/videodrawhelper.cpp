@@ -97,6 +97,15 @@ void VideoDrawHelper::enableOverlay(int roiQP, int backgroundQP,
 }
 
 
+void VideoDrawHelper::disableOverlay()
+{
+  drawOverlay_ = false;
+  overlay_ = QImage(imageRect_.size(), IMAGE_FORMAT);
+  overlay_.fill(QColor(0,0,0,0));
+
+}
+
+
 void VideoDrawHelper::resetOverlay()
 {
   roiMutex_.lock();

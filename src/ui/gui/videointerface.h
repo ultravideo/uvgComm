@@ -36,11 +36,6 @@ public:
 #endif
 
   virtual void drawMicOffIcon(bool status) = 0;
-
-  virtual void enableOverlay(int goodQP, int badQP, int brushSize, 
-                             bool showGrid, bool pixelBased, QSize videoResolution) = 0;
-  virtual void resetOverlay() = 0;
-
   virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, 
                                                bool scaleToInput) = 0;
 

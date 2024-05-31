@@ -42,6 +42,10 @@ void VideoWidget::enableOverlay(int roiQP, int backgroundQP,
   helper_.enableOverlay(roiQP, backgroundQP, brushSize, showGrid, pixelBased, videoResolution);
 }
 
+void VideoWidget::disableOverlay()
+{
+  helper_.disableOverlay();
+}
 
 void VideoWidget::resetOverlay()
 {

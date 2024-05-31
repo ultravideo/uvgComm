@@ -86,7 +86,7 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
   ui_->brush_size->hide();
   ui_->brush_size_label->hide();
 
-
+  ui_->roi_surface->disableOverlay();
 }
 
 
@@ -102,6 +102,7 @@ AutomaticSettings::~AutomaticSettings()
   delete ui_;
 }
 
+
 void AutomaticSettings::updateVideoConfig()
 {
   updateConfig(0);
@@ -111,13 +112,7 @@ void AutomaticSettings::updateVideoConfig()
 
   settings_.setValue(SettingsKey::roiQp, ui_->roi_qp->value());
   settings_.setValue(SettingsKey::backgroundQp, ui_->background_qp->value());
-  QString roiMode = "off";
-  if (ui_->roi_yolo_button->isChecked()) {
-      roiMode = "auto";
-  } else if (ui_->roi_manual_button->isChecked()) {
-      roiMode = "manual";
-  }
-  settings_.setValue(SettingsKey::roiMode, roiMode);
+
   emit updateAutomaticSettings();
 }
 
@@ -130,6 +125,7 @@ void AutomaticSettings::updateConfigAndReset(int i)
 
 void AutomaticSettings::radioButton(QAbstractButton * button)
 {
+    QString roiMode = "off";
   switch (ui_->buttonGroup->id(button))
   {
     case -2:
@@ -139,6 +135,9 @@ void AutomaticSettings::radioButton(QAbstractButton * button)
       ui_->brush_size->hide();
       ui_->brush_size_label->hide();
       ui_->objectSelection->hide();
+      ui_->roi_surface->disableOverlay();
+
+      roiMode = "off";
       break;
     }
     case -3:
@@ -148,6 +147,10 @@ void AutomaticSettings::radioButton(QAbstractButton * button)
       ui_->brush_size->show();
       ui_->brush_size_label->show();
       ui_->objectSelection->hide();
+
+      roiMode = "manual";
+      updateConfig(1);
+      ui_->roi_surface->resetOverlay();
       break;
     }
     case -4:
@@ -157,6 +160,8 @@ void AutomaticSettings::radioButton(QAbstractButton * button)
       ui_->brush_size->hide();
       ui_->brush_size_label->hide();
       ui_->objectSelection->show();
+      ui_->roi_surface->disableOverlay();
+      roiMode = "auto";
       break;
     }
     default:
@@ -165,7 +170,8 @@ void AutomaticSettings::radioButton(QAbstractButton * button)
     }
   }
 
-  updateVideoConfig();
+  settings_.setValue(SettingsKey::roiMode, roiMode);
+  emit updateAutomaticSettings();
 }
 
 
@@ -250,7 +256,7 @@ void AutomaticSettings::activateROI()
   if (previousBitrate_ != 0)
   {
     // bitrate must be disabled for ROI
-    settings_.setValue(SettingsKey::videoBitrate,            "0");
+    settings_.setValue(SettingsKey::videoBitrate,          "0");
 
     emit updateVideoSettings();
   }
