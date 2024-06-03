@@ -70,7 +70,7 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
                                   !ui_->ctu_based->isChecked(),
                                   getSettingsResolution());
 
-  for(auto type : OBJECT_TYPES)
+  for(auto& type : OBJECT_TYPES)
   {
     ui_->objectSelection->addItem(type.first);
   }
@@ -87,6 +87,8 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
   ui_->brush_size_label->hide();
 
   ui_->roi_surface->disableOverlay();
+
+    settings_.setValue(SettingsKey::roiMode, "off");
 }
 
 
