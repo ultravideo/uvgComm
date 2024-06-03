@@ -219,7 +219,6 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
 
     painter.setCompositionMode(QPainter::CompositionMode_Source);
 
-
     for (const Detection& d : oldDetections)
     {
       int x_adj = d.bbox.x - floor((d.bbox.x + viewCTUSize.x()/10) / viewCTUSize.x()) * viewCTUSize.x();
@@ -246,6 +245,46 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
 
 }
 #endif
+
+
+void VideoDrawHelper::visualizeROIMap(RoiMap& map)
+{
+  if (map.height*CTU_SIZE < videoResolution_.height() ||
+      map.width*CTU_SIZE < videoResolution_.width())
+  {
+    Logger::getLogger()->printProgramWarning(this, "ROI map too small for visualization");
+    return;
+  }
+
+  if (!drawOverlay_)
+  {
+    Logger::getLogger()->printProgramWarning(this, "Please enable overlay before RoI map visualization");
+    return;
+  }
+
+  roiMutex_.lock();
+  QPainter painter(&overlay_);
+
+  for(unsigned int i = 0; i < map.height; ++i)
+  {
+    for (unsigned int j = 0; j < map.width; ++j)
+    {
+      QBrush brush(qpToColor(backgroundQP_ + map.data[map.width*i + j]));
+
+      painter.setBrush(brush);
+      painter.setPen(Qt::NoPen);
+
+      QSizeF viewMultiplier = getSizeMultipliers(videoResolution_.width(),
+                                                 videoResolution_.height());
+      QPointF viewPosition = QPointF(j*CTU_SIZE, i*CTU_SIZE);
+
+      // color the CTU at mouse coordinates
+      setCTUQP(painter, viewPosition, viewMultiplier); // center
+    }
+  }
+  roiMutex_.unlock();
+}
+
 
 bool VideoDrawHelper::getRecentImage(QImage& image)
 {

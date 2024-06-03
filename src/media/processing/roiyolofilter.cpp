@@ -161,6 +161,8 @@ void ROIYoloFilter::process()
         input->vInfo->roi.height = roi_.height;
         input->vInfo->roi.data = std::make_unique<int8_t[]>(roi_.width*roi_.height);
         memcpy(input->vInfo->roi.data.get(), roi_.data.get(), roi_.width*roi_.height);
+
+        roiSurface_->visualizeROIMap(input->vInfo->roi);
       }
 
       frameCount_++;

@@ -54,6 +54,8 @@ public:
   void inputDetections(std::vector<Detection> detections, QSize original_size, uint64_t timestamp);
 #endif
 
+  void visualizeROIMap(RoiMap &map);
+
   // returns whether this is a new image or the previous one
   bool getRecentImage(QImage& image);
 

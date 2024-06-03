@@ -39,6 +39,8 @@ public:
   virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, 
                                                bool scaleToInput) = 0;
 
+  virtual void visualizeROIMap(RoiMap& map) = 0;
+
   virtual VideoFormat supportedFormat() = 0;
 
 signals:

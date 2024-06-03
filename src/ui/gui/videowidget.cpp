@@ -60,6 +60,11 @@ std::unique_ptr<int8_t[]> VideoWidget::getRoiMask(int& width, int& height,
 }
 
 
+void VideoWidget::visualizeROIMap(RoiMap& map)
+{
+  helper_.visualizeROIMap(map);
+}
+
 void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image,
                              int64_t timestamp)
 {

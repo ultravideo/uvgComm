@@ -162,8 +162,10 @@ void AutomaticSettings::radioButton(QAbstractButton * button)
       ui_->brush_size->hide();
       ui_->brush_size_label->hide();
       ui_->objectSelection->show();
-      ui_->roi_surface->disableOverlay();
       roiMode = "auto";
+
+      updateConfig(1);
+      ui_->roi_surface->resetOverlay();
       break;
     }
     default:

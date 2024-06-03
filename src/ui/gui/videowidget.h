@@ -38,6 +38,7 @@ public:
 
   virtual void drawMicOffIcon(bool status);
 
+  virtual void visualizeROIMap(RoiMap& map);
 
   virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
 
