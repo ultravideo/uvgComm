@@ -5,6 +5,7 @@
 #include <QWidget>
 #include <QKeyEvent>
 #include <QPainter>
+#include <QDateTime>
 
 const uint16_t VIEWBUFFERSIZE = 5;
 const QImage::Format IMAGE_FORMAT = QImage::Format_ARGB32;
@@ -195,11 +196,10 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
 #ifdef KVAZZUP_HAVE_ONNX_RUNTIME
 void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize original_size, uint64_t timestamp)
 {
-  auto oldDetections = detectionsBuffer_.back();
+  detections_ = detections;
   QSizeF viewMultiplier = getSizeMultipliers(videoResolution_.width(),
                                              videoResolution_.height());
-  QPointF viewCTUSize = {CTU_SIZE*viewMultiplier.width(), CTU_SIZE*viewMultiplier.height()};
-  for (auto& d : oldDetections)
+  for (auto& d : detections_)
   {
     d.bbox.x *= viewMultiplier.width();
     d.bbox.width *= viewMultiplier.width();
@@ -207,42 +207,7 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
     d.bbox.height *= viewMultiplier.height();
   }
 
-  if(drawOverlay_)
-  {
-    resetOverlay();
-  }
-  if(drawOverlay_ && !oldDetections.empty())
-  {
-    QPainter painter(&overlay_);
-    QBrush brush(qpToColor(roiQP_));
-    painter.setPen(Qt::white);
-
-    painter.setCompositionMode(QPainter::CompositionMode_Source);
-
-    for (const Detection& d : oldDetections)
-    {
-      int x_adj = d.bbox.x - floor((d.bbox.x + viewCTUSize.x()/10) / viewCTUSize.x()) * viewCTUSize.x();
-      int y_adj = d.bbox.y - floor((d.bbox.y + viewCTUSize.y()/10) / viewCTUSize.y()) * viewCTUSize.y();
-      int w_adj = -(d.bbox.width + d.bbox.x) + ceil((d.bbox.width+d.bbox.x - viewCTUSize.x()/10) / viewCTUSize.x()) * viewCTUSize.x() + x_adj;
-      int h_adj = -(d.bbox.height + d.bbox.y) + ceil((d.bbox.height+d.bbox.y - viewCTUSize.y()/10) / viewCTUSize.y()) * viewCTUSize.y() + y_adj;
-      painter.fillRect(d.bbox.x-x_adj,
-                       d.bbox.y-y_adj,
-                       d.bbox.width+w_adj,
-                       d.bbox.height+h_adj,
-                       brush);
-    }
-    for (const Detection& d : oldDetections)
-    {
-      painter.drawRect(d.bbox.x, d.bbox.y, d.bbox.width, d.bbox.height);
-    }
-    painter.end();
-  }
-  for (size_t i = detectionsBuffer_.size()-1; i > 0; i--)
-  {
-    detectionsBuffer_[i] = detectionsBuffer_[i-1];
-  }
-  detectionsBuffer_[0] = detections;
-
+  timepoint_ = QDateTime::currentMSecsSinceEpoch();
 }
 #endif
 
@@ -584,6 +549,31 @@ void VideoDrawHelper::drawGrid()
 
 void VideoDrawHelper::draw(QPainter& painter)
 {
+#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+  if(drawOverlay_ && !detections_.empty())
+  {
+    resetOverlay();
+
+    if (QDateTime::currentMSecsSinceEpoch() - 500 < timepoint_)
+    {
+      QPainter painter(&overlay_);
+      painter.setPen(Qt::white);
+      painter.setCompositionMode(QPainter::CompositionMode_Source);
+
+      for (const Detection& d : detections_)
+      {
+        painter.drawRect(d.bbox.x, d.bbox.y, d.bbox.width, d.bbox.height);
+      }
+
+      painter.end();
+    }
+    else
+    {
+      detections_.clear();
+    }
+  }
+#endif
+
   if (drawOverlay_)
   {
     painter.drawImage(getTargetRect(), overlay_);
