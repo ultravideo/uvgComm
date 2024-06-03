@@ -212,7 +212,7 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
 #endif
 
 
-void VideoDrawHelper::visualizeROIMap(RoiMap& map)
+void VideoDrawHelper::visualizeROIMap(RoiMap& map, int baseQP)
 {
   if (map.height*CTU_SIZE < videoResolution_.height() ||
       map.width*CTU_SIZE < videoResolution_.width())
@@ -221,33 +221,13 @@ void VideoDrawHelper::visualizeROIMap(RoiMap& map)
     return;
   }
 
-  if (!drawOverlay_)
-  {
-    Logger::getLogger()->printProgramWarning(this, "Please enable overlay before RoI map visualization");
-    return;
-  }
+  map_.width = map.width;
+  map_.height = map.height;
+  map_.data = std::unique_ptr<int8_t[]> (new int8_t[map.width*map.height]);
+  memcpy(map_.data.get(), map.data.get(), map.width*map.height);
+  roiTimepoint_ = QDateTime::currentMSecsSinceEpoch();
 
-  roiMutex_.lock();
-  QPainter painter(&overlay_);
-
-  for(unsigned int i = 0; i < map.height; ++i)
-  {
-    for (unsigned int j = 0; j < map.width; ++j)
-    {
-      QBrush brush(qpToColor(backgroundQP_ + map.data[map.width*i + j]));
-
-      painter.setBrush(brush);
-      painter.setPen(Qt::NoPen);
-
-      QSizeF viewMultiplier = getSizeMultipliers(videoResolution_.width(),
-                                                 videoResolution_.height());
-      QPointF viewPosition = QPointF(j*CTU_SIZE, i*CTU_SIZE);
-
-      // color the CTU at mouse coordinates
-      setCTUQP(painter, viewPosition, viewMultiplier); // center
-    }
-  }
-  roiMutex_.unlock();
+  baseQP_ = baseQP;
 }
 
 
@@ -550,29 +530,50 @@ void VideoDrawHelper::drawGrid()
 void VideoDrawHelper::draw(QPainter& painter)
 {
 #ifdef KVAZZUP_HAVE_ONNX_RUNTIME
-  if(drawOverlay_ && !detections_.empty())
+  if(drawOverlay_ && !detections_.empty() && QDateTime::currentMSecsSinceEpoch() - 250 < timepoint_ && false)
   {
     resetOverlay();
 
-    if (QDateTime::currentMSecsSinceEpoch() - 500 < timepoint_)
-    {
-      QPainter painter(&overlay_);
-      painter.setPen(Qt::white);
-      painter.setCompositionMode(QPainter::CompositionMode_Source);
+    QPainter painter(&overlay_);
+    painter.setPen(Qt::white);
+    painter.setCompositionMode(QPainter::CompositionMode_Source);
 
-      for (const Detection& d : detections_)
-      {
-        painter.drawRect(d.bbox.x, d.bbox.y, d.bbox.width, d.bbox.height);
-      }
-
-      painter.end();
-    }
-    else
+    for (const Detection& d : detections_)
     {
-      detections_.clear();
+      painter.drawRect(d.bbox.x, d.bbox.y, d.bbox.width, d.bbox.height);
     }
+
+    painter.end();
   }
 #endif
+
+  if(drawOverlay_ && map_.width != 0 && QDateTime::currentMSecsSinceEpoch() - 250 < roiTimepoint_ )
+  {
+    roiMutex_.lock();
+    QPainter painter(&overlay_);
+
+    for(unsigned int i = 0; i < map_.height; ++i)
+    {
+      for (unsigned int j = 0; j < map_.width; ++j)
+      {
+        QBrush brush(qpToColor(baseQP_ + map_.data[map_.width*i + j]));
+
+        painter.setBrush(brush);
+        painter.setPen(Qt::NoPen);
+
+        // need to be set so we can override the destination alpha
+        painter.setCompositionMode(QPainter::CompositionMode_Source);
+
+        QSizeF viewMultiplier = getSizeMultipliers(videoResolution_.width(),
+                                                   videoResolution_.height());
+        QPointF viewPosition = QPointF(j*CTU_SIZE*viewMultiplier.width(), i*CTU_SIZE*viewMultiplier.height());
+
+        // color the CTU at mouse coordinates
+        setCTUQP(painter, viewPosition, viewMultiplier); // center
+      }
+    }
+    roiMutex_.unlock();
+  }
 
   if (drawOverlay_)
   {

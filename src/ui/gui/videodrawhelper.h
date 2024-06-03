@@ -54,7 +54,7 @@ public:
   void inputDetections(std::vector<Detection> detections, QSize original_size, uint64_t timestamp);
 #endif
 
-  void visualizeROIMap(RoiMap &map);
+  void visualizeROIMap(RoiMap &map, int baseQP);
 
   // returns whether this is a new image or the previous one
   bool getRecentImage(QImage& image);
@@ -98,6 +98,7 @@ private:
   QColor qpToColor(int qp);
 
   void drawGrid();
+
   void setCTUQP(QPainter &painter, const QPointF &viewPosition, QSizeF viewMultiplier);
 
   QSizeF getSizeMultipliers(int width, int height);
@@ -156,4 +157,8 @@ private:
   std::vector<Detection> detections_;
   int64_t timepoint_ = 0;
 #endif
+
+  RoiMap map_ = {0,0, nullptr};
+  int64_t roiTimepoint_ = 0;
+  int baseQP_ = 0;
 };

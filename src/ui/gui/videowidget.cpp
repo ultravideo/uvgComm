@@ -60,9 +60,9 @@ std::unique_ptr<int8_t[]> VideoWidget::getRoiMask(int& width, int& height,
 }
 
 
-void VideoWidget::visualizeROIMap(RoiMap& map)
+void VideoWidget::visualizeROIMap(RoiMap& map, int qp)
 {
-  helper_.visualizeROIMap(map);
+  helper_.visualizeROIMap(map, qp);
 }
 
 void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image,
