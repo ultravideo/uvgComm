@@ -44,12 +44,12 @@ void ROIManualFilter::process()
     {
       if (rateControl_ == 0)
       {
-        input->vInfo->roiWidth = input->vInfo->width;
-        input->vInfo->roiHeight = input->vInfo->height;
+        input->vInfo->roi.width = input->vInfo->width;
+        input->vInfo->roi.height = input->vInfo->height;
         if (roiSurface_)
         {
-          input->vInfo->roiArray = roiSurface_->getRoiMask(input->vInfo->roiWidth,
-                                                           input->vInfo->roiHeight, qp_, true);
+          input->vInfo->roi.data = roiSurface_->getRoiMask(input->vInfo->roi.width,
+                                                           input->vInfo->roi.height, qp_, true);
         }
         else
         {

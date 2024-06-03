@@ -2,6 +2,8 @@
 
 #include "detection_types.h"
 #include "filter.h"
+#include "global.h"
+
 #include <onnxruntime/core/session/onnxruntime_cxx_api.h>
 
 #include <array>
@@ -13,12 +15,6 @@
 struct Size {
   int width;
   int height;
-};
-
-struct Roi {
-  int width;
-  int height;
-  std::unique_ptr<int8_t[]> data;
 };
 
 struct RoiSettings {
@@ -76,7 +72,7 @@ private:
   Size calculate_roi_size(uint32_t img_width, uint32_t img_height);
   Rect enlarge_bb(Detection face);
   Ort::SessionOptions get_session_options(bool cuda, int threads);
-  Roi makeRoiMap(const std::vector<Rect> &bbs);
+  RoiMap makeRoiMap(const std::vector<Rect> &bbs);
 
   unsigned int prevInputDiscarded_;
   unsigned int skipInput_;
@@ -121,7 +117,7 @@ private:
   bool useCuda_;
   QAtomicInt roiEnabled_;
   int frameCount_;
-  Roi roi_;
+  RoiMap roi_;
   RoiSettings roiSettings_;
 
   QMutex settingsMutex_;

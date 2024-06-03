@@ -3,10 +3,9 @@
 #include "ui/gui/videointerface.h"
 
 #include "logger.h"
-
 #include "settingskeys.h"
-
 #include "media/resourceallocator.h"
+#include "global.h"
 #include "common.h"
 
 #ifdef KVAZZUP_HAVE_OPENCV
@@ -149,7 +148,7 @@ void ROIYoloFilter::process()
         roiSettings_.backgroundQP = getHWManager()->getBackgroundQp();
 
         clip_coords(face_roi_rects, roi_size);
-        Roi roi_mat = makeRoiMap(face_roi_rects);
+        RoiMap roi_mat = makeRoiMap(face_roi_rects);
         roi_.data = std::make_unique<int8_t[]>(roi_length);
         memcpy(roi_.data.get(), roi_mat.data.get(), roi_length);
 
@@ -158,10 +157,10 @@ void ROIYoloFilter::process()
 
       if(roi_.data)
       {
-        input->vInfo->roiWidth = roi_.width;
-        input->vInfo->roiHeight = roi_.height;
-        input->vInfo->roiArray = std::make_unique<int8_t[]>(roi_.width*roi_.height);
-        memcpy(input->vInfo->roiArray.get(), roi_.data.get(), roi_.width*roi_.height);
+        input->vInfo->roi.width = roi_.width;
+        input->vInfo->roi.height = roi_.height;
+        input->vInfo->roi.data = std::make_unique<int8_t[]>(roi_.width*roi_.height);
+        memcpy(input->vInfo->roi.data.get(), roi_.data.get(), roi_.width*roi_.height);
       }
 
       frameCount_++;
@@ -660,7 +659,7 @@ Ort::SessionOptions ROIYoloFilter::get_session_options(bool cuda, int threads)
 }
 
 
-Roi ROIYoloFilter::makeRoiMap(const std::vector<Rect> &bbs)
+RoiMap ROIYoloFilter::makeRoiMap(const std::vector<Rect> &bbs)
 {
   int width = roiSettings_.width;
   int height = roiSettings_.width;
@@ -668,7 +667,7 @@ Roi ROIYoloFilter::makeRoiMap(const std::vector<Rect> &bbs)
   int backgroundQP = roiSettings_.backgroundQP;
   int qp = roiSettings_.qp;
 
-  Roi roi_map {width, height, std::make_unique<int8_t[]>(width*height)};
+  RoiMap roi_map {width, height, std::make_unique<int8_t[]>(width*height)};
 
 #ifdef KVAZZUP_HAVE_OPENCV
   cv::Mat new_map(height, width, CV_16S, backgroundQP-qp);

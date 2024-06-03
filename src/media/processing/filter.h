@@ -1,5 +1,6 @@
 #pragma once
 
+#include "global.h"
 #include <QWaitCondition>
 #include <QThread>
 #include <QMutex>
@@ -65,9 +66,7 @@ struct VideoInfo
   bool flippedVertically = false;
   bool flippedHorizontally = false;
 
-  int roiWidth = 0;
-  int roiHeight = 0;
-  std::unique_ptr<int8_t[]> roiArray = nullptr;
+  RoiMap roi;
 };
 
 struct AudioInfo

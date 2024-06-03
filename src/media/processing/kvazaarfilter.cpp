@@ -423,11 +423,11 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
   if (config_->target_bitrate == 0)
   {
     // can also be empty by default
-    inputPic->roi.width = input->vInfo->roiWidth;
-    inputPic->roi.height = input->vInfo->roiHeight;
+    inputPic->roi.width = input->vInfo->roi.width;
+    inputPic->roi.height = input->vInfo->roi.height;
 
     // needs to be deleted later
-    inputPic->roi.roi_array = input->vInfo->roiArray.release();
+    inputPic->roi.roi_array = input->vInfo->roi.data.release();
   }
 
   encodingFrames_.push_front({std::move(input), inputPic->roi.roi_array});

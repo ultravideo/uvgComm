@@ -241,8 +241,8 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source) c
     data->vInfo->flippedVertically = false;
     data->vInfo->flippedHorizontally = false;
 
-    data->vInfo->roiWidth = 0;
-    data->vInfo->roiHeight = 0;
+    data->vInfo->roi.width = 0;
+    data->vInfo->roi.height = 0;
 
     std::shared_ptr<uint8_t[]> roiArray = nullptr;
   }

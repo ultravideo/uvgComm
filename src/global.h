@@ -1,6 +1,5 @@
 #pragma once
 
-#include "mediaid.h"
 
 // A place for program defines and constants. See common.h for common functions.
 
@@ -50,3 +49,10 @@ const uint16_t MAX_ICE_PORT   = 24000;
 
 // type for conference layout location
 typedef uint32_t LayoutID;
+
+
+struct RoiMap {
+  int width;
+  int height;
+  std::unique_ptr<int8_t[]> data;
+};
