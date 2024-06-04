@@ -44,13 +44,6 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *
     mstream_->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC_);
   }
 
-  if (dataFormat_ == RTP_FORMAT_H264 ||
-      dataFormat_ == RTP_FORMAT_H265 ||
-      dataFormat_ == RTP_FORMAT_H266)
-  {
-    mstream_->configure_ctx(RCC_FPS_NUMERATOR, framerateNumerator_);
-    mstream_->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
-  }
 
   if (settingEnabled(SettingsKey::sipSRTP))
   {
@@ -84,7 +77,10 @@ void UvgRTPSender::updateSettings()
     framerateNumerator_ = settingValue(SettingsKey::videoFramerateNumerator);
     framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
 
-    if (mstream_)
+    if (mstream_ &&
+            dataFormat_ == RTP_FORMAT_H264 ||
+            dataFormat_ == RTP_FORMAT_H265 ||
+            dataFormat_ == RTP_FORMAT_H266)
     {
       mstream_->configure_ctx(RCC_FPS_NUMERATOR, framerateNumerator_);
       mstream_->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
