@@ -64,7 +64,7 @@ private:
 
   struct MediaStream
   {
-    uvg_rtp::media_stream* stream;
+    std::shared_ptr<UvgRTPStream> stream;
 
     std::shared_ptr<UvgRTPSender> sender;
     std::shared_ptr<UvgRTPReceiver> receiver;
@@ -89,12 +89,12 @@ private:
   bool initializeStream(uint32_t sessionID,
                         DeliverySession& session,
                         uint16_t localPort, uint16_t peerPort, MediaID id,
-                        rtp_format_t fmt);
+                        rtp_format_t fmt, uint32_t localSSRC, uint32_t remoteSSRC);
 
   bool addMediaStream(uint32_t sessionID,
                       DeliverySession& session,
                       uint16_t localPort, uint16_t peerPort,
-                      rtp_format_t fmt, bool dhSelected, MediaID &id);
+                      rtp_format_t fmt, bool dhSelected, MediaID &id, uint32_t localSSRC, uint32_t remoteSSRC);
   void removeMediaStream(uint32_t sessionID, DeliverySession& session, MediaID &id);
 
   void parseCodecString(QString codec, rtp_format_t& fmt,

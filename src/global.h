@@ -2,6 +2,7 @@
 
 
 // A place for program defines and constants. See common.h for common functions.
+#include <uvgrtp/media_stream.hh>
 
 #include <QString>
 
@@ -55,4 +56,13 @@ struct RoiMap {
   int width;
   int height;
   std::unique_ptr<int8_t[]> data;
+};
+
+
+struct UvgRTPStream
+{
+  uvgrtp::media_stream *ms;
+
+  uint32_t localSSRC;
+  uint32_t remoteSSRC;
 };

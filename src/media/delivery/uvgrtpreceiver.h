@@ -10,8 +10,7 @@ class UvgRTPReceiver : public Filter
 public:
   UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterface *stats,
                  std::shared_ptr<ResourceAllocator> hwResources, DataType type,
-                 QString media, uvg_rtp::media_stream * mstream,
-                 uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
+                 QString media, std::shared_ptr<UvgRTPStream> mstream);
   ~UvgRTPReceiver();
 
   void receiveHook(uvg_rtp::frame::rtp_frame *frame);
@@ -33,8 +32,5 @@ private:
   uint16_t lastSeq_;
   uint32_t sessionID_;
 
-  uvg_rtp::media_stream * mstream_;
-
-  uint32_t localSSRC_;
-  uint32_t remoteSSRC_;
+  std::shared_ptr<UvgRTPStream> us_;
 };

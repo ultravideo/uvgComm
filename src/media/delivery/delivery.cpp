@@ -159,7 +159,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
   }
 
   if (!initializeStream(sessionID, peers_[sessionID]->sessions.at(sessionIndex),
-                        localPort, peerPort, id, fmt))
+                        localPort, peerPort, id, fmt, localSSRC, remoteSSRC))
   {
     Logger::getLogger()->printError(this, "Failed to initialize stream");
     return nullptr;
@@ -177,8 +177,7 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
                                                        hwResources_,
                                                        type,
                                                        mediaName,
-                                                       peers_[sessionID]->sessions.at(sessionIndex).streams[id]->stream,
-                                                       localSSRC, remoteSSRC));
+                                                       peers_[sessionID]->sessions.at(sessionIndex).streams[id]->stream));
 
     connect(
       peers_[sessionID]->sessions.at(sessionIndex).streams[id]->sender.get(),
@@ -223,7 +222,7 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
   }
 
   if (!initializeStream(sessionID, peers_[sessionID]->sessions.at(sessionIndex),
-                        localPort, peerPort, id, fmt))
+                        localPort, peerPort, id, fmt, localSSRC, remoteSSRC))
   {
     return nullptr;
   }
@@ -241,8 +240,7 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
           hwResources_,
           type,
           mediaName,
-          peers_[sessionID]->sessions.at(sessionIndex).streams[id]->stream,
-          localSSRC, remoteSSRC
+          peers_[sessionID]->sessions.at(sessionIndex).streams[id]->stream
         )
     );
 
@@ -265,7 +263,7 @@ bool Delivery::initializeStream(uint32_t sessionID,
                                 DeliverySession& session,
                                 uint16_t localPort, uint16_t peerPort,
                                 MediaID id,
-                                rtp_format_t fmt)
+                                rtp_format_t fmt, uint32_t localSSRC, uint32_t remoteSSRC)
 {
   bool success = true;
   // add peer if it does not exist
@@ -279,7 +277,8 @@ bool Delivery::initializeStream(uint32_t sessionID,
   {
     Logger::getLogger()->printNormal(this, "Creating a new uvgRTP mediastream");
     success = addMediaStream(sessionID, session,
-                             localPort, peerPort, fmt, session.dhSelected, id);
+                             localPort, peerPort, fmt, session.dhSelected, id,
+                             localSSRC, remoteSSRC);
     if (success)
     {
       session.dhSelected = true;
@@ -296,7 +295,8 @@ bool Delivery::initializeStream(uint32_t sessionID,
 
 bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
                               uint16_t localPort, uint16_t peerPort,
-                              rtp_format_t fmt, bool dhSelected, MediaID& id)
+                              rtp_format_t fmt, bool dhSelected, MediaID& id,
+                              uint32_t localSSRC, uint32_t remoteSSRC)
 {
   if (peers_.find(sessionID) == peers_.end())
   {
@@ -355,7 +355,8 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
 
   // actually create the mediastream
   session.streams[id] = new MediaStream;
-  session.streams[id]->stream = stream;
+  session.streams[id]->stream = std::shared_ptr<UvgRTPStream> (new UvgRTPStream);
+  *(session.streams[id]->stream) = {stream, localSSRC, remoteSSRC};
 
   return true;
 }
@@ -365,7 +366,7 @@ void Delivery::removeMediaStream(uint32_t sessionID, DeliverySession &session, M
 {
   Logger::getLogger()->printNormal(this, "Removing mediastream");
 
-  session.session->destroy_stream(session.streams[id]->stream);
+  session.session->destroy_stream(session.streams[id]->stream->ms);
   delete session.streams[id];
   session.streams[id] = nullptr;
   session.streams.erase(id);
