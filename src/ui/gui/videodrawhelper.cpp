@@ -530,50 +530,50 @@ void VideoDrawHelper::drawGrid()
 void VideoDrawHelper::draw(QPainter& painter)
 {
 #ifdef KVAZZUP_HAVE_ONNX_RUNTIME
-  if(drawOverlay_ && !detections_.empty() && QDateTime::currentMSecsSinceEpoch() - 250 < timepoint_ && false)
-  {
-    resetOverlay();
-
-    QPainter painter(&overlay_);
-    painter.setPen(Qt::white);
-    painter.setCompositionMode(QPainter::CompositionMode_Source);
-
-    for (const Detection& d : detections_)
-    {
-      painter.drawRect(d.bbox.x, d.bbox.y, d.bbox.width, d.bbox.height);
-    }
-
-    painter.end();
-  }
-#endif
-
-  if(drawOverlay_ && map_.width != 0 && QDateTime::currentMSecsSinceEpoch() - 250 < roiTimepoint_ )
+  if(drawOverlay_)
   {
     roiMutex_.lock();
     QPainter painter(&overlay_);
 
-    for(unsigned int i = 0; i < map_.height; ++i)
+    // need to be set so we can override the destination alpha
+    painter.setCompositionMode(QPainter::CompositionMode_Source);
+
+    painter.setPen(Qt::NoPen);
+
+    if (map_.width != 0 && QDateTime::currentMSecsSinceEpoch() - 250 < roiTimepoint_ )
     {
-      for (unsigned int j = 0; j < map_.width; ++j)
+      for (unsigned int i = 0; i < map_.height; ++i)
       {
-        QBrush brush(qpToColor(baseQP_ + map_.data[map_.width*i + j]));
+        for (unsigned int j = 0; j < map_.width; ++j)
+        {
+          QBrush brush(qpToColor(baseQP_ + map_.data[map_.width * i + j]));
 
-        painter.setBrush(brush);
-        painter.setPen(Qt::NoPen);
+          painter.setBrush(brush);
 
-        // need to be set so we can override the destination alpha
-        painter.setCompositionMode(QPainter::CompositionMode_Source);
+          QSizeF viewMultiplier = getSizeMultipliers(videoResolution_.width(),
+                                                     videoResolution_.height());
+          QPointF viewPosition = QPointF(j * CTU_SIZE * viewMultiplier.width(),
+                                         i * CTU_SIZE * viewMultiplier.height());
 
-        QSizeF viewMultiplier = getSizeMultipliers(videoResolution_.width(),
-                                                   videoResolution_.height());
-        QPointF viewPosition = QPointF(j*CTU_SIZE*viewMultiplier.width(), i*CTU_SIZE*viewMultiplier.height());
+          // color the CTU at mouse coordinates
+          setCTUQP(painter, viewPosition, viewMultiplier); // center
+        }
+      }
+    }
 
-        // color the CTU at mouse coordinates
-        setCTUQP(painter, viewPosition, viewMultiplier); // center
+    if(!detections_.empty() && QDateTime::currentMSecsSinceEpoch() - 250 < timepoint_)
+    {
+      painter.setPen(Qt::white);
+      painter.setBrush(Qt::NoBrush);
+
+      for (const Detection& d : detections_)
+      {
+        painter.drawRect(d.bbox.x, d.bbox.y, d.bbox.width, d.bbox.height);
       }
     }
     roiMutex_.unlock();
   }
+#endif
 
   if (drawOverlay_)
   {
