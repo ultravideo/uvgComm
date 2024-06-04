@@ -316,6 +316,8 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
     flags |= RCE_PACE_FRAGMENT_SENDING;
   }
 
+  bool runZRTP = false;
+
   // enable encryption if it works
     uvgrtp::context ctx;
   if (ctx.crypto_enabled() && settingEnabled(SettingsKey::sipSRTP))
@@ -336,6 +338,8 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
     {
       flags |= RCE_ZRTP_MULTISTREAM_MODE;
     }
+
+    runZRTP = true;
   }
   else
   {
@@ -356,7 +360,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
   // actually create the mediastream
   session.streams[id] = new MediaStream;
   session.streams[id]->stream = std::shared_ptr<UvgRTPStream> (new UvgRTPStream);
-  *(session.streams[id]->stream) = {stream, localSSRC, remoteSSRC};
+  *(session.streams[id]->stream) = {stream, runZRTP, localSSRC, remoteSSRC};
 
   return true;
 }

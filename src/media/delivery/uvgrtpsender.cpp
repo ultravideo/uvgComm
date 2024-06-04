@@ -41,8 +41,9 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *
     stream_->ms->configure_ctx(RCC_REMOTE_SSRC, stream_->remoteSSRC);
   }
 
-  if (settingEnabled(SettingsKey::sipSRTP))
+  if (stream->runZRTP)
   {
+    stream->runZRTP = false;
     futureRes_ =
         QtConcurrent::run([=](uvgrtp::media_stream *ms)
                           {

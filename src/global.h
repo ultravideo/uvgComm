@@ -62,6 +62,7 @@ struct RoiMap {
 struct UvgRTPStream
 {
   uvgrtp::media_stream *ms;
+  bool runZRTP;
 
   uint32_t localSSRC;
   uint32_t remoteSSRC;
