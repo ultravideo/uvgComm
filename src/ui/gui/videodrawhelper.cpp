@@ -20,7 +20,7 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, LayoutID layoutID, uint8_t 
   firstImageReceived_(false),
   previousSize_(QSize(0,0)),
   borderSize_(borderSize),
-  currentFrame_(0),
+  lastShownTimestamp_(0),
   roiMutex_(),
   currentSize_(0),
   currentMask_(nullptr),
@@ -146,7 +146,6 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
 
   if(!firstImageReceived_)
   {
-    currentFrame_ = timestamp;
     lastFrame_ = {image, std::move(data), timestamp};
     firstImageReceived_ = true;
     updateTargetRect(widget);
@@ -234,22 +233,49 @@ void VideoDrawHelper::visualizeROIMap(RoiMap& map, int baseQP)
 bool VideoDrawHelper::getRecentImage(QImage& image)
 {
   Q_ASSERT(readyToDraw());
-  if(readyToDraw())
+  bool showNewFrame = false;
+
+  if (readyToDraw())
   {
-    if(!frameBuffer_.empty())
+    int64_t now = QDateTime::currentMSecsSinceEpoch();
+    int64_t timeSinceLastFrame = now - lastShownTimestamp_ ;
+
+    if (frameBuffer_.empty()) // no new frames to show
+    {
+      //Logger::getLogger()->printNormal(this, "No frames to show", "Interval", QString::number(timeSinceLastFrame));
+      showNewFrame = false;
+    }
+    else if (timeSinceLastFrame > 28) // enough time has passed since previous frame
+    {
+      //Logger::getLogger()->printNormal(this, "Showing new frame", "Interval", QString::number(timeSinceLastFrame));
+      showNewFrame = true;
+    }
+    else if (frameBuffer_.size() == VIEWBUFFERSIZE) // we are buffering frames
+    {
+      Logger::getLogger()->printWarning(this, "We are buffering, showing more images",
+                                        "Image interval", QString::number(timeSinceLastFrame));
+      showNewFrame = true;
+    }
+    else // show previous frame while waiting
+    {
+      //Logger::getLogger()->printNormal(this, "Waiting", "Buffer size", QString::number(frameBuffer_.size()));
+      showNewFrame = false;
+    }
+
+    if (showNewFrame)
     {
       image = frameBuffer_.back().image;
-
       lastFrame_ = std::move(frameBuffer_.back());
       frameBuffer_.pop_back();
-      return true;
+      lastShownTimestamp_ = now;
     }
     else
     {
       image = lastFrame_.image;
     }
   }
-  return false;
+
+  return showNewFrame;
 }
 
 

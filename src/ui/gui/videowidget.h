@@ -10,6 +10,7 @@
 #include <QSize>
 #include <QImage>
 #include <QMutex>
+#include <QTimer>
 
 #include <memory>
 
@@ -82,7 +83,7 @@ private:
 
   StatisticsInterface* stats_;
   uint32_t sessionID_;
-
-
   VideoDrawHelper helper_;
+
+  QTimer updateTimer_;
 };

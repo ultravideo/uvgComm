@@ -17,8 +17,10 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID,
 {
   helper_.initWidget(this);
 
+  QObject::connect(&updateTimer_, SIGNAL(timeout()), this, SLOT(repaint()));
+  updateTimer_.start(16); // 16 ms is the screen refresh time for 60 hz monitors
+
   // the new syntax does not work for some reason (unresolved overloaded function type)
-  QObject::connect(this, SIGNAL(newImage()), this, SLOT(repaint()));
   QObject::connect(&helper_, &VideoDrawHelper::detach, this, &VideoWidget::detach);
   QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoWidget::reattach);
 

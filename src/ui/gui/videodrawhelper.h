@@ -126,8 +126,7 @@ private:
 
   Frame lastFrame_;
   std::deque<Frame> frameBuffer_;
-
-  int64_t currentFrame_;
+  int64_t lastShownTimestamp_ = 0;
 
   QMutex roiMutex_;
   size_t currentSize_;
