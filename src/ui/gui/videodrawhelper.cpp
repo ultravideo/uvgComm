@@ -135,13 +135,18 @@ bool VideoDrawHelper::readyToDraw()
 
 
 void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data, QImage &image,
-                                 int64_t timestamp)
+                                 double framerate, int64_t timestamp)
 {
   if (!widget->isVisible() ||
       widget->isHidden() ||
       widget->isMinimized())
   {
     return;
+  }
+
+  if (framerate_ != framerate)
+  {
+    framerate_ = framerate;
   }
 
   if(!firstImageReceived_)
@@ -240,12 +245,14 @@ bool VideoDrawHelper::getRecentImage(QImage& image)
     int64_t now = QDateTime::currentMSecsSinceEpoch();
     int64_t timeSinceLastFrame = now - lastShownTimestamp_ ;
 
+    int64_t targetInterval = (1000 - 100)/framerate_; // try waiting at least 90% of framerate interval
+
     if (frameBuffer_.empty()) // no new frames to show
     {
       //Logger::getLogger()->printNormal(this, "No frames to show", "Interval", QString::number(timeSinceLastFrame));
       showNewFrame = false;
     }
-    else if (timeSinceLastFrame > 28) // enough time has passed since previous frame
+    else if (timeSinceLastFrame > targetInterval) // enough time has passed since previous frame
     {
       //Logger::getLogger()->printNormal(this, "Showing new frame", "Interval", QString::number(timeSinceLastFrame));
       showNewFrame = true;

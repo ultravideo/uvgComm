@@ -31,7 +31,7 @@ public:
   }
 
   // Takes ownership of the image data
-  virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, int64_t timestamp);
+  virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, double framerate, int64_t timestamp);
 
 #ifdef KVAZZUP_HAVE_ONNX_RUNTIME
   virtual void inputDetections(std::vector<Detection> detections, QSize original_size, int64_t timestamp);

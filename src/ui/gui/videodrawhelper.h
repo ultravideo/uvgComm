@@ -48,7 +48,7 @@ public:
 
   bool readyToDraw();
   void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data,
-                  QImage &image, int64_t timestamp);
+                  QImage &image, double framerate, int64_t timestamp);
 
 #ifdef KVAZZUP_HAVE_ONNX_RUNTIME
   void inputDetections(std::vector<Detection> detections, QSize original_size, uint64_t timestamp);
@@ -160,4 +160,6 @@ private:
   RoiMap map_ = {0,0, nullptr};
   int64_t roiTimepoint_ = 0;
   int baseQP_ = 0;
+
+  double framerate_ = 30;
 };
