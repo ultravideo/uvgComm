@@ -299,12 +299,13 @@ void FilterGraph::initCameraSelfView()
     // is changed later.
     // Note: mirroring is slow with Qt
 
-    std::shared_ptr<Filter> resizeFilter = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
+    std::shared_ptr<Filter> resizeFilter1 = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
+    std::shared_ptr<Filter> resizeFilter2 = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
     if (!cameraGraph_.empty())
     {
       addToGraph(std::shared_ptr<Filter>(new LibYUVConverter("", stats_, hwResources_,
                                                              cameraGraph_.at(0)->outputType())), cameraGraph_, 0);
-      addToGraph(resizeFilter, cameraGraph_, cameraGraph_.size() - 1);
+      addToGraph(resizeFilter1, cameraGraph_, cameraGraph_.size() - 1);
       addToGraph(selfviewFilter_, cameraGraph_, cameraGraph_.size() - 1);
     }
 
@@ -313,7 +314,7 @@ void FilterGraph::initCameraSelfView()
       addToGraph(std::shared_ptr<Filter>(new LibYUVConverter("", stats_, hwResources_,
                                                              screenShareGraph_.at(0)->outputType())),
                  screenShareGraph_, 0);
-      addToGraph(resizeFilter, screenShareGraph_, screenShareGraph_.size() - 1);
+      addToGraph(resizeFilter2, screenShareGraph_, screenShareGraph_.size() - 1);
       addToGraph(selfviewFilter_, screenShareGraph_, screenShareGraph_.size() - 1);
     }
 
