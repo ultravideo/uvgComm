@@ -768,7 +768,7 @@ void VideoDrawHelper::updateROIMask(int &width, int &height, int qp, bool scaleT
       QPoint imagePosition(multipliers.width()*(j + halfQPOffset), multipliers.height()*(i + halfQPOffset));
       QColor overlayColor = overlay_.pixelColor(imagePosition);
 
-      currentMask_[i*width + j] = colorToQP(overlayColor, qp);
+      //currentMask_[i*width + j] = colorToQP(overlayColor, qp);
     }
   }
 
@@ -816,10 +816,15 @@ int VideoDrawHelper::colorToQP(QColor& color, int baseQP)
 
 QColor VideoDrawHelper::qpToColor(int qp)
 {
-  if (qp == 22)
-  {
-    return QColor(0,0,0,0);
-  }
+  int colorIncrease = (47 - qp);
 
-  return QColor(75, 75, 75, (qp - 22)*200/maximumQPChange);
+  QColor color;
+
+  int h = (225 - 9*colorIncrease)%255;
+  int s = 255;
+  int v = 200;
+  int alpha = 125;
+
+  color.setHsv(h, s, v, alpha);
+  return color;
 }
