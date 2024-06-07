@@ -32,9 +32,7 @@ public:
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image,
                           double framerate, int64_t timestamp) = 0;
 
-#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
   virtual void inputDetections(std::vector<Detection> detections, QSize original_size, int64_t timestamp) = 0;
-#endif
 
   virtual void drawMicOffIcon(bool status) = 0;
   virtual std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, 

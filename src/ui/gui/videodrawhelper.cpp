@@ -197,7 +197,7 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
   }
 }
 
-#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+
 void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize original_size, uint64_t timestamp)
 {
   detections_ = detections;
@@ -213,7 +213,6 @@ void VideoDrawHelper::inputDetections(std::vector<Detection> detections, QSize o
 
   timepoint_ = QDateTime::currentMSecsSinceEpoch();
 }
-#endif
 
 
 void VideoDrawHelper::visualizeROIMap(RoiMap& map, int baseQP)
@@ -506,6 +505,13 @@ void VideoDrawHelper::setCTUQP(QPainter& painter, const QPointF& viewPosition, Q
 
   // lastly we draw the view rectangle
   painter.drawRect(viewCTU);
+
+  if (false)
+  {
+    painter.setPen(Qt::white);
+    painter.drawText(viewCTU.x(), viewCTU.y(), "100");
+    painter.setPen(Qt::NoPen);
+  }
 }
 
 
@@ -562,7 +568,7 @@ void VideoDrawHelper::drawGrid()
 
 void VideoDrawHelper::draw(QPainter& painter)
 {
-#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
+
   if(drawOverlay_)
   {
     roiMutex_.lock();
@@ -606,7 +612,6 @@ void VideoDrawHelper::draw(QPainter& painter)
     }
     roiMutex_.unlock();
   }
-#endif
 
   if (drawOverlay_)
   {

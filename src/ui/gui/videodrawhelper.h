@@ -50,9 +50,7 @@ public:
   void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data,
                   QImage &image, double framerate, int64_t timestamp);
 
-#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
   void inputDetections(std::vector<Detection> detections, QSize original_size, uint64_t timestamp);
-#endif
 
   void visualizeROIMap(RoiMap &map, int baseQP);
 
@@ -152,10 +150,8 @@ private:
 
   int bufferFullWarnings_;
 
-#ifdef KVAZZUP_HAVE_ONNX_RUNTIME
   std::vector<Detection> detections_;
   int64_t timepoint_ = 0;
-#endif
 
   RoiMap map_ = {0,0, nullptr};
   int64_t roiTimepoint_ = 0;
