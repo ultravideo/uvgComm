@@ -821,11 +821,17 @@ int VideoDrawHelper::colorToQP(QColor& color, int baseQP)
 
 QColor VideoDrawHelper::qpToColor(int qp)
 {
-  int colorIncrease = (47 - qp);
+  int colorIncreaseFromBlue = (47 - qp);
+  int maxColorIncrease = 47 - roiQP_;
 
   QColor color;
 
-  int h = (225 - 9*colorIncrease)%255;
+  int h = (225 - 224*(double(colorIncreaseFromBlue)/maxColorIncrease));
+  if (h > 255)
+  {
+    h = 255;
+  }
+
   int s = 255;
   int v = 200;
   int alpha = 125;
