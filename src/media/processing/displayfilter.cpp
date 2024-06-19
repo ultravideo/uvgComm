@@ -103,7 +103,7 @@ void DisplayFilter::process()
 
           input = deliverFrame(widgets_.at(i), std::move(input),
                                format, i != 0,
-                               horizontalMirroring_ && i == 1);
+                               horizontalMirroring_);
         }
       }
 
