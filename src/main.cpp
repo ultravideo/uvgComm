@@ -1,4 +1,4 @@
-#include "kvazzupcontroller.h"
+#include "controller.h"
 
 #include "settingskeys.h"
 #include "logger.h"
@@ -25,10 +25,10 @@ int main(int argc, char *argv[])
   }
 #endif
 
-  a.setApplicationName("Kvazzup");
+  a.setApplicationName("uvgComm");
   //a.setQuitOnLastWindowClosed(false);
 
-  //Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Starting Kvazzup",
+  //Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Starting uvgComm",
   //                                {"Version"}, {QString::fromStdString(get_version())});
 
   int id = QFontDatabase::addApplicationFont(":/fonts/OpenSans-Regular.ttf");
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 
   QCoreApplication::setOrganizationName("Ultra Video Group");
   QCoreApplication::setOrganizationDomain("ultravideo.fi");
-  QCoreApplication::setApplicationName("Kvazzup");
+  QCoreApplication::setApplicationName("uvgComm");
 
   QSettings::setPath(settingsFileFormat, QSettings::SystemScope, ".");
 
@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
   a.setStyleSheet(StyleSheet);
   a.setWindowIcon(QIcon(":/favicon.ico"));
 
-  KvazzupController controller;
+  uvgCommController controller;
   controller.init();
 
   return a.exec(); // starts main thread

@@ -7,7 +7,7 @@ if (NOT SPEEXDSP_FOUND)
         # libspeexdsp
         FetchContent_Declare(
                 libspeexdsp
-                URL https://github.com/ultravideo/kvazzup/releases/download/v0.12.0/speexdsp.zip
+                URL https://github.com/ultravideo/uvgComm/releases/download/v0.12.0/speexdsp.zip
                 URL_HASH SHA256=7522fb434a1929b34e62b291ec5cfdaff29d4a48e6e1ed7208fee294b4f78a63
                 DOWNLOAD_EXTRACT_TIMESTAMP ON
         )
@@ -21,9 +21,9 @@ if (NOT SPEEXDSP_FOUND)
 
         file(COPY ${SPEEXDSP_LIB} DESTINATION ${CMAKE_BINARY_DIR})
 
-        # install libspeexdsp dll with Kvazzup install
+        # install libspeexdsp dll with uvgComm install
         install(FILES ${SPEEXDSP_LIB} DESTINATION ${CMAKE_INSTALL_BINDIR})
     else()
-        message(FATAL_ERROR "Please install SpeexDSP package to compile Kvazzup")
+        message(FATAL_ERROR "Please install SpeexDSP package to compile uvgComm")
     endif()
 endif()

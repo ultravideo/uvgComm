@@ -179,7 +179,7 @@ void UIManager::showICEFailedMessage()
 void UIManager::showCryptoMissingMessage()
 {
   mesg_.showWarning("Warning: Encryption not possible",
-                    "Crypto++ has not been included in both Kvazzup and uvgRTP.");
+                    "Crypto++ has not been included in both uvgComm and uvgRTP.");
 }
 
 

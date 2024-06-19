@@ -40,7 +40,7 @@ const int MAX_RANDOM_DELAY_MS = 75;
 // default for SIP, use 5061 for tls encrypted
 const uint16_t SIP_PORT = 5060;
 
-#ifndef KVAZZUP_NO_RTP_MULTIPLEXING
+#ifndef uvgComm_NO_RTP_MULTIPLEXING
 const MeshType CONFERENCE_MODE = MESH_WITH_RTP_MULTIPLEXING;
 #else
 const MeshType CONFERENCE_MODE = MESH_WITHOUT_RTP_MULTIPLEXING;
@@ -1092,7 +1092,7 @@ NameAddr SIPManager::localInfo(bool registered, QString connectionAddress)
 NameAddr SIPManager::localInfo()
 {
   // init stuff from the settings
-  QSettings settings("kvazzup.ini", QSettings::IniFormat);
+  QSettings settings("uvgComm.ini", QSettings::IniFormat);
 
   NameAddr local;
 

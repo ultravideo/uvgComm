@@ -16,7 +16,7 @@
 
 
 
-/* Settings in Kvazzup work as follows:
+/* Settings in uvgComm work as follows:
  * 1) The settings view holds the setting information in a way that the user
  * can modify it. 2) This Settings class monitors users modifications and
  * records them to a file using QSettings. The file is loaded when the user

@@ -3,11 +3,11 @@
 #include <QString>
 #include <QSettings>
 
-// This file lists all the settings key used by Kvazzup.
+// This file lists all the settings key used by uvgComm.
 // Using this file should reduce the chance of typos causing bugs.
 // settings file names
 
-const QString settingsFile = "kvazzup.ini";
+const QString settingsFile = "uvgComm.ini";
 const QString blocklistFile = "blocklist.local";
 const QString contactsFile = "contacts.local";
 

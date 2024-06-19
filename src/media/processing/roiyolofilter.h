@@ -8,7 +8,7 @@
 
 #include <array>
 
-#ifdef KVAZZUP_HAVE_OPENCV
+#ifdef uvgComm_HAVE_OPENCV
 #include <opencv2/core.hpp>
 #endif
 
@@ -24,7 +24,7 @@ struct RoiSettings {
   int roiQP = -20;
   int qp = 27;
 
-#ifdef KVAZZUP_HAVE_OPENCV
+#ifdef uvgComm_HAVE_OPENCV
   cv::Mat kernel;
 #endif
 };
@@ -108,7 +108,7 @@ private:
   double minRelativeBbSize_;
   bool faceDetection_;
 
-#ifdef KVAZZUP_HAVE_OPENCV
+#ifdef uvgComm_HAVE_OPENCV
   std::string kernelType_;
   int kernelSize_;
   cv::Mat filterKernel_;

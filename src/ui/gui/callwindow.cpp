@@ -46,7 +46,7 @@ void CallWindow::init(ParticipantInterface *partInt)
 
   ui_->Add_contact_widget->setVisible(false);
 
-  setWindowTitle("Kvazzup");
+  setWindowTitle("uvgComm");
 
   contacts_.initializeList(ui_->contactList, partInt_);
 

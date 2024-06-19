@@ -3,9 +3,9 @@
 #include <cstdint>
 #include <string>
 
-#ifdef KVAZZUP_RELEASE_COMMIT
-    std::string get_version() { return "@kvazzup_VERSION@-release"; }
+#ifdef uvgComm_RELEASE_COMMIT
+    std::string get_version() { return "@uvgComm_VERSION@-release"; }
 #else
-    std::string get_version() { return "@kvazzup_VERSION@-@kvazzup_GIT_HASH@"; }
+    std::string get_version() { return "@uvgComm_VERSION@-@uvgComm_GIT_HASH@"; }
 #endif
 

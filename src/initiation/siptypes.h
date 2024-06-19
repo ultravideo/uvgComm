@@ -529,7 +529,7 @@ struct SIPMessageHeader
   // lists features not supported by UAS
   QStringList                              unsupported = {};
 
-  // describes the software or Kvazzup in this case
+  // describes the software or uvgComm in this case
   QString                                  userAgent = "";
 
   // mandatory, the path taken by a response back to request sender

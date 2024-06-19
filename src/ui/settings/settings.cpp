@@ -53,7 +53,7 @@ void Settings::init()
 { 
   basicUI_->setupUi(this);
 
-  setWindowTitle("Kvazzup Settings");
+  setWindowTitle("uvgComm Settings");
 
   // makes sure the settings are valid and resets them to defaults if necessary
   defaults_.validateSettings(mic_, cam_);
@@ -494,8 +494,8 @@ void Settings::resetFaultySettings()
   saveSettings();
 
   // we set the connecting to true at this point because we want two things:
-  // 1) that Kvazzup doesn't connect to any server without user permission
-  // 2) that connecting to server is default since it is the easiest way to use Kvazzup
+  // 1) that uvgComm doesn't connect to any server without user permission
+  // 2) that connecting to server is default since it is the easiest way to use uvgComm
   // These two conditions can only be achieved by modifying UI after settings have been saved
   basicUI_->auto_connect_box->setChecked(true);
 

@@ -46,7 +46,7 @@ public slots:
   void componentSucceeded(std::shared_ptr<ICEPair> connection);
 
 protected:
-  // handles the overall flow of testing so rest of Kvazzup is not
+  // handles the overall flow of testing so rest of uvgComm is not
   // waiting for ICE to finish
   virtual void run();
 

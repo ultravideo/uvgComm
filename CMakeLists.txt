@@ -4,10 +4,10 @@ include(cmake/ProjectDetails.cmake)
 
 # Note: We do not set the default build type, since this is typically handled by Qt Creator
 
-project(kvazzup
-    VERSION ${kvazzup_VER}
-    DESCRIPTION ${kvazzup_DESCR}
-    HOMEPAGE_URL ${kvazzup_URL}
+project(uvgComm
+    VERSION ${uvgComm_VER}
+    DESCRIPTION ${uvgComm_DESCR}
+    HOMEPAGE_URL ${uvgComm_URL}
     LANGUAGES CXX)
 
 set(CMAKE_POLICY_DEFAULT_CMP0100 NEW)
@@ -21,7 +21,7 @@ elseif(${QT_VERSION_MAJOR} EQUAL 6 AND ${QT_VERSION_MINOR} LESS 2)
     message(FATAL_ERROR "Qt versions smaller than 6.2 are no longer supported")
 endif()
 
-message(STATUS "Building Kvazzup with Qt version " ${QT_VERSION})
+message(STATUS "Building uvgComm with Qt version " ${QT_VERSION})
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -34,17 +34,17 @@ else()
     set(CMAKE_AUTOMOC ON)
 endif()
 
-#option(KVAZZUP_ENABLE_SRTP    "Enables media encryption" ON)
-#option(KVAZZUP_ENABLE_PRINTS  "Print Debug prints to command line" ON)
-#option(KVAZZUP_ENABLE_LOGGING "Save log to file" ON)
-#option(KVAZZUP_ENABLE_WERROR  "Fail with compiler warnings" OFF)
-option(KVAZZUP_ENABLE_FACE_DETECTION "Enable face detection in Kvazzup" OFF)
+#option(uvgComm_ENABLE_SRTP    "Enables media encryption" ON)
+#option(uvgComm_ENABLE_PRINTS  "Print Debug prints to command line" ON)
+#option(uvgComm_ENABLE_LOGGING "Save log to file" ON)
+#option(uvgComm_ENABLE_WERROR  "Fail with compiler warnings" OFF)
+option(uvgComm_ENABLE_FACE_DETECTION "Enable face detection in uvgComm" OFF)
 
 include(dependencies/FindDependencies.cmake)
 
 include(cmake/Versioning.cmake)
 
-set(KVAZZUP_SOURCES
+set(uvgComm_SOURCES
     src/common.cpp src/common.h
     src/global.h
     src/icetypes.h
@@ -78,7 +78,7 @@ set(KVAZZUP_SOURCES
     src/initiation/transport/siptransport.cpp           src/initiation/transport/siptransport.h
     src/initiation/transport/siptransporthelper.cpp     src/initiation/transport/siptransporthelper.h
     src/initiation/transport/tcpconnection.cpp          src/initiation/transport/tcpconnection.h
-    src/kvazzupcontroller.cpp src/kvazzupcontroller.h
+    src/controller.cpp src/controller.h
     src/logger.cpp src/logger.h
     src/media/delivery/delivery.cpp                 src/media/delivery/delivery.h
     src/media/delivery/ice.cpp                      src/media/delivery/ice.h
@@ -153,21 +153,21 @@ set(KVAZZUP_SOURCES
 )
 
 
-if (KVAZZUP_ENABLE_FACE_DETECTION)
-    list(APPEND KVAZZUP_SOURCES
+if (uvgComm_ENABLE_FACE_DETECTION)
+    list(APPEND uvgComm_SOURCES
       src/media/processing/roiyolofilter.cpp  src/media/processing/roiyolofilter.h
       src/media/processing/detection_types.h
     )
 endif()
 
-qt_add_executable(kvazzup WIN32 MACOSX_BUNDLE
-    ${KVAZZUP_SOURCES}
+qt_add_executable(uvgComm WIN32 MACOSX_BUNDLE
+    ${uvgComm_SOURCES}
     src/main.cpp
     version.cpp
     src/cameraformats.h src/cameraformats.cpp
 )
 
-set(KVAZZUP_RESOURCES
+set(uvgComm_RESOURCES
     icons/add_contact.svg
     icons/add_to_call.svg
     icons/avatar.svg
@@ -184,17 +184,17 @@ set(KVAZZUP_RESOURCES
     favicon.ico
 )
 
-qt_add_resources(kvazzup "Resources"
+qt_add_resources(uvgComm "Resources"
     PREFIX "/"
     FILES
-        ${KVAZZUP_RESOURCES}
+        ${uvgComm_RESOURCES}
 )
 
-target_include_directories(kvazzup PRIVATE
+target_include_directories(uvgComm PRIVATE
     src
 )
 
-set(KVAZZUP_LIBS LibOpenHevcWrapper
+set(uvgComm_LIBS LibOpenHevcWrapper
     Qt::Concurrent
     Qt::Core
     Qt::Gui
@@ -210,87 +210,87 @@ set(KVAZZUP_LIBS LibOpenHevcWrapper
     yuv
 )
 
-if (KVAZZUP_ENABLE_FACE_DETECTION)
+if (uvgComm_ENABLE_FACE_DETECTION)
     message("Enabling face detection")
     find_package(OpenCV)
 
     if (OpenCV_FOUND)
-        target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_OPENCV)
-        list(APPEND KVAZZUP_LIBS ${OpenCV_LIBS})
+        target_compile_definitions(uvgComm PRIVATE uvgComm_HAVE_OPENCV)
+        list(APPEND uvgComm_LIBS ${OpenCV_LIBS})
         include_directories( ${OpenCV_INCLUDE_DIRS} )
     endif()
 
-    target_compile_definitions(kvazzup PRIVATE KVAZZUP_HAVE_ONNX_RUNTIME)
+    target_compile_definitions(uvgComm PRIVATE uvgComm_HAVE_ONNX_RUNTIME)
     include_directories(${CMAKE_SOURCE_DIR}/include)
-    target_link_directories(kvazzup PRIVATE ${CMAKE_SOURCE_DIR}/libs)
+    target_link_directories(uvgComm PRIVATE ${CMAKE_SOURCE_DIR}/libs)
     message("Linking to ${CMAKE_SOURCE_DIR}/libs")
 
-    list(APPEND KVAZZUP_LIBS onnxruntime)
+    list(APPEND uvgComm_LIBS onnxruntime)
 endif()
 
-#target_compile_definitions(kvazzup PRIVATE KVAZZUP_NO_RTP_MULTIPLEXING)
+#target_compile_definitions(uvgComm PRIVATE uvgComm_NO_RTP_MULTIPLEXING)
 
 if (CRYPTOPP_FOUND AND NOT MSVC)
-    list(APPEND KVAZZUP_LIBS cryptopp.a) # this makes sure we link up the static version
+    list(APPEND uvgComm_LIBS cryptopp.a) # this makes sure we link up the static version
 else()
-    list(APPEND KVAZZUP_LIBS cryptopp)
+    list(APPEND uvgComm_LIBS cryptopp)
 endif()
 
 find_package(OpenMP) # needed for multithreading conversions
 if(OpenMP_CXX_FOUND)
-    list(APPEND KVAZZUP_LIBS OpenMP::OpenMP_CXX)
+    list(APPEND uvgComm_LIBS OpenMP::OpenMP_CXX)
 endif()
 
 find_package(JPEG QUIET) # needed for motion jpeg inside libyuv, optional
 if (JPEG_FOUND)
-    list(APPEND KVAZZUP_LIBS  ${JPEG_LIBRARY})
+    list(APPEND uvgComm_LIBS  ${JPEG_LIBRARY})
 else()
-    target_compile_definitions(kvazzup PRIVATE KVAZZUP_NO_JPEG)
+    target_compile_definitions(uvgComm PRIVATE uvgComm_NO_JPEG)
 endif()
 
 if(WIN32)
-    list(APPEND KVAZZUP_LIBS ole32 oleaut32 ws2_32)
+    list(APPEND uvgComm_LIBS ole32 oleaut32 ws2_32)
     
     if(MSVC)
-        target_compile_definitions(kvazzup PRIVATE PIC)
-        list(APPEND KVAZZUP_LIBS advapi32 kernel32 libspeexdsp)
+        target_compile_definitions(uvgComm PRIVATE PIC)
+        list(APPEND uvgComm_LIBS advapi32 kernel32 libspeexdsp)
     elseif(MINGW)
-        list(APPEND KVAZZUP_LIBS speexdsp ssp strmiids)
+        list(APPEND uvgComm_LIBS speexdsp ssp strmiids)
     endif()
 elseif(UNIX)
-    list(APPEND KVAZZUP_LIBS speexdsp)
-    target_compile_options(kvazzup PUBLIC "-march=native")
+    list(APPEND uvgComm_LIBS speexdsp)
+    target_compile_options(uvgComm PUBLIC "-march=native")
 endif()
 
-target_link_libraries(kvazzup PRIVATE ${KVAZZUP_LIBS})
+target_link_libraries(uvgComm PRIVATE ${uvgComm_LIBS})
 
 
 # Unit tests
 #add_subdirectory(test EXCLUDE_FROM_ALL)
 
 if((CONFIG(OFF)) AND ((CMAKE_BUILD_TYPE STREQUAL Debug)))
-    set_target_properties(kvazzup PROPERTIES
+    set_target_properties(uvgComm PROPERTIES
         WIN32_EXECUTABLE FALSE
     )
 endif()
 
-install(TARGETS kvazzup
+install(TARGETS uvgComm
     BUNDLE DESTINATION .
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 if(${QT_VERSION_MAJOR} EQUAL 6 AND ${QT_VERSION_MINOR} LESS_EQUAL 2)
-    message(WARNING "Kvazzup does not support deployment with Qt 6.2 version")
+    message(WARNING "uvgComm does not support deployment with Qt 6.2 version")
 elseif(${QT_VERSION_MAJOR} EQUAL 6 AND ${QT_VERSION_MINOR} LESS_EQUAL 4)
     qt_generate_deploy_app_script(
-        TARGET kvazzup
+        TARGET uvgComm
         FILENAME_VARIABLE deploy_script
         NO_UNSUPPORTED_PLATFORM_ERROR
     )
     install(SCRIPT ${deploy_script})
 else()
     qt_generate_deploy_app_script(
-        TARGET kvazzup
+        TARGET uvgComm
         OUTPUT_SCRIPT deploy_script
         NO_UNSUPPORTED_PLATFORM_ERROR
     )

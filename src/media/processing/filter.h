@@ -18,7 +18,7 @@
 #include <functional>
 #include <chrono>
 
-// One of the most fundamental classes of Kvazzup. A filter is an indipendent data processing
+// One of the most fundamental classes of uvgComm. A filter is an indipendent data processing
 // unit running on its own thread. Filters can be linked together to form a data processing pipeline
 // called filter graph. A class inherited from filter can do any sort of processing to the data it
 // receives. The filter sleeps when it does not have any input to process.

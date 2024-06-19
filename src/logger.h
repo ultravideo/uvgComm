@@ -12,7 +12,7 @@
 enum DebugType{DEBUG_NORMAL, DEBUG_IMPORTANT, DEBUG_ERROR, DEBUG_WARNING,
                DEBUG_PEER_ERROR, DEBUG_PROGRAM_ERROR, DEBUG_PROGRAM_WARNING};
 
-// A singleton class. Used to uniformalize debug prints across Kvazzup
+// A singleton class. Used to uniformalize debug prints across uvgComm
 
 class Logger
 {
@@ -43,20 +43,20 @@ public:
                     QString valueName = "", QString value = "");
 
   // Events outside the program that will cause problems
-  // for the functionality of the Kvazzup.
+  // for the functionality of the uvgComm.
   void printError(const QObject* object, QString description = "",
                   QString valueName = "", QString value = "");
   void printError(const QString module, QString description = "",
                   QString valueName = "", QString value = "");
 
-  // Impossible situation that will cause problems to functionality of Kvazzup.
+  // Impossible situation that will cause problems to functionality of uvgComm.
   void printProgramError(const QObject* object, QString description = "",
                         QString valueName = "", QString value = "");
   void printProgramError(const QString module, QString description = "",
                         QString valueName = "", QString value = "");
 
   // Impossible situation that can be dealt without causing problems to functionality
-  // of Kvazzup.
+  // of uvgComm.
   void printProgramWarning(const QObject* object, QString description = "",
                            QString valueName = "", QString value = "");
   void printProgramWarning(const QString module, QString description = "",
@@ -86,7 +86,7 @@ public:
                   QStringList valueNames = {}, QStringList values = {});
 
 
-  // use this if printing is inside class derived from QObject which is most classes in Kvazzup
+  // use this if printing is inside class derived from QObject which is most classes in uvgComm
   void printDebug(DebugType type, const QObject* object, QString description = "",
                   QStringList valueNames = {}, QStringList values = {});
 

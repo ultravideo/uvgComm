@@ -66,7 +66,7 @@ void SIPTransport::processOutgoingRequest(SIPRequest& request, QVariant &content
   QString content_str = addContent(request.message,
                                    content);
 
-  request.message->userAgent = "Kvazzup";
+  request.message->userAgent = "uvgComm";
 
 
   QList<SIPField> fields;

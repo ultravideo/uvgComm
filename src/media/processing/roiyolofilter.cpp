@@ -8,7 +8,7 @@
 #include "global.h"
 #include "common.h"
 
-#ifdef KVAZZUP_HAVE_OPENCV
+#ifdef uvgComm_HAVE_OPENCV
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 #endif
@@ -118,7 +118,7 @@ void ROIYoloFilter::process()
           Rect roi = bbox_to_roi(face.bbox);
           face_roi_rects.push_back(roi);
 
-#ifdef KVAZZUP_HAVE_OPENCV
+#ifdef uvgComm_HAVE_OPENCV
           if (drawBbox_)
           {
             cv::rectangle(rgb, face.bbox, {255, 0, 0}, 3);
@@ -182,7 +182,7 @@ bool ROIYoloFilter::initYolo(int threads, QString newModelQstr)
   std::string newModelPath = newModelQstr.toStdString();
 #endif
 
-#ifdef KVAZZUP_HAVE_OPENCV
+#ifdef uvgComm_HAVE_OPENCV
     kernelSize_ = settings.value(SettingsKey::roiKernelSize).toInt();
     kernelType_ = settings.value(SettingsKey::roiKernelType).toString().toStdString();
     if (kernelType_ == "Gaussian") {
@@ -375,7 +375,7 @@ std::vector<float> ROIYoloFilter::scaleToLetterbox(const std::vector<float>& img
   int top = int(std::round(ddh - 0.1));
   int left = int(std::round(ddw - 0.1));
 
-#ifdef KVAZZUP_HAVE_OPENCV
+#ifdef uvgComm_HAVE_OPENCV
   int bottom = int(std::round(ddh + 0.1));
   int right = int(std::round(ddw + 0.1));
   cv::Mat scaled;
@@ -385,7 +385,7 @@ std::vector<float> ROIYoloFilter::scaleToLetterbox(const std::vector<float>& img
 
   if (original_shape.width != new_unpad.width && original_shape.height != new_unpad.height) // resize
   {
-#ifdef KVAZZUP_HAVE_OPENCV
+#ifdef uvgComm_HAVE_OPENCV
     cv::Mat input(original_shape.height, original_shape.width, CV_32F, (void*)img.data());
     cv::resize(input, scaled, {new_unpad.width, new_unpad.height}, 0.0, 0.0, cv::INTER_NEAREST);
 #else
@@ -401,7 +401,7 @@ std::vector<float> ROIYoloFilter::scaleToLetterbox(const std::vector<float>& img
 #endif
   }
 
-#ifdef KVAZZUP_HAVE_OPENCV
+#ifdef uvgComm_HAVE_OPENCV
   cv::copyMakeBorder(scaled, scaled, top, bottom, left, right, cv::BORDER_CONSTANT, color/255.0f); // add border
   std::vector<float> scaled_img(new_shape.width*new_shape.height);
   memcpy((void*)scaled_img.data(), (void*)scaled.datastart, new_shape.width*new_shape.height*scaled.elemSize());
@@ -671,7 +671,7 @@ RoiMap ROIYoloFilter::makeRoiMap(const std::vector<Rect> &bbs)
 
   RoiMap roi_map {width, height, std::make_unique<int8_t[]>(width*height)};
 
-#ifdef KVAZZUP_HAVE_OPENCV
+#ifdef uvgComm_HAVE_OPENCV
   cv::Mat new_map(height, width, CV_16S, backgroundQP-qp);
   for (auto roi : bbs)
   {

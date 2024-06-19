@@ -19,13 +19,11 @@
 struct SDPMessageInfo;
 class StatisticsInterface;
 
-class KvazzupController :
-    public QObject,
-    public ParticipantInterface
+class uvgCommController : public QObject, public ParticipantInterface
 {
   Q_OBJECT
 public:
-  KvazzupController();
+  uvgCommController();
 
   void init();
   void uninit();
@@ -64,7 +62,7 @@ public slots:
 
   // reaction to user UI interactions
   void endTheCall();     // user wants to end the call
-  void quit();           // we should closed Kvazzup
+  void quit();           // we should closed uvgComm
   void userAcceptsCall(uint32_t sessionID); // user has accepted the incoming call
   void userRejectsCall(uint32_t sessionID); // user has rejected the incoming call
   void userCancelsCall(uint32_t sessionID); // user has rejected the incoming call

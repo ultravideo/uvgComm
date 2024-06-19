@@ -145,7 +145,7 @@ const std::map<QString, uint32_t> DYNAMIC_AUDIO_PAYLOADTYPES = {
 };
 
 const QString SESSION_NAME = "-";
-const QString SESSION_DESCRIPTION = "A Kvazzup initiated communication";
+const QString SESSION_DESCRIPTION = "A uvgComm initiated communication";
 
 
 

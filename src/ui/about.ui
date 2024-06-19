@@ -36,7 +36,7 @@
          </font>
         </property>
         <property name="text">
-         <string>Kvazzup</string>
+         <string>uvgComm</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -124,7 +124,7 @@
          </font>
         </property>
         <property name="text">
-         <string>Libraries used by Kvazzup:</string>
+         <string>Libraries used by uvgComm:</string>
         </property>
        </widget>
       </item>

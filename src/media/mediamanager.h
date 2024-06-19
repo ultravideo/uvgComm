@@ -76,7 +76,7 @@ public:
 
   void removeParticipant(uint32_t sessionID);
 
-  // Functions that enable using Kvazzup as just a streming client for whatever reason.
+  // Functions that enable using uvgComm as just a streming client for whatever reason.
   void streamToIP(in_addr ip, uint16_t port);
   void receiveFromIP(in_addr ip, uint16_t port);
 

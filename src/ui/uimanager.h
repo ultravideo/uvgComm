@@ -14,7 +14,7 @@ class AboutWidget;
 }
 
 /*  This class responsible for coordinating GUI components and user interaction
- *  with Kvazzup.
+ *  with uvgComm.
  */
 
 class UIManager : public QObject

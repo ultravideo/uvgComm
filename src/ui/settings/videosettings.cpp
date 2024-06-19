@@ -28,7 +28,7 @@ VideoSettings::VideoSettings(QWidget* parent,
   videoSettingsUI_->setupUi(this);
 
 
-#ifndef KVAZZUP_HAVE_ONNX_RUNTIME
+#ifndef uvgComm_HAVE_ONNX_RUNTIME
   videoSettingsUI_->model_label->setText("Model Settings (ONNX runtime not available)");
   videoSettingsUI_->RoiTab->setEnabled(false);
 #endif
@@ -370,7 +370,7 @@ void VideoSettings::restoreSettings()
   videoSettingsUI_->kernel_type->setCurrentText(settings_.value(SettingsKey::roiKernelType).toString());
   videoSettingsUI_->kernel_size->setValue(settings_.value(SettingsKey::roiKernelSize).toInt());
 
-#ifndef KVAZZUP_HAVE_OPENCV
+#ifndef uvgComm_HAVE_OPENCV
   videoSettingsUI_->opencv_label->setText("OpenCV (not available)");
   videoSettingsUI_->kernel_type->setEnabled(false);
   videoSettingsUI_->kernel_size->setEnabled(false);

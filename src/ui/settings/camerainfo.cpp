@@ -9,8 +9,8 @@
 
 
 
-// these are supported by kvazzup (can be converted to YUV420), list mostly based on which formats libyuv supports
-const QList<QVideoFrameFormat::PixelFormat> kvazzupFormats = {QVideoFrameFormat::Format_YUV420P,
+// these are supported by uvgComm (can be converted to YUV420), list mostly based on which formats libyuv supports
+const QList<QVideoFrameFormat::PixelFormat> uvgCommFormats = {QVideoFrameFormat::Format_YUV420P,
                                                               QVideoFrameFormat::Format_YUV422P,
                                                               QVideoFrameFormat::Format_NV12,
                                                               QVideoFrameFormat::Format_NV21,
@@ -22,7 +22,7 @@ const QList<QVideoFrameFormat::PixelFormat> kvazzupFormats = {QVideoFrameFormat:
                                                               QVideoFrameFormat::Format_RGBA8888, // RGB32
                                                               QVideoFrameFormat::Format_RGBX8888, // RGB24
                                                               QVideoFrameFormat::Format_BGRX8888,
-#if !KVAZZUP_NO_JPEG || (QT_VERSION_MAJOR == 6 && QT_VERSION_MINOR <= 4)
+#if !uvgComm_NO_JPEG || (QT_VERSION_MAJOR == 6 && QT_VERSION_MINOR <= 4)
                                                               QVideoFrameFormat::Format_Jpeg
 #endif
 };
@@ -247,7 +247,7 @@ void CameraInfo::getCameraOptions(std::vector<SettingsCameraFormat>& options, in
       QList<int> framerates;
       for (auto& formatOption : camera->cameraDevice().videoFormats())
       {
-        if (!kvazzupFormats.contains(formatOption.pixelFormat()) ||
+        if (!uvgCommFormats.contains(formatOption.pixelFormat()) ||
             !goodResolution(formatOption.resolution()))
         {
           continue;
@@ -282,9 +282,9 @@ void CameraInfo::getAllowedFormats(QList<QVideoFrameFormat::PixelFormat> &p_form
 {
   for (int i = 0; i < p_formats.size() ; ++i)
   {
-    for (int j = 0; j < kvazzupFormats.size(); ++j)
+    for (int j = 0; j < uvgCommFormats.size(); ++j)
     {
-      if (p_formats.at(i) == kvazzupFormats.at(j))
+      if (p_formats.at(i) == uvgCommFormats.at(j))
       {
         allowedFormats.push_back(videoFormatToString(p_formats.at(i)));
       }

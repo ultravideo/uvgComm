@@ -1,4 +1,4 @@
-#include "kvazzupcontroller.h"
+#include "controller.h"
 
 #include "statisticsinterface.h"
 
@@ -19,7 +19,7 @@
 const int DELAYED_NEGOTIATION_TIMEOUT_MS = 500;
 
 
-KvazzupController::KvazzupController():
+uvgCommController::uvgCommController():
   states_(),
   media_(),
   sip_(),
@@ -33,35 +33,35 @@ KvazzupController::KvazzupController():
 {}
 
 
-void KvazzupController::init()
+void uvgCommController::init()
 {
-  Logger::getLogger()->printImportant(this, "Kvazzup initiation Started");
+  Logger::getLogger()->printImportant(this, "uvgComm initiation Started");
 
   userInterface_.init(this, viewFactory_);
 
   stats_ = userInterface_.createStatsWindow();
 
   QObject::connect(&sip_, &SIPManager::finalLocalSDP,
-                   this, &KvazzupController::inputLocalSDP);
+                   this, &uvgCommController::inputLocalSDP);
 
   QObject::connect(&sip_, &SIPManager::connectionEstablished,
-                   this, &KvazzupController::connectionEstablished);
+                   this, &uvgCommController::connectionEstablished);
 
 
-  sip_.installSIPRequestCallback(std::bind(&KvazzupController::SIPRequestCallback, this,
+  sip_.installSIPRequestCallback(std::bind(&uvgCommController::SIPRequestCallback, this,
                                            std::placeholders::_1,
                                            std::placeholders::_2,
                                            std::placeholders::_3));
-  sip_.installSIPResponseCallback(std::bind(&KvazzupController::SIPResponseCallback, this,
+  sip_.installSIPResponseCallback(std::bind(&uvgCommController::SIPResponseCallback, this,
                                             std::placeholders::_1,
                                             std::placeholders::_2,
                                             std::placeholders::_3));
 
-  sip_.installSIPRequestCallback(std::bind(&KvazzupController::processRegisterRequest, this,
+  sip_.installSIPRequestCallback(std::bind(&uvgCommController::processRegisterRequest, this,
                                            std::placeholders::_1,
                                            std::placeholders::_2,
                                            std::placeholders::_3));
-  sip_.installSIPResponseCallback(std::bind(&KvazzupController::processRegisterResponse, this,
+  sip_.installSIPResponseCallback(std::bind(&uvgCommController::processRegisterResponse, this,
                                             std::placeholders::_1,
                                             std::placeholders::_2,
                                             std::placeholders::_3));
@@ -80,48 +80,48 @@ void KvazzupController::init()
   updateCallSettings();
 
   QObject::connect(&media_, &MediaManager::handleZRTPFailure,
-                   this,    &KvazzupController::zrtpFailed);
+                   this,    &uvgCommController::zrtpFailed);
 
   QObject::connect(&media_, &MediaManager::handleNoEncryption,
-                   this,    &KvazzupController::noEncryptionAvailable);
+                   this,    &uvgCommController::noEncryptionAvailable);
 
   // connect sip signal so we get information when ice fails
   QObject::connect(&media_, &MediaManager::iceMediaFailed,
-                   this, &KvazzupController::iceFailed);
+                   this, &uvgCommController::iceFailed);
 
   media_.init(viewFactory_, stats_);
 
   // register the GUI signals indicating GUI changes to be handled
   // approrietly in a system wide manner
   QObject::connect(&userInterface_, &UIManager::updateCallSettings,
-                   this, &KvazzupController::updateCallSettings);
+                   this, &uvgCommController::updateCallSettings);
 
   QObject::connect(&userInterface_, &UIManager::updateVideoSettings,
-                   this, &KvazzupController::updateVideoSettings);
+                   this, &uvgCommController::updateVideoSettings);
   QObject::connect(&userInterface_, &UIManager::updateAudioSettings,
-                   this, &KvazzupController::updateAudioSettings);
+                   this, &uvgCommController::updateAudioSettings);
 
   QObject::connect(&userInterface_, &UIManager::updateAutomaticSettings,
                    &media_, &MediaManager::updateAutomaticSettings);
 
-  QObject::connect(&userInterface_, &UIManager::endCall, this, &KvazzupController::endTheCall);
-  QObject::connect(&userInterface_, &UIManager::quit, this, &KvazzupController::quit);
+  QObject::connect(&userInterface_, &UIManager::endCall, this, &uvgCommController::endTheCall);
+  QObject::connect(&userInterface_, &UIManager::quit, this, &uvgCommController::quit);
 
   QObject::connect(&userInterface_, &UIManager::callAccepted,
-                   this, &KvazzupController::userAcceptsCall);
+                   this, &uvgCommController::userAcceptsCall);
   QObject::connect(&userInterface_, &UIManager::callRejected,
-                   this, &KvazzupController::userRejectsCall);
+                   this, &uvgCommController::userRejectsCall);
   QObject::connect(&userInterface_, &UIManager::callCancelled,
-                   this, &KvazzupController::userCancelsCall);
+                   this, &uvgCommController::userCancelsCall);
 
   // lastly, show the window when our signals are ready
   userInterface_.showMainWindow();
 
-  Logger::getLogger()->printImportant(this, "Kvazzup initiation finished");
+  Logger::getLogger()->printImportant(this, "uvgComm initiation finished");
 }
 
 
-void KvazzupController::uninit()
+void uvgCommController::uninit()
 {
   // for politeness, we send BYE messages to all our call participants.
   endTheCall();
@@ -130,14 +130,14 @@ void KvazzupController::uninit()
 }
 
 
-SIPConfig KvazzupController::createSIPConfig()
+SIPConfig uvgCommController::createSIPConfig()
 {
   return {settingEnabled(SettingsKey::sipAutoConnect),
           settingString(SettingsKey::sipServerAddress),
           5060,
           settingEnabled(SettingsKey::sipP2PConferencing),
           (uint16_t)settingValue(SettingsKey::sipMediaPort),
-#ifdef KVAZZUP_NO_RTP_MULTIPLEXING
+#ifdef uvgComm_NO_RTP_MULTIPLEXING
           settingEnabled(SettingsKey::sipICEEnabled),
 #else
         false,
@@ -149,13 +149,13 @@ SIPConfig KvazzupController::createSIPConfig()
 }
 
 
-void KvazzupController::quit()
+void uvgCommController::quit()
 {
   uninit();
 }
 
 
-uint32_t KvazzupController::startINVITETransaction(QString name, QString username,
+uint32_t uvgCommController::startINVITETransaction(QString name, QString username,
                                                    QString ip)
 {
   uint32_t sessionID = sip_.reserveSessionID();
@@ -176,7 +176,7 @@ uint32_t KvazzupController::startINVITETransaction(QString name, QString usernam
 }
 
 
-void KvazzupController::createSIPDialog(QString name, QString username, QString ip, uint32_t sessionID)
+void uvgCommController::createSIPDialog(QString name, QString username, QString ip, uint32_t sessionID)
 {
   NameAddr remote;
   remote.realname = name;
@@ -224,7 +224,7 @@ void KvazzupController::createSIPDialog(QString name, QString username, QString 
 }
 
 
-uint32_t KvazzupController::chatWithParticipant(QString name, QString username,
+uint32_t uvgCommController::chatWithParticipant(QString name, QString username,
                                                 QString ip)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Starting a chat with contact",
@@ -233,7 +233,7 @@ uint32_t KvazzupController::chatWithParticipant(QString name, QString username,
 }
 
 
-bool KvazzupController::processINVITE(uint32_t sessionID, QString caller)
+bool uvgCommController::processINVITE(uint32_t sessionID, QString caller)
 {
   if(states_.find(sessionID) != states_.end())
   {
@@ -255,7 +255,7 @@ bool KvazzupController::processINVITE(uint32_t sessionID, QString caller)
     }
 
     delayedAutoAccept_ = sessionID;
-    delayAutoAccept_.singleShot(100, this, &KvazzupController::delayedAutoAccept);
+    delayAutoAccept_.singleShot(100, this, &uvgCommController::delayedAutoAccept);
     return false;
   }
   else
@@ -267,14 +267,14 @@ bool KvazzupController::processINVITE(uint32_t sessionID, QString caller)
 }
 
 
-void KvazzupController::delayedAutoAccept()
+void uvgCommController::delayedAutoAccept()
 {
   userAcceptsCall(delayedAutoAccept_);
   delayedAutoAccept_ = 0;
 }
 
 
-void KvazzupController::updateAudioSettings()
+void uvgCommController::updateAudioSettings()
 {
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
@@ -292,7 +292,7 @@ void KvazzupController::updateAudioSettings()
 }
 
 
-void KvazzupController::updateVideoSettings()
+void uvgCommController::updateVideoSettings()
 {
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
@@ -313,7 +313,7 @@ void KvazzupController::updateVideoSettings()
 }
 
 
-void KvazzupController::updateCallSettings()
+void uvgCommController::updateCallSettings()
 {
   SIPConfig config = createSIPConfig();
 
@@ -334,7 +334,7 @@ void KvazzupController::updateCallSettings()
 }
 
 
-void KvazzupController::updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp)
+void uvgCommController::updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp)
 {
   if (!settingEnabled(SettingsKey::micStatus))
   {
@@ -349,7 +349,7 @@ void KvazzupController::updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp
 }
 
 
-void KvazzupController::updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp)
+void uvgCommController::updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp)
 {
   if (!settingEnabled(SettingsKey::screenShareStatus) &&
       !settingEnabled(SettingsKey::cameraStatus))
@@ -365,7 +365,7 @@ void KvazzupController::updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp
 }
 
 
-void KvazzupController::processRINGING(uint32_t sessionID)
+void uvgCommController::processRINGING(uint32_t sessionID)
 {
   // TODO_RFC 3261: Enable cancelling the request at this point
   // to make sure the original request has been received
@@ -385,7 +385,7 @@ void KvazzupController::processRINGING(uint32_t sessionID)
 }
 
 
-void KvazzupController::processINVITE_OK(uint32_t sessionID)
+void uvgCommController::processINVITE_OK(uint32_t sessionID)
 {
   if(states_.find(sessionID) != states_.end())
   {
@@ -410,7 +410,7 @@ void KvazzupController::processINVITE_OK(uint32_t sessionID)
 }
 
 
-void KvazzupController::INVITETransactionConcluded(uint32_t sessionID)
+void uvgCommController::INVITETransactionConcluded(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "Call negotiated", "SessionID", QString::number(sessionID));
 
@@ -432,7 +432,7 @@ void KvazzupController::INVITETransactionConcluded(uint32_t sessionID)
       if (!pendingRenegotiations_.empty())
       {
         delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
-                                       this, &KvazzupController::negotiateNextCall);
+                                       this, &uvgCommController::negotiateNextCall);
       }
     }
     else
@@ -443,7 +443,7 @@ void KvazzupController::INVITETransactionConcluded(uint32_t sessionID)
 }
 
 
-void KvazzupController::iceFailed(uint32_t sessionID)
+void uvgCommController::iceFailed(uint32_t sessionID)
 {
   Logger::getLogger()->printError(this, "ICE has failed");
 
@@ -455,7 +455,7 @@ void KvazzupController::iceFailed(uint32_t sessionID)
 }
 
 
-void KvazzupController::zrtpFailed(quint32 sessionID)
+void uvgCommController::zrtpFailed(quint32 sessionID)
 {
   Logger::getLogger()->printError(this, "ZRTP has failed");
 
@@ -471,13 +471,13 @@ void KvazzupController::zrtpFailed(quint32 sessionID)
 }
 
 
-void KvazzupController::noEncryptionAvailable()
+void uvgCommController::noEncryptionAvailable()
 {
   userInterface_.showCryptoMissingMessage();
 }
 
 
-void KvazzupController::createCall(uint32_t sessionID)
+void uvgCommController::createCall(uint32_t sessionID)
 {
   std::shared_ptr<SDPMessageInfo> localSDP = states_[sessionID].localSDP;
   std::shared_ptr<SDPMessageInfo> remoteSDP = states_[sessionID].remoteSDP;
@@ -560,7 +560,7 @@ void KvazzupController::createCall(uint32_t sessionID)
 }
 
 
-void KvazzupController::updateMediaIDs(uint32_t sessionID,
+void uvgCommController::updateMediaIDs(uint32_t sessionID,
                                        QList<MediaInfo>& localMedia,
                                        QList<MediaInfo>& remoteMedia,
                                        bool followOurSDP,
@@ -624,7 +624,7 @@ void KvazzupController::updateMediaIDs(uint32_t sessionID,
 }
 
 
-void KvazzupController::getMediaAttributes(const MediaInfo &local, const MediaInfo &remote,
+void uvgCommController::getMediaAttributes(const MediaInfo &local, const MediaInfo &remote,
                                            bool followOurSDP,
                                            bool& send, bool& receive)
 {
@@ -641,7 +641,7 @@ void KvazzupController::getMediaAttributes(const MediaInfo &local, const MediaIn
 }
 
 
-MediaID KvazzupController::getMediaID(uint32_t sessionID, const MediaInfo &media)
+MediaID uvgCommController::getMediaID(uint32_t sessionID, const MediaInfo &media)
 {
 
   if (sessionMedias_.find(sessionID) != sessionMedias_.end())
@@ -672,13 +672,13 @@ MediaID KvazzupController::getMediaID(uint32_t sessionID, const MediaInfo &media
 }
 
 
-void KvazzupController::cancelIncomingCall(uint32_t sessionID)
+void uvgCommController::cancelIncomingCall(uint32_t sessionID)
 {
   removeSession(sessionID, "Cancelled", true);
 }
 
 
-void KvazzupController::sessionTerminated(uint32_t sessionID)
+void uvgCommController::sessionTerminated(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "Ending the call", {"SessionID"}, 
                                    {QString::number(sessionID)});
@@ -692,21 +692,21 @@ void KvazzupController::sessionTerminated(uint32_t sessionID)
 }
 
 
-void KvazzupController::registeredToServer()
+void uvgCommController::registeredToServer()
 {
   Logger::getLogger()->printImportant(this, "We have been registered to a SIP server.");
   // TODO: indicate to user in some small detail
 }
 
 
-void KvazzupController::registeringFailed()
+void uvgCommController::registeringFailed()
 {
   Logger::getLogger()->printError(this, "Failed to register to a SIP server.");
   // TODO: indicate error to user
 }
 
 
-void KvazzupController::userAcceptsCall(uint32_t sessionID)
+void uvgCommController::userAcceptsCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "We accept");
   states_[sessionID].state = CALL_TRANSACTION_CONCLUDED;
@@ -715,7 +715,7 @@ void KvazzupController::userAcceptsCall(uint32_t sessionID)
 }
 
 
-void KvazzupController::userRejectsCall(uint32_t sessionID)
+void uvgCommController::userRejectsCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "We reject");
   sip_.respondDeclineToINVITE(sessionID);
@@ -725,7 +725,7 @@ void KvazzupController::userRejectsCall(uint32_t sessionID)
 }
 
 
-void KvazzupController::userCancelsCall(uint32_t sessionID)
+void uvgCommController::userCancelsCall(uint32_t sessionID)
 {
   Logger::getLogger()->printNormal(this, "We cancel our call");
   if (!sip_.cancelCall(sessionID))
@@ -737,7 +737,7 @@ void KvazzupController::userCancelsCall(uint32_t sessionID)
 }
 
 
-void KvazzupController::endTheCall()
+void uvgCommController::endTheCall()
 {
   Logger::getLogger()->printImportant(this, "We end the call");
 
@@ -745,7 +745,7 @@ void KvazzupController::endTheCall()
 }
 
 
-void KvazzupController::removeSession(uint32_t sessionID, QString message,
+void uvgCommController::removeSession(uint32_t sessionID, QString message,
                                       bool temporaryMessage)
 {
   if (message == "" || message.isEmpty())
@@ -778,7 +778,7 @@ void KvazzupController::removeSession(uint32_t sessionID, QString message,
 }
 
 
-void KvazzupController::SIPRequestCallback(uint32_t sessionID,
+void uvgCommController::SIPRequestCallback(uint32_t sessionID,
                                            SIPRequest& request,
                                            QVariant& content)
 {
@@ -842,7 +842,7 @@ void KvazzupController::SIPRequestCallback(uint32_t sessionID,
 }
 
 
-void KvazzupController::SIPResponseCallback(uint32_t sessionID,
+void uvgCommController::SIPResponseCallback(uint32_t sessionID,
                                             SIPResponse& response,
                                             QVariant& content)
 {
@@ -915,7 +915,7 @@ void KvazzupController::SIPResponseCallback(uint32_t sessionID,
 }
 
 
-void KvazzupController::inputLocalSDP(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> local)
+void uvgCommController::inputLocalSDP(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> local)
 {
   if (states_.find(sessionID) == states_.end())
   {
@@ -933,7 +933,7 @@ void KvazzupController::inputLocalSDP(uint32_t sessionID, std::shared_ptr<SDPMes
 }
 
 
-void KvazzupController::processRegisterRequest(QString address,
+void uvgCommController::processRegisterRequest(QString address,
                                                SIPRequest& request,
                                                QVariant& content)
 {
@@ -943,7 +943,7 @@ void KvazzupController::processRegisterRequest(QString address,
 }
 
 
-void KvazzupController::processRegisterResponse(QString address,
+void uvgCommController::processRegisterResponse(QString address,
                                                 SIPResponse& response,
                                                 QVariant& content)
 {
@@ -960,7 +960,7 @@ void KvazzupController::processRegisterResponse(QString address,
 }
 
 
-void KvazzupController::getRemoteSDP(uint32_t sessionID,
+void uvgCommController::getRemoteSDP(uint32_t sessionID,
                                      std::shared_ptr<SIPMessageHeader> message,
                                      QVariant& content)
 {
@@ -979,7 +979,7 @@ void KvazzupController::getRemoteSDP(uint32_t sessionID,
 }
 
 
-void KvazzupController::renegotiateCall(uint32_t sessionID)
+void uvgCommController::renegotiateCall(uint32_t sessionID)
 {
   bool found = false;
 
@@ -999,7 +999,7 @@ void KvazzupController::renegotiateCall(uint32_t sessionID)
 }
 
 
-void KvazzupController::renegotiateAllCalls()
+void uvgCommController::renegotiateAllCalls()
 {
   for (auto& state : states_)
   {
@@ -1008,7 +1008,7 @@ void KvazzupController::renegotiateAllCalls()
 }
 
 
-void KvazzupController::negotiateNextCall()
+void uvgCommController::negotiateNextCall()
 {
   if (!pendingRenegotiations_.empty() && ongoingNegotiations_ == 0)
   {
@@ -1024,7 +1024,7 @@ void KvazzupController::negotiateNextCall()
 }
 
 
-void KvazzupController::connectionEstablished(QString localAddress, QString remoteAddress)
+void uvgCommController::connectionEstablished(QString localAddress, QString remoteAddress)
 {
   Q_UNUSED(localAddress)
 
@@ -1048,7 +1048,7 @@ void KvazzupController::connectionEstablished(QString localAddress, QString remo
 }
 
 
-bool KvazzupController::areWeICEController(bool initialAgent, uint32_t sessionID) const
+bool uvgCommController::areWeICEController(bool initialAgent, uint32_t sessionID) const
 {
   // one to one calls should follow the specification
   if (states_.at(sessionID).remoteSDP &&
@@ -1064,7 +1064,7 @@ bool KvazzupController::areWeICEController(bool initialAgent, uint32_t sessionID
 }
 
 
-void KvazzupController::getStunBindings(uint32_t sessionID, MediaInfo& media)
+void uvgCommController::getStunBindings(uint32_t sessionID, MediaInfo& media)
 {
   if (media.candidates.empty())
   {

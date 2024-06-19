@@ -6,9 +6,9 @@
 
 #include <QString>
 
-const QString APPLICATIONNAME = "Kvazzup";
+const QString APPLICATIONNAME = "uvgComm";
 
-const QString LOG_FILE_NAME = "kvazzup.log";
+const QString LOG_FILE_NAME = "uvgComm.log";
 
 // how often registrations are sent in seconds
 const int REGISTER_INTERVAL = 600;

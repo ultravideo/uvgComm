@@ -78,7 +78,7 @@ else()
     message(STATUS "Did not find uvgRTP")
 endif()
 
-if(KVAZZUP_ENABLE_FACE_DETECTION)
+if(uvgComm_ENABLE_FACE_DETECTION)
     message("Face detection has been enabled, onnx Runtime is required")
 endif()
 
