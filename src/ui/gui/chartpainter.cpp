@@ -339,7 +339,7 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID,
   for (unsigned int i = 0; i < points_.at(lineID - 1)->size(); ++i)
   {
     // get points position
-    int xPoint = getDrawMinX() + float(i)/(xWindowCount_ - 1)*drawLength;
+    int xPoint = getDrawMaxX() - float(i)/(xWindowCount_ - 1)*drawLength;
     int yPoint = getDrawMaxY() - points_.at(lineID - 1)->at(i)/maxY_*drawHeight;
 
     drawMark(painter, lineID, xPoint, yPoint);
@@ -362,8 +362,8 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID,
       QSize numberSize = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
                                                            number);
 
-      painter.drawText(getDrawMinX() - numberSize.width() - NUMBERMARGIN,
-                       yPoint + maxYSize_.height()/4, number);
+      //painter.drawText(getDrawMinX() - numberSize.width() - NUMBERMARGIN,
+      //                 yPoint + maxYSize_.height()/4, number);
 
     }
     else // draw line if we have at least two points
