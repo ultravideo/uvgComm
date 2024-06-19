@@ -3,7 +3,7 @@ uvgComm
 
 uvgComm is a *High Efficiency Video Coding (HEVC)* video call software written in C++ and built on [Qt](https://www.qt.io/) application framework. uvgComm aims to provide a testbed for novel video conferencing solutions, while also advancing the field of *Real-Time Communication (RTC)*. uvgComm is licensed under permissive ISC-license.
 
-uvgComm is under development and new features will become available.
+uvgComm was previously called Kvazzup. uvgComm is under development and new features will become available.
 
 ## Current features 
 
