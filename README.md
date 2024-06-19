@@ -1,9 +1,9 @@
-Kvazzup
+uvgComm
 =======
 
-Kvazzup is a *High Efficiency Video Coding (HEVC)* video call software written in C++ and built on [Qt](https://www.qt.io/) application framework. Kvazzup aims to provide a testbed for novel video conferencing solutions, while also advancing the field of *Real-Time Communication (RTC)*. Kvazzup is licensed under permissive ISC-license.
+uvgComm is a *High Efficiency Video Coding (HEVC)* video call software written in C++ and built on [Qt](https://www.qt.io/) application framework. uvgComm aims to provide a testbed for novel video conferencing solutions, while also advancing the field of *Real-Time Communication (RTC)*. uvgComm is licensed under permissive ISC-license.
 
-Kvazzup is under development and new features will become available.
+uvgComm is under development and new features will become available.
 
 ## Current features 
 
@@ -31,9 +31,9 @@ Kvazzup is under development and new features will become available.
 
 See [FEATURES.md](FEATURES.md) for more detailed description of features.
 
-## Building Kvazzup
+## Building uvgComm
 
-Kvazzup relies on following external libraries: 
+uvgComm relies on following external libraries: 
 - [Kvazaar](https://github.com/ultravideo/kvazaar) for HEVC encoding
 - [OpenHEVC](https://github.com/OpenHEVC/openHEVC) for HEVC decoding
 - [libyuv](https://chromium.googlesource.com/libyuv/libyuv/) for video input processing
@@ -42,19 +42,19 @@ Kvazzup relies on following external libraries:
 - [uvgRTP](https://github.com/ultravideo/uvgRTP) for media delivery
 - [Crypto++](https://cryptopp.com/) for delivery encryption (optional)
 
-Kvazzup uses CMake to build itself and missing dependencies with minimal effort from the developer, see [BUILDING.md](BUILDING.md) for build instructions.
+uvgComm uses CMake to build itself and missing dependencies with minimal effort from the developer, see [BUILDING.md](BUILDING.md) for build instructions.
 
 ## Setting up a SIP Server
 
-Kvazzup has been tested together with *Kamailio Open Source SIP Server*. Easy to follow instructions are hard to come by on the internet, so we provide our own [instructions](kamailio/README.md) for setting up Kamailio.
+uvgComm has been tested together with *Kamailio Open Source SIP Server*. Easy to follow instructions are hard to come by on the internet, so we provide our own [instructions](kamailio/README.md) for setting up Kamailio.
 
 ## Instructions
 
-You can find instructions on how to use Kvazzup [here](INSTRUCTIONS.md).
+You can find instructions on how to use uvgComm [here](INSTRUCTIONS.md).
 
 ## Papers
 
-If you are using Kvazzup in your research, please cite one of the following papers: <br>
+If you are using uvgComm in your research, please cite one of the following papers: <br>
 
 [Kvazzup: open software for HEVC video calls](https://researchportal.tuni.fi/en/publications/kvazzup-open-software-for-hevc-video-calls)
 

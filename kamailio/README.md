@@ -1,4 +1,4 @@
-This is a tutorial on how to setup [Kamailio Open Source SIP server](https://www.kamailio.org/) for use with Kvazzup. Currently adding users is done manually, but other alternatives may exist. This tutorial uses PostgreSQL but other databases are also possible.
+This is a tutorial on how to setup [Kamailio Open Source SIP server](https://www.kamailio.org/) for use with uvgComm. Currently adding users is done manually, but other alternatives may exist. This tutorial uses PostgreSQL but other databases are also possible.
 
 ## Installation
 
@@ -16,7 +16,7 @@ Kamailio uses control tools to ease operations such as adding or removing users.
 /etc/kamailio/kamctlrc
 ```
 
-First, set SIP_DOMAIN to Kamailio host’s public IP address or domain name. This will be the server address used in Kvazzup.
+First, set SIP_DOMAIN to Kamailio host’s public IP address or domain name. This will be the server address used in uvgComm.
 ```
 SIP_DOMAIN=10.0.0.2
 ```
@@ -152,7 +152,7 @@ You may want to add additional security measures to your Kamailio server. See [O
 
 ## Adding a test user
 
-In order for REGISTER-requests to be accepted by the Kamailio, the user has to exist in database. WITH_AUTH makes kamailio require password with each request from Kvazzup.
+In order for REGISTER-requests to be accepted by the Kamailio, the user has to exist in database. WITH_AUTH makes kamailio require password with each request from uvgComm.
 
 kamctl control utility is used to add users. When asked for password, the default kamctl password for kamailio is "kamailiorw". Add user with following command: 
 ```
