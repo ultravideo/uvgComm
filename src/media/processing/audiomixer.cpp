@@ -9,6 +9,9 @@
 
 const unsigned int MAX_MIX_BUFFER = AUDIO_FRAMES_PER_SECOND/5;
 
+const int16_t COMPRESSION_THRESHOLD = INT16_MAX/2;
+const uint8_t COMPRESSION_RATIO = 5;
+
 
 AudioMixer::AudioMixer():
   inputs_(0),
@@ -109,12 +112,28 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
       }
     }
 
-    sum = sum/inputs_;
-
-    // round correctly
-    if (sum%inputs_ >= inputs_/2)
+    // audio compression, reduces the peaks in audio
+    if (sum > COMPRESSION_THRESHOLD)
     {
-      ++sum;
+      Logger::getLogger()->printWarning(this, "Compressing audio");
+      sum = COMPRESSION_THRESHOLD + (sum - COMPRESSION_THRESHOLD)/COMPRESSION_RATIO;
+    }
+    else if (sum < -COMPRESSION_THRESHOLD)
+    {
+      Logger::getLogger()->printWarning(this, "Compressing audio");
+      sum = -COMPRESSION_THRESHOLD + (sum + COMPRESSION_THRESHOLD)/COMPRESSION_RATIO;
+    }
+
+    // limiting
+    if (sum > INT16_MAX)
+    {
+      Logger::getLogger()->printWarning(this, "Limiting mixed audio to maximum");
+      sum = INT16_MAX;
+    }
+    else if (sum < INT16_MIN)
+    {
+      Logger::getLogger()->printWarning(this, "Limiting mixed audio to minimum");
+      sum = INT16_MIN;
     }
 
     *output_ptr = (int16_t)sum;
