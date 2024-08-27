@@ -39,6 +39,9 @@ public:
 
 private:
 
+  int16_t dbToint16(float dB) const;
+  float int16ToDB(int16_t value) const;
+
   std::unique_ptr<uchar[]> doMixing(uint32_t frameSize);
 
   int32_t inputs_;

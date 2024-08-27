@@ -6,6 +6,7 @@
 
 #include <QString>
 
+#include <cmath>
 
 const unsigned int MAX_MIX_BUFFER = AUDIO_FRAMES_PER_SECOND/5;
 
@@ -150,4 +151,34 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
   }
 
   return result;
+}
+
+
+int16_t AudioMixer::dbToint16(float dB) const
+{
+  if (dB == 0)
+  {
+    return INT16_MAX;
+  }
+
+  float amplitude = std::pow(10, dB/20.0f);
+  float value = amplitude*INT16_MAX;
+
+  return static_cast<int16_t>(std::clamp(value, float(INT16_MIN), float(INT16_MAX)));
+}
+
+
+float AudioMixer::int16ToDB(int16_t value) const
+{
+  float normalized = float(value)/float(INT_MAX);
+
+  if (normalized == 0.0f)
+  {
+    return -96.0f; // really quiet
+  }
+
+  float magnitude = std::fabs(normalized);
+
+  // log of less than one is negative, as should be. DB is always negative or 0 dB
+  return 20.0f * std::log10(magnitude);
 }
