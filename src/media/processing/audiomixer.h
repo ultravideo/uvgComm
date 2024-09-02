@@ -48,4 +48,7 @@ private:
 
   QMutex mixingMutex_;
   std::map<uint32_t, std::deque<std::unique_ptr<Data>>> mixingBuffer_;
+
+  int16_t compressionThreshold_;
+  uint8_t compressionRatio_;
 };

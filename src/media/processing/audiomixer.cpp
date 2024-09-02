@@ -10,14 +10,16 @@
 
 const unsigned int MAX_MIX_BUFFER = AUDIO_FRAMES_PER_SECOND/5;
 
-const int16_t COMPRESSION_THRESHOLD = INT16_MAX/2;
-const uint8_t COMPRESSION_RATIO = 5;
+const int16_t DEFAULT_COMPRESSION_THRESHOLD = INT16_MAX/2;
+const uint8_t DEFAULT_COMPRESSION_RATIO = 5;
 
 
 AudioMixer::AudioMixer():
   inputs_(0),
   mixingMutex_(),
-  mixingBuffer_()
+  mixingBuffer_(),
+  compressionThreshold_(DEFAULT_COMPRESSION_THRESHOLD),
+  compressionRatio_(DEFAULT_COMPRESSION_RATIO)
 {}
 
 
@@ -114,15 +116,15 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
     }
 
     // audio compression, reduces the peaks in audio
-    if (sum > COMPRESSION_THRESHOLD)
+    if (sum > compressionThreshold_)
     {
       Logger::getLogger()->printWarning(this, "Compressing audio");
-      sum = COMPRESSION_THRESHOLD + (sum - COMPRESSION_THRESHOLD)/COMPRESSION_RATIO;
+      sum = compressionThreshold_ + (sum - compressionThreshold_)/compressionRatio_;
     }
-    else if (sum < -COMPRESSION_THRESHOLD)
+    else if (sum < -compressionThreshold_)
     {
       Logger::getLogger()->printWarning(this, "Compressing audio");
-      sum = -COMPRESSION_THRESHOLD + (sum + COMPRESSION_THRESHOLD)/COMPRESSION_RATIO;
+      sum = -compressionThreshold_ + (sum + compressionThreshold_)/compressionRatio_;
     }
 
     // limiting
