@@ -668,6 +668,7 @@ bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringL
       case A_FRAMERATE:
       case A_QUALITY:
       case A_MID: // media stream identification, see RFC 5888
+      case A_MSID:
       case A_LABEL: // RFC 4574
       case A_SSRC:  // RFC 5567, TODO: SSRC attributes such as CNAME
       {
@@ -1060,6 +1061,7 @@ SDPAttributeType stringToAttributeType(QString attribute)
     {"fmtp",       A_FMTP},
     {"candidate",  A_CANDIDATE},
     {"mid",        A_MID}, // see RFC 5888
+    {"msid",       A_MSID}, // see RFC 8830
 
     // attributes with (possibly) more than one value
     {"rtpmap",     A_RTPMAP},
@@ -1092,6 +1094,7 @@ QString attributeTypeToString(SDPAttributeType type)
     {A_RTPMAP,     "rtpmap"},
     {A_GROUP,      "group" }, // see RFC 5888
     {A_MID,        "mid" },   // see RFC 5888
+    {A_MSID,        "msid" }, // see RFC 8830
     {A_RECVONLY,   "recvonly"},
     {A_SENDRECV,   "sendrecv"},
     {A_SENDONLY,   "sendonly"},

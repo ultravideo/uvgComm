@@ -29,6 +29,7 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_RTPMAP,
                       A_GROUP, // see RFC 5888
                       A_MID,   // see RFC 5888
+                      A_MSID,  // see RFC 8830
                       A_ORIENT,
                       A_TYPE,
                       A_CHARSET,
