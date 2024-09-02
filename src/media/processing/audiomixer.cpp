@@ -3,6 +3,7 @@
 #include "common.h"
 #include "global.h"
 #include "logger.h"
+#include "settingskeys.h"
 
 #include <QString>
 
@@ -21,6 +22,13 @@ AudioMixer::AudioMixer():
   compressionThreshold_(DEFAULT_COMPRESSION_THRESHOLD),
   compressionRatio_(DEFAULT_COMPRESSION_RATIO)
 {}
+
+
+void AudioMixer::updateSettings()
+{
+  compressionThreshold_ = dbToint16(settingValue(SettingsKey::audioCompressionThreshold));
+  compressionRatio_ = settingValue(SettingsKey::audioCompressionRatio);
+}
 
 
 std::unique_ptr<Data> AudioMixer::mixAudio(std::unique_ptr<Data> input,

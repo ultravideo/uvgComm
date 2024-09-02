@@ -191,6 +191,11 @@ void FilterGraph::updateVideoSettings()
     }
   }
 
+  if (mixer_)
+  {
+    mixer_->updateSettings();
+  }
+
   selectVideoSource();
 }
 

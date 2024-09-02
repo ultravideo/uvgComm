@@ -40,6 +40,9 @@ AudioSettings::AudioSettings(QWidget* parent,
   sliders_.push_back({SettingsKey::audioMutingPeriod, audioSettingsUI_->muting_slider});
   sliders_.push_back({SettingsKey::audioMutingThreshold, audioSettingsUI_->threshold_slider});
 
+  sliders_.push_back({SettingsKey::audioCompressionThreshold, audioSettingsUI_->compression_threshold});
+  sliders_.push_back({SettingsKey::audioCompressionRatio, audioSettingsUI_->compression_ratio});
+
   boxes_.push_back({SettingsKey::audioAEC, audioSettingsUI_->aec_box});
   boxes_.push_back({SettingsKey::audioDenoise, audioSettingsUI_->denoise_box});
   boxes_.push_back({SettingsKey::audioDereverb, audioSettingsUI_->dereverberation_box});
@@ -75,6 +78,14 @@ AudioSettings::AudioSettings(QWidget* parent,
 
   connect(audioSettingsUI_->threshold_slider, &QSlider::valueChanged,
           this,                               &AudioSettings::updateMutingThreshold);
+
+
+  connect(audioSettingsUI_->compression_threshold, &QSlider::valueChanged,
+          this,                               &AudioSettings::updateCompressionThreshold);
+
+
+  connect(audioSettingsUI_->compression_ratio, &QSlider::valueChanged,
+          this,                               &AudioSettings::updateCompressionRatio);
 
   connect(audioSettingsUI_->signal_combo, &QComboBox::currentTextChanged,
           this,                           &AudioSettings::showOkButton);
@@ -151,7 +162,7 @@ void AudioSettings::restoreSettings()
 
   for (auto& slider : sliders_)
   {
-    unsigned int bitrate = settings_.value(slider.first).toUInt();
+    int bitrate = settings_.value(slider.first).toInt();
     slider.second->setValue(bitrate);
   }
 
@@ -236,6 +247,16 @@ void AudioSettings::updateMutingPeriod(int value)
 void AudioSettings::updateMutingThreshold(int value)
 {
   audioSettingsUI_->threshold_value->setText(QString::number(value) + " %");
+}
+
+void AudioSettings::updateCompressionThreshold(int value)
+{
+  audioSettingsUI_->c_threshold_value->setText(QString::number(value) + " dB");
+}
+
+void AudioSettings::updateCompressionRatio(int value)
+{
+  audioSettingsUI_->c_ratio_value->setText(QString::number(value) + ":1");
 }
 
 

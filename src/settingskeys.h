@@ -92,6 +92,10 @@ const QString audioSelectiveMuting = "audio/selectiveMuting";
 const QString audioMutingPeriod = "audio/mutingPeriod";
 const QString audioMutingThreshold = "audio/mutingThreshold";
 
+const QString audioCompressionThreshold = "audio/compressionThreshold";
+const QString audioCompressionRatio = "audio/compressionRatio";
+
+
 // User setting keys
 const QString userScreenID = "user/ScreenID";
 const QString userScreen = "user/Screen";

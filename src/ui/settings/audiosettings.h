@@ -47,6 +47,9 @@ public slots:
   void updateMutingPeriod(int value);
   void updateMutingThreshold(int value);
 
+  void updateCompressionThreshold(int value);
+  void updateCompressionRatio(int value);
+
   void showOkButton(QString text);
 
 protected:

@@ -27,6 +27,8 @@ public:
                                  std::unique_ptr<Data> potentialOutput,
                                     uint32_t sessionID);
 
+  void updateSettings();
+
   void addInput()
   {
     ++inputs_;

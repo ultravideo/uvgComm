@@ -60,6 +60,8 @@ bool DefaultSettings::validateAudioSettings()
                                 SettingsKey::audioSelectiveMuting,
                                 SettingsKey::audioMutingPeriod,
                                 SettingsKey::audioMutingThreshold,
+                                SettingsKey::audioCompressionThreshold,
+                                SettingsKey::audioCompressionRatio,
                                 SettingsKey::audioDenoise,
                                 SettingsKey::audioDereverb,
                                 SettingsKey::audioAGC};
@@ -168,6 +170,8 @@ void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mi
   settings_.setValue(SettingsKey::audioAECFilterLength, 250);
   settings_.setValue(SettingsKey::audioMutingPeriod,    350);
   settings_.setValue(SettingsKey::audioMutingThreshold, 15);
+  settings_.setValue(SettingsKey::audioCompressionThreshold, -6);
+  settings_.setValue(SettingsKey::audioCompressionRatio, 5);
   settings_.setValue(SettingsKey::audioSelectiveMuting, 1);
 
   settings_.setValue(SettingsKey::audioDenoise,         1);
