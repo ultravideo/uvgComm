@@ -573,9 +573,9 @@ SDPAttributeType SDPNegotiation::findStatusAttribute(const QList<SDPAttributeTyp
 
 void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
 {
-  for (unsigned int j = 0; j < media.valueAttributes.size(); ++j)
+  for (unsigned int j = 0; j < media.multiAttributes.size(); ++j)
   {
-    if (media.valueAttributes.at(j).type == A_SSRC)
+    if (media.multiAttributes.at(j).first().type == A_SSRC)
     {
       return;
     }
@@ -583,11 +583,11 @@ void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
 
   if (media.type == "audio")
   {
-    media.valueAttributes.push_back({A_SSRC, QString::number(audioSSRC_)});
+    media.multiAttributes.push_back({{A_SSRC, QString::number(audioSSRC_)}});
   }
   else if (media.type == "video")
   {
-    media.valueAttributes.push_back({A_SSRC, QString::number(videoSSRC_)});
+    media.multiAttributes.push_back({{A_SSRC, QString::number(videoSSRC_)}});
   }
 }
 
