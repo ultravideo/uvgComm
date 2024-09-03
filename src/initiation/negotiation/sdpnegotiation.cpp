@@ -10,7 +10,7 @@
 #include <QVariant>
 #include <random>
 
-SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
+SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress, QString cname,
                                std::shared_ptr<SDPMessageInfo> localSDP,
                                std::shared_ptr<SDPMeshConference> sdpConf):
   sessionID_(sessionID),
@@ -19,14 +19,16 @@ SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
   remoteSDP_(nullptr),
   negotiationState_(NEG_NO_STATE),
   peerAcceptsSDP_(false),
+  localAddress_(""),
   audioSSRC_(generateSSRC()),
   videoSSRC_(generateSSRC()),
-  sdpConf_(sdpConf)
+  sdpConf_(sdpConf),
+  cname_(cname)
 {
+  localAddress_ = localAddress;
+
   // this makes it possible to send SDP as a signal parameter
   qRegisterMetaType<std::shared_ptr<SDPMessageInfo> >("std::shared_ptr<SDPMessageInfo>");
-
-  localAddress_ = localAddress;
   setBaseSDP(localSDP);
 }
 
@@ -581,13 +583,20 @@ void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
     }
   }
 
+  media.multiAttributes.push_back({});
+
   if (media.type == "audio")
   {
-    media.multiAttributes.push_back({{A_SSRC, QString::number(audioSSRC_)}});
+    media.multiAttributes.back().push_back({A_SSRC, QString::number(audioSSRC_)});
   }
   else if (media.type == "video")
   {
-    media.multiAttributes.push_back({{A_SSRC, QString::number(videoSSRC_)}});
+    media.multiAttributes.back().push_back({A_SSRC, QString::number(videoSSRC_)});
+  }
+
+  if (cname_ != "")
+  {
+    media.multiAttributes.back().push_back({A_CNAME, cname_});
   }
 }
 

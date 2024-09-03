@@ -286,4 +286,6 @@ private:
   std::shared_ptr<SDPMeshConference> sdpConf_;
 
   SIPConfig config_;
+
+  QString cname_;
 };
