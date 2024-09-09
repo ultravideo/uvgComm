@@ -3,6 +3,7 @@
 #include "sdptypes.h"
 
 #include <cstdint>
+#include <unordered_map>
 
 enum MeshType
 {
@@ -50,4 +51,7 @@ private:
    * that is added to the call.
    */
   std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> singleSDPTemplates_;
+
+  // first key is sessionID, second key is remote sessionID. Value is generated SSRCs in order
+  std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<std::pair<uint32_t, QString>>>> generatedSSRCs_;
 };

@@ -2,6 +2,8 @@
 
 #include "logger.h"
 #include "common.h"
+#include "ssrcgenerator.h"
+
 
 const int LOCAL_MEDIAS = 2;
 
@@ -63,7 +65,76 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
       {
         if (storedSDP.first != sessionID)
         {
-          meshSDP->media += storedSDP.second->media;
+          QList<MediaInfo> medias = storedSDP.second->media;
+
+          for (unsigned int i = 0; i < medias.size(); ++i)
+          {
+            for (auto& attributeList : medias[i].multiAttributes)
+            {
+              QString cname = "";
+              uint32_t ssrc = SSRCGenerator::generateSSRC();
+
+              // find cname which is used later to communicate that we have generated their ssrc
+              for (auto& attribute : attributeList)
+              {
+                if (attribute.type == A_CNAME)
+                {
+                  cname = attribute.value;
+                }
+              }
+
+              if (cname != "")
+              {
+                for (auto& attribute : attributeList)
+                {
+                  if (attribute.type == A_SSRC)
+                  {
+                    Logger::getLogger()->printDebug(DEBUG_NORMAL,
+                                                    "SDPMeshConference",
+                                                    "As host we have generated a participant SSRC",
+                                                    {"SSRC"},
+                                                    {QString::number(ssrc)});
+
+                    // only generate if we have not generated one previously
+                    if (generatedSSRCs_[storedSDP.first][sessionID].size() == i)
+                    {
+                      // we store the generated SSRC so that it can later be communicated to this participant
+                      generatedSSRCs_[storedSDP.first][sessionID].push_back({ssrc, cname});
+                    }
+
+                    // set the generated SSRC to Mesh SDP
+                    attribute.value = QString::number(generatedSSRCs_[storedSDP.first][sessionID].at(i).first);
+                  }
+                }
+              }
+            }
+
+            // see if there are any generated SSRCs that should be added to this message
+            if (generatedSSRCs_.find(sessionID) != generatedSSRCs_.end())
+            {
+              if (generatedSSRCs_[sessionID].find(storedSDP.first) == generatedSSRCs_[sessionID].end())
+              {
+                if (generatedSSRCs_[sessionID][storedSDP.first].size() > i)
+                {
+                  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                                  "Communicating pre-generated SSRC to participant",
+                                                  {"SSRC"}, {QString::number(generatedSSRCs_[sessionID][storedSDP.first][i].first)});
+
+                  // this ssrc/cname combination indicates to the participant that we have generated them an ssrc
+                  medias[i].multiAttributes.push_back({{A_SSRC, QString::number(generatedSSRCs_[sessionID][storedSDP.first][i].first)},
+                                                       {A_CNAME,                generatedSSRCs_[sessionID][storedSDP.first][i].second}});
+
+                }
+                else
+                {
+                  Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPMeshConference",
+                                                  "Not enough recorded pre-generated SSRC values for this stream");
+                }
+              }
+            }
+          }
+
+          meshSDP->media += medias;
         }
       }
       break;
