@@ -607,9 +607,11 @@ void SDPNegotiation::setMID(unsigned int mediaIndex, MediaInfo& media)
 
 uint32_t SDPNegotiation::generateSSRC()
 {
-  std::mt19937 rng{std::random_device{}()};
-  std::uniform_int_distribution<uint32_t> gen32_dist{0, UINT32_MAX};
+  // TODO: Detect collisions for SSRC
+  unsigned int now = static_cast<unsigned int>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+  Logger::getLogger()->printNormal(this, QString::number(now));
+  std::mt19937 rng{std::random_device{}() + now};
+  std::uniform_int_distribution<uint32_t> gen32_dist{1, UINT32_MAX};
 
   return gen32_dist(rng);
 }
-
