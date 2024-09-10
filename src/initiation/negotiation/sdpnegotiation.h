@@ -90,7 +90,6 @@ private:
   void setSSRC(unsigned int mediaIndex, MediaInfo& media);
   void setMID(unsigned int mediaIndex, MediaInfo& media);
 
-  uint32_t generateSSRC();
 
   uint32_t sessionID_;
 
@@ -104,9 +103,6 @@ private:
   bool peerAcceptsSDP_;
 
   QString localAddress_;
-
-  uint32_t audioSSRC_;
-  uint32_t videoSSRC_;
 
   std::shared_ptr<SDPMeshConference> sdpConf_;
 

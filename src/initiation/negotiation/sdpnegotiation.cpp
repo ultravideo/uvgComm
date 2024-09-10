@@ -20,8 +20,6 @@ SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress, QString
   negotiationState_(NEG_NO_STATE),
   peerAcceptsSDP_(false),
   localAddress_(""),
-  audioSSRC_(generateSSRC()),
-  videoSSRC_(generateSSRC()),
   sdpConf_(sdpConf),
   cname_(cname)
 {
@@ -584,15 +582,7 @@ void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
   }
 
   media.multiAttributes.push_back({});
-
-  if (media.type == "audio")
-  {
-    media.multiAttributes.back().push_back({A_SSRC, QString::number(audioSSRC_)});
-  }
-  else if (media.type == "video")
-  {
-    media.multiAttributes.back().push_back({A_SSRC, QString::number(videoSSRC_)});
-  }
+  media.multiAttributes.back().push_back({A_SSRC, QString::number(SSRCGenerator::generateSSRC())});
 
   if (cname_ != "")
   {
@@ -614,7 +604,3 @@ void SDPNegotiation::setMID(unsigned int mediaIndex, MediaInfo& media)
 }
 
 
-uint32_t SDPNegotiation::generateSSRC()
-{
-  return SSRCGenerator::generateSSRC();
-}
