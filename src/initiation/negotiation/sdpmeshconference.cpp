@@ -112,7 +112,7 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
             // see if there are any generated SSRCs that should be added to this message
             if (generatedSSRCs_.find(sessionID) != generatedSSRCs_.end())
             {
-              if (generatedSSRCs_[sessionID].find(storedSDP.first) == generatedSSRCs_[sessionID].end())
+              if (generatedSSRCs_[sessionID].find(storedSDP.first) != generatedSSRCs_[sessionID].end())
               {
                 if (generatedSSRCs_[sessionID][storedSDP.first].size() > i)
                 {
