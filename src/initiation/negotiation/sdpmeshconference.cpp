@@ -5,7 +5,7 @@
 #include "ssrcgenerator.h"
 
 
-const int LOCAL_MEDIAS = 2;
+const int MEDIA_COUNT = 2;
 
 SDPMeshConference::SDPMeshConference():
   type_(MESH_NO_CONFERENCE)
@@ -23,32 +23,76 @@ void SDPMeshConference::uninit()
   singleSDPTemplates_.clear();
 }
 
-
-void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp)
+void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 {
   std::shared_ptr<SDPMessageInfo> referenceSDP =
       std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
   *referenceSDP = sdp;
   singleSDPTemplates_[sessionID] = referenceSDP;
 
-  while (singleSDPTemplates_[sessionID]->media.size() > 2)
+  QString cname = "";
+
+  if (findCname(sdp.media.first(), cname))
   {
-    // remove media meant for us
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                    "Recording CNAME for participant",
+                                    {"CNAME"}, {cname});
+
+    cnames_[sessionID] = cname;
+  }
+
+  while (singleSDPTemplates_[sessionID]->media.size() > MEDIA_COUNT)
+  {
+    // remove media meant for us (the host)
     singleSDPTemplates_[sessionID]->media.pop_front();
+  }
+
+  // process SSRCs and CNAMEs
+  for (int i = 0; i < singleSDPTemplates_[sessionID]->media.size(); ++i)
+  {
+    // check if this media has a corresponding SSRC
+    for (auto& ssrcList : generatedSSRCs_)
+    {
+      uint32_t correspondingSSRC = 0;
+      QString correspondingCname = "";
+
+      if (ssrcList.second.find(sessionID) != ssrcList.second.end() &&
+          ssrcList.second[sessionID].size() > (i) &&
+          findSSRC(singleSDPTemplates_[sessionID]->media[i], correspondingSSRC) &&
+          findCname(singleSDPTemplates_[sessionID]->media[i], correspondingCname))
+      {
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                        "Adding corresponding SSRC to generated SSRC",
+                                        {"Generated SSRC", "Corresponding SSRC", "CNAME", "Corresponding CNAME"},
+                                          {QString::number(ssrcList.second[sessionID].at(i).generatedSSRC),
+                                           QString::number(correspondingSSRC),
+                                           ssrcList.second[sessionID].at(i).cname,
+                                           correspondingCname});
+
+        ssrcList.second[sessionID].at(i).correspondingSSRC =
+            correspondingSSRC;
+        ssrcList.second[sessionID].at(i).correspondingCname =
+            correspondingCname;
+      }
+    }
+
+    // remove SSRC and CNAME from the stored message
+    singleSDPTemplates_[sessionID]->media[i].multiAttributes.clear();
   }
 }
 
 
-void SDPMeshConference::removeRemoteSDP(uint32_t sessionID)
+void SDPMeshConference::removeSession(uint32_t sessionID)
 {
   singleSDPTemplates_.erase(sessionID);
 }
 
 
 std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID,
-                                                              std::shared_ptr<SDPMessageInfo> sdp)
+                                                              std::shared_ptr<SDPMessageInfo> localSDP)
 {
-  std::shared_ptr<SDPMessageInfo> meshSDP = sdp;
+  // localSDP already contains host's (our) media
+  std::shared_ptr<SDPMessageInfo> meshSDP = localSDP;
 
   switch(type_)
   {
@@ -59,78 +103,27 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
     case MESH_WITH_RTP_MULTIPLEXING:
     {
       meshSDP = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
-      *meshSDP = *sdp;
+      *meshSDP = *localSDP;
 
       for (auto& storedSDP : singleSDPTemplates_)
       {
+        // naturally, we exclude their own media from the SDP
         if (storedSDP.first != sessionID)
         {
           QList<MediaInfo> medias = storedSDP.second->media;
 
           for (unsigned int i = 0; i < medias.size(); ++i)
           {
-            for (auto& attributeList : medias[i].multiAttributes)
+            // check if we already know the corresponding ssrc
+            if (!setCorrespondingSSRC(sessionID, storedSDP.first, i, medias))
             {
-              QString cname = "";
-              uint32_t ssrc = SSRCGenerator::generateSSRC();
-
-              // find cname which is used later to communicate that we have generated their ssrc
-              for (auto& attribute : attributeList)
-              {
-                if (attribute.type == A_CNAME)
-                {
-                  cname = attribute.value;
-                }
-              }
-
-              if (cname != "")
-              {
-                for (auto& attribute : attributeList)
-                {
-                  if (attribute.type == A_SSRC)
-                  {
-                    Logger::getLogger()->printDebug(DEBUG_NORMAL,
-                                                    "SDPMeshConference",
-                                                    "As host we have generated a participant SSRC",
-                                                    {"SSRC"},
-                                                    {QString::number(ssrc)});
-
-                    // only generate if we have not generated one previously
-                    if (generatedSSRCs_[storedSDP.first][sessionID].size() == i)
-                    {
-                      // we store the generated SSRC so that it can later be communicated to this participant
-                      generatedSSRCs_[storedSDP.first][sessionID].push_back({ssrc, cname});
-                    }
-
-                    // set the generated SSRC to Mesh SDP
-                    attribute.value = QString::number(generatedSSRCs_[storedSDP.first][sessionID].at(i).first);
-                  }
-                }
-              }
+              // if we did not find the corresponding ssrc, we generate a new one
+              generateSSRC(sessionID, storedSDP.first, i, medias);
             }
-
-            // see if there are any generated SSRCs that should be added to this message
-            if (generatedSSRCs_.find(sessionID) != generatedSSRCs_.end())
+            else
             {
-              if (generatedSSRCs_[sessionID].find(storedSDP.first) != generatedSSRCs_[sessionID].end())
-              {
-                if (generatedSSRCs_[sessionID][storedSDP.first].size() > i)
-                {
-                  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
-                                                  "Communicating pre-generated SSRC to participant",
-                                                  {"SSRC"}, {QString::number(generatedSSRCs_[sessionID][storedSDP.first][i].first)});
-
-                  // this ssrc/cname combination indicates to the participant that we have generated them an ssrc
-                  medias[i].multiAttributes.push_back({{A_SSRC, QString::number(generatedSSRCs_[sessionID][storedSDP.first][i].first)},
-                                                       {A_CNAME,                generatedSSRCs_[sessionID][storedSDP.first][i].second}});
-
-                }
-                else
-                {
-                  Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPMeshConference",
-                                                  "Not enough recorded pre-generated SSRC values for this stream");
-                }
-              }
+              // if we have previously generated the ssrc, we add it to the message
+              setGeneratedSSRC(sessionID, storedSDP.first, i, medias);
             }
           }
 
@@ -170,7 +163,7 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
               media.receivePort += components;
             }
 
-            sdp->media.push_back(copyMedia(media));
+            localSDP->media.push_back(copyMedia(media));
           }
         }
       }
@@ -210,4 +203,121 @@ std::shared_ptr<ICEInfo> SDPMeshConference::updateICECandidate(std::shared_ptr<I
   }
 
   return newCandidate;
+}
+
+
+bool SDPMeshConference::setCorrespondingSSRC(uint32_t sessionID, uint32_t mediaSessionID,
+                          int index, QList<MediaInfo>& medias)
+{
+  if (generatedSSRCs_.find(sessionID) != generatedSSRCs_.end())
+  {
+    if (generatedSSRCs_[sessionID].find(mediaSessionID) != generatedSSRCs_[sessionID].end())
+    {
+      if (generatedSSRCs_[sessionID][mediaSessionID].size() > index)
+      {
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                        "Setting the correct corresponding SSRC to the message",
+                                        {"SSRC"}, {QString::number(generatedSSRCs_[sessionID][mediaSessionID][index].correspondingSSRC)});
+
+        // this ssrc/cname combination is the corresponding ssrc to the generated one
+        medias[index].multiAttributes.push_back({{A_SSRC, QString::number(generatedSSRCs_[sessionID][mediaSessionID][index].correspondingSSRC)},
+                                             {A_CNAME,                generatedSSRCs_[sessionID][mediaSessionID][index].correspondingCname}});
+
+        return true;
+      }
+      else
+      {
+        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPMeshConference",
+                                        "Not enough recorded pre-generated SSRC values for this stream");
+      }
+    }
+  }
+
+  return false;
+}
+
+
+void SDPMeshConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID,
+                                     int index, QList<MediaInfo>& medias)
+{
+  // only generate if we have not generated one previously
+  if (generatedSSRCs_[mediaSessionID][sessionID].size() == index)
+  {
+    QString cname = cnames_[mediaSessionID];
+    uint32_t ssrc = SSRCGenerator::generateSSRC();
+
+    // we store the generated SSRC so that it can later be communicated to this participant
+    generatedSSRCs_[mediaSessionID][sessionID].push_back({ssrc, cname, 0, ""});
+  }
+
+  QString ssrc = QString::number(generatedSSRCs_[mediaSessionID][sessionID][index].generatedSSRC);
+  QString cname = generatedSSRCs_[mediaSessionID][sessionID][index].cname;
+
+  // this ssrc/cname combination indicates to the participant that we have generated them an ssrc
+  medias[index].multiAttributes.push_back({{A_SSRC, ssrc}, {A_CNAME, cname}});
+}
+
+
+void SDPMeshConference::setGeneratedSSRC(uint32_t sessionID, uint32_t mediaSessionID,
+                                         int index, QList<MediaInfo>& medias)
+{
+  // see if there are any generated SSRCs that should be added to this message
+  if (generatedSSRCs_.find(sessionID) != generatedSSRCs_.end())
+  {
+    if (generatedSSRCs_[sessionID].find(mediaSessionID) != generatedSSRCs_[sessionID].end())
+    {
+      if (generatedSSRCs_[sessionID][mediaSessionID].size() > index)
+      {
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                        "Communicating pre-generated SSRC to participant",
+                                        {"SSRC"}, {QString::number(generatedSSRCs_[sessionID][mediaSessionID][index].generatedSSRC)});
+
+        // this ssrc/cname combination indicates to the participant that we have generated them an ssrc
+        medias[index].multiAttributes.push_back({{A_SSRC, QString::number(generatedSSRCs_[sessionID][mediaSessionID][index].generatedSSRC)},
+                                                 {A_CNAME,                generatedSSRCs_[sessionID][mediaSessionID][index].cname}});
+
+      }
+      else
+      {
+        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPMeshConference",
+                                        "Not enough recorded pre-generated SSRC values for this stream");
+      }
+    }
+  }
+}
+
+
+bool SDPMeshConference::findCname(MediaInfo& media, QString& cname)
+{
+  for (auto& attributeList : media.multiAttributes)
+  {
+    for (auto& attribute : attributeList)
+    {
+      if (attribute.type == A_CNAME)
+      {
+        cname = attribute.value;
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+
+bool SDPMeshConference::findSSRC(MediaInfo& media, uint32_t& ssrc)
+{
+  for (auto& attributeList : media.multiAttributes)
+  {
+    for (auto& attribute : attributeList)
+    {
+      if (attribute.type == A_SSRC)
+      {
+        ssrc = attribute.value.toUInt();
+        return true;
+      }
+    }
+  }
+
+  return false;
 }

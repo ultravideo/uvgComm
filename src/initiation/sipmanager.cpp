@@ -961,7 +961,7 @@ void SIPManager::removeDialog(uint32_t sessionID)
     nextSessionID_ = FIRSTSESSIONID;
   }
 
-  sdpConf_->removeRemoteSDP(sessionID);
+  sdpConf_->removeSession(sessionID);
 }
 
 

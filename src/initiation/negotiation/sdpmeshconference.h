@@ -12,6 +12,15 @@ enum MeshType
   MESH_WITHOUT_RTP_MULTIPLEXING
 };
 
+/* This class handles the generation of P2P Mesh conference via SDP Messages.
+ *
+ * addSDPPair() handles the recording of the local and remote SDP media information
+ * as well as SSRC relations. The getMeshSDP() function is used to generate each
+ * SDP message needed for forming the P2P Mesh conference using information store
+ * with addSDPPair() function.
+ */
+
+
 class SDPMeshConference
 {
 public:
@@ -22,10 +31,10 @@ public:
   void setConferenceMode(MeshType type);
 
   void addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp);
-  void removeRemoteSDP(uint32_t sessionID);
+  void removeSession(uint32_t sessionID);
 
   std::shared_ptr<SDPMessageInfo> getMeshSDP(uint32_t sessionID,
-                                             std::shared_ptr<SDPMessageInfo> sdp);
+                                             std::shared_ptr<SDPMessageInfo> localSDP);
 
 private:
 
@@ -35,6 +44,19 @@ private:
   MediaInfo copyMedia(MediaInfo& media);
 
   std::shared_ptr<ICEInfo> updateICECandidate(std::shared_ptr<ICEInfo> candidate, int components);
+
+  // returns whether the SSRC was found and set
+  bool setCorrespondingSSRC(uint32_t sessionID, uint32_t mediaSessionID,
+                            int index, QList<MediaInfo>& medias);
+
+  // generates the SSRC and sets it to media
+  void generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, int index, QList<MediaInfo>& medias);
+
+  // sets the generated SSRC to media
+  void setGeneratedSSRC(uint32_t sessionID, uint32_t mediaSessionID, int index, QList<MediaInfo>& medias);
+
+  bool findCname(MediaInfo& media, QString& cname);
+  bool findSSRC(MediaInfo& media, uint32_t& ssrc);
 
   MeshType type_;
 
@@ -52,6 +74,20 @@ private:
    */
   std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> singleSDPTemplates_;
 
-  // first key is sessionID, second key is remote sessionID. Value is generated SSRCs in order
-  std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::vector<std::pair<uint32_t, QString>>>> generatedSSRCs_;
+  struct GeneratedSSRC
+  {
+    uint32_t generatedSSRC;
+    QString cname;
+
+    uint32_t correspondingSSRC;
+    QString correspondingCname;
+  };
+
+  // first key is sessionID who the generated SSRC will belong to
+  // second key is sessionID of the counter pair
+  std::unordered_map<uint32_t,
+                     std::unordered_map<uint32_t,
+                                        std::vector<GeneratedSSRC>>> generatedSSRCs_;
+
+  std::unordered_map<uint32_t, QString> cnames_;
 };
