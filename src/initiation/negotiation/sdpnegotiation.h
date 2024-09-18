@@ -107,4 +107,6 @@ private:
   std::shared_ptr<SDPMeshConference> sdpConf_;
 
   QString cname_;
+
+  std::unordered_map<unsigned int, uint32_t> mediaSSRCs_;
 };

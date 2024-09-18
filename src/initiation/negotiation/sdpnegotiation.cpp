@@ -588,12 +588,21 @@ void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
   {
     if (media.multiAttributes.at(j).first().type == A_SSRC)
     {
+      Logger::getLogger()->printNormal(this, "SSRC already present in SDP",
+                                      "SSRC", media.multiAttributes.at(j).first().value);
       return;
     }
   }
 
+  if (mediaSSRCs_.find(mediaIndex) == mediaSSRCs_.end())
+  {
+    mediaSSRCs_[mediaIndex] = SSRCGenerator::generateSSRC();
+    Logger::getLogger()->printNormal(this, "Generated a new SSRC for media",
+                                     "SSRC", QString::number(mediaSSRCs_[mediaIndex]));
+  }
+
   media.multiAttributes.push_back({});
-  media.multiAttributes.back().push_back({A_SSRC, QString::number(SSRCGenerator::generateSSRC())});
+  media.multiAttributes.back().push_back({A_SSRC, QString::number(mediaSSRCs_[mediaIndex])});
 
   if (cname_ != "")
   {
