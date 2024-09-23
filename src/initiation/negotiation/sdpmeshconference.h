@@ -50,13 +50,16 @@ private:
                             int index, QList<MediaInfo>& medias);
 
   // generates the SSRC and sets it to media
-  void generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, int index, QList<MediaInfo>& medias);
+  void generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, int index, QList<MediaInfo>& medias, int mid);
 
   // sets the generated SSRC to media
   void setGeneratedSSRC(uint32_t sessionID, uint32_t mediaSessionID, int index, QList<MediaInfo>& medias);
 
-  bool findCname(MediaInfo& media, QString& cname);
-  bool findSSRC(MediaInfo& media, uint32_t& ssrc);
+  void setMid(MediaInfo& media, int mid);
+
+  bool findCname(MediaInfo& media, QString& cname) const;
+  bool findSSRC(MediaInfo& media, uint32_t& ssrc) const;
+  bool findMID(MediaInfo& media, int& mid) const;
 
   MeshType type_;
 
@@ -79,6 +82,7 @@ private:
     uint32_t generatedSSRC;
     QString cname;
 
+    int correspondingMID;
     uint32_t correspondingSSRC;
     QString correspondingCname;
   };
