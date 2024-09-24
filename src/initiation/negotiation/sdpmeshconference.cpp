@@ -25,10 +25,9 @@ void SDPMeshConference::uninit()
 
 void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 {
-  std::shared_ptr<SDPMessageInfo> referenceSDP =
-      std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
-  *referenceSDP = sdp;
-  singleSDPTemplates_[sessionID] = referenceSDP;
+  // save a copy of the media
+
+  singleSDPTemplates_[sessionID] = sdp.media;
 
   QString cname = "";
 
@@ -48,15 +47,15 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
   {
     if (ssrcList.second.find(sessionID) != ssrcList.second.end())
     {
-      for (int i = 0; i < singleSDPTemplates_[sessionID]->media.size(); ++i)
+      for (int i = 0; i < singleSDPTemplates_[sessionID].size(); ++i)
       {
         int mid = 0;
         uint32_t correspondingSSRC = 0;
         QString correspondingCname = "";
 
-        if (findSSRC( singleSDPTemplates_[sessionID]->media[i], correspondingSSRC) &&
-            findCname(singleSDPTemplates_[sessionID]->media[i], correspondingCname) &&
-            findMID(  singleSDPTemplates_[sessionID]->media[i], mid))
+        if (findSSRC( singleSDPTemplates_[sessionID][i], correspondingSSRC) &&
+            findCname(singleSDPTemplates_[sessionID][i], correspondingCname) &&
+            findMID(  singleSDPTemplates_[sessionID][i], mid))
         {
           if (ssrcList.second[sessionID].size() > nMedias &&
               ssrcList.second[sessionID].at(nMedias).correspondingMID == mid)
@@ -83,16 +82,16 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
     }
   }
 
-  for (int i = 0; i < singleSDPTemplates_[sessionID]->media.size(); ++i)
+  for (int i = 0; i < singleSDPTemplates_[sessionID].size(); ++i)
   {
     // remove SSRC and CNAME from the stored message
-    singleSDPTemplates_[sessionID]->media[i].multiAttributes.clear();
+    singleSDPTemplates_[sessionID][i].multiAttributes.clear();
   }
 
   // we only want to record two instances
-  while (singleSDPTemplates_[sessionID]->media.size() > MEDIA_COUNT)
+  while (singleSDPTemplates_[sessionID].size() > MEDIA_COUNT)
   {
-    singleSDPTemplates_[sessionID]->media.pop_front();
+    singleSDPTemplates_[sessionID].pop_front();
   }
 }
 
@@ -127,7 +126,7 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
         // naturally, we exclude their own media from the SDP
         if (storedSDP.first != sessionID)
         {
-          QList<MediaInfo> medias = storedSDP.second->media;
+          QList<MediaInfo> medias = storedSDP.second;
 
           for (unsigned int i = 0; i < medias.size(); ++i)
           {
@@ -168,7 +167,7 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
         // do not add their own media to the message
         if (session.first != sessionID)
         {
-          for (auto& media : session.second->media)
+          for (auto& media : session.second)
           {
             // if this is the outgoing extrapolated message, we increase candidate ports
             if (singleSDPTemplates_.find(sessionID) == singleSDPTemplates_.end())

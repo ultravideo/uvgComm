@@ -75,7 +75,7 @@ private:
    * If multiplexing is not used in mesh, then the ports must be increased for each participant
    * that is added to the call.
    */
-  std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> singleSDPTemplates_;
+  std::map<uint32_t, QList<MediaInfo>> singleSDPTemplates_;
 
   struct GeneratedSSRC
   {
