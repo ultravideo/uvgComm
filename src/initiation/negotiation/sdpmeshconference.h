@@ -43,27 +43,20 @@ private:
 
   MediaInfo copyMedia(MediaInfo& media);
 
+  void updateTemplateMedia(uint32_t sessionID, QList<MediaInfo>& medias);
+
   // returns whether the SSRC was found and set
   bool setCorrespondingSSRC(uint32_t sessionID, uint32_t mediaSessionID,
                             int index, QList<MediaInfo>& medias);
 
   // generates the SSRC and sets it to media
-  void generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, int index, QList<MediaInfo>& medias, int mid);
-
-  // sets the generated SSRC to media
-  void setGeneratedSSRC(uint32_t sessionID, uint32_t mediaSessionID, int index, QList<MediaInfo>& medias);
-
-  void setMid(MediaInfo& media, int mid);
+  void generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, MediaInfo& media);
 
   bool findCname(MediaInfo& media, QString& cname) const;
   bool findSSRC(MediaInfo& media, uint32_t& ssrc) const;
   bool findMID(MediaInfo& media, int& mid) const;
 
   MeshType type_;
-
-  // needed for keeping track of connections if connection multiplexing is not supported
-  typedef std::map<uint32_t, std::shared_ptr<SDPMessageInfo>> MeshConnections;
-  std::map<uint32_t, MeshConnections> remoteConnections_;
 
   /* These are the templates used to form new connections between other participants that us.
    *
@@ -73,23 +66,21 @@ private:
    * If multiplexing is not used in mesh, then the ports must be increased for each participant
    * that is added to the call.
    */
+
   std::map<uint32_t, QList<MediaInfo>> singleSDPTemplates_;
+  std::map<uint32_t, QList<MediaInfo>> preparedMessages_;
 
   struct GeneratedSSRC
   {
-    uint32_t generatedSSRC;
-    QString cname;
-
-    int correspondingMID;
-    uint32_t correspondingSSRC;
-    QString correspondingCname;
+    uint32_t ssrc;
+    QString  cname;
+    uint32_t sessionID;
   };
 
-  // first key is sessionID who the generated SSRC will belong to
-  // second key is sessionID of the counter pair
-  std::unordered_map<uint32_t,
-                     std::unordered_map<uint32_t,
-                                        std::vector<GeneratedSSRC>>> generatedSSRCs_;
+  // first key is sessionID who this SSRC was sent to
+  // the second key is mid
+  std::unordered_map<uint32_t, std::unordered_map<int, GeneratedSSRC>> generatedSSRCs_;
 
   std::unordered_map<uint32_t, QString> cnames_;
+  std::unordered_map<uint32_t, int> nextMID_;
 };
