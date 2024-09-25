@@ -150,43 +150,6 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
       }
       break;
     }
-    case MESH_WITHOUT_RTP_MULTIPLEXING:
-    {
-      if (meshSDP->media.size() > 2)
-      {
-        for (unsigned int i = meshSDP->media.size(); i > 2; --i)
-        {
-          meshSDP->media.pop_back();
-        }
-      }
-
-      for (auto& session : singleSDPTemplates_)
-      {
-        int components = 4;
-
-        // do not add their own media to the message
-        if (session.first != sessionID)
-        {
-          for (auto& media : session.second)
-          {
-            // if this is the outgoing extrapolated message, we increase candidate ports
-            if (singleSDPTemplates_.find(sessionID) == singleSDPTemplates_.end())
-            {
-              for (int i = 0; i < media.candidates.size(); ++i)
-              {
-                media.candidates[i] = updateICECandidate(media.candidates[i],
-                                                         components);
-              }
-
-              media.receivePort += components;
-            }
-
-            localSDP->media.push_back(copyMedia(media));
-          }
-        }
-      }
-      break;
-    }
     default:
     {
       Logger::getLogger()->printUnimplemented("SDPMeshConference", "Unimplemented mesh conferencing mode");
@@ -201,26 +164,6 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
 MediaInfo SDPMeshConference::copyMedia(MediaInfo& media)
 {
   return media;
-}
-
-
-std::shared_ptr<ICEInfo> SDPMeshConference::updateICECandidate(std::shared_ptr<ICEInfo> candidate,
-                                                               int components)
-{
-  Logger::getLogger()->printNormal("SDPMeshConference", "Updating candidate");
-  std::shared_ptr<ICEInfo> newCandidate = std::shared_ptr<ICEInfo>(new ICEInfo);
-  *newCandidate = *candidate;
-  if (newCandidate->port != 0)
-  {
-    newCandidate->port += components;
-  }
-
-  if (newCandidate->rel_port != 0)
-  {
-    newCandidate->rel_port += components;
-  }
-
-  return newCandidate;
 }
 
 

@@ -43,8 +43,6 @@ private:
 
   MediaInfo copyMedia(MediaInfo& media);
 
-  std::shared_ptr<ICEInfo> updateICECandidate(std::shared_ptr<ICEInfo> candidate, int components);
-
   // returns whether the SSRC was found and set
   bool setCorrespondingSSRC(uint32_t sessionID, uint32_t mediaSessionID,
                             int index, QList<MediaInfo>& medias);
