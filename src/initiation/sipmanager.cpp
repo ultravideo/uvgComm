@@ -61,7 +61,9 @@ SIPManager::SIPManager():
                    this, &SIPManager::delayedMessage);
 
   QSettings settings("uvgComm.ini", QSettings::IniFormat);
-  cname_ = settings.value(SettingsKey::sipUUID).toString();
+
+  cname_ = settings.value(SettingsKey::sipUUID).toString()+ "@" +
+           QString::number(std::chrono::system_clock::now().time_since_epoch().count());;
 }
 
 
