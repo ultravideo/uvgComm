@@ -187,7 +187,7 @@ void SDPMeshConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID
 {
   if (nextMID_.find(sessionID) == nextMID_.end())
   {
-    nextMID_[sessionID] = 1;
+    nextMID_[sessionID] = 3;
   }
 
   int mid = nextMID_[sessionID];
