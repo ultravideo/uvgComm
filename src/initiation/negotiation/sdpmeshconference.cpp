@@ -67,11 +67,15 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
           {
             Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
                                             "Distributing media to existing session from new participant",
-                                            {"SessionID"}, {QString::number(details.sessionID)});
+                                            {"Target SessionID", "MID"}, {QString::number(details.sessionID), QString::number(mid)});
 
             preparedMessages_[details.sessionID].push_back(media);
+            // the ssrc we generated for them
             preparedMessages_[details.sessionID].last().multiAttributes.push_back({{A_SSRC, QString::number(details.ssrc)},
                                                                                    {A_CNAME, details.cname}});
+
+            removeMID(preparedMessages_[details.sessionID].last());
+            preparedMessages_[details.sessionID].last().valueAttributes.push_back({A_MID, QString::number(nextMID(details.sessionID))});
           }
           else
           {
@@ -181,14 +185,7 @@ void SDPMeshConference::updateTemplateMedia(uint32_t sessionID, QList<MediaInfo>
     singleSDPTemplates_[sessionID].append(medias[i]);
     singleSDPTemplates_[sessionID].last().multiAttributes.clear(); // we dont what to save ssrc
 
-    // remove mid
-    for (int i = 0;  i < singleSDPTemplates_[sessionID].last().valueAttributes.size(); ++i)
-    {
-      if (singleSDPTemplates_[sessionID].last().valueAttributes[i].type == A_MID)
-      {
-        singleSDPTemplates_[sessionID].last().valueAttributes.erase(singleSDPTemplates_[sessionID].last().valueAttributes.begin() + i);
-      }
-    }
+    removeMID(singleSDPTemplates_[sessionID].last());
   }
 }
 
@@ -206,9 +203,8 @@ void SDPMeshConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID
     nextMID_[sessionID] = 3;
   }
 
-  int mid = nextMID_[sessionID];
+  int mid = nextMID(sessionID);
   media.valueAttributes.push_back({A_MID, QString::number(mid)});
-  nextMID_[sessionID]++;
 
   QString cname = cnames_[mediaSessionID];
   uint32_t ssrc = SSRCGenerator::generateSSRC();
@@ -269,4 +265,31 @@ bool SDPMeshConference::findMID(MediaInfo& media, int& mid) const
   }
 
   return false;
+}
+
+
+int SDPMeshConference::nextMID(uint32_t sessionID)
+{
+  if (nextMID_.find(sessionID) == nextMID_.end())
+  {
+    nextMID_[sessionID] = 3;
+  }
+
+  int mid = nextMID_[sessionID];
+  nextMID_[sessionID]++;
+  return mid;
+}
+
+
+void SDPMeshConference::removeMID(MediaInfo& media)
+{
+  // remove mid
+  for (int i = 0;  i < media.valueAttributes.size(); ++i)
+  {
+    if (media.valueAttributes[i].type == A_MID)
+    {
+      media.valueAttributes.erase(media.valueAttributes.begin() + i);
+      break;
+    }
+  }
 }

@@ -56,6 +56,9 @@ private:
   bool findSSRC(MediaInfo& media, uint32_t& ssrc) const;
   bool findMID(MediaInfo& media, int& mid) const;
 
+  int nextMID(uint32_t sessionID);
+  void removeMID(MediaInfo& media);
+
   MeshType type_;
 
   /* These are the templates used to form new connections between other participants that us.
