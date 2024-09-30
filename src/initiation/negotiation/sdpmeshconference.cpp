@@ -173,6 +173,15 @@ void SDPMeshConference::updateTemplateMedia(uint32_t sessionID, QList<MediaInfo>
   {
     singleSDPTemplates_[sessionID].append(medias[i]);
     singleSDPTemplates_[sessionID].last().multiAttributes.clear(); // we dont what to save ssrc
+
+    // remove mid
+    for (int i = 0;  i < singleSDPTemplates_[sessionID].last().valueAttributes.size(); ++i)
+    {
+      if (singleSDPTemplates_[sessionID].last().valueAttributes[i].type == A_MID)
+      {
+        singleSDPTemplates_[sessionID].last().valueAttributes.erase(singleSDPTemplates_[sessionID].last().valueAttributes.begin() + i);
+      }
+    }
   }
 }
 
