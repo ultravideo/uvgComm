@@ -3,6 +3,8 @@ uvgComm Features
 
 The features list for uvgComm is constantly expanding and here is the detailed description of current features in uvgComm.
 
+
+
 ## uvgComm Protocols
 
 ### Session Initiation Protocol (SIP)
@@ -24,10 +26,13 @@ uvgComm can also be used to directly call other computers provided that the TCP 
 
 Some SIP messages carry an SDP messages as a payload during call initiation. SDP is used for describing the media parameters wanted for the call and is used to negotiatiate various aspects of the call.
 
+uvgComm has SDP implements forming of a P2P Mesh based conference. Here each participants *synchronization sources (SSRC)* are negotiated as part of the call negotiations.
+
 **Specifications**
 - [RFC 8866 SDP: Session Description Protocol](https://datatracker.ietf.org/doc/html/rfc8866)
 - [RFC 3264 An Offer/Answer Model with the Session Description Protocol (SDP)](https://www.rfc-editor.org/rfc/rfc3264.html)
-- [RFC 3551 RTP Profile for Audio and Video Conferences with Minimal Control](https://www.rfc-editor.org/rfc/rfc3551)
+- [RFC 5576 Source-Specific Media Attributes in SDP](https://www.rfc-editor.org/rfc/rfc5576.html)
+- [RFC 5888 The SDP Grouping Framework](https://www.rfc-editor.org/rfc/rfc5888.html)
 
 ### Interactive Connectivity Establishement (ICE)
 

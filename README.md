@@ -70,7 +70,6 @@ If you are using uvgComm in your research, please cite one of the following pape
 
 ## Planned features
 
-- Media server integration for better connectivity
+- Media server integration
 - TLS Encryption for SIP
-- Integrating SRTP & ZRTP
 - Contact presence monitoring
