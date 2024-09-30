@@ -53,9 +53,10 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
     {
       int mid = 0;
       uint32_t ssrc = 0;
+      QString cname = "";
 
       // we need to find the mid and ssrc to know which session this media belongs to
-      if (findMID(media, mid) && findSSRC(media, ssrc))
+      if (findMID(media, mid) && findSSRC(media, ssrc) && findCname(media, cname))
       {
         // if we have generated an SSRC for this media, we need to generate the corresponding media for the existing participants
         if (generatedSSRCs_[sessionID].find(mid) != generatedSSRCs_[sessionID].end())
@@ -80,7 +81,7 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
       }
       else
       {
-        Logger::getLogger()->printError("SDPMeshConference", "Received SDP message without MID or SSRC");
+        Logger::getLogger()->printError("SDPMeshConference", "Received SDP message without MID, CNAME or SSRC");
       }
     }
 
