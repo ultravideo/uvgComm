@@ -3,18 +3,32 @@
 #include "common.h"
 #include "global.h"
 #include "logger.h"
+#include "settingskeys.h"
 
 #include <QString>
 
+#include <cmath>
 
 const unsigned int MAX_MIX_BUFFER = AUDIO_FRAMES_PER_SECOND/5;
+
+const int16_t DEFAULT_COMPRESSION_THRESHOLD = INT16_MAX/2;
+const uint8_t DEFAULT_COMPRESSION_RATIO = 5;
 
 
 AudioMixer::AudioMixer():
   inputs_(0),
   mixingMutex_(),
-  mixingBuffer_()
+  mixingBuffer_(),
+  compressionThreshold_(DEFAULT_COMPRESSION_THRESHOLD),
+  compressionRatio_(DEFAULT_COMPRESSION_RATIO)
 {}
+
+
+void AudioMixer::updateSettings()
+{
+  compressionThreshold_ = dbToint16(settingValue(SettingsKey::audioCompressionThreshold));
+  compressionRatio_ = settingValue(SettingsKey::audioCompressionRatio);
+}
 
 
 std::unique_ptr<Data> AudioMixer::mixAudio(std::unique_ptr<Data> input,
@@ -109,12 +123,28 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
       }
     }
 
-    sum = sum/inputs_;
-
-    // round correctly
-    if (sum%inputs_ >= inputs_/2)
+    // audio compression, reduces the peaks in audio
+    if (sum > compressionThreshold_)
     {
-      ++sum;
+      Logger::getLogger()->printWarning(this, "Compressing audio");
+      sum = compressionThreshold_ + (sum - compressionThreshold_)/compressionRatio_;
+    }
+    else if (sum < -compressionThreshold_)
+    {
+      Logger::getLogger()->printWarning(this, "Compressing audio");
+      sum = -compressionThreshold_ + (sum + compressionThreshold_)/compressionRatio_;
+    }
+
+    // limiting
+    if (sum > INT16_MAX)
+    {
+      Logger::getLogger()->printWarning(this, "Limiting mixed audio to maximum");
+      sum = INT16_MAX;
+    }
+    else if (sum < INT16_MIN)
+    {
+      Logger::getLogger()->printWarning(this, "Limiting mixed audio to minimum");
+      sum = INT16_MIN;
     }
 
     *output_ptr = (int16_t)sum;
@@ -131,4 +161,34 @@ std::unique_ptr<uchar[]> AudioMixer::doMixing(uint32_t frameSize)
   }
 
   return result;
+}
+
+
+int16_t AudioMixer::dbToint16(float dB) const
+{
+  if (dB == 0)
+  {
+    return INT16_MAX;
+  }
+
+  float amplitude = std::pow(10, dB/20.0f);
+  float value = amplitude*INT16_MAX;
+
+  return static_cast<int16_t>(std::clamp(value, float(INT16_MIN), float(INT16_MAX)));
+}
+
+
+float AudioMixer::int16ToDB(int16_t value) const
+{
+  float normalized = float(value)/float(INT_MAX);
+
+  if (normalized == 0.0f)
+  {
+    return -96.0f; // really quiet
+  }
+
+  float magnitude = std::fabs(normalized);
+
+  // log of less than one is negative, as should be. DB is always negative or 0 dB
+  return 20.0f * std::log10(magnitude);
 }

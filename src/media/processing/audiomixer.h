@@ -27,6 +27,8 @@ public:
                                  std::unique_ptr<Data> potentialOutput,
                                     uint32_t sessionID);
 
+  void updateSettings();
+
   void addInput()
   {
     ++inputs_;
@@ -39,10 +41,16 @@ public:
 
 private:
 
+  int16_t dbToint16(float dB) const;
+  float int16ToDB(int16_t value) const;
+
   std::unique_ptr<uchar[]> doMixing(uint32_t frameSize);
 
   int32_t inputs_;
 
   QMutex mixingMutex_;
   std::map<uint32_t, std::deque<std::unique_ptr<Data>>> mixingBuffer_;
+
+  int16_t compressionThreshold_;
+  uint8_t compressionRatio_;
 };
