@@ -198,7 +198,7 @@ void SDPMeshConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID
   uint32_t ssrc = SSRCGenerator::generateSSRC();
 
   // we store the generated SSRC so that it can later be communicated to this participant
-  generatedSSRCs_[mediaSessionID][mid] = {ssrc, cname, mediaSessionID};
+  generatedSSRCs_[sessionID][mid] = {ssrc, cname, mediaSessionID};
 
   // this ssrc/cname combination indicates to the participant that we have generated them an ssrc
   media.multiAttributes.push_back({{A_SSRC, QString::number(ssrc)}, {A_CNAME, cname}});
