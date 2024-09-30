@@ -172,6 +172,7 @@ void SDPMeshConference::updateTemplateMedia(uint32_t sessionID, QList<MediaInfo>
   for (int i = medias.size() - MEDIA_COUNT; i < medias.size(); ++i)
   {
     singleSDPTemplates_[sessionID].append(medias[i]);
+    singleSDPTemplates_[sessionID].last().multiAttributes.clear(); // we dont what to save ssrc
   }
 }
 
