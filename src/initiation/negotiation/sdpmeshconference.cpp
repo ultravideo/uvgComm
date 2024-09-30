@@ -135,6 +135,12 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
   // prepare the message for this session if we have not yet done so
   if (preparedMessages_.find(sessionID) == preparedMessages_.end())
   {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                    "Preparing SDP mesh message for session",
+                                    {"SessionID"}, {QString::number(sessionID)});
+
+    preparedMessages_[sessionID] = {};
+
     // go through templates to form the sdp message and record it to preparedMessages_
     for (auto& mediaTemplate : singleSDPTemplates_)
     {
