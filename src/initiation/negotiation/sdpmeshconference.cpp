@@ -48,6 +48,12 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
   // if sent them a generated SSRC, it means the received medias should be distributed to existing sessions
   if (generatedSSRCs_.find(sessionID) != generatedSSRCs_.end())
   {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                    "Received SDP message as a reply to generated SSRCs",
+                                    {"Number of generated SSRCs", "Number of medias"},
+                                    {QString::number(generatedSSRCs_[sessionID].size()),
+                                     QString::number(sdp.media.size())});
+
     // go through received medias for updating
     for (auto& media : sdp.media)
     {
@@ -91,7 +97,7 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 
     generatedSSRCs_.erase(sessionID);
   }
-  else // just update the existing sessions with details. Most likely matters if they have enabled/disabled media
+  else // update the existing sessions with details so new participants get correct media state
   {
     // go through received medias for updating
     for (auto& recvMedia : sdp.media)
@@ -126,6 +132,8 @@ void SDPMeshConference::removeSession(uint32_t sessionID)
 {
   singleSDPTemplates_.erase(sessionID);
   preparedMessages_.erase(sessionID);
+
+  // TODO: Remove this participants media from other sessions
 }
 
 
@@ -140,10 +148,6 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
   // prepare the message for this session if we have not yet done so
   if (preparedMessages_.find(sessionID) == preparedMessages_.end())
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
-                                    "Preparing SDP mesh message for session",
-                                    {"SessionID"}, {QString::number(sessionID)});
-
     preparedMessages_[sessionID] = {};
 
     // go through templates to form the sdp message and record it to preparedMessages_
@@ -162,6 +166,19 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
         }
       }
     }
+
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                    "Generated media for session from templates",
+                                    {"Number of medias"},
+                                    {QString::number(preparedMessages_[sessionID].size())});
+  }
+  else
+  {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                    "Using previously generated SDP mesh message for session",
+                                    {"SessionID", "Number of medias"},
+                                    {QString::number(sessionID),
+                                     QString::number(preparedMessages_[sessionID].size())});
   }
 
   // localSDP already contains host's (our) media
