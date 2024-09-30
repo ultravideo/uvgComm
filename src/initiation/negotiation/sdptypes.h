@@ -29,6 +29,7 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_RTPMAP,
                       A_GROUP, // see RFC 5888
                       A_MID,   // see RFC 5888
+                      A_MSID,  // see RFC 8830
                       A_ORIENT,
                       A_TYPE,
                       A_CHARSET,
@@ -41,7 +42,9 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_LABEL,       // RFC 4574
                       A_ZRTP_HASH,   // RFC 6189
                       A_SSRC,        // RFC 5576
+                      A_CNAME,       // RFC 5576
                       A_SSRC_GROUP   // RFC 5576
+
                      };
 
 struct SDPAttribute
@@ -95,6 +98,8 @@ struct MediaInfo
   QList<RTPMap> rtpMaps; // mandatory if not preset rtpnumber
   QList<SDPAttributeType> flagAttributes; // optional
   QList<SDPAttribute> valueAttributes; // optional
+  QList<QList<SDPAttribute>> multiAttributes;
+
   std::unordered_map<uint8_t, std::vector<FormatParameter>> fmtpAttributes; // optional
   QList<std::shared_ptr<ICEInfo>> candidates;
   QList<ZRTPHash> zrtp;

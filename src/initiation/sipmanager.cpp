@@ -59,6 +59,11 @@ SIPManager::SIPManager():
   delayTimer_.setSingleShot(true);
   QObject::connect(&delayTimer_, &QTimer::timeout,
                    this, &SIPManager::delayedMessage);
+
+  QSettings settings("uvgComm.ini", QSettings::IniFormat);
+
+  cname_ = settings.value(SettingsKey::sipUUID).toString()+ "@" +
+           QString::number(std::chrono::system_clock::now().time_since_epoch().count());;
 }
 
 
@@ -903,7 +908,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   std::shared_ptr<SDPMessageInfo> sdp = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   *sdp = *ourSDP_;
 
-  dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sessionID, localAddress, sdp, sdpConf_));
+  dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sessionID, localAddress, cname_, sdp, sdpConf_));
   std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID, config_.ice, config_.privateAddresses));
 
   // we need a way to get our final SDP to the SIP user
@@ -958,7 +963,7 @@ void SIPManager::removeDialog(uint32_t sessionID)
     nextSessionID_ = FIRSTSESSIONID;
   }
 
-  sdpConf_->removeRemoteSDP(sessionID);
+  sdpConf_->removeSession(sessionID);
 }
 
 

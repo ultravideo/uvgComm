@@ -318,11 +318,11 @@ quint16 getLocalPort(std::shared_ptr<ICEInfo> info)
 
 uint32_t findSSRC(const MediaInfo &media)
 {
-  for (auto& attribute : media.valueAttributes)
+  for (auto& attribute : media.multiAttributes)
   {
-    if (attribute.type == A_SSRC)
+    if (attribute.first().type == A_SSRC)
     {
-      return attribute.value.toULong();
+      return attribute.first().value.toULong();
     }
   }
 

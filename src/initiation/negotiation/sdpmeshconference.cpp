@@ -2,8 +2,10 @@
 
 #include "logger.h"
 #include "common.h"
+#include "ssrcgenerator.h"
 
-const int LOCAL_MEDIAS = 2;
+
+const int MEDIA_COUNT = 2;
 
 SDPMeshConference::SDPMeshConference():
   type_(MESH_NO_CONFERENCE)
@@ -21,98 +23,187 @@ void SDPMeshConference::uninit()
   singleSDPTemplates_.clear();
 }
 
-
-void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp)
+void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 {
-  std::shared_ptr<SDPMessageInfo> referenceSDP =
-      std::shared_ptr<SDPMessageInfo>(new SDPMessageInfo);
-  *referenceSDP = sdp;
-  singleSDPTemplates_[sessionID] = referenceSDP;
-
-  while (singleSDPTemplates_[sessionID]->media.size() > 2)
+  if (sdp.media.size() < MEDIA_COUNT)
   {
-    // remove media meant for us
-    singleSDPTemplates_[sessionID]->media.pop_front();
+    Logger::getLogger()->printError("SDPMeshConference", "Received SDP message with too few media lines");
+    return;
+  }
+
+  updateTemplateMedia(sessionID, sdp.media);
+
+  // store the cname
+  QString cname = "";
+
+  if (findCname(sdp.media[0], cname))
+  {
+    cnames_[sessionID] = cname;
+  }
+  else
+  {
+    Logger::getLogger()->printError("SDPMeshConference", "Received SDP message without CNAME");
+  }
+
+  // if sent them a generated SSRC, it means the received medias should be distributed to existing sessions
+  if (generatedSSRCs_.find(sessionID) != generatedSSRCs_.end())
+  {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                    "Received SDP message as a reply to generated SSRCs",
+                                    {"Number of generated SSRCs", "Number of medias"},
+                                    {QString::number(generatedSSRCs_[sessionID].size()),
+                                     QString::number(sdp.media.size())});
+
+    // go through received medias for updating
+    for (auto& media : sdp.media)
+    {
+      int mid = 0;
+      uint32_t ssrc = 0;
+      QString cname = "";
+
+      // we need to find the mid and ssrc to know which session this media belongs to
+      if (findMID(media, mid) && findSSRC(media, ssrc) && findCname(media, cname))
+      {
+        // if we have generated an SSRC for this media, we need to generate the corresponding media for the existing participants
+        if (generatedSSRCs_[sessionID].find(mid) != generatedSSRCs_[sessionID].end())
+        {
+          GeneratedSSRC details = generatedSSRCs_[sessionID][mid];
+
+          if (preparedMessages_.find(details.sessionID) != preparedMessages_.end())
+          {
+            Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                            "Distributing media to existing session from new participant",
+                                            {"Target SessionID", "MID"}, {QString::number(details.sessionID), QString::number(mid)});
+
+            preparedMessages_[details.sessionID].push_back(media);
+            // the ssrc we generated for them
+            preparedMessages_[details.sessionID].last().multiAttributes.push_back({{A_SSRC, QString::number(details.ssrc)},
+                                                                                   {A_CNAME, details.cname}});
+
+            removeMID(preparedMessages_[details.sessionID].last());
+            preparedMessages_[details.sessionID].last().valueAttributes.push_back({A_MID, QString::number(nextMID(details.sessionID))});
+          }
+          else
+          {
+            Logger::getLogger()->printError("SDPMeshConference", "We have generated an SSRC for a session that does not exist");
+          }
+        }
+      }
+      else
+      {
+        Logger::getLogger()->printError("SDPMeshConference", "Received SDP message without MID, CNAME or SSRC");
+      }
+    }
+
+    generatedSSRCs_.erase(sessionID);
+  }
+  else // update the existing sessions with details so new participants get correct media state
+  {
+    // go through received medias for updating
+    for (auto& recvMedia : sdp.media)
+    {
+      uint32_t recvSSRC = 0;
+
+      if (findSSRC(recvMedia, recvSSRC))
+      {
+        for (auto& message : preparedMessages_)
+        {
+          for (auto& preparedMedia : message.second)
+          {
+            for (auto& attributes : preparedMedia.multiAttributes)
+            {
+              if (recvSSRC == attributes.first().value.toUInt())
+              {
+                preparedMedia = copyMedia(recvMedia);
+                Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                                "Updated media for session",
+                                                {"SessionID"}, {QString::number(message.first)});
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 
 
-void SDPMeshConference::removeRemoteSDP(uint32_t sessionID)
+void SDPMeshConference::removeSession(uint32_t sessionID)
 {
   singleSDPTemplates_.erase(sessionID);
+  preparedMessages_.erase(sessionID);
+
+  // TODO: Remove this participants media from other sessions
 }
 
 
 std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID,
-                                                              std::shared_ptr<SDPMessageInfo> sdp)
+                                                              std::shared_ptr<SDPMessageInfo> localSDP)
 {
-  std::shared_ptr<SDPMessageInfo> meshSDP = sdp;
-
-  switch(type_)
+  if (type_ == MESH_NO_CONFERENCE)
   {
-    case MESH_NO_CONFERENCE:
-    {
-      break;
-    }
-    case MESH_WITH_RTP_MULTIPLEXING:
-    {
-      meshSDP = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
-      *meshSDP = *sdp;
-
-      for (auto& storedSDP : singleSDPTemplates_)
-      {
-        if (storedSDP.first != sessionID)
-        {
-          meshSDP->media += storedSDP.second->media;
-        }
-      }
-      break;
-    }
-    case MESH_WITHOUT_RTP_MULTIPLEXING:
-    {
-      if (meshSDP->media.size() > 2)
-      {
-        for (unsigned int i = meshSDP->media.size(); i > 2; --i)
-        {
-          meshSDP->media.pop_back();
-        }
-      }
-
-      for (auto& session : singleSDPTemplates_)
-      {
-        int components = 4;
-
-        // do not add their own media to the message
-        if (session.first != sessionID)
-        {
-          for (auto& media : session.second->media)
-          {
-            // if this is the outgoing extrapolated message, we increase candidate ports
-            if (singleSDPTemplates_.find(sessionID) == singleSDPTemplates_.end())
-            {
-              for (int i = 0; i < media.candidates.size(); ++i)
-              {
-                media.candidates[i] = updateICECandidate(media.candidates[i],
-                                                         components);
-              }
-
-              media.receivePort += components;
-            }
-
-            sdp->media.push_back(copyMedia(media));
-          }
-        }
-      }
-      break;
-    }
-    default:
-    {
-      Logger::getLogger()->printUnimplemented("SDPMeshConference", "Unimplemented mesh conferencing mode");
-      break;
-    }
+    return localSDP;
   }
 
+  // prepare the message for this session if we have not yet done so
+  if (preparedMessages_.find(sessionID) == preparedMessages_.end())
+  {
+    preparedMessages_[sessionID] = {};
+
+    // go through templates to form the sdp message and record it to preparedMessages_
+    for (auto& mediaTemplate : singleSDPTemplates_)
+    {
+      if (mediaTemplate.first != sessionID)
+      {
+        for (auto& media : mediaTemplate.second)
+        {
+          MediaInfo newMedia = copyMedia(media);
+
+          // we need to generate an SSRC for this media
+          generateSSRC(sessionID, mediaTemplate.first, newMedia);
+
+          preparedMessages_[sessionID].push_back(newMedia);
+        }
+      }
+    }
+
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                    "Generated media for session from templates",
+                                    {"Number of medias"},
+                                    {QString::number(preparedMessages_[sessionID].size())});
+  }
+  else
+  {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                    "Using previously generated SDP mesh message for session",
+                                    {"SessionID", "Number of medias"},
+                                    {QString::number(sessionID),
+                                     QString::number(preparedMessages_[sessionID].size())});
+  }
+
+  // localSDP already contains host's (our) media
+  std::shared_ptr<SDPMessageInfo> meshSDP = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
+  *meshSDP = *localSDP;
+
+  meshSDP->media.append(preparedMessages_[sessionID]);
   return meshSDP;
+}
+
+
+void SDPMeshConference::updateTemplateMedia(uint32_t sessionID, QList<MediaInfo>& medias)
+{
+  if (singleSDPTemplates_.find(sessionID) != singleSDPTemplates_.end())
+  {
+    singleSDPTemplates_[sessionID].clear();
+  }
+
+  for (int i = medias.size() - MEDIA_COUNT; i < medias.size(); ++i)
+  {
+    singleSDPTemplates_[sessionID].append(medias[i]);
+    singleSDPTemplates_[sessionID].last().multiAttributes.clear(); // we dont what to save ssrc
+
+    removeMID(singleSDPTemplates_[sessionID].last());
+  }
 }
 
 
@@ -122,21 +213,100 @@ MediaInfo SDPMeshConference::copyMedia(MediaInfo& media)
 }
 
 
-std::shared_ptr<ICEInfo> SDPMeshConference::updateICECandidate(std::shared_ptr<ICEInfo> candidate,
-                                                               int components)
+void SDPMeshConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, MediaInfo& media)
 {
-  Logger::getLogger()->printNormal("SDPMeshConference", "Updating candidate");
-  std::shared_ptr<ICEInfo> newCandidate = std::shared_ptr<ICEInfo>(new ICEInfo);
-  *newCandidate = *candidate;
-  if (newCandidate->port != 0)
+  if (nextMID_.find(sessionID) == nextMID_.end())
   {
-    newCandidate->port += components;
+    nextMID_[sessionID] = 3;
   }
 
-  if (newCandidate->rel_port != 0)
+  int mid = nextMID(sessionID);
+  media.valueAttributes.push_back({A_MID, QString::number(mid)});
+
+  QString cname = cnames_[mediaSessionID];
+  uint32_t ssrc = SSRCGenerator::generateSSRC();
+
+  // we store the generated SSRC so that it can later be communicated to this participant
+  generatedSSRCs_[sessionID][mid] = {ssrc, cname, mediaSessionID};
+
+  // this ssrc/cname combination indicates to the participant that we have generated them an ssrc
+  media.multiAttributes.push_back({{A_SSRC, QString::number(ssrc)}, {A_CNAME, cname}});
+}
+
+
+bool SDPMeshConference::findCname(MediaInfo& media, QString& cname) const
+{
+  for (auto& attributeList : media.multiAttributes)
   {
-    newCandidate->rel_port += components;
+    for (auto& attribute : attributeList)
+    {
+      if (attribute.type == A_CNAME)
+      {
+        cname = attribute.value;
+        return true;
+      }
+    }
   }
 
-  return newCandidate;
+  return false;
+}
+
+
+bool SDPMeshConference::findSSRC(MediaInfo& media, uint32_t& ssrc) const
+{
+  for (auto& attributeList : media.multiAttributes)
+  {
+    for (auto& attribute : attributeList)
+    {
+      if (attribute.type == A_SSRC)
+      {
+        ssrc = attribute.value.toUInt();
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+
+bool SDPMeshConference::findMID(MediaInfo& media, int& mid) const
+{
+  for (auto& attribute : media.valueAttributes)
+  {
+    if (attribute.type == A_MID)
+    {
+      mid = attribute.value.toInt();
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
+int SDPMeshConference::nextMID(uint32_t sessionID)
+{
+  if (nextMID_.find(sessionID) == nextMID_.end())
+  {
+    nextMID_[sessionID] = 3;
+  }
+
+  int mid = nextMID_[sessionID];
+  nextMID_[sessionID]++;
+  return mid;
+}
+
+
+void SDPMeshConference::removeMID(MediaInfo& media)
+{
+  // remove mid
+  for (int i = 0;  i < media.valueAttributes.size(); ++i)
+  {
+    if (media.valueAttributes[i].type == A_MID)
+    {
+      media.valueAttributes.erase(media.valueAttributes.begin() + i);
+      break;
+    }
+  }
 }

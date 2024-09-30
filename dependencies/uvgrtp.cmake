@@ -9,7 +9,7 @@ if (NOT UVGRTP_FOUND)
     FetchContent_Declare(
             uvgrtp
             GIT_REPOSITORY https://github.com/ultravideo/uvgRTP.git
-            GIT_TAG        1569045c19dedca2d096a1f425f12ff9d7bbcc2e # uvgRTP 3.1.2
+            GIT_TAG        0925db939b62aee050a112530461f29f3a2262d7 # uvgRTP 3.1.3
     )
 
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)

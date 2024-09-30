@@ -36,9 +36,10 @@ bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringLi
 // a=
 bool parseFlagAttribute(SDPAttributeType type, QString value, QList<SDPAttributeType>& attributes);
 bool parseValueAttribute(SDPAttributeType type, QString value, QList<SDPAttribute>& valueAttributes);
-bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
+bool parseMultiAttribute(SDPAttributeType type, QStringList& words, QList<QList<SDPAttribute> > &multiAttributes);
+bool parseMediaAttributes(QStringListIterator &lineIterator, char &type, QStringList& words,
                          QList<SDPAttributeType> &flags, QList<SDPAttribute> &parsedValues,
-                         QList<RTPMap> &parsedCodecs,
+                         QList<QList<SDPAttribute>>& parsedMultis, QList<RTPMap> &parsedCodecs,
                          std::unordered_map<uint8_t, std::vector<FormatParameter> > &parsedParameters,
                          QList<std::shared_ptr<ICEInfo> > &candidates, QList<ZRTPHash> &zrtp);
 bool parseSessionAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
@@ -58,7 +59,7 @@ bool parseAttributeTypeValue(QString word, SDPAttributeType& type, QString &valu
 // COMPOSING
 void composeFlagAttributes(QString& sdp, const QList<SDPAttributeType>& flags);
 void composeValueAttributes(QString& sdp, const QList<SDPAttribute>& values);
-
+void composeMultiAttributes(QString& sdp, const QList<QList<SDPAttribute>>& multis);
 
 // CONVERSION HELPER FUNCTIONS
 SDPAttributeType stringToAttributeType(QString attribute);
@@ -212,6 +213,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
 
     composeFlagAttributes(sdp, mediaStream.flagAttributes);
     composeValueAttributes(sdp, mediaStream.valueAttributes);
+    composeMultiAttributes(sdp, mediaStream.multiAttributes);
 
     for (auto& rtpmap : mediaStream.rtpMaps)
     {
@@ -266,6 +268,26 @@ void composeValueAttributes(QString& sdp, const QList<SDPAttribute>& values)
     {
       sdp += "a=" + attributeTypeToString(valueAttribute.type) + ":" + valueAttribute.value + LINE_END;
     }
+  }
+}
+
+
+void composeMultiAttributes(QString& sdp, const QList<QList<SDPAttribute> > &multis)
+{
+  for (const QList<SDPAttribute>& multiAttribute : multis)
+  {
+    sdp += "a=";
+    QString space = ""; // first one does not have space
+    for (const SDPAttribute& valueAttribute : multiAttribute)
+    {
+      if (valueAttribute.type != A_NO_ATTRIBUTE)
+      {
+        sdp += space + attributeTypeToString(valueAttribute.type) + ":" + valueAttribute.value;
+      }
+
+      space = " ";
+    }
+    sdp += LINE_END;
   }
 }
 
@@ -607,9 +629,10 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
                         sdp.media.back().connection_addrtype, sdp.media.back().connection_address)
        || !parseBitrate(lineIterator, type, words, sdp.media.back().bitrate)
        || !parseEncryptionKey(lineIterator, type, words, sdp.encryptionKey)
-       || !parseMediaAtributes(lineIterator, type, words,
+       || !parseMediaAttributes(lineIterator, type, words,
                                sdp.media.back().flagAttributes,
                                sdp.media.back().valueAttributes,
+                               sdp.media.back().multiAttributes,
                                sdp.media.back().rtpMaps,
                                sdp.media.back().fmtpAttributes,
                                sdp.media.back().candidates,
@@ -637,12 +660,14 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 }
 
 
-bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
-                         QList<SDPAttributeType>& flags, QList<SDPAttribute>& parsedValues,
-                         QList<RTPMap>& parsedCodecs,
-                         std::unordered_map<uint8_t, std::vector<FormatParameter>>& parsedParameters,
-                         QList<std::shared_ptr<ICEInfo>>& candidates,
-                         QList<ZRTPHash>& zrtp)
+bool parseMediaAttributes(QStringListIterator &lineIterator, char &type, QStringList& words,
+                          QList<SDPAttributeType>& flags,
+                          QList<SDPAttribute>& parsedValues,
+                          QList<QList<SDPAttribute>>& parsedMultis,
+                          QList<RTPMap>& parsedCodecs,
+                          std::unordered_map<uint8_t, std::vector<FormatParameter>>& parsedParameters,
+                          QList<std::shared_ptr<ICEInfo>>& candidates,
+                          QList<ZRTPHash>& zrtp)
 {
   bool rValue = true;
 
@@ -660,6 +685,11 @@ bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringL
 
     switch(attribute)
     {
+      case A_SSRC:  // RFC 5567
+      {
+        parseMultiAttribute(attribute, words, parsedMultis);
+        break;
+      }
       case A_PTIME:
       case A_MAXPTIME:
       case A_ORIENT:
@@ -668,8 +698,8 @@ bool parseMediaAtributes(QStringListIterator &lineIterator, char &type, QStringL
       case A_FRAMERATE:
       case A_QUALITY:
       case A_MID: // media stream identification, see RFC 5888
+      case A_MSID:
       case A_LABEL: // RFC 4574
-      case A_SSRC:  // RFC 5567, TODO: SSRC attributes such as CNAME
       {
         parseValueAttribute(attribute, value, parsedValues);
         break;
@@ -811,6 +841,27 @@ bool parseValueAttribute(SDPAttributeType type, QString value,
 
   Logger::getLogger()->printError("SipContent", "Value attribute has no value!");
   return false;
+}
+
+
+bool parseMultiAttribute(SDPAttributeType type, QStringList &words, QList<QList<SDPAttribute>>& multiAttributes)
+{
+  multiAttributes.push_back({});
+
+  for (auto& word : words)
+  {
+    SDPAttributeType attribute = A_NO_ATTRIBUTE;
+    QString value = "";
+    if (!parseAttributeTypeValue(word, attribute, value) ||
+        !parseValueAttribute(attribute, value, multiAttributes.back()))
+    {
+      Logger::getLogger()->printError("SIPContent", "Failed to parse multiattribute");
+      multiAttributes.pop_back();
+      return false;
+    }
+  }
+
+  return true ;
 }
 
 
@@ -1060,6 +1111,7 @@ SDPAttributeType stringToAttributeType(QString attribute)
     {"fmtp",       A_FMTP},
     {"candidate",  A_CANDIDATE},
     {"mid",        A_MID}, // see RFC 5888
+    {"msid",       A_MSID}, // see RFC 8830
 
     // attributes with (possibly) more than one value
     {"rtpmap",     A_RTPMAP},
@@ -1067,6 +1119,7 @@ SDPAttributeType stringToAttributeType(QString attribute)
     {"label",      A_LABEL},
     {"zrtp-hash",  A_ZRTP_HASH},
     {"ssrc",       A_SSRC},
+      {"cname",      A_CNAME},
     {"ssrc-group", A_SSRC_GROUP}
   };
 
@@ -1092,6 +1145,7 @@ QString attributeTypeToString(SDPAttributeType type)
     {A_RTPMAP,     "rtpmap"},
     {A_GROUP,      "group" }, // see RFC 5888
     {A_MID,        "mid" },   // see RFC 5888
+    {A_MSID,        "msid" }, // see RFC 8830
     {A_RECVONLY,   "recvonly"},
     {A_SENDRECV,   "sendrecv"},
     {A_SENDONLY,   "sendonly"},
@@ -1109,6 +1163,7 @@ QString attributeTypeToString(SDPAttributeType type)
     {A_LABEL,      "label"},
     {A_ZRTP_HASH,  "zrtp-hash"},
     {A_SSRC,       "ssrc"},
+      {A_CNAME, "cname"},
     {A_SSRC_GROUP, "ssrc-group"}
   };
 

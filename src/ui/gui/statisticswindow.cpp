@@ -1057,6 +1057,12 @@ void StatisticsWindow::on_save_button_clicked()
   for (int i = 0; i < ui_->sip_list->rowCount(); ++i)
   {
     text += ui_->sip_list->item(i, 1)->toolTip() + lineEnd;
+
+    if (ui_->sip_list->item(i, 2)->toolTip() != "")
+    {
+      text += ui_->sip_list->item(i, 2)->toolTip() + lineEnd;
+    }
+
   }
   sipMutex_.unlock();
 

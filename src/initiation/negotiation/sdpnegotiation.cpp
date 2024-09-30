@@ -3,14 +3,14 @@
 #include "sdpdefault.h"
 
 #include "initiation/negotiation/sdpmeshconference.h"
+#include "ssrcgenerator.h"
 
 #include "common.h"
 #include "logger.h"
 
 #include <QVariant>
-#include <random>
 
-SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
+SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress, QString cname,
                                std::shared_ptr<SDPMessageInfo> localSDP,
                                std::shared_ptr<SDPMeshConference> sdpConf):
   sessionID_(sessionID),
@@ -19,14 +19,14 @@ SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress,
   remoteSDP_(nullptr),
   negotiationState_(NEG_NO_STATE),
   peerAcceptsSDP_(false),
-  audioSSRC_(generateSSRC()),
-  videoSSRC_(generateSSRC()),
-  sdpConf_(sdpConf)
+  localAddress_(""),
+  sdpConf_(sdpConf),
+  cname_(cname)
 {
+  localAddress_ = localAddress;
+
   // this makes it possible to send SDP as a signal parameter
   qRegisterMetaType<std::shared_ptr<SDPMessageInfo> >("std::shared_ptr<SDPMessageInfo>");
-
-  localAddress_ = localAddress;
   setBaseSDP(localSDP);
 }
 
@@ -391,78 +391,89 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
 
   for (int i = 0; i < comparedSDP.media.size(); ++i)
   {
-    if (matches.at(i) != -1)
+    MediaInfo resultMedia;
+
+    resultMedia.type = comparedSDP.media.at(i).type;
+    resultMedia.receivePort = 0; // setting this is handled later outside this class
+    resultMedia.title = comparedSDP.media.at(i).title;
+
+    resultMedia.proto = baseSDP.media.at(matches.at(i)).proto;
+
+    if (matches.at(i) == -1)
     {
-      MediaInfo resultMedia;
+      Logger::getLogger()->printWarning(this, "Did not find match for media, rejecting this one media");
+      // no match was found, this media is unacceptable
 
-      resultMedia.type = comparedSDP.media.at(i).type;
-      resultMedia.receivePort = 0; // setting this is handled later outside this class
-      resultMedia.title = comparedSDP.media.at(i).title;
-
-      resultMedia.proto = baseSDP.media.at(matches.at(i)).proto;
-
-      if (matches.at(i) == -1)
-      {
-        // no match was found, this media is unacceptable
-
-        // compared to INACTIVE, 0 makes it so that no RTCP is sent
-        resultMedia.receivePort = 0;
-        resultMedia.flagAttributes = {A_INACTIVE};
-      }
-      else
-      {
-        // here we determine which side is ready to send and/or receive this media
-        SDPAttributeType ourAttribute   = findStatusAttribute(baseSDP.media.at(matches.at(i)).flagAttributes);
-        SDPAttributeType theirAttribute = findStatusAttribute(comparedSDP.media.at(i).flagAttributes);
-
-        resultMedia.flagAttributes.clear(); // TODO: Copy non-directional attributes
-
-        // important to know here that having no attribute means same as sendrecv (default) in SDP.
-        // These ifs go through possible flags one by one, some checks are omitted thanks to previous cases
-        if (ourAttribute   == A_INACTIVE ||
-            theirAttribute == A_INACTIVE ||
-            (ourAttribute == A_SENDONLY && theirAttribute == A_SENDONLY) || // both want to send
-            (ourAttribute == A_RECVONLY && theirAttribute == A_RECVONLY))   // both want to receive
-        {
-          // no possible media connection found, but this stream can be activated at any time
-          // RTCP should be remain active while the stream itself is inactive
-          resultMedia.flagAttributes.push_back(A_INACTIVE);
-        }
-        else if ((ourAttribute   == A_SENDRECV || ourAttribute   == A_NO_ATTRIBUTE) &&
-                 (theirAttribute == A_SENDRECV || theirAttribute == A_NO_ATTRIBUTE))
-        {
-          // media will flow in both directions
-          resultMedia.flagAttributes.push_back(ourAttribute); // sendrecv or no attribute
-        }
-        else if ((ourAttribute   == A_SENDONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
-                 (theirAttribute == A_RECVONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
-        {
-          // we will send media, but not receive it
-          resultMedia.flagAttributes.push_back(A_SENDONLY);
-        }
-        else if ((ourAttribute   == A_RECVONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
-                 (theirAttribute == A_SENDONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
-        {
-          // we will not send media, but will receive it
-          resultMedia.flagAttributes.push_back(A_RECVONLY);
-        }
-        else
-        {
-          Logger::getLogger()->printProgramError(this, "Couldn't determine attribute correctly");
-          return nullptr;
-        }
-
-        selectBestCodec(comparedSDP.media.at(i).rtpNums,         comparedSDP.media.at(i).rtpMaps,
-                        baseSDP.media.at(matches.at(i)).rtpNums, baseSDP.media.at(matches.at(i)).rtpMaps,
-                        resultMedia.rtpNums,                     resultMedia.rtpMaps);
-      }
-
-      newInfo->media.append(resultMedia);
+      // compared to INACTIVE, 0 makes it so that no RTCP is sent
+      resultMedia.receivePort = 0;
+      resultMedia.flagAttributes = {A_INACTIVE};
     }
     else
     {
-      Logger::getLogger()->printWarning(this, "Did not find match for media, rejecting this one media");
+      // here we determine which side is ready to send and/or receive this media
+      SDPAttributeType ourAttribute   = findStatusAttribute(baseSDP.media.at(matches.at(i)).flagAttributes);
+      SDPAttributeType theirAttribute = findStatusAttribute(comparedSDP.media.at(i).flagAttributes);
+
+      resultMedia.flagAttributes.clear(); // TODO: Copy non-directional attributes
+
+      // important to know here that having no attribute means same as sendrecv (default) in SDP.
+      // These ifs go through possible flags one by one, some checks are omitted thanks to previous cases
+      if (ourAttribute   == A_INACTIVE ||
+          theirAttribute == A_INACTIVE ||
+          (ourAttribute == A_SENDONLY && theirAttribute == A_SENDONLY) || // both want to send
+          (ourAttribute == A_RECVONLY && theirAttribute == A_RECVONLY))   // both want to receive
+      {
+        // no possible media connection found, but this stream can be activated at any time
+        // RTCP should be remain active while the stream itself is inactive
+        resultMedia.flagAttributes.push_back(A_INACTIVE);
+      }
+      else if ((ourAttribute   == A_SENDRECV || ourAttribute   == A_NO_ATTRIBUTE) &&
+               (theirAttribute == A_SENDRECV || theirAttribute == A_NO_ATTRIBUTE))
+      {
+        // media will flow in both directions
+        resultMedia.flagAttributes.push_back(ourAttribute); // sendrecv or no attribute
+      }
+      else if ((ourAttribute   == A_SENDONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
+               (theirAttribute == A_RECVONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
+      {
+        // we will send media, but not receive it
+        resultMedia.flagAttributes.push_back(A_SENDONLY);
+      }
+      else if ((ourAttribute   == A_RECVONLY || ourAttribute   == A_SENDRECV ||  ourAttribute   == A_NO_ATTRIBUTE ) &&
+               (theirAttribute == A_SENDONLY || theirAttribute == A_SENDRECV ||  theirAttribute == A_NO_ATTRIBUTE))
+      {
+        // we will not send media, but will receive it
+        resultMedia.flagAttributes.push_back(A_RECVONLY);
+      }
+      else
+      {
+        Logger::getLogger()->printProgramError(this, "Couldn't determine attribute correctly");
+        return nullptr;
+      }
+
+      selectBestCodec(comparedSDP.media.at(i).rtpNums,         comparedSDP.media.at(i).rtpMaps,
+                      baseSDP.media.at(matches.at(i)).rtpNums, baseSDP.media.at(matches.at(i)).rtpMaps,
+                      resultMedia.rtpNums,                     resultMedia.rtpMaps);
+
+      // check offer if the host has already generated our SSRC and use it
+      for (auto& multiAttribute : comparedSDP.media.at(i).multiAttributes)
+      {
+        uint32_t ssrc = 0;
+        for (auto& attribute : multiAttribute)
+        {
+          if (attribute.type == A_SSRC)
+          {
+            ssrc = attribute.value.toUInt();
+          }
+          else if (attribute.type == A_CNAME && cname_ != "" && attribute.value == cname_ && ssrc != 0)
+          {
+            resultMedia.multiAttributes.push_back(multiAttribute);
+          }
+        }
+      }
     }
+
+    newInfo->media.append(resultMedia);
   }
 
   for (unsigned int i = 0; i < newInfo->media.size(); ++i)
@@ -573,21 +584,29 @@ SDPAttributeType SDPNegotiation::findStatusAttribute(const QList<SDPAttributeTyp
 
 void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
 {
-  for (unsigned int j = 0; j < media.valueAttributes.size(); ++j)
+  for (unsigned int j = 0; j < media.multiAttributes.size(); ++j)
   {
-    if (media.valueAttributes.at(j).type == A_SSRC)
+    if (media.multiAttributes.at(j).first().type == A_SSRC)
     {
+      Logger::getLogger()->printNormal(this, "SSRC already present in SDP",
+                                      "SSRC", media.multiAttributes.at(j).first().value);
       return;
     }
   }
 
-  if (media.type == "audio")
+  if (mediaSSRCs_.find(mediaIndex) == mediaSSRCs_.end())
   {
-    media.valueAttributes.push_back({A_SSRC, QString::number(audioSSRC_)});
+    mediaSSRCs_[mediaIndex] = SSRCGenerator::generateSSRC();
+    Logger::getLogger()->printNormal(this, "Generated a new SSRC for media",
+                                     "SSRC", QString::number(mediaSSRCs_[mediaIndex]));
   }
-  else if (media.type == "video")
+
+  media.multiAttributes.push_back({});
+  media.multiAttributes.back().push_back({A_SSRC, QString::number(mediaSSRCs_[mediaIndex])});
+
+  if (cname_ != "")
   {
-    media.valueAttributes.push_back({A_SSRC, QString::number(videoSSRC_)});
+    media.multiAttributes.back().push_back({A_CNAME, cname_});
   }
 }
 
@@ -604,12 +623,4 @@ void SDPNegotiation::setMID(unsigned int mediaIndex, MediaInfo& media)
   media.valueAttributes.push_back({A_MID, QString::number(mediaIndex + 1)});
 }
 
-
-uint32_t SDPNegotiation::generateSSRC()
-{
-  std::mt19937 rng{std::random_device{}()};
-  std::uniform_int_distribution<uint32_t> gen32_dist{0, UINT32_MAX};
-
-  return gen32_dist(rng);
-}
 

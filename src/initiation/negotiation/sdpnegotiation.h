@@ -35,7 +35,7 @@ class SDPNegotiation : public SIPMessageProcessor
 {
   Q_OBJECT
 public:
-  SDPNegotiation(uint32_t sessionID, QString localAddress,
+  SDPNegotiation(uint32_t sessionID, QString localAddress, QString cname,
                  std::shared_ptr<SDPMessageInfo> localSDP,
                  std::shared_ptr<SDPMeshConference> sdpConf);
 
@@ -90,7 +90,6 @@ private:
   void setSSRC(unsigned int mediaIndex, MediaInfo& media);
   void setMID(unsigned int mediaIndex, MediaInfo& media);
 
-  uint32_t generateSSRC();
 
   uint32_t sessionID_;
 
@@ -105,8 +104,9 @@ private:
 
   QString localAddress_;
 
-  uint32_t audioSSRC_;
-  uint32_t videoSSRC_;
-
   std::shared_ptr<SDPMeshConference> sdpConf_;
+
+  QString cname_;
+
+  std::unordered_map<unsigned int, uint32_t> mediaSSRCs_;
 };
