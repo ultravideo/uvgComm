@@ -124,10 +124,43 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 
 void SDPMeshConference::removeSession(uint32_t sessionID)
 {
+  // take note of cname for media removal
+  QString cname = cnames_[sessionID];
+
+  // remove session from all data structures
+  cnames_.erase(sessionID);
   singleSDPTemplates_.erase(sessionID);
   preparedMessages_.erase(sessionID);
+  generatedSSRCs_.erase(sessionID);
 
-  // TODO: Remove this participants media from other sessions
+  // remove session media from prepared messages
+  for (auto& message : preparedMessages_)
+  {
+    // go from the end so we dont invalidate the index
+    for (int i = message.second.size() - 1;  i >= 0; --i)
+    {
+      for (auto& attributeList : message.second[i].multiAttributes)
+      {
+        for (auto& attribute : attributeList)
+        {
+          if (attribute.type == A_CNAME && attribute.value == cname)
+          {
+            message.second.erase(message.second.begin() + i);
+
+            Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                            "Removed media from session",
+                                            {"SessionID", "index"},
+                                            {QString::number(message.first), QString::number(i)});
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                  "Removed session from conference",
+                                  {"SessionID"}, {QString::number(sessionID)});
 }
 
 
