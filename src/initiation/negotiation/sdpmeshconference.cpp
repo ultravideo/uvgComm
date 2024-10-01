@@ -110,15 +110,9 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
         {
           for (auto& preparedMedia : message.second)
           {
-            for (auto& attributes : preparedMedia.multiAttributes)
+            if (verifyMediaInfoMatch(preparedMedia, recvMedia))
             {
-              if (recvSSRC == attributes.first().value.toUInt())
-              {
-                preparedMedia = copyMedia(recvMedia);
-                Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
-                                                "Updated media for session",
-                                                {"SessionID"}, {QString::number(message.first)});
-              }
+              updateMediaState(preparedMedia, recvMedia);
             }
           }
         }
@@ -308,5 +302,133 @@ void SDPMeshConference::removeMID(MediaInfo& media)
       media.valueAttributes.erase(media.valueAttributes.begin() + i);
       break;
     }
+  }
+}
+
+
+void SDPMeshConference::updateMediaState(MediaInfo& currentState, const MediaInfo& newState)
+{
+  if (currentState.title != newState.title)
+  {
+    Logger::getLogger()->printNormal("SDPMeshConference", "Session title changed");
+    currentState.title = newState.title;
+  }
+
+  if (currentState.bitrate != newState.bitrate)
+  {
+    Logger::getLogger()->printNormal("SDPMeshConference", "Bitrate changed");
+    currentState.bitrate = newState.bitrate;
+  }
+
+  if (currentState.encryptionKey != newState.encryptionKey)
+  {
+    Logger::getLogger()->printNormal("SDPMeshConference", "Encryption key changed");
+    currentState.encryptionKey = newState.encryptionKey;
+  }
+
+  currentState.rtpNums = newState.rtpNums;
+  currentState.rtpMaps = newState.rtpMaps;
+
+  currentState.fmtpAttributes = newState.fmtpAttributes;
+  currentState.candidates = newState.candidates;
+  currentState.zrtp = newState.zrtp;
+
+  // update the attributes
+  currentState.flagAttributes = newState.flagAttributes;
+  currentState.valueAttributes = newState.valueAttributes;
+
+  handleSSRCUpdate(currentState.multiAttributes, newState.multiAttributes);
+}
+
+
+bool SDPMeshConference::verifyMediaInfoMatch(const MediaInfo& currentState,
+                                             const MediaInfo& newState) const
+{
+  if (currentState.type != newState.type)
+  {
+    Logger::getLogger()->printError("SDPMeshConference", "Media types do not match");
+    return false;
+  }
+
+  if (currentState.receivePort != newState.receivePort)
+  {
+    Logger::getLogger()->printError("SDPMeshConference", "Receive ports do not match");
+    return false;
+  }
+
+  if (currentState.proto != newState.proto)
+  {
+    Logger::getLogger()->printError("SDPMeshConference", "Protocols do not match");
+    return false;
+  }
+
+  if (currentState.connection_address != newState.connection_address ||
+      currentState.connection_addrtype != newState.connection_addrtype ||
+      currentState.connection_nettype != newState.connection_nettype)
+  {
+    Logger::getLogger()->printError("SDPMeshConference", "Connection addresses do not match");
+    return false;
+  }
+
+  return true;
+}
+
+
+void SDPMeshConference::handleSSRCUpdate(QList<QList<SDPAttribute>>& currentAttributes,
+                                         const QList<QList<SDPAttribute>>& newAttributes)
+{
+  // if the current media has no SSRC, we add it from the new state
+  QSet<QString> currentSSRCs;
+  for (auto& attributeList : currentAttributes)
+  {
+    for (auto& attribute : attributeList)
+    {
+      if (attribute.type == A_SSRC)
+      {
+        currentSSRCs.insert(attribute.value);
+      }
+    }
+  }
+
+  if (currentSSRCs.size() == 0)
+  {
+    // we can safely copy attributes without overwriting any SSRCs
+    currentAttributes = newAttributes;
+  }
+  else if (currentSSRCs.size() == 1 || currentSSRCs.size() == 2)
+  {
+    for (auto& attributeList : newAttributes)
+    {
+      if (attributeList.first().type == A_SSRC)
+      {
+        // check if this new SSRC is already in the current state
+        if (!currentSSRCs.contains(attributeList.first().value))
+        {
+          Logger::getLogger()->printWarning("SDPMeshConference", "Found a new SSRC in incoming SDP",
+                                            "SSRC", attributeList.first().value);
+
+          if (currentSSRCs.size() == 1)
+          {
+            currentAttributes.push_back(attributeList);
+          }
+          else  //currentSSRCs.size() == 2
+          {
+            Logger::getLogger()->printError("SDPMeshConference",
+                                            "New SSRC is not found in previously recorded state, "
+                                            "even though it has two SSRCs");
+          }
+        }
+        else
+        {
+          Logger::getLogger()->printNormal("SDPMeshConference",
+                                          "SSRC already in current state",
+                                          "SSRC", attributeList.first().value);
+        }
+      }
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError("SDPMeshConference", "Too many SSRCs in existing media");
   }
 }

@@ -59,6 +59,12 @@ private:
   int nextMID(uint32_t sessionID);
   void removeMID(MediaInfo& media);
 
+  void updateMediaState(MediaInfo& currentState, const MediaInfo &newState);
+  bool verifyMediaInfoMatch(const MediaInfo& currentState, const MediaInfo& newState) const;
+
+  void handleSSRCUpdate(QList<QList<SDPAttribute>>& currentAttributes,
+                        const QList<QList<SDPAttribute>>& newAttributes);
+
   MeshType type_;
 
   /* These are the templates used to form new connections between other participants that us.
