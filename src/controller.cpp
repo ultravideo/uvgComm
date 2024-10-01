@@ -827,6 +827,15 @@ void uvgCommController::SIPRequestCallback(uint32_t sessionID,
     case SIP_BYE:
     {
       sessionTerminated(sessionID);
+
+      renegotiateAllCalls();
+
+      if (!pendingRenegotiations_.empty())
+      {
+        delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
+                                       this, &uvgCommController::negotiateNextCall);
+      }
+
       break;
     }
     case SIP_CANCEL:
