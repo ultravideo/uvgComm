@@ -139,13 +139,15 @@ void SDPMeshConference::removeSession(uint32_t sessionID)
     // go from the end so we dont invalidate the index
     for (int i = message.second.size() - 1;  i >= 0; --i)
     {
+      bool toDelete = false;
+
       for (auto& attributeList : message.second[i].multiAttributes)
       {
         for (auto& attribute : attributeList)
         {
           if (attribute.type == A_CNAME && attribute.value == cname)
           {
-            message.second.erase(message.second.begin() + i);
+            toDelete = true;
 
             Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
                                             "Removed media from session",
@@ -154,6 +156,11 @@ void SDPMeshConference::removeSession(uint32_t sessionID)
             break;
           }
         }
+      }
+
+      if (toDelete)
+      {
+        message.second.erase(message.second.begin() + i);
       }
     }
   }
