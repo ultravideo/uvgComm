@@ -142,6 +142,7 @@ void SDPMeshConference::removeSession(uint32_t sessionID)
   singleSDPTemplates_.erase(sessionID);
   preparedMessages_.erase(sessionID);
   generatedSSRCs_.erase(sessionID);
+  nextMID_.erase(sessionID);
 
   // remove session media from prepared messages
   for (auto& message : preparedMessages_)
