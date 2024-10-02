@@ -23,6 +23,7 @@ void SDPMeshConference::uninit()
   singleSDPTemplates_.clear();
 }
 
+
 void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 {
   if (sdp.media.size() < MEDIA_COUNT)
@@ -100,19 +101,28 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
   else // update the existing sessions with details so new participants get correct media state
   {
     // go through received medias for updating
-    for (auto& recvMedia : sdp.media)
+    for (int i = MEDIA_COUNT - 1; i < sdp.media.size(); ++i)
     {
       uint32_t recvSSRC = 0;
 
-      if (findSSRC(recvMedia, recvSSRC))
+      if (findSSRC(sdp.media[i], recvSSRC))
       {
         for (auto& message : preparedMessages_)
         {
           for (auto& preparedMedia : message.second)
           {
-            if (verifyMediaInfoMatch(preparedMedia, recvMedia))
+            std::vector<uint32_t> ssrcs;
+            if (findSSRC(preparedMedia, ssrcs) &&
+                (ssrcs.size() >= 1 && ssrcs[0] == recvSSRC ||
+                 ssrcs.size() >= 2 && ssrcs[1] == recvSSRC) &&
+                verifyMediaInfoMatch(preparedMedia, sdp.media[i]))
             {
-              updateMediaState(preparedMedia, recvMedia);
+              Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+                                              "Updated media for session from new participant",
+                                              {"SessionID", "index"},
+                                              {QString::number(message.first), QString::number(i)});
+
+              updateMediaState(preparedMedia, sdp.media[i]);
             }
           }
         }
@@ -301,6 +311,23 @@ bool SDPMeshConference::findSSRC(MediaInfo& media, uint32_t& ssrc) const
   }
 
   return false;
+}
+
+
+bool SDPMeshConference::findSSRC(MediaInfo& media, std::vector<uint32_t> &ssrc) const
+{
+  for (auto& attributeList : media.multiAttributes)
+  {
+    for (auto& attribute : attributeList)
+    {
+      if (attribute.type == A_SSRC)
+      {
+        ssrc.push_back(attribute.value.toUInt());
+      }
+    }
+  }
+
+  return !ssrc.empty();
 }
 
 
