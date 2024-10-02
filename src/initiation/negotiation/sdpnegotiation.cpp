@@ -473,16 +473,28 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
       }
     }
 
+    copyMID(resultMedia, comparedSDP.media.at(i));
     newInfo->media.append(resultMedia);
   }
 
   for (unsigned int i = 0; i < newInfo->media.size(); ++i)
   {
     setSSRC(i, newInfo->media[i]);
-    setMID(i, newInfo->media[i]);
   }
 
   return newInfo;
+}
+
+
+void SDPNegotiation::copyMID(MediaInfo& target, const MediaInfo& source)
+{
+  for (unsigned int i = 0; i < source.valueAttributes.size(); ++i)
+  {
+    if (source.valueAttributes.at(i).type == A_MID)
+    {
+      target.valueAttributes.push_back(source.valueAttributes.at(i));
+    }
+  }
 }
 
 

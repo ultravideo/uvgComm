@@ -90,6 +90,7 @@ private:
   void setSSRC(unsigned int mediaIndex, MediaInfo& media);
   void setMID(unsigned int mediaIndex, MediaInfo& media);
 
+  void copyMID(MediaInfo& target, const MediaInfo &source);
 
   uint32_t sessionID_;
 
