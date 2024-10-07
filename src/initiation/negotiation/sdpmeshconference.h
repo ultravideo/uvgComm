@@ -52,11 +52,6 @@ private:
   // generates the SSRC and sets it to media
   void generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, MediaInfo& media);
 
-  bool findCname(MediaInfo& media, QString& cname) const;
-  bool findSSRC(MediaInfo& media, uint32_t& ssrc) const;
-  bool findSSRC(MediaInfo& media, std::vector<uint32_t>& ssrc) const;
-  bool findMID(MediaInfo& media, int& mid) const;
-
   int nextMID(uint32_t sessionID);
   void removeMID(MediaInfo& media);
 

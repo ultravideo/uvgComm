@@ -3,6 +3,7 @@
 #include "logger.h"
 #include "common.h"
 #include "ssrcgenerator.h"
+#include "sdphelper.h"
 
 
 const int MEDIA_COUNT = 2;
@@ -276,74 +277,6 @@ void SDPMeshConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID
 
   // this ssrc/cname combination indicates to the participant that we have generated them an ssrc
   media.multiAttributes.push_back({{A_SSRC, QString::number(ssrc)}, {A_CNAME, cname}});
-}
-
-
-bool SDPMeshConference::findCname(MediaInfo& media, QString& cname) const
-{
-  for (auto& attributeList : media.multiAttributes)
-  {
-    for (auto& attribute : attributeList)
-    {
-      if (attribute.type == A_CNAME)
-      {
-        cname = attribute.value;
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-
-bool SDPMeshConference::findSSRC(MediaInfo& media, uint32_t& ssrc) const
-{
-  for (auto& attributeList : media.multiAttributes)
-  {
-    for (auto& attribute : attributeList)
-    {
-      if (attribute.type == A_SSRC)
-      {
-        ssrc = attribute.value.toUInt();
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-
-bool SDPMeshConference::findSSRC(MediaInfo& media, std::vector<uint32_t> &ssrc) const
-{
-  for (auto& attributeList : media.multiAttributes)
-  {
-    for (auto& attribute : attributeList)
-    {
-      if (attribute.type == A_SSRC)
-      {
-        ssrc.push_back(attribute.value.toUInt());
-      }
-    }
-  }
-
-  return !ssrc.empty();
-}
-
-
-bool SDPMeshConference::findMID(MediaInfo& media, int& mid) const
-{
-  for (auto& attribute : media.valueAttributes)
-  {
-    if (attribute.type == A_MID)
-    {
-      mid = attribute.value.toInt();
-      return true;
-    }
-  }
-
-  return false;
 }
 
 

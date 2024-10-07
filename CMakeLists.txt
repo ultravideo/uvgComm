@@ -51,6 +51,7 @@ set(uvgComm_SOURCES
     src/initiation/connectionpolicy.cpp                 src/initiation/connectionpolicy.h
     src/initiation/negotiation/networkcandidates.cpp    src/initiation/negotiation/networkcandidates.h
     src/initiation/negotiation/sdpdefault.cpp           src/initiation/negotiation/sdpdefault.h
+    src/initiation/negotiation/sdphelper.cpp            src/initiation/negotiation/sdphelper.h              
     src/initiation/negotiation/sdpice.cpp               src/initiation/negotiation/sdpice.h
     src/initiation/negotiation/sdpnegotiation.cpp       src/initiation/negotiation/sdpnegotiation.h
     src/initiation/negotiation/sdptypes.h
@@ -166,6 +167,7 @@ qt_add_executable(uvgComm WIN32 MACOSX_BUNDLE
     src/main.cpp
     version.cpp
     src/cameraformats.h src/cameraformats.cpp
+
 )
 
 set(uvgComm_RESOURCES
