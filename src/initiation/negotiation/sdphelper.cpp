@@ -1,7 +1,7 @@
 #include "sdphelper.h"
 
 
-bool findCname(MediaInfo& media, QString& cname)
+bool findCname(const MediaInfo &media, QString& cname)
 {
   for (auto& attributeList : media.multiAttributes)
   {
@@ -19,7 +19,23 @@ bool findCname(MediaInfo& media, QString& cname)
 }
 
 
-bool findSSRC(MediaInfo& media, uint32_t& ssrc)
+bool findCname(const MediaInfo &media, QStringList& cnames)
+{
+  for (auto& attributeList : media.multiAttributes)
+  {
+    for (auto& attribute : attributeList)
+    {
+      if (attribute.type == A_CNAME)
+      {
+        cnames.append(attribute.value);
+      }
+    }
+  }
+
+  return !cnames.empty();
+}
+
+bool findSSRC(const MediaInfo &media, uint32_t& ssrc)
 {
   for (auto& attributeList : media.multiAttributes)
   {
@@ -37,7 +53,7 @@ bool findSSRC(MediaInfo& media, uint32_t& ssrc)
 }
 
 
-bool findSSRC(MediaInfo& media, std::vector<uint32_t> &ssrc)
+bool findSSRC(const MediaInfo &media, std::vector<uint32_t> &ssrc)
 {
   for (auto& attributeList : media.multiAttributes)
   {
@@ -54,7 +70,7 @@ bool findSSRC(MediaInfo& media, std::vector<uint32_t> &ssrc)
 }
 
 
-bool findMID(MediaInfo& media, int& mid)
+bool findMID(const MediaInfo &media, int& mid)
 {
   for (auto& attribute : media.valueAttributes)
   {

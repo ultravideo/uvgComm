@@ -4,6 +4,7 @@
 
 #include "initiation/negotiation/sdpmeshconference.h"
 #include "ssrcgenerator.h"
+#include "sdphelper.h"
 
 #include "common.h"
 #include "logger.h"
@@ -455,19 +456,21 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
                       baseSDP.media.at(matches.at(i)).rtpNums, baseSDP.media.at(matches.at(i)).rtpMaps,
                       resultMedia.rtpNums,                     resultMedia.rtpMaps);
 
-      // check offer if the host has already generated our SSRC and use it
-      for (auto& multiAttribute : comparedSDP.media.at(i).multiAttributes)
+      std::vector<uint32_t> ssrcs;
+      if (findSSRC(comparedSDP.media.at(i), ssrcs))
       {
-        uint32_t ssrc = 0;
-        for (auto& attribute : multiAttribute)
+        // if there are more than one SSRC, one of them must have been generated for us.
+        QStringList cnames;
+        if (ssrcs.size() > 1 && findCname(comparedSDP.media.at(i), cnames))
         {
-          if (attribute.type == A_SSRC)
+          for (unsigned int j = 0; j < cnames.size(); ++j)
           {
-            ssrc = attribute.value.toUInt();
-          }
-          else if (attribute.type == A_CNAME && cname_ != "" && attribute.value == cname_ && ssrc != 0)
-          {
-            resultMedia.multiAttributes.push_back(multiAttribute);
+            if (cnames.at(j) == cname_)
+            {
+              resultMedia.multiAttributes.push_back({});
+              resultMedia.multiAttributes.back().push_back({A_SSRC, QString::number(ssrcs.at(j))});
+              resultMedia.multiAttributes.back().push_back({A_CNAME, cnames.at(j)});
+            }
           }
         }
       }
@@ -596,14 +599,12 @@ SDPAttributeType SDPNegotiation::findStatusAttribute(const QList<SDPAttributeTyp
 
 void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
 {
-  for (unsigned int j = 0; j < media.multiAttributes.size(); ++j)
+  uint32_t ssrc = 0;
+  if (findSSRC(media, ssrc))
   {
-    if (media.multiAttributes.at(j).first().type == A_SSRC)
-    {
-      Logger::getLogger()->printNormal(this, "SSRC already present in SDP",
-                                      "SSRC", media.multiAttributes.at(j).first().value);
-      return;
-    }
+    Logger::getLogger()->printNormal(this, "SSRC already present in SDP",
+                                    "SSRC", QString::number(ssrc));
+    return;
   }
 
   if (mediaSSRCs_.find(mediaIndex) == mediaSSRCs_.end())
