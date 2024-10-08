@@ -34,9 +34,6 @@ public:
   virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
                         const MediaID &id);
 
-  // removes participant and all its associated filter from filter graph.
-  void removeParticipant(uint32_t sessionID);
-
   void running(bool state);
 
 public slots:
@@ -45,6 +42,11 @@ public slots:
   void updateAudioSettings();
   void updateAutomaticSettings();
 
+protected:
+  virtual void destroyPeer(Peer* peer);
+
+  virtual void lastPeerRemoved();
+
 private:
 
   void selectVideoSource();
@@ -52,9 +54,6 @@ private:
   void mic(bool state);
   void camera(bool state);
   void screenShare(bool shareState);
-
-  // makes sure the participant exists and adds if necessary
-  void checkParticipant(uint32_t sessionID);
 
   // iniates camera and attaches a self view to it.
   void initCameraSelfView();
@@ -67,36 +66,6 @@ private:
   void initializeAudioOutput(bool opus);
 
   QAudioFormat createAudioFormat(uint8_t channels, uint32_t sampleRate);
-
-  void removeAllParticipants();
-
-  struct Peer
-  {
-    // keep track of existing connections, so we don't duplicate them
-    std::vector<MediaID> sendingStreams;
-    std::vector<MediaID> receivingStreams;
-
-    // Arrays of filters which send media, but are not connected to each other.
-    std::vector<std::shared_ptr<Filter>> audioSenders; // sends audio
-    std::vector<std::shared_ptr<Filter>> videoSenders; // sends video
-
-    // Arrays of filters which receive media.
-    // Each graphsegment receives one mediastream.
-    std::vector<std::shared_ptr<GraphSegment>> videoReceivers;
-    std::vector<std::shared_ptr<GraphSegment>> audioReceivers;
-  };
-
-  // destroy all filters associated with this peer.
-  void destroyPeer(Peer* peer);
-
-  void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
-
-  bool existingConnection(std::vector<MediaID>& connections, MediaID id);
-
-  // --------------- General stuff ----------------
-
-  // key is sessionID
-  std::map<uint32_t, Peer*> peers_;
 
   // --------------- Video stuff   --------------------
   GraphSegment cameraGraph_;

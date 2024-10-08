@@ -39,10 +39,6 @@
 #include <QTextStream>
 #include <QAudioFormat>
 
-#include <chrono>
-#include <thread>
-
-
 // speex DSP settings
 
 // We limit the gain so background noises don't start coming through in a quiet
@@ -62,11 +58,9 @@ const int AUDIO_INPUT_GAIN = 10; // dB
 const int32_t AUDIO_OUTPUT_VOLUME = INT32_MAX - INT32_MAX/4;
 const int AUDIO_OUTPUT_GAIN = 20; // dB
 
-void changeState(std::shared_ptr<Filter> f, bool state);
-
 FilterGraphP2P::FilterGraphP2P()
   : FilterGraph(),
-    peers_(),
+
     cameraGraph_(),
     screenShareGraph_(),
     selfviewFilter_(nullptr),
@@ -108,6 +102,24 @@ void FilterGraphP2P::setSelfViews(QList<VideoInterface*> selfViews)
       std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, hwResources_, selfViews, 1111));
 
   initCameraSelfView();
+}
+
+
+void FilterGraphP2P::uninit()
+{
+  quitting_ = true;
+
+  removeAllParticipants();
+
+  destroyFilters(cameraGraph_);
+  videoSendIniated_ = false;
+
+  destroyFilters(screenShareGraph_);
+
+  destroyFilters(audioInputGraph_);
+  destroyFilters(audioOutputGraph_);
+  audioInputInitialized_ = false;
+  audioOutputInitialized_ = false;
 }
 
 
@@ -161,33 +173,14 @@ void FilterGraphP2P::updateVideoSettings()
     filter->updateSettings();
   }
 
-  // send and receive graphs for each individual peer
-  for(auto& peer : peers_)
-  {
-    if(peer.second != nullptr)
-    {
-      for (auto& senderFilter : peer.second->videoSenders)
-      {
-        senderFilter->updateSettings();
-      }
-
-      // decode and display settings
-      for(auto& videoReceivers : peer.second->videoReceivers)
-      {
-        for (auto& filter : *videoReceivers)
-        {
-          filter->updateSettings();
-        }
-      }
-    }
-  }
-
   if (mixer_)
   {
     mixer_->updateSettings();
   }
 
   selectVideoSource();
+
+  FilterGraph::updateVideoSettings();
 }
 
 
@@ -203,31 +196,14 @@ void FilterGraphP2P::updateAudioSettings()
     filter->updateSettings();
   }
 
-  for (auto& peer : peers_)
-  {
-    if (peer.second != nullptr)
-    {
-      for (auto& senderFilter : peer.second->audioSenders)
-      {
-        senderFilter->updateSettings();
-      }
-
-      for (auto& audioReceivers : peer.second->audioReceivers)
-      {
-        for (auto& filter : *audioReceivers)
-        {
-          filter->updateSettings();
-        }
-      }
-    }
-  }
-
   if (aec_)
   {
     aec_->updateSettings();
   }
 
   mic(settingEnabled(SettingsKey::micStatus));
+
+  FilterGraph::updateAudioSettings();
 }
 
 
@@ -417,32 +393,6 @@ void FilterGraphP2P::initializeAudioOutput(bool opus)
 }
 
 
-void FilterGraphP2P::checkParticipant(uint32_t sessionID)
-{
-  Q_ASSERT(stats_);
-  Q_ASSERT(sessionID);
-
-  if(peers_.find(sessionID) != peers_.end())
-  {
-    if(peers_[sessionID] != nullptr)
-    {
-      return;
-    }
-    else
-    {
-      peers_[sessionID] = new Peer();
-    }
-  }
-  else
-  {
-    peers_[sessionID] = new Peer();
-  }
-
-  peers_[sessionID]->audioSenders.clear();
-  peers_[sessionID]->videoSenders.clear();
-}
-
-
 void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
                               const MediaID& id)
 {
@@ -598,67 +548,7 @@ void FilterGraphP2P::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter
 }
 
 
-bool FilterGraphP2P::existingConnection(std::vector<MediaID>& connections, MediaID id)
-{
-  for (auto& connection: connections)
-  {
-    if (connection == id)
-    {
-      return true;
-    }
-  }
 
-  return false;
-}
-
-void FilterGraphP2P::uninit()
-{
-  quitting_ = true;
-  removeAllParticipants();
-
-  destroyFilters(cameraGraph_);
-  videoSendIniated_ = false;
-
-  destroyFilters(screenShareGraph_);
-
-  destroyFilters(audioInputGraph_);
-  destroyFilters(audioOutputGraph_);
-  audioInputInitialized_ = false;
-  audioOutputInitialized_ = false;
-}
-
-
-void FilterGraphP2P::removeAllParticipants()
-{
-  for(auto& peer : peers_)
-  {
-    if(peer.second != nullptr)
-    {
-      removeParticipant(peer.first);
-    }
-  }
-  peers_.clear();
-}
-
-
-void changeState(std::shared_ptr<Filter> f, bool state)
-{
-  if(state)
-  {
-    f->emptyBuffer();
-    f->start();
-  }
-  else
-  {
-    f->stop();
-    f->emptyBuffer();
-
-    while(f->isRunning())
-    {
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-  }
-}
 
 
 void FilterGraphP2P::mic(bool state)
@@ -774,135 +664,44 @@ void FilterGraphP2P::running(bool state)
     changeState(screenShareGraph_.at(0), state);
   }
 
-  for(auto& peer : peers_)
-  {
-    if(peer.second != nullptr)
-    {
-      for (auto& senderFilter : peer.second->audioSenders)
-      {
-        if(senderFilter)
-        {
-          changeState(senderFilter, state);
-        }
-      }
-
-      for (auto& senderFilter : peer.second->videoSenders)
-      {
-        if(senderFilter)
-        {
-          changeState(senderFilter, state);
-        }
-      }
-
-      for (auto& graph : peer.second->audioReceivers)
-      {
-        for(std::shared_ptr<Filter>& f : *graph)
-        {
-          changeState(f, state);
-        }
-      }
-
-      for (auto& graph : peer.second->videoReceivers)
-      {
-        for(std::shared_ptr<Filter>& f : *graph)
-        {
-          changeState(f, state);
-        }
-      }
-    }
-  }
-}
-
-
-void FilterGraphP2P::destroyFilters(std::vector<std::shared_ptr<Filter> > &filters)
-{
-  if(filters.size() != 0)
-  {
-    Logger::getLogger()->printNormal(this, "Destroying filter in one graph",
-                                     {"Filter"}, {QString::number(filters.size())});
-  }
-  for( std::shared_ptr<Filter>& f : filters )
-  {
-    changeState(f, false);
-  }
-
-  filters.clear();
+  FilterGraph::running(state);
 }
 
 
 void FilterGraphP2P::destroyPeer(Peer* peer)
 {
-  Logger::getLogger()->printNormal(this, "Destroying peer from Filter Graph");
+  Logger::getLogger()->printNormal(this, "Destroying peer from P2P Filter Graph");
 
   for (auto& audioSender : peer->audioSenders)
   {
     audioInputGraph_.back()->removeOutConnection(audioSender);
-    changeState(audioSender, false);
-    audioSender = nullptr;
   }
   for (auto& videoSender : peer->videoSenders)
   {
     cameraGraph_.back()->removeOutConnection(videoSender);
-    changeState(videoSender, false);
-    videoSender = nullptr;
-  }
-  for (auto& graph : peer->audioReceivers)
-  {
-    destroyFilters(*graph);
   }
 
-  for (auto& graph : peer->videoReceivers)
-  {
-    destroyFilters(*graph);
-  }
-
-  delete peer;
+  FilterGraph::destroyPeer(peer);
 }
 
-
-void FilterGraphP2P::removeParticipant(uint32_t sessionID)
+void FilterGraphP2P::lastPeerRemoved()
 {
-  if (peers_.find(sessionID) != peers_.end() &&
-      peers_[sessionID] != nullptr)
+  destroyFilters(cameraGraph_);
+  destroyFilters(screenShareGraph_);
+  destroyFilters(audioInputGraph_);
+  destroyFilters(audioOutputGraph_);
+  audioOutput_ = nullptr;
+  audioCapture_ = nullptr;
+
+  videoSendIniated_ = false;
+  audioInputInitialized_ = false;
+  audioOutputInitialized_ = false;
+
+  if (!quitting_)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                    "Removing peer", {"SessionID", "Remaining sessions"},
-                                    {QString::number(sessionID), QString::number(peers_.size())});
-
-    destroyPeer(peers_[sessionID]);
-    peers_[sessionID] = nullptr;
-
-    // destroy send graphs if this was the last peer
-    bool peerPresent = false;
-    for(auto& peer : peers_)
-    {
-      if (peer.second != nullptr)
-      {
-        peerPresent = true;
-      }
-    }
-
-    if(!peerPresent)
-    {
-      destroyFilters(cameraGraph_);
-      destroyFilters(screenShareGraph_);
-      destroyFilters(audioInputGraph_);
-      destroyFilters(audioOutputGraph_);
-      audioOutput_ = nullptr;
-      audioCapture_ = nullptr;
-
-      videoSendIniated_ = false;
-      audioInputInitialized_ = false;
-      audioOutputInitialized_ = false;
-
-      if (!quitting_)
-      {
-        // since destruction removes even the inputs, we must restore them
-        initCameraSelfView();
-        selectVideoSource();
-        mic(settingEnabled(SettingsKey::micStatus));
-      }
-    }
+    // since destruction removes even the inputs, we must restore them
+    initCameraSelfView();
+    mic(settingEnabled(SettingsKey::micStatus));
   }
 }
 
