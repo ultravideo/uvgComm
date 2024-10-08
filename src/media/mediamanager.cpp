@@ -1,6 +1,6 @@
 #include "mediamanager.h"
 
-#include "media/processing/filtergraph.h"
+#include "media/processing/filtergraphp2p.h"
 #include "media/processing/filter.h"
 #include "media/delivery/delivery.h"
 #include "initiation/negotiation/sdptypes.h"
@@ -19,7 +19,7 @@
 
 MediaManager::MediaManager():
   stats_(nullptr),
-  fg_(new FilterGraph()),
+  fg_(new FilterGraphP2P()),
   streamer_(nullptr)
 {}
 
@@ -54,7 +54,9 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewFactory,
   std::shared_ptr<ResourceAllocator> hwResources =
       std::shared_ptr<ResourceAllocator>(new ResourceAllocator());
 
-  fg_->init(viewFactory_->getSelfVideos(), stats, hwResources);
+  fg_->init(stats, hwResources);
+  fg_->setSelfViews(viewFactory_->getSelfVideos());
+
   streamer_->init(stats_, hwResources);
 
   QObject::connect(this, &MediaManager::updateVideoSettings,
