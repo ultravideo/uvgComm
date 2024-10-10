@@ -5,7 +5,7 @@ find_package(libyuv       QUIET) # libyuv does not have versions
 find_package(OpenHEVC 2.0 QUIET)
 find_package(Opus     1.1 QUIET)
 find_package(SpeexDSP 1.2 QUIET)
-find_package(uvgRTP   2.3 QUIET)
+find_package(uvgRTP   3.0 QUIET)
 
 
 # do another check with pkgConfig in case the first one failed
@@ -30,7 +30,7 @@ if(PkgConfig_FOUND)
         pkg_search_module(SPEEXDSP libspeexdsp>=1.2 speexdsp>=1.2)
     endif()
     if (NOT UVGRTP_FOUND)
-        pkg_search_module(UVGRTP uvgrtp>=2.3 uvgRTP>=2.3)
+        pkg_search_module(UVGRTP uvgrtp>=3.0 uvgRTP>=3.0)
     endif()
 endif()
 
