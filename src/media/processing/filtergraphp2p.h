@@ -34,7 +34,7 @@ public:
   virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
                         const MediaID &id);
 
-  void running(bool state);
+  virtual void running(bool state);
 
 public slots:
 

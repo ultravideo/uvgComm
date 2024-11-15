@@ -121,25 +121,12 @@ void FilterGraph::checkParticipant(uint32_t sessionID)
   Q_ASSERT(stats_);
   Q_ASSERT(sessionID);
 
-  if(peers_.find(sessionID) != peers_.end())
-  {
-    if(peers_[sessionID] != nullptr)
-    {
-      return;
-    }
-    else
-    {
-      peers_[sessionID] = new Peer();
-    }
-  }
-  else
+  if(peers_.find(sessionID) == peers_.end() || peers_[sessionID] == nullptr)
   {
     peers_[sessionID] = new Peer();
   }
-
-  peers_[sessionID]->audioSenders.clear();
-  peers_[sessionID]->videoSenders.clear();
 }
+
 
 bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
                                 GraphSegment &graph,

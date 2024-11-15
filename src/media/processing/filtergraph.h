@@ -45,7 +45,7 @@ public:
   // removes participant and all its associated filter from filter graph.
   void removeParticipant(uint32_t sessionID);
 
-  void running(bool state);
+  virtual void running(bool state);
 
 public slots:
 

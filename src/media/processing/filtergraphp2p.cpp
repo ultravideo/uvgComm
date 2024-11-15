@@ -548,9 +548,6 @@ void FilterGraphP2P::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter
 }
 
 
-
-
-
 void FilterGraphP2P::mic(bool state)
 {
   if(audioInputGraph_.size() > 0)
