@@ -71,6 +71,20 @@ enum SIPConnectionType
   SIP_TLS
 };
 
+enum MediaRole
+{
+  MEDIA_CLIENT,
+  MEDIA_SERVER,
+  MEDIA_BOTH
+};
+
+enum ConferenceTopology
+{
+  P2P,
+  P2P_MESH,
+  SFU,
+  MCU
+};
 
 struct SIPConfig
 {
@@ -78,7 +92,9 @@ struct SIPConfig
   QString sipServerAddress;
   uint16_t sipServerPort;
 
-  bool conferencing;
+  MediaRole role;
+
+  ConferenceTopology topology;
 
   uint16_t mediaPort;
 

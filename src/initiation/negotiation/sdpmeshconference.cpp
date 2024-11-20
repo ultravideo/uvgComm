@@ -9,11 +9,11 @@
 const int MEDIA_COUNT = 2;
 
 SDPMeshConference::SDPMeshConference():
-  type_(MESH_NO_CONFERENCE)
+  type_(SDP_CONF_NONE)
 {}
 
 
-void SDPMeshConference::setConferenceMode(MeshType type)
+void SDPMeshConference::setConferenceMode(uint16_t type)
 {
   type_ = type;
 }
@@ -186,7 +186,7 @@ void SDPMeshConference::removeSession(uint32_t sessionID)
 std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID,
                                                               std::shared_ptr<SDPMessageInfo> localSDP)
 {
-  if (type_ == MESH_NO_CONFERENCE)
+  if (type_ == SDP_CONF_NONE)
   {
     return localSDP;
   }

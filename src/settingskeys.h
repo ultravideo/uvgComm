@@ -107,11 +107,13 @@ const QString localRealname = "local/Name";
 const QString localUsername = "local/Username";
 const QString localAutoAccept = "local/Auto-Accept";
 
-// SIP setting keys
-
+// Call setting keys
 const QString sipServerAddress = "sip/ServerAddress";
 const QString sipAutoConnect = "sip/AutoConnect";
-const QString sipP2PConferencing = "sip/P2PConferencing";
+const QString sipRole = "sip/Role";
+const QString sipTopology = "sip/Topology";
+const QString sipMediaServerAddress = "sip/MediaServerAddress";
+const QString sipMediaServerPort = "sip/MediaServerPort";
 
 const QString sipMediaPort = "sip/mediaport";
 const QString sipSTUNEnabled = "sip/stunEnabled";

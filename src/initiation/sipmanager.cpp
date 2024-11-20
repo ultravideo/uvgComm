@@ -40,11 +40,6 @@ const int MAX_RANDOM_DELAY_MS = 75;
 // default for SIP, use 5061 for tls encrypted
 const uint16_t SIP_PORT = 5060;
 
-#ifndef uvgComm_NO_RTP_MULTIPLEXING
-const MeshType CONFERENCE_MODE = MESH_WITH_RTP_MULTIPLEXING;
-#else
-const MeshType CONFERENCE_MODE = MESH_WITHOUT_RTP_MULTIPLEXING;
-#endif
 
 SIPManager::SIPManager():
   tcpServer_(),
@@ -186,13 +181,13 @@ void SIPManager::setConfig(const SIPConfig& config)
   }
   nCandidates_->init(config_.mediaPort, config_.stun, config_.stunServerAddress, config_.stunServerPort);
 
-  if (config.conferencing)
+  if (config.topology == P2P_MESH)
   {
-    sdpConf_->setConferenceMode(CONFERENCE_MODE);
+    sdpConf_->setConferenceMode(SDP_CONF_P2P_MESH);
   }
   else
   {
-    sdpConf_->setConferenceMode(MESH_NO_CONFERENCE);
+    sdpConf_->setConferenceMode(SDP_CONF_NONE);
   }
 }
 
@@ -915,7 +910,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   QObject::connect(ice.get(), &SDPICE::localSDPWithCandidates,
                    this, &SIPManager::finalLocalSDP);
 
-  if (settingEnabled(SettingsKey::sipP2PConferencing) && CONFERENCE_MODE == MESH_WITH_RTP_MULTIPLEXING)
+  if (config_.topology != P2P)
   {
     ice->limitMediaCandidates(ourSDP_->media.size());
   }

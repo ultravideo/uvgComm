@@ -135,7 +135,8 @@ SIPConfig uvgCommController::createSIPConfig()
   return {settingEnabled(SettingsKey::sipAutoConnect),
           settingString(SettingsKey::sipServerAddress),
           5060,
-          settingEnabled(SettingsKey::sipP2PConferencing),
+          getMediaRole(settingString(SettingsKey::sipRole)),
+          getTopology(settingString(SettingsKey::sipTopology)),
           (uint16_t)settingValue(SettingsKey::sipMediaPort),
 #ifdef uvgComm_NO_RTP_MULTIPLEXING
           settingEnabled(SettingsKey::sipICEEnabled),
@@ -205,7 +206,7 @@ void uvgCommController::createSIPDialog(QString name, QString username, QString 
   // first we must renegotiates this call, so we get all their media parameters
   renegotiateCall(sessionID);
 
-  if (settingEnabled(SettingsKey::sipP2PConferencing))
+  if (settingString(SettingsKey::sipTopology) != "P2P")
   {
     // then we renegotiates rest of the calls with the previous calls parameters included
     for (auto& state : states_)
@@ -1111,4 +1112,38 @@ void uvgCommController::getStunBindings(uint32_t sessionID, MediaInfo& media)
       }
     }
   }
+}
+
+
+MediaRole uvgCommController::getMediaRole(QString role) const
+{
+  if (role == "Client")
+  {
+    return MediaRole::MEDIA_CLIENT;
+  }
+  else if (role == "Server")
+  {
+    return MediaRole::MEDIA_SERVER;
+  }
+
+  return MediaRole::MEDIA_BOTH;
+}
+
+
+ConferenceTopology uvgCommController::getTopology(QString topology) const
+{
+  if (topology == "P2P Mesh")
+  {
+    return ConferenceTopology::P2P_MESH;
+  }
+  else if (topology == "SFU")
+  {
+    return ConferenceTopology::SFU;
+  }
+  else if (topology == "MCU")
+  {
+    return ConferenceTopology::MCU;
+  }
+
+  return ConferenceTopology::P2P;
 }

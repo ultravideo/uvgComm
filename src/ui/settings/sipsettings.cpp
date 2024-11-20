@@ -11,7 +11,8 @@
 
 
 const QStringList neededSettings = {SettingsKey::localAutoAccept,
-                                    SettingsKey::sipP2PConferencing,
+                                    SettingsKey::sipRole,
+                                    SettingsKey::sipTopology,
                                     SettingsKey::sipMediaPort,
 #ifdef uvgComm_NO_RTP_MULTIPLEXING
                                     SettingsKey::sipICEEnabled,
@@ -30,6 +31,18 @@ SIPSettings::SIPSettings(QWidget* parent):
   advancedUI_->setupUi(this);
   stunQuestion_.setupUi(&stun_);
   stun_.setWindowFlags(Qt::WindowStaysOnTopHint);
+
+  connect(advancedUI_->role_combo, &QComboBox::currentTextChanged,
+          this,                    &SIPSettings::showServerAddress);
+
+  connect(advancedUI_->topology_combo, &QComboBox::currentTextChanged,
+          this,                        &SIPSettings::showServerAddress);
+
+  connect(advancedUI_->server_address, &QLineEdit::textChanged,
+          this,                        &SIPSettings::showOkButton);
+
+  connect(advancedUI_->server_port, &QLineEdit::textChanged,
+          this,                     &SIPSettings::showOkButton);
 }
 
 
@@ -185,12 +198,16 @@ void SIPSettings::saveAdvancedSettings()
 #ifdef uvgComm_NO_RTP_MULTIPLEXING
   saveCheckBox(SettingsKey::sipICEEnabled,      advancedUI_->ice_checkbox, settings_);
 #endif
-  saveCheckBox(SettingsKey::privateAddresses,    advancedUI_->local_checkbox, settings_);
+  saveCheckBox(SettingsKey::privateAddresses,   advancedUI_->local_checkbox, settings_);
   saveCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
-  saveCheckBox(SettingsKey::sipP2PConferencing, advancedUI_->p2p_conferencing, settings_);
 
-  saveTextValue(SettingsKey::sipSTUNAddress, advancedUI_->stun_address->text(),
-                settings_);
+  saveTextValue(SettingsKey::sipRole, advancedUI_->role_combo->currentText(), settings_);
+  saveTextValue(SettingsKey::sipTopology, advancedUI_->topology_combo->currentText(), settings_);
+
+  saveTextValue(SettingsKey::sipMediaServerAddress, advancedUI_->server_address->text(), settings_);
+  saveTextValue(SettingsKey::sipMediaServerPort,    advancedUI_->server_port->text(), settings_);
+
+  saveTextValue(SettingsKey::sipSTUNAddress, advancedUI_->stun_address->text(), settings_);
 
   settings_.setValue(SettingsKey::sipSTUNPort,  QString::number(advancedUI_->stun_port->value()));
   settings_.setValue(SettingsKey::sipMediaPort,  QString::number(advancedUI_->media_port->value()));
@@ -216,7 +233,15 @@ void SIPSettings::restoreAdvancedSettings()
 #endif
     restoreCheckBox(SettingsKey::privateAddresses,     advancedUI_->local_checkbox, settings_);
     restoreCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
-    restoreCheckBox(SettingsKey::sipP2PConferencing, advancedUI_->p2p_conferencing, settings_);
+
+    QString type = settings_.value(SettingsKey::sipRole).toString();
+    advancedUI_->role_combo->setCurrentText(type);
+
+    type = settings_.value(SettingsKey::sipTopology).toString();
+    advancedUI_->topology_combo->setCurrentText(type);
+
+    advancedUI_->server_address->setText(settings_.value(SettingsKey::sipMediaServerAddress).toString());
+    advancedUI_->server_port->setText(settings_.value(SettingsKey::sipMediaServerPort).toString());
 
     advancedUI_->stun_address->setText(settings_.value(SettingsKey::sipSTUNAddress).toString());
     advancedUI_->stun_port->setValue  (settings_.value(SettingsKey::sipSTUNPort).toInt());
@@ -225,5 +250,53 @@ void SIPSettings::restoreAdvancedSettings()
   else
   {
     resetSettings();
+  }
+
+  showServerAddress("");
+}
+
+
+void SIPSettings::showServerAddress(QString text)
+{
+  if (advancedUI_->role_combo->currentText() == "Client" &&
+      (advancedUI_->topology_combo->currentText() == "SFU" ||
+       advancedUI_->topology_combo->currentText() == "MCU" ||
+       advancedUI_->topology_combo->currentText() == "Relay"))
+  {
+    advancedUI_->server_address_label->show();
+    advancedUI_->server_port_label->show();
+
+    advancedUI_->server_address->show();
+    advancedUI_->server_port->show();
+  }
+  else
+  {
+    advancedUI_->server_address_label->hide();
+    advancedUI_->server_port_label->hide();
+
+    advancedUI_->server_address->hide();
+    advancedUI_->server_port->hide();
+
+    advancedUI_->advanced_ok->setEnabled(true);
+  }
+
+  showOkButton();
+}
+
+
+void SIPSettings::showOkButton()
+{
+  if (advancedUI_->role_combo->currentText() == "Client" &&
+      (advancedUI_->topology_combo->currentText() == "SFU" ||
+       advancedUI_->topology_combo->currentText() == "MCU" ||
+       advancedUI_->topology_combo->currentText() == "Relay") &&
+      (advancedUI_->server_address->text() == ""
+        || advancedUI_->server_port->text() == ""))
+  {
+    advancedUI_->advanced_ok->setEnabled(false);
+  }
+  else
+  {
+    advancedUI_->advanced_ok->setEnabled(true);
   }
 }

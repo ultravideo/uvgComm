@@ -5,11 +5,16 @@
 #include <cstdint>
 #include <unordered_map>
 
-enum MeshType
+enum ConferenceType
 {
-  MESH_NO_CONFERENCE,
-  MESH_WITH_RTP_MULTIPLEXING,
-  MESH_WITHOUT_RTP_MULTIPLEXING
+  SDP_CONF_NONE        = 0,
+  SDP_CONF_P2P_MESH    = 1 << 0,
+  SDP_CONF_LOCAL_SFU   = 1 << 1,
+  SDP_CONF_SFU         = 1 << 2,
+  SDP_CONF_LOCAL_MCU   = 1 << 3,
+  SDP_CONF_MCU         = 1 << 4,
+  SDP_CONF_LOCAL_RELAY = 1 << 5,
+  SDP_CONF_RELAY       = 1 << 6
 };
 
 /* This class handles the generation of P2P Mesh conference via SDP Messages.
@@ -28,7 +33,7 @@ public:
 
   void uninit();
 
-  void setConferenceMode(MeshType type);
+  void setConferenceMode(uint16_t type);
 
   void addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp);
   void removeSession(uint32_t sessionID);
@@ -61,7 +66,7 @@ private:
   void handleSSRCUpdate(QList<QList<SDPAttribute>>& currentAttributes,
                         const QList<QList<SDPAttribute>>& newAttributes);
 
-  MeshType type_;
+  uint16_t type_;
 
   /* These are the templates used to form new connections between other participants that us.
    *

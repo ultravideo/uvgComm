@@ -126,6 +126,9 @@ private:
 
   MediaID getMediaID(uint32_t sessionID, const MediaInfo &media);
 
+  MediaRole getMediaRole(QString role) const;
+  ConferenceTopology getTopology(QString topology) const;
+
   // call state is used to make sure everything is going according to plan,
   // no surprise ACK messages etc
   enum INVITETransactionState {
