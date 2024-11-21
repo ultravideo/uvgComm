@@ -337,7 +337,8 @@ void uvgCommController::updateCallSettings()
 
 void uvgCommController::updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp)
 {
-  if (!settingEnabled(SettingsKey::micStatus))
+  if (!settingEnabled(SettingsKey::micStatus) ||
+      settingString(SettingsKey::sipRole)  == "Server")
   {
     for (auto& media : sdp->media)
     {
@@ -352,8 +353,9 @@ void uvgCommController::updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp
 
 void uvgCommController::updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp)
 {
-  if (!settingEnabled(SettingsKey::screenShareStatus) &&
-      !settingEnabled(SettingsKey::cameraStatus))
+  if ((!settingEnabled(SettingsKey::screenShareStatus) &&
+      !settingEnabled(SettingsKey::cameraStatus)) ||
+      settingString(SettingsKey::sipRole)  == "Server")
   {
     for (auto& media : sdp->media)
     {
