@@ -904,6 +904,16 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   *sdp = *ourSDP_;
 
   dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sessionID, localAddress, cname_, sdp, sdpConf_));
+
+  if (config_.role == MEDIA_SERVER)
+  {
+    dialog->sdp->includeSSRC(false);
+  }
+  else
+  {
+    dialog->sdp->includeSSRC(true);
+  }
+
   std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID, config_.ice, config_.privateAddresses));
 
   // we need a way to get our final SDP to the SIP user

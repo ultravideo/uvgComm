@@ -41,6 +41,8 @@ public:
 
   void setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP);
 
+  void includeSSRC(bool setSSRC);
+
   // frees the ports when they are not needed in rest of the program
   virtual void uninit();
 
@@ -110,4 +112,6 @@ private:
   QString cname_;
 
   std::unordered_map<unsigned int, uint32_t> mediaSSRCs_;
+
+  bool setSSRC_;
 };

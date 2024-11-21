@@ -22,7 +22,8 @@ SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress, QString
   peerAcceptsSDP_(false),
   localAddress_(""),
   sdpConf_(sdpConf),
-  cname_(cname)
+  cname_(cname),
+  setSSRC_(true)
 {
   localAddress_ = localAddress;
 
@@ -42,6 +43,12 @@ void SDPNegotiation::setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP)
   generateOrigin(localSDP, localAddress_, getLocalUsername());
 
   localbaseSDP_ = localSDP;
+}
+
+
+void SDPNegotiation::includeSSRC(bool setSSRC)
+{
+  setSSRC_ = setSSRC;
 }
 
 
@@ -177,10 +184,12 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
   {
     negotiationState_ = NEG_OFFER_SENT;
 
-    for (unsigned int i = 0; i < ourSDP->media.size(); ++i)
+    if (setSSRC_)
     {
-      setSSRC(i, ourSDP->media[i]);
-      setMID(i, ourSDP->media[i]);
+      for (unsigned int i = 0; i < ourSDP->media.size(); ++i) {
+        setSSRC(i, ourSDP->media[i]);
+        setMID(i, ourSDP->media[i]);
+      }
     }
   }
   else
