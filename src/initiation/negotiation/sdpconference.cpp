@@ -188,14 +188,29 @@ void SDPConference::removeSession(uint32_t sessionID)
 }
 
 
-std::shared_ptr<SDPMessageInfo> SDPConference::getMeshSDP(uint32_t sessionID,
-                                                              std::shared_ptr<SDPMessageInfo> localSDP)
+std::shared_ptr<SDPMessageInfo> SDPConference::getConferenceSDP(uint32_t sessionID,
+                                                                std::shared_ptr<SDPMessageInfo> localSDP)
 {
   if (type_ == SDP_CONF_NONE)
   {
     return localSDP;
   }
+  else if( type_ == SDP_CONF_P2P_MESH)
+  {
+    return getMeshSDP(sessionID, localSDP);
+  }
+  else
+  {
+    Logger::getLogger()->printError("SDPMeshConference", "Unsupported conference type");
+  }
 
+  return localSDP;
+}
+
+
+std::shared_ptr<SDPMessageInfo> SDPConference::getMeshSDP(uint32_t sessionID,
+                                                          std::shared_ptr<SDPMessageInfo> localSDP)
+{
   // prepare the message for this session if we have not yet done so
   if (preparedMessages_.find(sessionID) == preparedMessages_.end())
   {

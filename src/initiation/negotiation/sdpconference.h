@@ -38,10 +38,13 @@ public:
   void addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp);
   void removeSession(uint32_t sessionID);
 
-  std::shared_ptr<SDPMessageInfo> getMeshSDP(uint32_t sessionID,
+  std::shared_ptr<SDPMessageInfo> getConferenceSDP(uint32_t sessionID,
                                              std::shared_ptr<SDPMessageInfo> localSDP);
 
 private:
+
+  std::shared_ptr<SDPMessageInfo> getMeshSDP(uint32_t sessionID,
+                                       std::shared_ptr<SDPMessageInfo> localSDP);
 
   std::shared_ptr<SDPMessageInfo> getTemplateSDP(SDPMessageInfo& sdp);
   void updateGeneratedSDPs(SDPMessageInfo& sdp);
@@ -65,6 +68,8 @@ private:
 
   void handleSSRCUpdate(QList<QList<SDPAttribute>>& currentAttributes,
                         const QList<QList<SDPAttribute>>& newAttributes);
+
+
 
   uint16_t type_;
   QString mediaServerAddress_;

@@ -190,7 +190,7 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
   }
 
 
-  ourSDP = sdpConf_->getMeshSDP(sessionID_, ourSDP);
+  ourSDP = sdpConf_->getConferenceSDP(sessionID_, ourSDP);
 
   Q_ASSERT(ourSDP != nullptr);
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Adding local SDP to content");
