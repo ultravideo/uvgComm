@@ -21,7 +21,7 @@ void SDPConference::setConferenceMode(uint16_t type)
 
 void SDPConference::uninit()
 {
-  singleSDPTemplates_.clear();
+  p2pSingleSDPTemplates_.clear();
 }
 
 
@@ -71,19 +71,19 @@ void SDPConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
         {
           GeneratedSSRC details = generatedSSRCs_[sessionID][mid];
 
-          if (preparedMessages_.find(details.sessionID) != preparedMessages_.end())
+          if (p2pPreparedMessages_.find(details.sessionID) != p2pPreparedMessages_.end())
           {
             Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
                                             "Distributing media to existing session from new participant",
                                             {"Target SessionID", "MID"}, {QString::number(details.sessionID), QString::number(mid)});
 
-            preparedMessages_[details.sessionID].push_back(media);
+            p2pPreparedMessages_[details.sessionID].push_back(media);
             // the ssrc we generated for them
-            preparedMessages_[details.sessionID].last().multiAttributes.push_back({{A_SSRC, QString::number(details.ssrc)},
+            p2pPreparedMessages_[details.sessionID].last().multiAttributes.push_back({{A_SSRC, QString::number(details.ssrc)},
                                                                                    {A_CNAME, details.cname}});
 
-            removeMID(preparedMessages_[details.sessionID].last());
-            preparedMessages_[details.sessionID].last().valueAttributes.push_back({A_MID, QString::number(nextMID(details.sessionID))});
+            removeMID(p2pPreparedMessages_[details.sessionID].last());
+            p2pPreparedMessages_[details.sessionID].last().valueAttributes.push_back({A_MID, QString::number(nextMID(details.sessionID))});
           }
           else
           {
@@ -108,7 +108,7 @@ void SDPConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 
       if (findSSRC(sdp.media[i], recvSSRC))
       {
-        for (auto& message : preparedMessages_)
+        for (auto& message : p2pPreparedMessages_)
         {
           for (auto& preparedMedia : message.second)
           {
@@ -140,13 +140,13 @@ void SDPConference::removeSession(uint32_t sessionID)
 
   // remove session from all data structures
   cnames_.erase(sessionID);
-  singleSDPTemplates_.erase(sessionID);
-  preparedMessages_.erase(sessionID);
+  p2pSingleSDPTemplates_.erase(sessionID);
+  p2pPreparedMessages_.erase(sessionID);
   generatedSSRCs_.erase(sessionID);
   nextMID_.erase(sessionID);
 
   // remove session media from prepared messages
-  for (auto& message : preparedMessages_)
+  for (auto& message : p2pPreparedMessages_)
   {
     // go from the end so we dont invalidate the index
     for (int i = message.second.size() - 1;  i >= 0; --i)
@@ -207,12 +207,12 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getMeshSDP(uint32_t sessionID,
                                                           std::shared_ptr<SDPMessageInfo> localSDP)
 {
   // prepare the message for this session if we have not yet done so
-  if (preparedMessages_.find(sessionID) == preparedMessages_.end())
+  if (p2pPreparedMessages_.find(sessionID) == p2pPreparedMessages_.end())
   {
-    preparedMessages_[sessionID] = {};
+    p2pPreparedMessages_[sessionID] = {};
 
     // go through templates to form the sdp message and record it to preparedMessages_
-    for (auto& mediaTemplate : singleSDPTemplates_)
+    for (auto& mediaTemplate : p2pSingleSDPTemplates_)
     {
       if (mediaTemplate.first != sessionID)
       {
@@ -223,7 +223,7 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getMeshSDP(uint32_t sessionID,
           // we need to generate an SSRC for this media
           generateSSRC(sessionID, mediaTemplate.first, newMedia);
 
-          preparedMessages_[sessionID].push_back(newMedia);
+          p2pPreparedMessages_[sessionID].push_back(newMedia);
         }
       }
     }
@@ -231,7 +231,7 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getMeshSDP(uint32_t sessionID,
     Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
                                     "Generated media for session from templates",
                                     {"Number of medias"},
-                                    {QString::number(preparedMessages_[sessionID].size())});
+                                    {QString::number(p2pPreparedMessages_[sessionID].size())});
   }
   else
   {
@@ -239,31 +239,31 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getMeshSDP(uint32_t sessionID,
                                     "Using previously generated SDP mesh message for session",
                                     {"SessionID", "Number of medias"},
                                     {QString::number(sessionID),
-                                     QString::number(preparedMessages_[sessionID].size())});
+                                     QString::number(p2pPreparedMessages_[sessionID].size())});
   }
 
   // localSDP already contains host's (our) media
   std::shared_ptr<SDPMessageInfo> meshSDP = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   *meshSDP = *localSDP;
 
-  meshSDP->media.append(preparedMessages_[sessionID]);
+  meshSDP->media.append(p2pPreparedMessages_[sessionID]);
   return meshSDP;
 }
 
 
 void SDPConference::updateTemplateMedia(uint32_t sessionID, QList<MediaInfo>& medias)
 {
-  if (singleSDPTemplates_.find(sessionID) != singleSDPTemplates_.end())
+  if (p2pSingleSDPTemplates_.find(sessionID) != p2pSingleSDPTemplates_.end())
   {
-    singleSDPTemplates_[sessionID].clear();
+    p2pSingleSDPTemplates_[sessionID].clear();
   }
 
   for (int i = medias.size() - MEDIA_COUNT; i < medias.size(); ++i)
   {
-    singleSDPTemplates_[sessionID].append(medias[i]);
-    singleSDPTemplates_[sessionID].last().multiAttributes.clear(); // we dont what to save ssrc
+    p2pSingleSDPTemplates_[sessionID].append(medias[i]);
+    p2pSingleSDPTemplates_[sessionID].last().multiAttributes.clear(); // we dont what to save ssrc
 
-    removeMID(singleSDPTemplates_[sessionID].last());
+    removeMID(p2pSingleSDPTemplates_[sessionID].last());
   }
 }
 

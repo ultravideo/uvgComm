@@ -81,8 +81,8 @@ private:
    * that is added to the call.
    */
 
-  std::map<uint32_t, QList<MediaInfo>> singleSDPTemplates_;
-  std::map<uint32_t, QList<MediaInfo>> preparedMessages_;
+  std::map<uint32_t, QList<MediaInfo>> p2pSingleSDPTemplates_;
+  std::map<uint32_t, QList<MediaInfo>> p2pPreparedMessages_;
 
   struct GeneratedSSRC
   {
