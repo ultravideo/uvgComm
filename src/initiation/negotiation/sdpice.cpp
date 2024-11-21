@@ -203,7 +203,16 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
     }
     else
     {
-      Logger::getLogger()->printError(this, "No addresses were found!");
+      Logger::getLogger()->printWarning(this, "No addresses were found. Using a loopback address");
+
+      std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> loopback;
+      for(int i = 0; i < mediaIndex + 1; ++i)
+      {
+        loopback.push_back(std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>(new QList<std::pair<QHostAddress, uint16_t>>()));
+        loopback.back()->push_back(std::make_pair(QHostAddress(QHostAddress::LocalHost), 10000));
+      }
+
+      setMediaAddress(loopback, media, mediaIndex);
     }
   }
 }
