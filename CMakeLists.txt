@@ -56,7 +56,7 @@ set(uvgComm_SOURCES
     src/initiation/negotiation/sdpnegotiation.cpp       src/initiation/negotiation/sdpnegotiation.h
     src/initiation/negotiation/sdptypes.h
     src/initiation/negotiation/sipcontent.cpp           src/initiation/negotiation/sipcontent.h
-    src/initiation/negotiation/sdpmeshconference.cpp    src/initiation/negotiation/sdpmeshconference.h
+    src/initiation/negotiation/sdpconference.cpp    src/initiation/negotiation/sdpconference.h
     src/initiation/negotiation/ssrcgenerator.h          src/initiation/negotiation/ssrcgenerator.cpp
     src/initiation/siphelper.cpp                        src/initiation/siphelper.h
     src/initiation/sipmanager.cpp                       src/initiation/sipmanager.h

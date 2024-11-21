@@ -2,7 +2,7 @@
 
 #include "sdpdefault.h"
 
-#include "initiation/negotiation/sdpmeshconference.h"
+#include "initiation/negotiation/sdpconference.h"
 #include "ssrcgenerator.h"
 #include "sdphelper.h"
 
@@ -13,7 +13,7 @@
 
 SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress, QString cname,
                                std::shared_ptr<SDPMessageInfo> localSDP,
-                               std::shared_ptr<SDPMeshConference> sdpConf):
+                               std::shared_ptr<SDPConference> sdpConf):
   sessionID_(sessionID),
   localbaseSDP_(nullptr),
   localSDP_(nullptr),

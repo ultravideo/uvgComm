@@ -26,10 +26,10 @@ enum ConferenceType
  */
 
 
-class SDPMeshConference
+class SDPConference
 {
 public:
-  SDPMeshConference();
+  SDPConference();
 
   void uninit();
 

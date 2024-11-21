@@ -1,6 +1,6 @@
 #include "sipmanager.h"
 
-#include "initiation/negotiation/sdpmeshconference.h"
+#include "initiation/negotiation/sdpconference.h"
 #include "initiation/negotiation/sdpnegotiation.h"
 #include "initiation/negotiation/networkcandidates.h"
 #include "initiation/negotiation/sdpice.h"
@@ -48,7 +48,7 @@ SIPManager::SIPManager():
   dialogs_(),
   ourSDP_(nullptr),
   delayTimer_(),
-  sdpConf_(std::shared_ptr<SDPMeshConference>(new SDPMeshConference())),
+  sdpConf_(std::shared_ptr<SDPConference>(new SDPConference())),
   config_()
 {
   delayTimer_.setSingleShot(true);

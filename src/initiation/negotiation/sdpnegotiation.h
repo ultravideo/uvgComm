@@ -19,7 +19,7 @@
  * See RFC 3264 for details.
  */
 
-class SDPMeshConference;
+class SDPConference;
 
 // State tells what is the next step for this sessionID.
 // State is needed to accomidate software with different
@@ -37,7 +37,7 @@ class SDPNegotiation : public SIPMessageProcessor
 public:
   SDPNegotiation(uint32_t sessionID, QString localAddress, QString cname,
                  std::shared_ptr<SDPMessageInfo> localSDP,
-                 std::shared_ptr<SDPMeshConference> sdpConf);
+                 std::shared_ptr<SDPConference> sdpConf);
 
   void setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP);
 
@@ -105,7 +105,7 @@ private:
 
   QString localAddress_;
 
-  std::shared_ptr<SDPMeshConference> sdpConf_;
+  std::shared_ptr<SDPConference> sdpConf_;
 
   QString cname_;
 

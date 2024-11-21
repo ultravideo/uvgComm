@@ -1,4 +1,4 @@
-#include "sdpmeshconference.h"
+#include "sdpconference.h"
 
 #include "logger.h"
 #include "common.h"
@@ -8,24 +8,24 @@
 
 const int MEDIA_COUNT = 2;
 
-SDPMeshConference::SDPMeshConference():
+SDPConference::SDPConference():
   type_(SDP_CONF_NONE)
 {}
 
 
-void SDPMeshConference::setConferenceMode(uint16_t type)
+void SDPConference::setConferenceMode(uint16_t type)
 {
   type_ = type;
 }
 
 
-void SDPMeshConference::uninit()
+void SDPConference::uninit()
 {
   singleSDPTemplates_.clear();
 }
 
 
-void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
+void SDPConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 {
   if (sdp.media.size() < MEDIA_COUNT)
   {
@@ -133,7 +133,7 @@ void SDPMeshConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 }
 
 
-void SDPMeshConference::removeSession(uint32_t sessionID)
+void SDPConference::removeSession(uint32_t sessionID)
 {
   // take note of cname for media removal
   QString cname = cnames_[sessionID];
@@ -183,7 +183,7 @@ void SDPMeshConference::removeSession(uint32_t sessionID)
 }
 
 
-std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID,
+std::shared_ptr<SDPMessageInfo> SDPConference::getMeshSDP(uint32_t sessionID,
                                                               std::shared_ptr<SDPMessageInfo> localSDP)
 {
   if (type_ == SDP_CONF_NONE)
@@ -236,7 +236,7 @@ std::shared_ptr<SDPMessageInfo> SDPMeshConference::getMeshSDP(uint32_t sessionID
 }
 
 
-void SDPMeshConference::updateTemplateMedia(uint32_t sessionID, QList<MediaInfo>& medias)
+void SDPConference::updateTemplateMedia(uint32_t sessionID, QList<MediaInfo>& medias)
 {
   if (singleSDPTemplates_.find(sessionID) != singleSDPTemplates_.end())
   {
@@ -253,13 +253,13 @@ void SDPMeshConference::updateTemplateMedia(uint32_t sessionID, QList<MediaInfo>
 }
 
 
-MediaInfo SDPMeshConference::copyMedia(MediaInfo& media)
+MediaInfo SDPConference::copyMedia(MediaInfo& media)
 {
   return media;
 }
 
 
-void SDPMeshConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, MediaInfo& media)
+void SDPConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, MediaInfo& media)
 {
   if (nextMID_.find(sessionID) == nextMID_.end())
   {
@@ -280,7 +280,7 @@ void SDPMeshConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID
 }
 
 
-int SDPMeshConference::nextMID(uint32_t sessionID)
+int SDPConference::nextMID(uint32_t sessionID)
 {
   if (nextMID_.find(sessionID) == nextMID_.end())
   {
@@ -293,7 +293,7 @@ int SDPMeshConference::nextMID(uint32_t sessionID)
 }
 
 
-void SDPMeshConference::removeMID(MediaInfo& media)
+void SDPConference::removeMID(MediaInfo& media)
 {
   // remove mid
   for (int i = 0;  i < media.valueAttributes.size(); ++i)
@@ -307,7 +307,7 @@ void SDPMeshConference::removeMID(MediaInfo& media)
 }
 
 
-void SDPMeshConference::updateMediaState(MediaInfo& currentState, const MediaInfo& newState)
+void SDPConference::updateMediaState(MediaInfo& currentState, const MediaInfo& newState)
 {
   if (currentState.title != newState.title)
   {
@@ -342,7 +342,7 @@ void SDPMeshConference::updateMediaState(MediaInfo& currentState, const MediaInf
 }
 
 
-bool SDPMeshConference::verifyMediaInfoMatch(const MediaInfo& currentState,
+bool SDPConference::verifyMediaInfoMatch(const MediaInfo& currentState,
                                              const MediaInfo& newState) const
 {
   if (currentState.type != newState.type)
@@ -375,7 +375,7 @@ bool SDPMeshConference::verifyMediaInfoMatch(const MediaInfo& currentState,
 }
 
 
-void SDPMeshConference::handleSSRCUpdate(QList<QList<SDPAttribute>>& currentAttributes,
+void SDPConference::handleSSRCUpdate(QList<QList<SDPAttribute>>& currentAttributes,
                                          const QList<QList<SDPAttribute>>& newAttributes)
 {
   // if the current media has no SSRC, we add it from the new state

@@ -52,7 +52,7 @@ struct TransportInstance
 
 class StatisticsInterface;
 class NetworkCandidates;
-class SDPMeshConference;
+class SDPConference;
 struct SDPMessageInfo;
 
 /* This is a manager class that manages interactions between different
@@ -299,7 +299,7 @@ private:
   QTimer delayTimer_;
   std::queue<uint32_t> dMessages_;
 
-  std::shared_ptr<SDPMeshConference> sdpConf_;
+  std::shared_ptr<SDPConference> sdpConf_;
 
   SIPConfig config_;
 
