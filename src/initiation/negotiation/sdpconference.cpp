@@ -9,12 +9,17 @@
 const int MEDIA_COUNT = 2;
 
 SDPConference::SDPConference():
-  type_(SDP_CONF_NONE)
+  type_(SDP_CONF_NONE),
+mediaServerAddress_(""),
+mediaServerPort_(0)
 {}
 
 
-void SDPConference::setConferenceMode(uint16_t type)
+void SDPConference::setConferenceMode(uint16_t type, QString mediaServerAddress, uint16_t mediaServerPort)
 {
+  mediaServerAddress_ = mediaServerAddress;
+  mediaServerPort_ = mediaServerPort;
+
   type_ = type;
 }
 

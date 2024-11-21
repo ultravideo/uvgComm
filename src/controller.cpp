@@ -137,6 +137,8 @@ SIPConfig uvgCommController::createSIPConfig()
           5060,
           getMediaRole(settingString(SettingsKey::sipRole)),
           getTopology(settingString(SettingsKey::sipTopology)),
+          settingString(SettingsKey::sipMediaServerAddress),
+          (uint16_t)settingValue(SettingsKey::sipMediaServerPort),
           (uint16_t)settingValue(SettingsKey::sipMediaPort),
 #ifdef uvgComm_NO_RTP_MULTIPLEXING
           settingEnabled(SettingsKey::sipICEEnabled),

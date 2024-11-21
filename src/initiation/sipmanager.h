@@ -96,7 +96,10 @@ struct SIPConfig
 
   ConferenceTopology topology;
 
-  uint16_t mediaPort;
+  QString mediaServerAddress;
+  uint16_t mediaServerPort;
+
+  uint16_t localMediaPort;
 
   bool ice;
   bool privateAddresses;

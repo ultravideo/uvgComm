@@ -33,7 +33,7 @@ public:
 
   void uninit();
 
-  void setConferenceMode(uint16_t type);
+  void setConferenceMode(uint16_t type, QString mediaServerAddress, uint16_t mediaServerPort);
 
   void addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp);
   void removeSession(uint32_t sessionID);
@@ -67,6 +67,8 @@ private:
                         const QList<QList<SDPAttribute>>& newAttributes);
 
   uint16_t type_;
+  QString mediaServerAddress_;
+  uint16_t mediaServerPort_;
 
   /* These are the templates used to form new connections between other participants that us.
    *

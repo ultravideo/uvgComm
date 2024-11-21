@@ -179,7 +179,7 @@ void SIPManager::setConfig(const SIPConfig& config)
   {
     nCandidates_ = std::shared_ptr<NetworkCandidates> (new NetworkCandidates);
   }
-  nCandidates_->init(config_.mediaPort, config_.stun, config_.stunServerAddress, config_.stunServerPort);
+  nCandidates_->init(config_.localMediaPort, config_.stun, config_.stunServerAddress, config_.stunServerPort);
 
   if (config.topology == P2P_MESH)
   {
