@@ -7,14 +7,14 @@
 
 enum ConferenceType
 {
-  SDP_CONF_NONE        = 0,
-  SDP_CONF_P2P_MESH    = 1 << 0,
-  SDP_CONF_LOCAL_SFU   = 1 << 1,
-  SDP_CONF_SFU         = 1 << 2,
-  SDP_CONF_LOCAL_MCU   = 1 << 3,
-  SDP_CONF_MCU         = 1 << 4,
-  SDP_CONF_LOCAL_RELAY = 1 << 5,
-  SDP_CONF_RELAY       = 1 << 6
+  SDP_CONF_NONE,
+  SDP_CONF_P2P_MESH,
+  SDP_CONF_LOCAL_SFU,
+  SDP_CONF_SFU,
+  SDP_CONF_LOCAL_MCU,
+  SDP_CONF_MCU,
+  SDP_CONF_LOCAL_RELAY,
+  SDP_CONF_RELAY
 };
 
 /* This class handles the generation of P2P Mesh conference via SDP Messages.
@@ -33,7 +33,7 @@ public:
 
   void uninit();
 
-  void setConferenceMode(uint16_t type);
+  void setConferenceMode(ConferenceType type);
 
   void addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp);
   void removeSession(uint32_t sessionID);
@@ -45,6 +45,9 @@ private:
 
   std::shared_ptr<SDPMessageInfo> getMeshSDP(uint32_t sessionID,
                                        std::shared_ptr<SDPMessageInfo> localSDP);
+
+  std::shared_ptr<SDPMessageInfo> getSFUSDP(uint32_t sessionID,
+                                             std::shared_ptr<SDPMessageInfo> localSDP);
 
   std::shared_ptr<SDPMessageInfo> getTemplateSDP(SDPMessageInfo& sdp);
   void updateGeneratedSDPs(SDPMessageInfo& sdp);
@@ -69,8 +72,13 @@ private:
   void handleSSRCUpdate(QList<QList<SDPAttribute>>& currentAttributes,
                         const QList<QList<SDPAttribute>>& newAttributes);
 
+  void distributeMediaToSessions(uint32_t sessionID, SDPMessageInfo &sdp);
 
-  uint16_t type_;
+  void updateAllMedias(SDPMessageInfo &sdp);
+
+  void distributeSSRCs(uint32_t sessionID, SDPMessageInfo &sdp);
+
+  ConferenceType type_;
 
   /* These are the templates used to form new connections between other participants that us.
    *
@@ -83,6 +91,10 @@ private:
 
   std::map<uint32_t, QList<MediaInfo>> p2pSingleSDPTemplates_;
   std::map<uint32_t, QList<MediaInfo>> p2pPreparedMessages_;
+
+  std::map<uint32_t, QList<MediaInfo>> sfuSingleSDPTemplates_;
+  std::map<uint32_t, QList<MediaInfo>> sfuPreparedMessages_;
+
 
   struct GeneratedSSRC
   {
