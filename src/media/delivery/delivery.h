@@ -1,4 +1,5 @@
 #pragma once
+#include "media/delivery/udprelay.h"
 #include "media/processing/filter.h"
 #include "mediaid.h"
 
@@ -35,17 +36,26 @@ public:
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
-  std::shared_ptr<Filter> addSendStream(uint32_t sessionID,
-                                        QString localAddress, QString remoteAddress,
-                                        uint16_t localPort, uint16_t peerPort,
-                                        QString codec, uint8_t rtpNum, MediaID id,
-                                         uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
-
-  std::shared_ptr<Filter> addReceiveStream(uint32_t sessionID,
+  std::shared_ptr<Filter> addRTPSendStream(uint32_t sessionID,
                                            QString localAddress, QString remoteAddress,
                                            uint16_t localPort, uint16_t peerPort,
                                            QString codec, uint8_t rtpNum, MediaID id,
                                            uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
+
+   std::shared_ptr<Filter> addUDPSendStream(uint32_t sessionID,
+                                            QString localAddress, QString remoteAddress,
+                                            uint16_t localPort, uint16_t peerPort);
+
+
+  std::shared_ptr<Filter> addRTPReceiveStream(uint32_t sessionID,
+                                              QString localAddress, QString remoteAddress,
+                                              uint16_t localPort, uint16_t peerPort,
+                                              QString codec, uint8_t rtpNum, MediaID id,
+                                              uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
+
+   std::shared_ptr<Filter> addUDPReceiveStream(uint32_t sessionID,
+                                               QString localAddress, uint16_t localPort,
+                                               uint32_t remoteSSRC);
 
   // TODO: Add a way to remove individual streams
   //void removeSendStream(uint32_t sessionID, uint16_t localPort);
@@ -103,6 +113,8 @@ private:
   bool findSession(uint32_t sessionID, uint32_t& outIndex,
                    QString localAddress, QString remoteAddress);
 
+  std::shared_ptr<UDPRelay> getUDPRelay(QString localAddress, uint16_t localPort);
+
   // key is sessionID
   std::map<uint32_t, std::shared_ptr<Peer>> peers_;
 
@@ -115,5 +127,6 @@ private:
 
   std::shared_ptr<ResourceAllocator> hwResources_;
 
-
+  // the key is address:port as a string
+  std::map<QString, std::shared_ptr<UDPRelay>> relays_;
 };

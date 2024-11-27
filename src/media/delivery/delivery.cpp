@@ -5,14 +5,15 @@
 #include "common.h"
 #include "logger.h"
 #include "settingskeys.h"
+#include "udprelay.h"
+#include "udpsender.h"
+#include "udpreceiver.h"
 
 #include <QtEndian>
 #include <QHostInfo>
 #include <QCoreApplication>
 
 #include <uvgrtp/lib.hh>
-
-#include <iostream>
 
 Delivery::Delivery():
   rtp_ctx_(new uvg_rtp::context),
@@ -132,7 +133,7 @@ void Delivery::parseCodecString(QString codec, rtp_format_t& fmt,
 }
 
 
-std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
+std::shared_ptr<Filter> Delivery::addRTPSendStream(uint32_t sessionID,
                                                 QString localAddress, QString remoteAddress,
                                                 uint16_t localPort, uint16_t peerPort,
                                                 QString codec, uint8_t rtpNum,
@@ -193,7 +194,23 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
   return peers_[sessionID]->sessions.at(sessionIndex).streams[id]->sender;
 }
 
-std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
+
+std::shared_ptr<Filter> Delivery::addUDPSendStream(uint32_t sessionID,
+                                         QString localAddress, QString remoteAddress,
+                                         uint16_t localPort, uint16_t peerPort)
+{
+  std::shared_ptr<UDPRelay> relay = getUDPRelay(localAddress, localPort);
+
+  QString id = remoteAddress + ":" + QString::number(peerPort);
+  std::shared_ptr<UDPSender> sender = std::shared_ptr<UDPSender>(new UDPSender(id, stats_,  hwResources_,
+                                                                               remoteAddress.toStdString(),
+                                                                               peerPort, relay));
+
+  return sender;
+}
+
+
+std::shared_ptr<Filter> Delivery::addRTPReceiveStream(uint32_t sessionID,
                                                    QString localAddress, QString remoteAddress,
                                                    uint16_t localPort, uint16_t peerPort,
                                                    QString codec, uint8_t rtpNum,
@@ -256,6 +273,38 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
   }
 
   return peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver;
+}
+
+
+std::shared_ptr<Filter> Delivery::addUDPReceiveStream(uint32_t sessionID,
+                                                      QString localAddress, uint16_t localPort,
+                                                      uint32_t remoteSSRC)
+{
+  std::shared_ptr<UDPRelay> relay = getUDPRelay(localAddress, localPort);
+
+  QString id = localAddress + ":" + QString::number(localPort);
+  std::shared_ptr<UDPReceiver> receiver = std::shared_ptr<UDPReceiver>(new UDPReceiver(id, stats_, hwResources_));
+  relay->registerRTPReceiver(remoteSSRC, receiver);
+
+  return receiver;
+}
+
+
+std::shared_ptr<UDPRelay> Delivery::getUDPRelay(QString localAddress, uint16_t localPort)
+{
+  QString relayKey = localAddress + ":" + QString::number(localPort);
+
+  if (relays_.find(relayKey) == relays_.end())
+  {
+    Logger::getLogger()->printNormal(this, "Creating new UDP relay", "Path", relayKey);
+    relays_[relayKey] = std::shared_ptr<UDPRelay>(new UDPRelay(localAddress.toStdString(), localPort));
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Using existing UDP relay", "Path", relayKey);
+  }
+
+  return relays_[relayKey];
 }
 
 
