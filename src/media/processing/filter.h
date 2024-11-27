@@ -47,6 +47,8 @@ enum DataType {DT_NONE        = 0,
 
                DT_RAWAUDIO    = (1 << 15),
                DT_OPUSAUDIO   = (1 << 16),
+
+               DT_RTP         = (1 << 17)
 };
 
 enum DataSource {DS_UNKNOWN, DS_LOCAL, DS_REMOTE};
@@ -159,9 +161,12 @@ public:
     return name_;
   }
 
-protected:
+  static std::unique_ptr<Data> initializeData(DataType type, DataSource source);
 
-  std::unique_ptr<Data> initializeData(DataType type, DataSource source) const;
+  static bool isVideo(DataType type);
+  static bool isAudio(DataType type);
+
+protected:
 
   std::unique_ptr<Data> normalizeOrientation(std::unique_ptr<Data> video,
                                              bool forceHorizontalFlip = false);
@@ -213,8 +218,7 @@ protected:
   DataType input_;
   DataType output_;
 
-  bool isVideo(DataType type) const;
-  bool isAudio(DataType type) const;
+
 
   void printDataBytes(QString type, const uint8_t *payload, size_t size,
                       int bytes, int shift);

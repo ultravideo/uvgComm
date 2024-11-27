@@ -83,7 +83,7 @@ bool Filter::init()
 }
 
 
-bool Filter::isVideo(DataType type) const
+bool Filter::isVideo(DataType type)
 {
   return type == DT_YUV420VIDEO ||
     type == DT_YUV422VIDEO ||
@@ -105,7 +105,7 @@ bool Filter::isVideo(DataType type) const
 }
 
 
-bool Filter::isAudio(DataType type) const
+bool Filter::isAudio(DataType type)
 {
   return type == DT_RAWAUDIO ||
       type == DT_OPUSAUDIO;
@@ -222,7 +222,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 }
 
 
-std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source) const
+std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source)
 {
   std::unique_ptr<Data> data(new Data);
   data->type = type;
@@ -253,7 +253,7 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source) c
   }
   else
   {
-    Logger::getLogger()->printProgramError(this, "Could not determine input data type!");
+    Logger::getLogger()->printProgramError("Filter", "Could not determine input data type!");
   }
 
   return data;
