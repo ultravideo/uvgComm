@@ -220,6 +220,9 @@ void SDPConference::removeSession(uint32_t sessionID)
   cnames_.erase(sessionID);
   p2pSingleSDPTemplates_.erase(sessionID);
   p2pPreparedMessages_.erase(sessionID);
+  sfuSingleSDPTemplates_.erase(sessionID);
+  sfuPreparedMessages_.erase(sessionID);
+
   generatedSSRCs_.erase(sessionID);
   nextMID_.erase(sessionID);
 
@@ -523,7 +526,10 @@ bool SDPConference::verifyMediaInfoMatch(const MediaInfo& currentState,
       currentState.connection_addrtype != newState.connection_addrtype ||
       currentState.connection_nettype != newState.connection_nettype)
   {
-    Logger::getLogger()->printError("SDPMeshConference", "Connection addresses do not match");
+    Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPMeshConference", "Connection addresses do not match",
+                                    {"Old address", "New Address"},
+                                    {currentState.connection_address, newState.connection_address});
+
     return false;
   }
 
