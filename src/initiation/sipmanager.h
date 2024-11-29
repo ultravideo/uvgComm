@@ -82,6 +82,7 @@ enum ConferenceTopology
 {
   P2P,
   P2P_MESH,
+  RELAY,
   SFU,
   MCU
 };

@@ -1138,6 +1138,10 @@ ConferenceTopology uvgCommController::getTopology(QString topology) const
   {
     return ConferenceTopology::P2P_MESH;
   }
+  else if (topology == "Relay")
+  {
+    return ConferenceTopology::RELAY;
+  }
   else if (topology == "SFU")
   {
     return ConferenceTopology::SFU;

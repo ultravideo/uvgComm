@@ -255,20 +255,20 @@ QList<std::shared_ptr<ICEInfo>> SDPICE::generateICECandidates(
 
   quint32 foundation = 1;
 
-  addCandidates(localCandidates, nullptr, foundation, HOST, 65535, iceCandidates, components);
-  addCandidates(globalCandidates, nullptr, foundation, HOST, 65535 - localCandidates->size()/components,
+  addCandidates(localCandidates, nullptr, foundation, ICE_HOST, 65535, iceCandidates, components);
+  addCandidates(globalCandidates, nullptr, foundation, ICE_HOST, 65535 - localCandidates->size()/components,
                 iceCandidates, components);
 
   if (stunCandidates->size() == stunBindings->size())
   {
-    addCandidates(stunCandidates, stunBindings, foundation, SERVER_REFLEXIVE,
+    addCandidates(stunCandidates, stunBindings, foundation, ICE_SERVER_REFLEXIVE,
                   65535, iceCandidates, components);
   }
   else
   {
     Logger::getLogger()->printProgramError(this, "STUN bindings don't match");
   }
-  addCandidates(turnCandidates, nullptr, foundation, RELAY, 0, iceCandidates, components);
+  addCandidates(turnCandidates, nullptr, foundation, ICE_RELAY, 0, iceCandidates, components);
 
   return iceCandidates;
 }
@@ -282,7 +282,7 @@ void SDPICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_
 {
   bool includeRelayAddress = relayAddresses != nullptr && addresses->size() == relayAddresses->size();
 
-  if (!includeRelayAddress && type != HOST && !addresses->empty())
+  if (!includeRelayAddress && type != ICE_HOST && !addresses->empty())
   {
     Logger::getLogger()->printProgramError(this, "Bindings not given for non host cadidate!");
     return;
@@ -349,21 +349,21 @@ std::shared_ptr<ICEInfo> SDPICE::makeCandidate(uint32_t foundation,
   candidate->rel_address = "";
   candidate->rel_port = 0;
 
-  if (type != HOST && !relayAddress.isNull() && relayPort != 0)
+  if (type != ICE_HOST && !relayAddress.isNull() && relayPort != 0)
   {
     candidate->rel_address = relayAddress.toString();
     candidate->rel_port = relayPort;
   }
 
-  if (type == HOST)
+  if (type == ICE_HOST)
   {
     typeString = "host";
   }
-  else if (type == SERVER_REFLEXIVE)
+  else if (type == ICE_SERVER_REFLEXIVE)
   {
     typeString = "srflx";
   }
-  else if (type == RELAY)
+  else if (type == ICE_RELAY)
   {
     typeString = "relay";
   }

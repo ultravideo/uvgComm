@@ -181,13 +181,55 @@ void SIPManager::setConfig(const SIPConfig& config)
   }
   nCandidates_->init(config_.localMediaPort, config_.stun, config_.stunServerAddress, config_.stunServerPort);
 
-  if (config.topology == P2P_MESH)
+  if (config.role == MEDIA_CLIENT)
   {
-    sdpConf_->setConferenceMode(SDP_CONF_P2P_MESH);
+    if (config.topology == P2P)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_NONE);
+    }
+    else if (config.topology == P2P_MESH)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_P2P_MESH);
+    }
+    else if (config.topology == SFU)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_SFU);
+
+      // TODO: Set server address
+    }
+    else if (config.topology == MCU)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_MCU);
+      // TODO: Set server address
+    }
+    else if (config.topology == RELAY)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_RELAY);
+      // TODO: Set server address
+    }
   }
   else
   {
-    sdpConf_->setConferenceMode(SDP_CONF_NONE);
+    if (config.topology == P2P)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_NONE);
+    }
+    else if (config.topology == P2P_MESH)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_P2P_MESH);
+    }
+    else if (config.topology == SFU)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_LOCAL_SFU);
+    }
+    else if (config.topology == MCU)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_LOCAL_MCU);
+    }
+    else if (config.topology == RELAY)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_LOCAL_RELAY);
+    }
   }
 }
 

@@ -14,10 +14,10 @@ enum PairState {
 };
 
 enum CandidateType {
-  RELAY = 0,
-  SERVER_REFLEXIVE = 100,
-  PEER_REFLEXIVE = 110,
-  HOST    = 126
+  ICE_RELAY = 0,
+  ICE_SERVER_REFLEXIVE = 100,
+  ICE_PEER_REFLEXIVE = 110,
+  ICE_HOST    = 126
 };
 
 /* list of ICEInfo (candidates) is send during INVITE */
