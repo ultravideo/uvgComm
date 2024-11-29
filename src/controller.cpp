@@ -597,7 +597,7 @@ void uvgCommController::updateMediaIDs(uint32_t sessionID,
       {
         getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
 
-        allIDs.push_back(createMediaID(sessionID, localMedia.at(i)));
+        allIDs.append(createMediaIDs(sessionID, localMedia.at(i)));
 
         allIDs.back().setReceive(receive);
         allIDs.back().setSend(send);
@@ -607,7 +607,7 @@ void uvgCommController::updateMediaIDs(uint32_t sessionID,
     {
       getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
 
-      allIDs.push_back(createMediaID(sessionID, localMedia.at(i)));
+      allIDs.append(createMediaIDs(sessionID, localMedia.at(i)));
 
       allIDs.back().setReceive(receive);
       allIDs.back().setSend(send);
@@ -644,19 +644,37 @@ void uvgCommController::getMediaAttributes(const MediaInfo &local, const MediaIn
 }
 
 
-MediaID uvgCommController::createMediaID(uint32_t sessionID, const MediaInfo &media)
+QList<MediaID> uvgCommController::createMediaIDs(uint32_t sessionID, const MediaInfo &media)
 {
+  std::vector<uint32_t> ssrcs;
+  findSSRCs(media, ssrcs);
+  QList<MediaID> ids;
 
   if (sessionMedias_.find(sessionID) != sessionMedias_.end())
   {
-    // try to see if this is an old media
-    for (auto& sMedia : *sessionMedias_[sessionID])
+    for (auto& ssrc : ssrcs)
     {
-      if (sMedia == media)
+      bool found = false;
+      // try to see if this is an old media
+      for (auto& sMedia : *sessionMedias_[sessionID])
       {
-        Logger::getLogger()->printNormal(this, "Using existing MediaID",
-                                         "Media type", media.type);
-        return sMedia;
+        if (sMedia == ssrc)
+        {
+          Logger::getLogger()->printNormal(this, "Using existing MediaID",
+                                           "Media type", media.type);
+
+          found = true;
+          ids.push_back(sMedia);
+          break;
+        }
+      }
+
+      if (!found)
+      {
+        Logger::getLogger()->printNormal(this, "Creating a new MediaID",
+                                         "SSRC", QString::number(ssrc));
+        ids.push_back(MediaID(ssrc));
+        sessionMedias_[sessionID]->push_back(ids.back());
       }
     }
   }
@@ -664,14 +682,18 @@ MediaID uvgCommController::createMediaID(uint32_t sessionID, const MediaInfo &me
   {
     sessionMedias_[sessionID] =
       std::shared_ptr<std::vector<MediaID>>(new std::vector<MediaID>());
+
+    Logger::getLogger()->printNormal(this, "Creating a new MediaID",
+                                     "SSRC", QString::number(findSSRC(media)));
+
+    for (auto& ssrc : ssrcs)
+    {
+      ids.push_back(MediaID(ssrc));
+      sessionMedias_[sessionID]->push_back(ids.back());
+    }
   }
 
-  Logger::getLogger()->printNormal(this, "Creating a new MediaID",
-                                   "SSRC", QString::number(findSSRC(media)));
-
-  // create a new ID for this media
-  sessionMedias_[sessionID]->push_back(MediaID(media));
-  return sessionMedias_[sessionID]->back();
+  return ids;
 }
 
 

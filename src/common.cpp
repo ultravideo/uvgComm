@@ -329,6 +329,25 @@ uint32_t findSSRC(const MediaInfo &media)
   return 0;
 }
 
+
+bool findSSRCs(const MediaInfo &media, std::vector<uint32_t> &ssrc)
+{
+  for (auto& attributeList : media.multiAttributes)
+  {
+    for (auto& attribute : attributeList)
+    {
+      if (attribute.type == A_SSRC)
+      {
+        ssrc.push_back(attribute.value.toUInt());
+      }
+    }
+  }
+
+  return !ssrc.empty();
+}
+
+
+
 uint32_t findMID(const MediaInfo &media)
 {
   for (auto& attribute : media.valueAttributes)

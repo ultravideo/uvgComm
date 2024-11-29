@@ -5,12 +5,17 @@
 uint64_t MediaID::nextID_ = 1;
 
 
-MediaID::MediaID(const MediaInfo &media):
-    id_(++nextID_),
+MediaID::MediaID(uint32_t ssrc):
     send_(true),
     receive_(true),
-    media_(media)
-{}
+    ssrc_(ssrc)
+{
+  if (ssrc_ == 0)
+  {
+    ssrc_ = nextID_;
+    nextID_++;
+  }
+}
 
 
 MediaID::~MediaID()
@@ -43,54 +48,41 @@ bool MediaID::getSend() const
 
 QString MediaID::toString() const
 {
-  return QString::number(id_);
+  return QString::number(ssrc_);
 }
 
 
 uint32_t MediaID::getID() const
 {
-  return (uint32_t)id_;
+  return (uint32_t)ssrc_;
 }
 
 
-bool MediaID::operator==(const MediaInfo& media) const
+bool MediaID::operator==(uint32_t ssrc) const
 {
-  return areMediasEqual(media, media_);
+  return ssrc == ssrc_;
 }
 
 
-bool MediaID::operator!=(const MediaInfo& media) const
+bool MediaID::operator!=(uint32_t ssrc) const
 {
-  return !areMediasEqual(media, media_);
+  return ssrc != ssrc_;
 }
 
 
 bool operator==(const MediaID& l, const MediaID& r)
 {
-  return l.id_ == r.id_;
+  return l.ssrc_ == r.ssrc_;
 }
 
 
 bool operator!=(const MediaID& l, const MediaID& r)
 {
-  return l.id_ != r.id_;
+  return l.ssrc_ != r.ssrc_;
 }
 
 
 bool operator<(const MediaID& l, const MediaID& r)
 {
-  return l.id_ < r.id_;
-}
-
-
-bool MediaID::areMediasEqual(const MediaInfo& first, const MediaInfo& second) const
-{
-  return findMID(first) == findMID(second) &&
-         findSSRC(first) == findSSRC(second) &&
-         first.type == second.type &&
-         first.receivePort == second.receivePort &&
-         first.proto == second.proto &&
-         first.connection_nettype == second.connection_nettype &&
-         first.connection_addrtype == second.connection_addrtype &&
-         first.connection_address == second.connection_address;
+  return l.ssrc_ < r.ssrc_;
 }
