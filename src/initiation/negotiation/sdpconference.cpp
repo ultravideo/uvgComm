@@ -162,6 +162,7 @@ void SDPConference::distributeSSRCs(uint32_t sessionID, SDPMessageInfo &sdp)
 
   for (unsigned int i = 0; i < sdp.media.size(); ++i)
   {
+    ssrc.clear();
     findSSRC(sdp.media.at(i), ssrc);
 
     if (ssrc.size() == 1)
@@ -335,37 +336,40 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getMeshSDP(uint32_t sessionID,
 std::shared_ptr<SDPMessageInfo> SDPConference::getSFUSDP(uint32_t sessionID,
                                                          std::shared_ptr<SDPMessageInfo> localSDP)
 {
+  // see if we should generate the template message for this session
   if (sfuPreparedMessages_.find(sessionID) == sfuPreparedMessages_.end())
   {
-    for (auto& mediaTemplate : sfuSingleSDPTemplates_)
-    {
-      if (mediaTemplate.first == sessionID)
-      {
-        sfuPreparedMessages_[sessionID] = mediaTemplate.second;
-        break;
-      }
-    }
+    // use the localSDP as base
+    sfuPreparedMessages_[sessionID] = localSDP->media;
 
+    // add the recorded SSRC values to the medias
     for (auto& mediaTemplate : sfuSingleSDPTemplates_)
     {
+      // if not their ssrc
       if (mediaTemplate.first != sessionID)
       {
         if (sfuPreparedMessages_[sessionID].size() <= mediaTemplate.second.size())
         {
           for (unsigned int i = 0; i < sfuPreparedMessages_[sessionID].size(); ++i)
           {
+            // add SSRC for this media slot i
             for (auto& attributeList : mediaTemplate.second.at(i).multiAttributes)
             {
               for (auto& attribute : attributeList)
               {
                 if (attribute.type == A_SSRC)
                 {
+                  // copy ssrc and other attributes such as cname
                   sfuPreparedMessages_[sessionID][i].multiAttributes.push_back(attributeList);
                   break;
                 }
               }
             }
           }
+        }
+        else
+        {
+          Logger::getLogger()->printError("SDPMeshConference", "SFU SDP template has too few medias");
         }
       }
     }
@@ -375,7 +379,15 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getSFUSDP(uint32_t sessionID,
   std::shared_ptr<SDPMessageInfo> meshSDP = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   *meshSDP = *localSDP;
 
-  meshSDP->media.append(sfuPreparedMessages_[sessionID]);
+  if (type_ == SDP_CONF_LOCAL_SFU && !sfuPreparedMessages_[sessionID].empty())
+  {
+    meshSDP->media = sfuPreparedMessages_[sessionID];
+  }
+  else
+  {
+    meshSDP->media.append(sfuPreparedMessages_[sessionID]);
+  }
+
   return meshSDP;
 }
 
