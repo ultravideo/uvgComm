@@ -350,13 +350,20 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &remote, QString remo
 
 void SIPManager::sendINVITE(uint32_t sessionID)
 {
-  Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
+  if (dialogs_.find(sessionID) != dialogs_.end())
+  {
+    Logger::getLogger()->printNormal(this,
+                                     "Sending Re-INVITE",
+                                     {"SessionID"},
+                                     {QString::number(sessionID)});
 
-  Logger::getLogger()->printNormal(this, "Sending Re-INVITE", {"SessionID"},
-                                   {QString::number(sessionID)});
-
-  std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
-  dialog->client->sendINVITE(INVITE_TIMEOUT);
+    std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
+    dialog->client->sendINVITE(INVITE_TIMEOUT);
+  }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "Tried to send INVITE to non-existing dialog");
+  }
 }
 
 
