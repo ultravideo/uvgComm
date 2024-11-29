@@ -124,7 +124,7 @@ private:
   // this is a huge hack altogether
   bool areWeICEController(bool initialAgent, uint32_t sessionID) const;
 
-  MediaID getMediaID(uint32_t sessionID, const MediaInfo &media);
+  MediaID createMediaID(uint32_t sessionID, const MediaInfo &media);
 
   MediaRole getMediaRole(QString role) const;
   ConferenceTopology getTopology(QString topology) const;

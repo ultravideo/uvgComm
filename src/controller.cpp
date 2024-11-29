@@ -597,7 +597,7 @@ void uvgCommController::updateMediaIDs(uint32_t sessionID,
       {
         getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
 
-        allIDs.push_back(getMediaID(sessionID, localMedia.at(i)));
+        allIDs.push_back(createMediaID(sessionID, localMedia.at(i)));
 
         allIDs.back().setReceive(receive);
         allIDs.back().setSend(send);
@@ -607,7 +607,7 @@ void uvgCommController::updateMediaIDs(uint32_t sessionID,
     {
       getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
 
-      allIDs.push_back(getMediaID(sessionID, localMedia.at(i)));
+      allIDs.push_back(createMediaID(sessionID, localMedia.at(i)));
 
       allIDs.back().setReceive(receive);
       allIDs.back().setSend(send);
@@ -644,7 +644,7 @@ void uvgCommController::getMediaAttributes(const MediaInfo &local, const MediaIn
 }
 
 
-MediaID uvgCommController::getMediaID(uint32_t sessionID, const MediaInfo &media)
+MediaID uvgCommController::createMediaID(uint32_t sessionID, const MediaInfo &media)
 {
 
   if (sessionMedias_.find(sessionID) != sessionMedias_.end())
