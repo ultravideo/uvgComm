@@ -245,11 +245,13 @@ std::shared_ptr<Filter> Delivery::addRTPReceiveStream(uint32_t sessionID,
   }
 
   // create filter if it does not exist
-  if (peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver == nullptr)
+  if (peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receivers.find(remoteSSRC) ==
+      peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receivers.end())
   {
     Logger::getLogger()->printNormal(this, "Creating receiver filter", "Interface",
                                      localAddress + ":" + QString::number(localPort));
-    peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver = std::shared_ptr<UvgRTPReceiver>(
+
+    peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receivers[remoteSSRC] = std::shared_ptr<UvgRTPReceiver>(
         new UvgRTPReceiver(
           sessionID,
           localAddress + ":" + QString::number(localPort),
@@ -262,7 +264,7 @@ std::shared_ptr<Filter> Delivery::addRTPReceiveStream(uint32_t sessionID,
     );
 
     connect(
-      peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver.get(),
+      peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receivers[remoteSSRC].get(),
       &UvgRTPReceiver::zrtpFailure,
       this,
       &Delivery::handleZRTPFailure);
@@ -272,7 +274,7 @@ std::shared_ptr<Filter> Delivery::addRTPReceiveStream(uint32_t sessionID,
     Logger::getLogger()->printNormal(this, "Using existing RTP receiver");
   }
 
-  return peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver;
+  return peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receivers[remoteSSRC];
 }
 
 

@@ -77,7 +77,7 @@ private:
     std::shared_ptr<UvgRTPStream> stream;
 
     std::shared_ptr<UvgRTPSender> sender;
-    std::shared_ptr<UvgRTPReceiver> receiver;
+    std::map<uint32_t, std::shared_ptr<UvgRTPReceiver>> receivers;
   };
 
   struct DeliverySession
