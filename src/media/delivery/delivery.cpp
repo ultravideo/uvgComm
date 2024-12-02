@@ -373,22 +373,27 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
   {
     Logger::getLogger()->printNormal(this, "Encryption enabled");
 
-    // enable srtp + zrtp
+    // enable SRTP
     flags |= RCE_SRTP;
 
-    // zrtp will always be performed explicitly
-    //flags |= RCE_SRTP_KMNGMNT_ZRTP;
-
-    if (!dhSelected)
+    if (false)
     {
-      flags |= RCE_ZRTP_DIFFIE_HELLMAN_MODE;
+      // zrtp will always be performed explicitly
+      if (!dhSelected)
+      {
+        flags |= RCE_ZRTP_DIFFIE_HELLMAN_MODE;
+      }
+      else
+      {
+        flags |= RCE_ZRTP_MULTISTREAM_MODE;
+      }
+
+      runZRTP = true;
     }
     else
     {
-      flags |= RCE_ZRTP_MULTISTREAM_MODE;
+      flags |= RCE_SRTP_KMNGMNT_USER | RCE_SRTP_KEYSIZE_256;
     }
-
-    runZRTP = true;
   }
   else
   {
@@ -396,6 +401,22 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
   }
 
   uvg_rtp::media_stream* stream = session.session->create_stream(localPort, peerPort, fmt, flags);
+
+  constexpr int KEY_SIZE = 256;
+  constexpr int KEY_SIZE_BYTES = KEY_SIZE/8;
+  constexpr int SALT_SIZE = 112;
+  constexpr int SALT_SIZE_BYTES = SALT_SIZE/8;
+  uint8_t key[KEY_SIZE_BYTES]   = { 0 };
+  uint8_t salt[SALT_SIZE_BYTES] = { 0 };
+
+  // initialize SRTP key and salt with dummy values
+  for (int i = 0; i < KEY_SIZE_BYTES; ++i)
+    key[i] = i;
+
+  for (int i = 0; i < SALT_SIZE_BYTES; ++i)
+    salt[i] = i * 2;
+
+  stream->add_srtp_ctx(key, salt);
 
   // check if there already exists a media session and overwrite
   if (session.streams.find(id) != session.streams.end() &&
