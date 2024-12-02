@@ -670,6 +670,7 @@ void FilterGraphP2P::destroyPeer(Peer* peer)
   FilterGraph::destroyPeer(peer);
 }
 
+
 void FilterGraphP2P::lastPeerRemoved()
 {
   destroyFilters(cameraGraph_);

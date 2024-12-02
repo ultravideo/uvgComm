@@ -224,12 +224,12 @@ void MediaManager::createMediaPair(uint32_t sessionID, const MediaID &id,
     return;
   }
 
-  createOutgoingMedia(sessionID, localMedia, remoteMedia, id, id.getSend());
-  createIncomingMedia(sessionID, localMedia, remoteMedia, id, videoView, id.getReceive());
+  clientOutgoingMedia(sessionID, localMedia, remoteMedia, id, id.getSend());
+  clientIncomingMedia(sessionID, localMedia, remoteMedia, id, videoView, id.getReceive());
 }
 
 
-void MediaManager::createOutgoingMedia(uint32_t sessionID,
+void MediaManager::clientOutgoingMedia(uint32_t sessionID,
                                        const MediaInfo& localMedia,
                                        const MediaInfo& remoteMedia,
                                        const MediaID& id,
@@ -302,7 +302,7 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 }
 
 
-void MediaManager::createIncomingMedia(uint32_t sessionID,
+void MediaManager::clientIncomingMedia(uint32_t sessionID,
                                        const MediaInfo &localMedia,
                                        const MediaInfo &remoteMedia,
                                        const MediaID& id,
