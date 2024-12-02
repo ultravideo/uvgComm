@@ -318,62 +318,80 @@ void MediaManager::clientIncomingMedia(uint32_t sessionID,
   std::shared_ptr<Filter> receiverFilter = nullptr;
 
   uint32_t localSSRC = findSSRC(localMedia);
-  uint32_t remoteSSRC = findSSRC(remoteMedia);
 
-  if(localMedia.proto == "RTP/AVP" ||
-     localMedia.proto == "RTP/AVPF" ||
-     localMedia.proto == "RTP/SAVP" ||
-     localMedia.proto == "RTP/SAVPF")
+  std::vector<uint32_t> remoteSSRCs;
+  findSSRCs(remoteMedia, remoteSSRCs);
+
+  for (auto& remoteSSRC : remoteSSRCs)
   {
-    receiverFilter = streamer_->addRTPReceiveStream(sessionID,
-                                                 localMedia.connection_address,
-                                                 remoteMedia.connection_address,
-                                                 localMedia.receivePort,
-                                                 remoteMedia.receivePort,
-                                                 codec, localMedia.rtpNums.at(0), id, localSSRC, remoteSSRC);
-  }
-  else
-  {
-    Logger::getLogger()->printUnimplemented(this, "Our media has unkown proto");
-    return;
-  }
-
-  if(active)
-  {
-    Q_ASSERT(localMedia.receivePort);
-    Q_ASSERT(!localMedia.rtpNums.empty());
-
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating receive stream", {"Interface", "codec"},
-                                     {localMedia.connection_address + ":" + QString::number(localMedia.receivePort), codec});
-
-
-    Q_ASSERT(receiverFilter != nullptr);
-    if(localMedia.type == "audio")
+    if (localMedia.proto == "RTP/AVP"  ||
+        localMedia.proto == "RTP/AVPF" ||
+        localMedia.proto == "RTP/SAVP" ||
+        localMedia.proto == "RTP/SAVPF")
     {
-      p2pFg_->receiveAudioFrom(sessionID, receiverFilter, id);
+      receiverFilter = streamer_->addRTPReceiveStream(sessionID,
+                                                      localMedia.connection_address,
+                                                      remoteMedia.connection_address,
+                                                      localMedia.receivePort,
+                                                      remoteMedia.receivePort,
+                                                      codec,
+                                                      localMedia.rtpNums.at(0),
+                                                      id,
+                                                      localSSRC,
+                                                      remoteSSRC);
     }
-    else if(localMedia.type == "video")
+    else
     {
-      Q_ASSERT(videoView);
-      if (videoView != nullptr)
+      Logger::getLogger()->printUnimplemented(this, "Our media has unkown proto");
+      return;
+    }
+
+    if (active)
+    {
+      Q_ASSERT(localMedia.receivePort);
+      Q_ASSERT(!localMedia.rtpNums.empty());
+
+      Logger::getLogger()->printDebug(DEBUG_NORMAL,
+                                      this,
+                                      "Creating receive stream",
+                                      {"Interface", "codec"},
+                                      {localMedia.connection_address + ":"
+                                           + QString::number(localMedia.receivePort),
+                                       codec});
+
+      Q_ASSERT(receiverFilter != nullptr);
+      if (localMedia.type == "audio")
       {
-        p2pFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, id);
+        p2pFg_->receiveAudioFrom(sessionID, receiverFilter, id);
+      }
+      else if (localMedia.type == "video")
+      {
+        Q_ASSERT(videoView);
+
+        if (videoView != nullptr)
+        {
+          p2pFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, id);
+        }
+        else
+        {
+          Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR,
+                                          this,
+                                          "Failed to get view from viewFactory");
+        }
       }
       else
       {
-        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to get view from viewFactory");
+        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                        "Unsupported incoming media type!",
+                                        {"type"}, QStringList() << localMedia.type);
       }
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported incoming media type!",
-                {"type"}, QStringList() << localMedia.type);
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                      "Not receiving media according to attribute",
+                                      {"Type"}, {localMedia.type});
     }
-  }
-  else
-  {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                    "Not receiving media according to attribute", {"Type"}, {localMedia.type});
   }
 }
 
