@@ -23,8 +23,6 @@
 #include "media/processing/roiyolofilter.h"
 #endif
 
-#include "media/resourceallocator.h"
-
 #include "ui/gui/videointerface.h"
 
 #include "speexaec.h"
@@ -204,15 +202,6 @@ void FilterGraphP2P::updateAudioSettings()
   mic(settingEnabled(SettingsKey::micStatus));
 
   FilterGraph::updateAudioSettings();
-}
-
-
-void FilterGraphP2P::updateAutomaticSettings()
-{
-  if (hwResources_)
-  {
-    hwResources_->updateSettings();
-  }
 }
 
 

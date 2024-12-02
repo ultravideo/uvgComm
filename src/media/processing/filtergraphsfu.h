@@ -4,10 +4,12 @@
 
 #include <vector>
 
-class FiltergraphSFU : public FilterGraph
+class FilterGraphSFU : public FilterGraph
 {
 public:
-  FiltergraphSFU();
+  FilterGraphSFU();
+
+  virtual void uninit();
 
   virtual void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
                            const MediaID &id);
@@ -27,5 +29,9 @@ public:
                            std::vector<std::pair<std::shared_ptr<Filter>, MediaID>>& videoSenders,
                            std::vector<std::pair<std::shared_ptr<Filter>, MediaID>> audioSenders,
                            VideoInterface* view);
+
+protected:
+
+  virtual void lastPeerRemoved();
 
 };

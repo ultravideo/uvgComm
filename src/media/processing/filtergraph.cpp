@@ -6,7 +6,7 @@
 #include "media/processing/libyuvconverter.h"
 #include "media/processing/yuvtorgb32.h"
 
-
+#include "media/resourceallocator.h"
 
 FilterGraph::FilterGraph():
   quitting_(false),
@@ -114,6 +114,16 @@ void FilterGraph::updateAudioSettings()
     }
   }
 }
+
+
+void FilterGraph::updateAutomaticSettings()
+{
+  if (hwResources_)
+  {
+    hwResources_->updateSettings();
+  }
+}
+
 
 
 void FilterGraph::checkParticipant(uint32_t sessionID)

@@ -4,11 +4,17 @@
 #include "logger.h"
 
 
-FiltergraphSFU::FiltergraphSFU() : FilterGraph()
+FilterGraphSFU::FilterGraphSFU() : FilterGraph()
 {}
 
 
-void FiltergraphSFU::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
+void FilterGraphSFU::uninit()
+{
+  quitting_ = true;
+  removeAllParticipants();
+}
+
+void FilterGraphSFU::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
                                  const MediaID &id)
 {
   checkParticipant(sessionID);
@@ -34,7 +40,7 @@ void FiltergraphSFU::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> vid
 }
 
 
-void FiltergraphSFU::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
+void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
                                       VideoInterface *view, const MediaID &id)
 {
   Q_UNUSED(view);
@@ -60,7 +66,7 @@ void FiltergraphSFU::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter
 }
 
 
-void FiltergraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource,
+void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource,
                                  const MediaID &id)
 {
   checkParticipant(sessionID);
@@ -86,7 +92,7 @@ void FiltergraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> aud
 }
 
 
-void FiltergraphSFU::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
+void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
                                       const MediaID &id)
 {
   // check if the participant is already in the graph
@@ -108,7 +114,7 @@ void FiltergraphSFU::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter
 }
 
 
-void FiltergraphSFU::addParticipantToSFU(uint32_t sessionID,
+void FilterGraphSFU::addParticipantToSFU(uint32_t sessionID,
                          std::pair<std::shared_ptr<Filter>, MediaID>& videoReceiver,
                          std::pair<std::shared_ptr<Filter>, MediaID>& audioReceiver,
                          std::vector<std::pair<std::shared_ptr<Filter>, MediaID>>& videoSenders,
@@ -139,4 +145,10 @@ void FiltergraphSFU::addParticipantToSFU(uint32_t sessionID,
   {
     sendAudioTo(sessionID, sender.first, sender.second);
   }
+}
+
+
+void FilterGraphSFU::lastPeerRemoved()
+{
+  // nothing to do
 }

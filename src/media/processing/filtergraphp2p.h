@@ -40,7 +40,6 @@ public slots:
 
   void updateVideoSettings();
   void updateAudioSettings();
-  void updateAutomaticSettings();
 
 protected:
   virtual void destroyPeer(Peer* peer);

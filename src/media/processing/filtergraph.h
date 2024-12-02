@@ -51,7 +51,7 @@ public slots:
 
   virtual void updateVideoSettings();
   virtual void updateAudioSettings();
-  virtual void updateAutomaticSettings() = 0;
+  virtual void updateAutomaticSettings();
 
 protected:
 
