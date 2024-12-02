@@ -121,9 +121,9 @@ private:
                        VideoInterface *videoView);
 
   void clientOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           const MediaInfo& remoteMedia, const MediaID &id, bool active);
+                           const MediaInfo& remoteMedia, bool active);
   void clientIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           const MediaInfo& remoteMedia, const MediaID &id, VideoInterface *videoView, bool active);
+                           const MediaInfo& remoteMedia, VideoInterface *videoView, bool active);
 
   QString rtpNumberToCodec(const MediaInfo& info);
 

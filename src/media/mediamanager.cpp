@@ -224,15 +224,14 @@ void MediaManager::createMediaPair(uint32_t sessionID, const MediaID &id,
     return;
   }
 
-  clientOutgoingMedia(sessionID, localMedia, remoteMedia, id, id.getSend());
-  clientIncomingMedia(sessionID, localMedia, remoteMedia, id, videoView, id.getReceive());
+  clientOutgoingMedia(sessionID, localMedia, remoteMedia, id.getSend());
+  clientIncomingMedia(sessionID, localMedia, remoteMedia, videoView, id.getReceive());
 }
 
 
 void MediaManager::clientOutgoingMedia(uint32_t sessionID,
                                        const MediaInfo& localMedia,
                                        const MediaInfo& remoteMedia,
-                                       const MediaID& id,
                                        bool active)
 {
   if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
@@ -245,12 +244,19 @@ void MediaManager::clientOutgoingMedia(uint32_t sessionID,
 
   std::shared_ptr<Filter> senderFilter = nullptr;
 
+  MediaID id = MediaID(0);
+
   if(remoteMedia.proto == "RTP/AVP" ||
      remoteMedia.proto == "RTP/AVPF" ||
      remoteMedia.proto == "RTP/SAVP" ||
      remoteMedia.proto == "RTP/SAVPF")
   {
+
+    // there is only one stream/SSRC on the client sid
     uint32_t localSSRC = findSSRC(localMedia);
+    id = MediaID(localSSRC);
+
+    // the remote SSRC does not matter for the outgoing media
     uint32_t remoteSSRC = findSSRC(remoteMedia);
 
     senderFilter = streamer_->addRTPSendStream(sessionID,
@@ -301,12 +307,11 @@ void MediaManager::clientOutgoingMedia(uint32_t sessionID,
   }
 }
 
-
 void MediaManager::clientIncomingMedia(uint32_t sessionID,
-                                       const MediaInfo &localMedia,
-                                       const MediaInfo &remoteMedia,
-                                       const MediaID& id,
-                                       VideoInterface* videoView, bool active)
+                                       const MediaInfo& localMedia,
+                                       const MediaInfo& remoteMedia,
+                                       VideoInterface* videoView,
+                                       bool active)
 {
   if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
   {
@@ -318,6 +323,7 @@ void MediaManager::clientIncomingMedia(uint32_t sessionID,
   std::shared_ptr<Filter> receiverFilter = nullptr;
 
   uint32_t localSSRC = findSSRC(localMedia);
+  MediaID id = MediaID(localSSRC);
 
   std::vector<uint32_t> remoteSSRCs;
   findSSRCs(remoteMedia, remoteSSRCs);
