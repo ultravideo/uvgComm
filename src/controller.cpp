@@ -544,7 +544,7 @@ void uvgCommController::createCall(uint32_t sessionID)
       stats_->addSession(sessionID);
     }
 
-    media_.addParticipant(sessionID, remoteSDP, localSDP, allIDs,
+    media_.newParticipant(sessionID, remoteSDP, localSDP, allIDs,
                           states_[sessionID].iceController,
                           states_[sessionID].followOurSDP);
 

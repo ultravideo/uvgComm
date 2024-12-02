@@ -19,15 +19,15 @@
 
 MediaManager::MediaManager():
   stats_(nullptr),
-  fg_(new FilterGraphP2P()),
+  p2pFg_(new FilterGraphP2P()),
   streamer_(nullptr)
 {}
 
 
 MediaManager::~MediaManager()
 {
-  fg_->running(false);
-  fg_->uninit();
+  p2pFg_->running(false);
+  p2pFg_->uninit();
 }
 
 
@@ -54,19 +54,19 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewFactory,
   std::shared_ptr<ResourceAllocator> hwResources =
       std::shared_ptr<ResourceAllocator>(new ResourceAllocator());
 
-  fg_->init(stats, hwResources);
-  fg_->setSelfViews(viewFactory_->getSelfVideos());
+  p2pFg_->init(stats, hwResources);
+  p2pFg_->setSelfViews(viewFactory_->getSelfVideos());
 
   streamer_->init(stats_, hwResources);
 
   QObject::connect(this, &MediaManager::updateVideoSettings,
-                   fg_.get(), &FilterGraph::updateVideoSettings);
+                   p2pFg_.get(), &FilterGraph::updateVideoSettings);
 
   QObject::connect(this, &MediaManager::updateAudioSettings,
-                   fg_.get(), &FilterGraph::updateAudioSettings);
+                   p2pFg_.get(), &FilterGraph::updateAudioSettings);
 
   QObject::connect(this, &MediaManager::updateAutomaticSettings,
-                   fg_.get(), &FilterGraph::updateAutomaticSettings);
+                   p2pFg_.get(), &FilterGraph::updateAutomaticSettings);
 }
 
 
@@ -75,8 +75,8 @@ void MediaManager::uninit()
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Closing");
 
   // first filter graph, then streamer because of the rtpfilters
-  fg_->running(false);
-  fg_->uninit();
+  p2pFg_->running(false);
+  p2pFg_->uninit();
 
   stats_ = nullptr;
   if (streamer_ != nullptr)
@@ -87,7 +87,7 @@ void MediaManager::uninit()
 }
 
 
-void MediaManager::addParticipant(uint32_t sessionID,
+void MediaManager::newParticipant(uint32_t sessionID,
                                   std::shared_ptr<SDPMessageInfo> peerInfo,
                                   const std::shared_ptr<SDPMessageInfo> localInfo,
                                   const QList<MediaID> &allIDs,
@@ -184,8 +184,6 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
   }
   else
   {
-    /* Not really used or tested branch, but its not much of a hassle to
-     * attempt to support non-ICE implementations */
     Logger::getLogger()->printWarning(this, "Did not find any ICE candidates, not performing ICE");
 
     unsigned int medias = localInfo->media.size();
@@ -282,11 +280,11 @@ void MediaManager::createOutgoingMedia(uint32_t sessionID,
 
     if(remoteMedia.type == "audio")
     {
-      fg_->sendAudioTo(sessionID, senderFilter, id);
+      p2pFg_->sendAudioTo(sessionID, senderFilter, id);
     }
     else if(remoteMedia.type == "video")
     {
-      fg_->sendVideoto(sessionID, senderFilter, id);
+      p2pFg_->sendVideoto(sessionID, senderFilter, id);
     }
     else
     {
@@ -352,14 +350,14 @@ void MediaManager::createIncomingMedia(uint32_t sessionID,
     Q_ASSERT(receiverFilter != nullptr);
     if(localMedia.type == "audio")
     {
-      fg_->receiveAudioFrom(sessionID, receiverFilter, id);
+      p2pFg_->receiveAudioFrom(sessionID, receiverFilter, id);
     }
     else if(localMedia.type == "video")
     {
       Q_ASSERT(videoView);
       if (videoView != nullptr)
       {
-        fg_->receiveVideoFrom(sessionID, receiverFilter, videoView, id);
+        p2pFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, id);
       }
       else
       {
@@ -388,7 +386,7 @@ void MediaManager::removeParticipant(uint32_t sessionID)
     participants_.erase(sessionID);
   }
 
-  fg_->removeParticipant(sessionID);
+  p2pFg_->removeParticipant(sessionID);
   streamer_->removePeer(sessionID);
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Media Manager", "Session media removed",
@@ -507,7 +505,6 @@ QString MediaManager::getMediaAddress(std::shared_ptr<SDPMessageInfo> sdp, int m
   }
   return sdp->connection_address;
 }
-
 
 
 bool MediaManager::sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,

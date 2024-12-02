@@ -62,7 +62,7 @@ public:
   // registers a contact for activity monitoring
   void registerContact(in_addr ip);
 
-  void addParticipant(uint32_t sessionID,
+  void newParticipant(uint32_t sessionID,
                       const std::shared_ptr<SDPMessageInfo> peerInfo,
                       const std::shared_ptr<SDPMessageInfo> localInfo,
                       const QList<MediaID>& allIDs,
@@ -138,7 +138,7 @@ private:
 
   StatisticsInterface* stats_;
 
-  std::unique_ptr<FilterGraphP2P> fg_;
+  std::unique_ptr<FilterGraphP2P> p2pFg_;
   std::unique_ptr<Delivery> streamer_;
 
   std::map<uint32_t, ParticipantMedia> participants_;
