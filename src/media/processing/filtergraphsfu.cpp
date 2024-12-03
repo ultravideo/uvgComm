@@ -114,40 +114,6 @@ void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter
 }
 
 
-void FilterGraphSFU::addParticipantToSFU(uint32_t sessionID,
-                         std::pair<std::shared_ptr<Filter>, MediaID>& videoReceiver,
-                         std::pair<std::shared_ptr<Filter>, MediaID>& audioReceiver,
-                         std::vector<std::pair<std::shared_ptr<Filter>, MediaID>>& videoSenders,
-                         std::vector<std::pair<std::shared_ptr<Filter>, MediaID>>& audioSenders,
-                         VideoInterface* view)
-{
-  checkParticipant(sessionID);
-
-  // check if the participant is already in the graph
-  for (auto& mediaID : peers_.at(sessionID)->receivingStreams)
-  {
-    if (mediaID == videoReceiver.second)
-    {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant already in graph");
-      return;
-    }
-  }
-
-  receiveVideoFrom(sessionID, videoReceiver.first, view, videoReceiver.second);
-  receiveAudioFrom(sessionID, audioReceiver.first, audioReceiver.second);
-
-  for (auto& sender : videoSenders)
-  {
-    sendVideoto(sessionID, sender.first, sender.second);
-  }
-
-  for (auto& sender : audioSenders)
-  {
-    sendAudioTo(sessionID, sender.first, sender.second);
-  }
-}
-
-
 void FilterGraphSFU::lastPeerRemoved()
 {
   // nothing to do
