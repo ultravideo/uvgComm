@@ -29,9 +29,12 @@ class StatisticsInterface;
 class Delivery;
 
 class FilterGraphP2P;
+class FilterGraphSFU;
 class MediaSession;
 struct MediaInfo;
 class VideoInterface;
+
+class Filter;
 
 typedef int16_t PeerID;
 
@@ -138,6 +141,27 @@ private:
                           uint32_t localSSRC,
                           uint32_t remoteSSRC,
                           VideoInterface* videoView);
+
+
+  void sfuMedia(uint32_t sessionID, const MediaInfo& localMedia,
+                   const MediaInfo& remoteMedia, VideoInterface *videoView,
+                   bool send, bool receive);
+
+  void sfuSendMedia(uint32_t sessionID,
+                    const MediaInfo& localMedia,
+                    const MediaInfo& remoteMedia,
+                    bool enabled,
+                    MediaID id,
+                    uint32_t remoteSSRC);
+
+  void sfuReceiveMedia(uint32_t sessionID,
+                       const MediaInfo& localMedia,
+                       const MediaInfo& remoteMedia,
+                       bool enabled,
+                       MediaID id,
+                       uint32_t remoteSSRC,
+                       VideoInterface* videoView);
+
   QString rtpNumberToCodec(const MediaInfo& info);
 
   void sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool local);
@@ -152,6 +176,8 @@ private:
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraphP2P> p2pFg_;
+  std::unique_ptr<FilterGraphSFU> sfuFg_;
+
   std::unique_ptr<Delivery> streamer_;
 
   std::map<uint32_t, ParticipantMedia> participants_;
