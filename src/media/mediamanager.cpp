@@ -9,6 +9,7 @@
 #include "videoviewfactory.h"
 
 #include "resourceallocator.h"
+#include "settingskeys.h"
 
 #include "logger.h"
 #include "common.h"
@@ -201,10 +202,30 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     {
       if (isLocalAddress(localInfo->media.at(i).connection_address))
       {
+        if (settingString(SettingsKey::sipRole) == "Client")
+        {
           clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                          viewFactory_->getVideo(allIDs.at(idIndex)),
-                    allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
-          ++idIndex;
+                      viewFactory_->getVideo(allIDs.at(idIndex)),
+                      allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
+        }
+        else if (settingString(SettingsKey::sipRole) == "Server")
+        {
+          sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
+                   viewFactory_->getVideo(allIDs.at(idIndex)),
+                   allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
+        }
+        else // assume both
+        {
+          clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
+                      viewFactory_->getVideo(allIDs.at(idIndex)),
+                      allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
+
+          sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
+                   viewFactory_->getVideo(allIDs.at(idIndex)),
+                   allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
+        }
+
+        ++idIndex;
       }
     }
   }
@@ -566,6 +587,7 @@ void MediaManager::iceSucceeded(const MediaID& id, uint32_t sessionID,
     }
   }
 
+  // TODO: Support SFU for ICE by also calling sfuMedia() here
   clientMedia(sessionID, local, remote, view, id.getSend(), id.getReceive());
 }
 
