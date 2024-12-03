@@ -27,7 +27,7 @@ public:
                            std::pair<std::shared_ptr<Filter>, MediaID>& videoReceiver,
                            std::pair<std::shared_ptr<Filter>, MediaID>& audioReceiver,
                            std::vector<std::pair<std::shared_ptr<Filter>, MediaID>>& videoSenders,
-                           std::vector<std::pair<std::shared_ptr<Filter>, MediaID>> audioSenders,
+                           std::vector<std::pair<std::shared_ptr<Filter>, MediaID>>& audioSenders,
                            VideoInterface* view);
 
 protected:
