@@ -199,8 +199,9 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     {
       if (isLocalAddress(localInfo->media.at(i).connection_address))
       {
-          createMediaPair(sessionID, allIDs.at(idIndex), localInfo->media.at(i), peerInfo->media.at(i),
-                          viewFactory_->getVideo(allIDs.at(idIndex)));
+          clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
+                          viewFactory_->getVideo(allIDs.at(idIndex)),
+                    allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
           ++idIndex;
       }
     }
@@ -208,79 +209,87 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
 }
 
 
-void MediaManager::createMediaPair(uint32_t sessionID, const MediaID &id,
-                                   const MediaInfo &localMedia,
-                                   const MediaInfo &remoteMedia,
-                                   VideoInterface *videoView)
+void MediaManager::clientMedia(uint32_t sessionID,
+                               const MediaInfo& localMedia,
+                               const MediaInfo& remoteMedia,
+                               VideoInterface* videoView,
+                               bool send, bool receive)
 {
+  // add structures for keeping track of this session in Delivery
   if(!streamer_->addSession(sessionID,
-                         remoteMedia.connection_addrtype,
-                         remoteMedia.connection_address,
-                         localMedia.connection_addrtype,
-                         localMedia.connection_address))
+                             remoteMedia.connection_addrtype,
+                             remoteMedia.connection_address,
+                             localMedia.connection_addrtype,
+                             localMedia.connection_address))
   {
     Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-               "Error creating RTP peer");
+                                    "Error creating RTP peer");
     return;
   }
 
-  clientOutgoingMedia(sessionID, localMedia, remoteMedia, id.getSend());
-  clientIncomingMedia(sessionID, localMedia, remoteMedia, videoView, id.getReceive());
-}
-
-
-void MediaManager::clientOutgoingMedia(uint32_t sessionID,
-                                       const MediaInfo& localMedia,
-                                       const MediaInfo& remoteMedia,
-                                       bool active)
-{
   if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
   {
     Logger::getLogger()->printProgramError(this, "Address was empty when creating outgoing media");
     return;
   }
 
-  QString codec = rtpNumberToCodec(remoteMedia);
-
-  std::shared_ptr<Filter> senderFilter = nullptr;
-
-  MediaID id = MediaID(0);
-
   if(remoteMedia.proto == "RTP/AVP" ||
-     remoteMedia.proto == "RTP/AVPF" ||
-     remoteMedia.proto == "RTP/SAVP" ||
-     remoteMedia.proto == "RTP/SAVPF")
+      remoteMedia.proto == "RTP/AVPF" ||
+      remoteMedia.proto == "RTP/SAVP" ||
+      remoteMedia.proto == "RTP/SAVPF")
   {
-
     // there is only one stream/SSRC on the client sid
     uint32_t localSSRC = findSSRC(localMedia);
-    id = MediaID(localSSRC);
+    MediaID id = MediaID(localSSRC);
 
-    // the remote SSRC does not matter for the outgoing media
-    uint32_t remoteSSRC = findSSRC(remoteMedia);
+    std::vector<uint32_t> remoteSSRCs;
+    findSSRCs(remoteMedia, remoteSSRCs);
 
-    senderFilter = streamer_->addRTPSendStream(sessionID,
-                                            localMedia.connection_address,
-                                            remoteMedia.connection_address,
-                                            localMedia.receivePort,
-                                            remoteMedia.receivePort,
-                                            codec, remoteMedia.rtpNums.at(0),
-                                            id, localSSRC, remoteSSRC);
+    QString codec = rtpNumberToCodec(remoteMedia);
+
+    clientSendMedia(sessionID, localMedia, remoteMedia, send, codec, id,
+                    localSSRC, remoteSSRCs.at(0));
+
+    for (auto& remoteSSRC : remoteSSRCs)
+    {
+      clientReceiveMedia(sessionID, localMedia, remoteMedia, receive, codec, id,
+                         localSSRC, remoteSSRC, videoView);
+    }
   }
   else
   {
     Logger::getLogger()->printUnimplemented(this, "Remote has unknown proto");
     return;
   }
+}
+
+void MediaManager::clientSendMedia(uint32_t sessionID,
+                                   const MediaInfo& localMedia,
+                                   const MediaInfo& remoteMedia,
+                                   bool enabled,
+                                   QString codec,
+                                   MediaID id,
+                                   uint32_t localSSRC,
+                                   uint32_t remoteSSRC)
+{
+  // the remote SSRC does not matter for the outgoing media
+  std::shared_ptr<Filter> senderFilter = streamer_->addRTPSendStream(sessionID,
+                                                                     localMedia.connection_address,
+                                                                     remoteMedia.connection_address,
+                                                                     localMedia.receivePort,
+                                                                     remoteMedia.receivePort,
+                                                                     codec, remoteMedia.rtpNums.at(0),
+                                                                     id, localSSRC, remoteSSRC);
 
   // if we want to send
-  if(active && remoteMedia.receivePort != 0)
+  if(enabled && remoteMedia.receivePort != 0)
   {
     Q_ASSERT(remoteMedia.receivePort);
     Q_ASSERT(!remoteMedia.rtpNums.empty());
 
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating send stream", {"Destination", "Type"},
-                                     {remoteMedia.connection_address + ":" + QString::number(remoteMedia.receivePort), remoteMedia.type});
+                                    {remoteMedia.connection_address + ":" + QString::number(remoteMedia.receivePort),
+                                     remoteMedia.type});
 
     Q_ASSERT(senderFilter != nullptr);
 
@@ -295,109 +304,75 @@ void MediaManager::clientOutgoingMedia(uint32_t sessionID,
     else
     {
       Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported media type!",
-                {"type"}, QStringList() << remoteMedia.type);
+                                      {"type"}, QStringList() << remoteMedia.type);
     }
   }
   else
   {
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-               "Not sending media according to attribute", {"Type"}, {localMedia.type});
+                                    "Not sending media according to attribute", {"Type"}, {localMedia.type});
 
     // TODO: Spec says we should still send RTCP if the port is not 0
   }
 }
 
-void MediaManager::clientIncomingMedia(uint32_t sessionID,
-                                       const MediaInfo& localMedia,
-                                       const MediaInfo& remoteMedia,
-                                       VideoInterface* videoView,
-                                       bool active)
+
+void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& localMedia,
+                                      const MediaInfo& remoteMedia, bool enabled, QString codec,
+                                      MediaID id, uint32_t localSSRC, uint32_t remoteSSRC,
+                                      VideoInterface* videoView)
 {
-  if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
+  std::shared_ptr<Filter>receiverFilter = streamer_->addRTPReceiveStream(sessionID,
+                                                                          localMedia.connection_address,
+                                                                          remoteMedia.connection_address,
+                                                                          localMedia.receivePort,
+                                                                          remoteMedia.receivePort,
+                                                                          codec, localMedia.rtpNums.at(0),
+                                                                          id, localSSRC, remoteSSRC);
+
+  if (enabled)
   {
-    Logger::getLogger()->printProgramError(this, "Address was empty when creating incoming media");
-    return;
-  }
+    Q_ASSERT(localMedia.receivePort);
+    Q_ASSERT(!localMedia.rtpNums.empty());
 
-  QString codec = rtpNumberToCodec(localMedia);
-  std::shared_ptr<Filter> receiverFilter = nullptr;
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                    "Creating receive stream",
+                                    {"Interface", "codec"},
+                                    {localMedia.connection_address + ":"
+                                         + QString::number(localMedia.receivePort),
+                                     codec});
 
-  uint32_t localSSRC = findSSRC(localMedia);
-  MediaID id = MediaID(localSSRC);
-
-  std::vector<uint32_t> remoteSSRCs;
-  findSSRCs(remoteMedia, remoteSSRCs);
-
-  for (auto& remoteSSRC : remoteSSRCs)
-  {
-    if (localMedia.proto == "RTP/AVP"  ||
-        localMedia.proto == "RTP/AVPF" ||
-        localMedia.proto == "RTP/SAVP" ||
-        localMedia.proto == "RTP/SAVPF")
+    Q_ASSERT(receiverFilter != nullptr);
+    if (localMedia.type == "audio")
     {
-      receiverFilter = streamer_->addRTPReceiveStream(sessionID,
-                                                      localMedia.connection_address,
-                                                      remoteMedia.connection_address,
-                                                      localMedia.receivePort,
-                                                      remoteMedia.receivePort,
-                                                      codec,
-                                                      localMedia.rtpNums.at(0),
-                                                      id,
-                                                      localSSRC,
-                                                      remoteSSRC);
+      p2pFg_->receiveAudioFrom(sessionID, receiverFilter, id);
     }
-    else
+    else if (localMedia.type == "video")
     {
-      Logger::getLogger()->printUnimplemented(this, "Our media has unkown proto");
-      return;
-    }
+      Q_ASSERT(videoView);
 
-    if (active)
-    {
-      Q_ASSERT(localMedia.receivePort);
-      Q_ASSERT(!localMedia.rtpNums.empty());
-
-      Logger::getLogger()->printDebug(DEBUG_NORMAL,
-                                      this,
-                                      "Creating receive stream",
-                                      {"Interface", "codec"},
-                                      {localMedia.connection_address + ":"
-                                           + QString::number(localMedia.receivePort),
-                                       codec});
-
-      Q_ASSERT(receiverFilter != nullptr);
-      if (localMedia.type == "audio")
+      if (videoView != nullptr)
       {
-        p2pFg_->receiveAudioFrom(sessionID, receiverFilter, id);
-      }
-      else if (localMedia.type == "video")
-      {
-        Q_ASSERT(videoView);
-
-        if (videoView != nullptr)
-        {
-          p2pFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, id);
-        }
-        else
-        {
-          Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR,
-                                          this,
-                                          "Failed to get view from viewFactory");
-        }
+        p2pFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, id);
       }
       else
       {
         Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                        "Unsupported incoming media type!",
-                                        {"type"}, QStringList() << localMedia.type);
+                                        "Failed to get view from viewFactory");
       }
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                      "Not receiving media according to attribute",
-                                      {"Type"}, {localMedia.type});
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                      "Unsupported incoming media type!",
+                                      {"type"}, QStringList() << localMedia.type);
     }
+  }
+  else
+  {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                                    "Not receiving media according to attribute",
+                                    {"Type"}, {localMedia.type});
   }
 }
 
@@ -455,7 +430,7 @@ void MediaManager::iceSucceeded(const MediaID& id, uint32_t sessionID,
     }
   }
 
-  createMediaPair(sessionID, id, local, remote, view);
+  clientMedia(sessionID, local, remote, view, id.getSend(), id.getReceive());
 }
 
 

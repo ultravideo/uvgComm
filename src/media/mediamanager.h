@@ -116,15 +116,28 @@ signals:
 
 private:
 
-  void createMediaPair(uint32_t sessionID, const MediaID &id,
-                       const MediaInfo &localMedia, const MediaInfo &remoteMedia,
-                       VideoInterface *videoView);
+  void clientMedia(uint32_t sessionID, const MediaInfo& localMedia,
+                   const MediaInfo& remoteMedia, VideoInterface *videoView,
+                   bool send, bool receive);
 
-  void clientOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           const MediaInfo& remoteMedia, bool active);
-  void clientIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           const MediaInfo& remoteMedia, VideoInterface *videoView, bool active);
+  void clientSendMedia(uint32_t sessionID,
+                       const MediaInfo& localMedia,
+                       const MediaInfo& remoteMedia,
+                       bool enabled,
+                       QString codec,
+                       MediaID id,
+                       uint32_t localSSRC,
+                       uint32_t remoteSSRC);
 
+  void clientReceiveMedia(uint32_t sessionID,
+                          const MediaInfo& localMedia,
+                          const MediaInfo& remoteMedia,
+                          bool enabled,
+                          QString codec,
+                          MediaID id,
+                          uint32_t localSSRC,
+                          uint32_t remoteSSRC,
+                          VideoInterface* videoView);
   QString rtpNumberToCodec(const MediaInfo& info);
 
   void sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool local);
