@@ -410,7 +410,8 @@ void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> vid
   }
   else
   {
-    Logger::getLogger()->printNormal(this, "Found existing filter, not adding video sender to Filter Graph");
+    Logger::getLogger()->printNormal(this, "Found existing filter, not adding video sender to Filter Graph",
+                                     "SSRC", id.toString());
   }
 }
 
@@ -441,7 +442,8 @@ void FilterGraphP2P::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter
   }
   else
   {
-    Logger::getLogger()->printNormal(this, "Found existing filter, not adding video receiver to Filter Graph");
+    Logger::getLogger()->printNormal(this, "Found existing filter, not adding video receiver to Filter Graph",
+                                     "SSRC", id.toString());
   }
 }
 
