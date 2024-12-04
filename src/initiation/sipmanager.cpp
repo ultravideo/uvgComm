@@ -21,8 +21,8 @@
 
 #include "common.h"
 #include "global.h"
-#include "settingskeys.h"
 #include "logger.h"
+#include "cname.h"
 
 #include <QNetworkProxy>
 
@@ -55,10 +55,7 @@ SIPManager::SIPManager():
   QObject::connect(&delayTimer_, &QTimer::timeout,
                    this, &SIPManager::delayedMessage);
 
-  QSettings settings("uvgComm.ini", QSettings::IniFormat);
-
-  cname_ = settings.value(SettingsKey::sipUUID).toString()+ "@" +
-           QString::number(std::chrono::system_clock::now().time_since_epoch().count());;
+  cname_ = CName::cname();
 }
 
 
