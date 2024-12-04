@@ -607,10 +607,15 @@ void uvgCommController::updateMediaIDs(uint32_t sessionID,
     {
       getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
 
-      allIDs.append(createMediaIDs(sessionID, localMedia.at(i)));
+      QList<MediaID> newIDs = createMediaIDs(sessionID, localMedia.at(i));
 
-      allIDs.back().setReceive(receive);
-      allIDs.back().setSend(send);
+      for (auto& newID : newIDs)
+      {
+        newID.setReceive(receive);
+        newID.setSend(send);
+      }
+
+      allIDs.append(newIDs);
     }
     else
     {
