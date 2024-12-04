@@ -2,7 +2,7 @@
 
 UDPReceiver::UDPReceiver(QString id, StatisticsInterface *stats,
                          std::shared_ptr<ResourceAllocator> hwResources):
-    Filter("UDPReceiver", "UDPReceiver", nullptr, nullptr, DT_NONE, DT_RTP)
+    Filter("UDPReceiver", "UDPReceiver", stats, hwResources, DT_NONE, DT_RTP)
 {}
 
 
