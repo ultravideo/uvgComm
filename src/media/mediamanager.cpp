@@ -263,9 +263,15 @@ void MediaManager::clientMedia(uint32_t sessionID,
 
     QString codec = rtpNumberToCodec(remoteMedia);
 
-    if (localSSRCs.size() != 1 || remoteSSRCs.empty())
+    if (localSSRCs.size() != 1)
     {
-      Logger::getLogger()->printError(this, "Incorrect amount of SSRCs");
+      Logger::getLogger()->printProgramError(this, "Our media has incorrect amount of SSRCs");
+      return;
+    }
+
+    if (remoteSSRCs.empty())
+    {
+      Logger::getLogger()->printWarning(this, "No SSRCs included in remote media, stream not activated");
       return;
     }
 
@@ -444,6 +450,18 @@ void MediaManager::sfuMedia(uint32_t sessionID,
     findSSRCs(localMedia, localSSRCs);
     std::vector<uint32_t> remoteSSRCs;
     findSSRCs(remoteMedia, remoteSSRCs);
+
+    if (localSSRCs.empty())
+    {
+      Logger::getLogger()->printNormal(this, "We are not yet sending anything");
+      return;
+    }
+
+    if (remoteSSRCs.empty())
+    {
+      Logger::getLogger()->printError(this, "No SSRCs included in client media, stream not activated");
+      return;
+    }
 
     for (auto& localSSRC : localSSRCs)
     {
