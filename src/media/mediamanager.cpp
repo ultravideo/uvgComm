@@ -13,6 +13,7 @@
 
 #include "logger.h"
 #include "common.h"
+#include "cname.h"
 
 #include <QHostAddress>
 #include <QtEndian>
@@ -253,20 +254,36 @@ void MediaManager::clientMedia(uint32_t sessionID,
       remoteMedia.proto == "RTP/SAVP" ||
       remoteMedia.proto == "RTP/SAVPF")
   {
-    // there is only one stream/SSRC on the client sid
-    uint32_t localSSRC = findSSRC(localMedia);
+    // there is only one stream/SSRC on the client side
+    std::vector<uint32_t> localSSRCs;
+    findSSRCs(localMedia, localSSRCs);
+
     std::vector<uint32_t> remoteSSRCs;
     findSSRCs(remoteMedia, remoteSSRCs);
 
     QString codec = rtpNumberToCodec(remoteMedia);
 
-    clientSendMedia(sessionID, localMedia, remoteMedia, send, codec, id,
-                    localSSRC, remoteSSRCs.at(0));
-
-    for (auto& remoteSSRC : remoteSSRCs)
+    if (localSSRCs.size() != 1 || remoteSSRCs.empty())
     {
-      clientReceiveMedia(sessionID, localMedia, remoteMedia, receive, codec, id,
-                         localSSRC, remoteSSRC, videoView);
+      Logger::getLogger()->printError(this, "Incorrect amount of SSRCs");
+      return;
+    }
+
+    clientSendMedia(sessionID, localMedia, remoteMedia, send, codec, id,
+                    localSSRCs.at(0), remoteSSRCs.at(0));
+
+    // go through all SSRCs and try to receive them
+    for (auto& attributeList : remoteMedia.multiAttributes)
+    {
+      // in P2P Mesh, sometimes the host has to generate us an SSRC,
+      // so we should not try to receive it
+      if (attributeList.size() >= 2 &&
+          attributeList.at(0).type == A_SSRC &&
+          attributeList.at(1).type == A_CNAME && attributeList.at(1).value != CName::cname())
+      {
+        clientReceiveMedia(sessionID, localMedia, remoteMedia, receive, codec, id,
+                           localSSRCs.at(0), attributeList.at(0).value.toULong(), videoView);
+      }
     }
   }
   else
