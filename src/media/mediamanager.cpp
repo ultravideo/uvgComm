@@ -202,26 +202,17 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     {
       if (isLocalAddress(localInfo->media.at(i).connection_address))
       {
-        if (settingString(SettingsKey::sipRole) == "Client")
+        if (settingString(SettingsKey::sipRole) != "Server")
         {
           clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                      viewFactory_->getVideo(allIDs.at(idIndex)),
+                      allIDs.at(idIndex), viewFactory_->getVideo(allIDs.at(idIndex)),
                       allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
         }
-        else if (settingString(SettingsKey::sipRole) == "Server")
-        {
-          sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                   viewFactory_->getVideo(allIDs.at(idIndex)),
-                   allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
-        }
-        else // assume both
-        {
-          clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                      viewFactory_->getVideo(allIDs.at(idIndex)),
-                      allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
 
+        if (settingString(SettingsKey::sipRole) != "Client")
+        {
           sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                   viewFactory_->getVideo(allIDs.at(idIndex)),
+                   allIDs.at(idIndex), viewFactory_->getVideo(allIDs.at(idIndex)),
                    allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
         }
 
@@ -231,12 +222,13 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
   }
 }
 
-
 void MediaManager::clientMedia(uint32_t sessionID,
                                const MediaInfo& localMedia,
                                const MediaInfo& remoteMedia,
+                               MediaID id,
                                VideoInterface* videoView,
-                               bool send, bool receive)
+                               bool send,
+                               bool receive)
 {
   if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
   {
@@ -266,7 +258,6 @@ void MediaManager::clientMedia(uint32_t sessionID,
     std::vector<uint32_t> remoteSSRCs;
     findSSRCs(remoteMedia, remoteSSRCs);
 
-    MediaID id = MediaID(localSSRC);
     QString codec = rtpNumberToCodec(remoteMedia);
 
     clientSendMedia(sessionID, localMedia, remoteMedia, send, codec, id,
@@ -399,10 +390,13 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& local
   }
 }
 
-
-void MediaManager::sfuMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                            const MediaInfo& remoteMedia, VideoInterface *videoView,
-                            bool send, bool receive)
+void MediaManager::sfuMedia(uint32_t sessionID,
+                            const MediaInfo& localMedia,
+                            const MediaInfo& remoteMedia,
+                            MediaID id,
+                            VideoInterface* videoView,
+                            bool send,
+                            bool receive)
 {
   if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
   {
@@ -433,8 +427,6 @@ void MediaManager::sfuMedia(uint32_t sessionID, const MediaInfo& localMedia,
     findSSRCs(localMedia, localSSRCs);
     std::vector<uint32_t> remoteSSRCs;
     findSSRCs(remoteMedia, remoteSSRCs);
-
-    MediaID id = MediaID(localSSRCs.at(0));
 
     for (auto& localSSRC : localSSRCs)
     {
@@ -588,7 +580,7 @@ void MediaManager::iceSucceeded(const MediaID& id, uint32_t sessionID,
   }
 
   // TODO: Support SFU for ICE by also calling sfuMedia() here
-  clientMedia(sessionID, local, remote, view, id.getSend(), id.getReceive());
+  clientMedia(sessionID, local, remote, id, view, id.getSend(), id.getReceive());
 }
 
 

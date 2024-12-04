@@ -120,8 +120,8 @@ signals:
 private:
 
   void clientMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                   const MediaInfo& remoteMedia, VideoInterface *videoView,
-                   bool send, bool receive);
+                   const MediaInfo& remoteMedia, MediaID id,
+                   VideoInterface *videoView, bool send, bool receive);
 
   void clientSendMedia(uint32_t sessionID,
                        const MediaInfo& localMedia,
@@ -144,7 +144,8 @@ private:
 
 
   void sfuMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                   const MediaInfo& remoteMedia, VideoInterface *videoView,
+                   const MediaInfo& remoteMedia, MediaID id,
+                VideoInterface *videoView,
                    bool send, bool receive);
 
   void sfuSendMedia(uint32_t sessionID,
