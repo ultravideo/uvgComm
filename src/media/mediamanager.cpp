@@ -291,9 +291,11 @@ void MediaManager::clientMedia(uint32_t sessionID,
     {
       // in P2P Mesh, sometimes the host has to generate us an SSRC,
       // so we should not try to receive it
+      // if the message only contains one attribute which is ours, assume this is a self call
       if (attributeList.size() >= 2 &&
           attributeList.at(0).type == A_SSRC &&
-          attributeList.at(1).type == A_CNAME && attributeList.at(1).value != CName::cname())
+          attributeList.at(1).type == A_CNAME &&
+          (attributeList.at(1).value != CName::cname() || remoteMedia.multiAttributes.size() == 1))
       {
         clientReceiveMedia(sessionID, localMedia, remoteMedia, receive, codec, id,
                            localSSRCs.at(0), attributeList.at(0).value.toULong(), videoView);
