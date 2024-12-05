@@ -61,6 +61,8 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewFactory,
   p2pFg_->init(stats, hwResources);
   p2pFg_->setSelfViews(viewFactory_->getSelfVideos());
 
+  sfuFg_->init(stats, hwResources);
+
   streamer_->init(stats_, hwResources);
 
   QObject::connect(this, &MediaManager::updateVideoSettings,
@@ -81,6 +83,9 @@ void MediaManager::uninit()
   // first filter graph, then streamer because of the rtpfilters
   p2pFg_->running(false);
   p2pFg_->uninit();
+
+  sfuFg_->running(false);
+  sfuFg_->uninit();
 
   stats_ = nullptr;
   if (streamer_ != nullptr)
@@ -572,8 +577,20 @@ void MediaManager::removeParticipant(uint32_t sessionID)
     participants_.erase(sessionID);
   }
 
-  p2pFg_->removeParticipant(sessionID);
-  streamer_->removePeer(sessionID);
+  if (settingString(SettingsKey::sipRole) != "Server")
+  {
+    p2pFg_->removeParticipant(sessionID);
+  }
+
+  if (settingString(SettingsKey::sipRole) != "Client")
+  {
+    sfuFg_->removeParticipant(sessionID);
+  }
+
+  if (streamer_ != nullptr)
+  {
+    streamer_->removePeer(sessionID);
+  }
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Media Manager", "Session media removed",
             {"SessionID"}, {QString::number(sessionID)});
