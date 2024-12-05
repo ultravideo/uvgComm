@@ -462,9 +462,61 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
     info.roi_array = nullptr;
   }
 
-  std::unique_ptr<uchar[]> hevc_frame(new uchar[len_out]);
+  // disabled for now, should be sent less often and needs better handling of start codes
+  bool addTimestamp = false;
+  uint32_t timestampSize = 0;
+
+  if (addTimestamp)
+  {
+    timestampSize += sizeof(uint32_t); // start code
+    timestampSize += sizeof(uint16_t); // NAL header
+    timestampSize += sizeof(uint8_t); // Payload type
+    timestampSize += sizeof(uint16_t); // Payload size
+    timestampSize += sizeof(uint64_t)*2; // UUID
+    timestampSize += sizeof(int64_t);  // timestamp
+  }
+
+  std::unique_ptr<uchar[]> hevc_frame(new uchar[len_out + timestampSize]);
   uint8_t* writer = hevc_frame.get();
   uint32_t dataWritten = 0;
+
+
+  if (addTimestamp)
+  {
+    // start code
+    writer[0] = 0x00;
+    writer[1] = 0x00;
+    writer[2] = 0x00;
+    writer[3] = 0x01;
+    writer += 4;
+
+    // HEVC NAL header
+    writer[0] = KVZ_NAL_PREFIX_SEI_NUT << 1;
+    writer[1] = 1;
+    writer += 2;
+
+    // Payload type
+    writer [0] = 5;
+    writer += 1;
+
+    // Payload size
+    writer[0] = 0;
+    writer[1] = sizeof(int64_t);
+    writer += 2;
+
+    // UUID
+    for (int i = 0; i < 16; ++i)
+    {
+      writer[i] = 1;
+    }
+    writer += 16;
+
+    int64_t timestamp = info.data->creationTimestamp;
+    memcpy(writer, &timestamp, sizeof(int64_t));
+    writer += sizeof(int64_t);
+
+    dataWritten += timestampSize;
+  }
 
   for (kvz_data_chunk *chunk = data_out; chunk != nullptr; chunk = chunk->next)
   {
