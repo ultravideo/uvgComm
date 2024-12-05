@@ -36,7 +36,9 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, LayoutID layoutID, uint8_t 
   micIcon_(QString(":/icons/mic_off.svg")),
   drawIcon_(false),
   fullscreen_(false),
-  bufferFullWarnings_(0)
+  bufferFullWarnings_(0),
+  showLatency_(false),
+  lastLatency_(0)
 {
   micIcon_.setAspectRatioMode(Qt::KeepAspectRatio);
 }
@@ -234,7 +236,7 @@ void VideoDrawHelper::visualizeROIMap(RoiMap& map, int baseQP)
 }
 
 
-bool VideoDrawHelper::getRecentImage(QImage& image)
+bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& latency)
 {
   Q_ASSERT(readyToDraw());
   bool showNewFrame = false;
@@ -270,6 +272,10 @@ bool VideoDrawHelper::getRecentImage(QImage& image)
 
     if (showNewFrame)
     {
+      auto nowtp = std::chrono::system_clock::now(); // system clock is NTP synchronized
+      lastLatency_ = std::chrono::duration_cast<std::chrono::milliseconds>(nowtp.time_since_epoch()).count()
+                     - frameBuffer_.back().timestamp;
+
       image = frameBuffer_.back().image;
       lastFrame_ = std::move(frameBuffer_.back());
       frameBuffer_.pop_back();
@@ -278,6 +284,15 @@ bool VideoDrawHelper::getRecentImage(QImage& image)
     else
     {
       image = lastFrame_.image;
+    }
+
+    if (showLatency_)
+    {
+      latency = lastLatency_;
+    }
+    else
+    {
+      latency = 0;
     }
   }
 
@@ -643,6 +658,10 @@ void VideoDrawHelper::keyPressEvent(QWidget* widget, QKeyEvent *event)
     {
       exitFullscreen(widget);
     }
+  }
+  else if (event->key() == Qt::Key_F11)
+  {
+    showLatency_ = !showLatency_;
   }
   else
   {

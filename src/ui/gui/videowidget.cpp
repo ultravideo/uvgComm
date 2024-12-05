@@ -99,7 +99,9 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     drawMutex_.lock();
 
     QImage frame;
-    if(helper_.getRecentImage(frame))
+    int64_t latency = 0;
+
+    if(helper_.getRecentImage(frame, latency))
     {
       // sessionID 0 is the self display and we are not interested
       // update stats only for each new image.
@@ -112,6 +114,12 @@ void VideoWidget::paintEvent(QPaintEvent *event)
     painter.drawImage(helper_.getTargetRect(), frame);
 
     helper_.draw(painter);
+
+    if (latency != 0)
+    {
+      painter.setPen(QColor::fromRgb(255, 255, 255));
+      painter.drawText(QPoint(width()/2, height()/2), QString::number(latency) + " ms");
+    }
     drawMutex_.unlock();
   }
   else
