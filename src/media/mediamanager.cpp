@@ -198,26 +198,29 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
       medias = peerInfo->media.size();
     }
 
-    unsigned int idIndex = 0;
-    for (unsigned int i = 0; i < medias; ++i)
+    if (!allIDs.empty())
     {
-      if (isLocalAddress(localInfo->media.at(i).connection_address))
+      unsigned int idIndex = 0;
+      for (unsigned int i = 0; i < medias; ++i)
       {
-        if (settingString(SettingsKey::sipRole) != "Server")
+        if (isLocalAddress(localInfo->media.at(i).connection_address))
         {
-          clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                      allIDs.at(idIndex), viewFactory_->getVideo(allIDs.at(idIndex)),
-                      allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
-        }
+          if (settingString(SettingsKey::sipRole) != "Server")
+          {
+            clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
+                        allIDs.at(idIndex), viewFactory_->getVideo(allIDs.at(idIndex)),
+                        allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
+          }
 
-        if (settingString(SettingsKey::sipRole) != "Client")
-        {
-          sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                   allIDs.at(idIndex), viewFactory_->getVideo(allIDs.at(idIndex)),
-                   allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
-        }
+          if (settingString(SettingsKey::sipRole) != "Client")
+          {
+            sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
+                     allIDs.at(idIndex), viewFactory_->getVideo(allIDs.at(idIndex)),
+                     allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
+          }
 
-        ++idIndex;
+          ++idIndex;
+        }
       }
     }
   }
