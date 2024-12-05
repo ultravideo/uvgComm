@@ -33,4 +33,6 @@ private:
   uint32_t sessionID_;
 
   std::shared_ptr<UvgRTPStream> us_;
+
+  int64_t lastSEITime_;
 };

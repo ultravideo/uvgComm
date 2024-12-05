@@ -31,7 +31,8 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterfa
   discardUntilIntra_(false),
   lastSeq_(0),
   sessionID_(sessionID),
-  us_(stream)
+  us_(stream),
+  lastSEITime_(0)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initializing uvgRTP receiver",
                                   {"LocalSSRC", "Remote SSRC", "Receiver type"},
@@ -79,8 +80,39 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 
   if (!received_picture)
     return;
-  
+
+  //check if this is a SEI message
+  if (output_ == DT_HEVCVIDEO &&
+      frame->payload_len >= 33 &&
+      frame->payload[0] == 0x00 &&
+      frame->payload[1] == 0x00 &&
+      frame->payload[2] == 0x00 &&
+      frame->payload[3] == 0x01)
+  {
+    uint8_t nalType = (frame->payload[4] >> 1) & 0x3F;
+
+    // check if this is a SEI message
+    if (nalType == 39 || nalType == 40)
+    {
+      int64_t creationTimestamp = 0;
+
+      for (int i = 32; i >= 25; i--)
+      {
+        creationTimestamp = creationTimestamp << 8 | frame->payload[i];
+      }
+
+      lastSEITime_ = creationTimestamp;
+      return;
+    }
+  }
+
   received_picture->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+
+  if(lastSEITime_ != 0)
+  {
+    received_picture->creationTimestamp = lastSEITime_;
+  }
+
   received_picture->presentationTimestamp = received_picture->creationTimestamp;
 
   // check if the uvgRTP added start code and if not, add it ourselves
@@ -95,12 +127,12 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     received_picture->data_size = (uint32_t)frame->payload_len + 4;
     received_picture->data = std::unique_ptr<uchar[]>(new uchar[received_picture->data_size]);
 
-    memcpy(received_picture->data.get() + 4, frame->payload, received_picture->data_size - 4);
-
     received_picture->data[0] = 0;
     received_picture->data[1] = 0;
     received_picture->data[2] = 0;
     received_picture->data[3] = 1;
+
+    memcpy(received_picture->data.get() + 4, frame->payload, received_picture->data_size - 4);
   }
   else
   {
