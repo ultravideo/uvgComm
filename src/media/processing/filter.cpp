@@ -251,7 +251,7 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source)
     data->aInfo = std::unique_ptr<AudioInfo> (new AudioInfo);
     data->aInfo->sampleRate = 0;
   }
-  else
+  else if (type != DT_RTP)
   {
     Logger::getLogger()->printProgramError("Filter", "Could not determine input data type!");
   }
