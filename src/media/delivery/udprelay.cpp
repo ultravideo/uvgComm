@@ -48,6 +48,7 @@ void UDPRelay::readPendingDatagrams()
     {
       // RTP
       uint32_t ssrc = *reinterpret_cast<uint32_t*>(datagram.data() + 8);
+      ssrc = htonl(ssrc);
 
       if (receivers_.find(ssrc) != receivers_.end())
       {
@@ -59,6 +60,7 @@ void UDPRelay::readPendingDatagrams()
 
         receivedRTPFrame->data = std::unique_ptr<uchar[]>(new uchar[datagram.size()]);
         memcpy(receivedRTPFrame->data.get(), datagram.data(), datagram.size());
+        receivedRTPFrame->data_size = datagram.size();
 
         filter->putInput(std::move(receivedRTPFrame));
       }
