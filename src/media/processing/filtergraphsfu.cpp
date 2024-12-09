@@ -37,6 +37,8 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> vid
   {
     connectFilters(videoReceiver->at(0), videoFramedSource);
   }
+
+  videoFramedSource->start();
 }
 
 
@@ -63,6 +65,8 @@ void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter
   // add the participant to the graph
   peers_.at(sessionID)->receivingStreams.push_back(id);
   peers_.at(sessionID)->videoReceivers.push_back(receiveGraph);
+
+  videoSink->start();
 }
 
 
@@ -89,6 +93,8 @@ void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> aud
   {
     connectFilters(audioReceiver->at(0), audioFramedSource);
   }
+
+  audioFramedSource->start();
 }
 
 
@@ -111,6 +117,8 @@ void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter
   // add the participant to the graph
   peers_.at(sessionID)->receivingStreams.push_back(id);
   peers_.at(sessionID)->audioReceivers.push_back(receiveGraph);
+
+  audioSink->start();
 }
 
 
