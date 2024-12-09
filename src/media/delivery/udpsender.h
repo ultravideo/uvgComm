@@ -2,6 +2,8 @@
 
 #include "media/processing/filter.h"
 
+#include <QTimer>
+
 #include <memory>
 
 class UDPRelay;
@@ -13,9 +15,16 @@ public:
             std::shared_ptr<ResourceAllocator> hwResources,
             std::string destination, int port, std::shared_ptr<UDPRelay> relay);
 
+
+public slots:
+
+  void keepLive();
+
 protected:
 
   void process();
+
+
 
 private:
 
@@ -23,5 +32,6 @@ private:
   int port_;
   std::shared_ptr<UDPRelay> relay_;
 
+  QTimer keepLiveTimer_;
 };
 
