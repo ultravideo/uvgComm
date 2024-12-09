@@ -152,7 +152,7 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     return;
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Modifying participant");
   QList<std::shared_ptr<ICEInfo>> localCandidates;
   QList<std::shared_ptr<ICEInfo>> remoteCandidates;
 
@@ -227,6 +227,10 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
           ++idIndex;
         }
       }
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "No media IDs for participant, not initializing anything");
     }
   }
 }
@@ -334,7 +338,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
     Q_ASSERT(remoteMedia.receivePort);
     Q_ASSERT(!remoteMedia.rtpNums.empty());
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating send stream", {"Destination", "Type"},
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating client send stream", {"Destination", "Type"},
                                     {remoteMedia.connection_address + ":" + QString::number(remoteMedia.receivePort),
                                      remoteMedia.type});
 
@@ -383,7 +387,7 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& local
     Q_ASSERT(!localMedia.rtpNums.empty());
 
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                    "Creating receive stream",
+                                    "Creating client receive stream",
                                     {"Interface", "codec"},
                                     {localMedia.connection_address + ":"
                                          + QString::number(localMedia.receivePort),
@@ -507,9 +511,9 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
     Q_ASSERT(localMedia.receivePort);
     Q_ASSERT(!localMedia.rtpNums.empty());
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating send stream", {"Destination", "Type"},
-                                    {localMedia.connection_address + ":" + QString::number(localMedia.receivePort),
-                                     localMedia.type});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating SFU send stream", {"Destination", "Type"},
+                                    {remoteMedia.connection_address + ":" + QString::number(remoteMedia.receivePort),
+                                     remoteMedia.type});
 
     Q_ASSERT(send != nullptr);
 
