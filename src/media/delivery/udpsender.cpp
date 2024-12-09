@@ -7,7 +7,7 @@
 UDPSender::UDPSender(QString id, StatisticsInterface *stats,
                      std::shared_ptr<ResourceAllocator> hwResources,
                      std::string destination, int port, std::shared_ptr<UDPRelay> relay):
-    Filter("UDPSender", "UDPSender", nullptr, nullptr, DT_RTP, DT_NONE),
+    Filter("UDPSender", "UDPSender", stats, hwResources, DT_RTP, DT_NONE),
     destination_(destination),
     port_(port),
     relay_(relay),
