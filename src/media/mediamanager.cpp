@@ -501,10 +501,11 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
                                 MediaID id,
                                 uint32_t remoteSSRC)
 {
-  std::shared_ptr<Filter> send = streamer_->addUDPReceiveStream(sessionID,
-       localMedia.connection_address,
-       localMedia.receivePort,
-       remoteSSRC);
+  std::shared_ptr<Filter> send = streamer_->addUDPSendStream(sessionID,
+                                                             localMedia.connection_address,
+                                                             remoteMedia.connection_address,
+                                                             localMedia.receivePort,
+                                                             remoteMedia.receivePort);
 
   if (enabled)
   {
