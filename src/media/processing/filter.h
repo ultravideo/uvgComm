@@ -13,7 +13,7 @@
 
 #include <cstdint>
 #include <vector>
-#include <queue>
+#include <deque>
 #include <memory>
 #include <functional>
 #include <chrono>
