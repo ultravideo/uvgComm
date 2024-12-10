@@ -13,6 +13,7 @@ UDPSender::UDPSender(QString id, StatisticsInterface *stats,
     relay_(relay),
     keepLiveTimer_(this)
 {
+  maxBufferSize_ = 1000;
   keepLiveTimer_.setInterval(5000);
 
   connect(&keepLiveTimer_, &QTimer::timeout, this, &UDPSender::keepLive);
