@@ -367,8 +367,9 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
 
   if(outDataCallbacks_.size() == 0 && outConnections_.size() == 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
-                                    "Trying to send output data without outconnections.");
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this,
+                                    "Trying to send output data without outconnections.",
+                                    {"Name"}, {name_});
     return;
   }
 
