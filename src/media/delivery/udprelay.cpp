@@ -67,16 +67,18 @@ void UDPRelay::readPendingDatagrams()
       else
       {
         Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received an RTP packet for which we have no receiver",
-                                        {"SSRC", "Payload type"},
-                                        {QString::number(ssrc), QString::number(pt)});
+                                        {"SSRC", "Payload type", "Packet size"},
+                                        {QString::number(ssrc), QString::number(pt), QString::number(datagram.size())});
       }
     }
     else
     {
       // RTCP
       Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received a packet which is not implemented yet",
-                                      {"Payload type", " Possible SSRC"},
-                                      {QString::number(pt), QString::number(*reinterpret_cast<uint32_t*>(datagram.data() + 4))});
+                                      {"Payload type", " Possible SSRC", "Packet size"},
+                                      {QString::number(pt),
+                                       QString::number(*reinterpret_cast<uint32_t*>(datagram.data() + 4)),
+                                       QString::number(datagram.size())});
 
     }
   }
