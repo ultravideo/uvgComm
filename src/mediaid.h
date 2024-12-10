@@ -6,7 +6,7 @@
 class MediaID
 {
 public:
-  MediaID(uint32_t ssrc);
+  MediaID(uint32_t localSSRC, uint32_t remoteSSRC);
   ~MediaID();
 
   void setReceive(bool status);
@@ -17,10 +17,8 @@ public:
 
   QString toString() const;
 
-  uint32_t getID() const;
-
-  bool operator==(uint32_t ssrc) const;
-  bool operator!=(uint32_t ssrc) const;
+  bool isLocal(uint32_t ssrc) const;
+  bool isRemote(uint32_t ssrc) const;
 
   friend bool operator==(const MediaID& l, const MediaID& r);
   friend bool operator!=(const MediaID& l, const MediaID& r);
@@ -33,5 +31,6 @@ private:
   bool send_;
   bool receive_;
 
-  uint32_t ssrc_;
+  uint32_t localSSRC_;
+  uint32_t remoteSSRC_;
 };

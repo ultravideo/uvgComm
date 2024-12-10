@@ -586,34 +586,17 @@ void uvgCommController::updateMediaIDs(uint32_t sessionID,
   // first we set correct attributes
   for (int i = 0; i < localMedia.size(); i += 1)
   {
-    bool send = false;
-    bool receive = false;
 
     if (!localMedia.at(i).candidates.empty())
     {
       if (isLocalCandidate(localMedia.at(i).candidates.first())) // if we are using ICE
       {
-        getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
-
-        allIDs.append(createMediaIDs(sessionID, localMedia.at(i)));
-
-        allIDs.back().setReceive(receive);
-        allIDs.back().setSend(send);
+        allIDs.append(mediaPairIDs(sessionID, localMedia.at(i), remoteMedia.at(i), followOurSDP));
       }
     }
     else if (isLocalAddress(localMedia.at(i).connection_address)) // if we are not using ICE
     {
-      getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
-
-      QList<MediaID> newIDs = createMediaIDs(sessionID, localMedia.at(i));
-
-      for (auto& newID : newIDs)
-      {
-        newID.setReceive(receive);
-        newID.setSend(send);
-      }
-
-      allIDs.append(newIDs);
+      allIDs.append(mediaPairIDs(sessionID, localMedia.at(i), remoteMedia.at(i), followOurSDP));
     }
     else
     {
@@ -647,52 +630,57 @@ void uvgCommController::getMediaAttributes(const MediaInfo &local, const MediaIn
 }
 
 
-QList<MediaID> uvgCommController::createMediaIDs(uint32_t sessionID, const MediaInfo &media)
+QList<MediaID> uvgCommController::mediaPairIDs(uint32_t sessionID,
+                                               const MediaInfo &localMedia,
+                                               const MediaInfo &remoteMedia,
+                                               bool followOurSDP)
 {
-  std::vector<uint32_t> ssrcs;
-  findSSRCs(media, ssrcs);
+  bool send = false;
+  bool receive = false;
+  getMediaAttributes(localMedia, remoteMedia, followOurSDP, send, receive);
+
+  std::vector<uint32_t> localSSRCs;
+  std::vector<uint32_t> remoteSSRCs;
+  findSSRCs(localMedia, localSSRCs);
+  findSSRCs(remoteMedia, remoteSSRCs);
+
   QList<MediaID> ids;
 
-  if (sessionMedias_.find(sessionID) != sessionMedias_.end())
+  if (sessionMedias_.find(sessionID) == sessionMedias_.end())
   {
-    for (auto& ssrc : ssrcs)
+    sessionMedias_[sessionID] =
+        std::shared_ptr<std::vector<MediaID>>(new std::vector<MediaID>());
+  }
+
+  for (auto& local : localSSRCs)
+  {
+    for (auto& remote : remoteSSRCs)
     {
       bool found = false;
-      // try to see if this is an old media
       for (auto& sMedia : *sessionMedias_[sessionID])
       {
-        if (sMedia == ssrc)
+        if (sMedia == MediaID(local, remote))
         {
           Logger::getLogger()->printNormal(this, "Using existing MediaID",
-                                           "Media type", media.type);
+                                           "Media type", localMedia.type);
 
           found = true;
           ids.push_back(sMedia);
+
           break;
         }
       }
 
-      if (!found)
+      if(!found)
       {
         Logger::getLogger()->printNormal(this, "Creating a new MediaID",
-                                         "SSRC", QString::number(ssrc));
-        ids.push_back(MediaID(ssrc));
+                                         "SSRC", QString::number(local));
+        ids.push_back(MediaID(local, remote));
         sessionMedias_[sessionID]->push_back(ids.back());
       }
-    }
-  }
-  else
-  {
-    sessionMedias_[sessionID] =
-      std::shared_ptr<std::vector<MediaID>>(new std::vector<MediaID>());
 
-    Logger::getLogger()->printNormal(this, "Creating a new MediaID",
-                                     "SSRC", QString::number(findSSRC(media)));
-
-    for (auto& ssrc : ssrcs)
-    {
-      ids.push_back(MediaID(ssrc));
-      sessionMedias_[sessionID]->push_back(ids.back());
+      ids.back().setReceive(receive);
+      ids.back().setSend(send);
     }
   }
 

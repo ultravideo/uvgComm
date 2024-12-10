@@ -108,6 +108,10 @@ private:
                       bool followOurSDP,
                       QList<std::pair<MediaID, MediaID>>& audioVideoIDs, QList<MediaID>& allIDs);
 
+
+
+  QList<MediaID> mediaPairIDs(uint32_t sessionID, const MediaInfo &localMedia, const MediaInfo &remoteMedia, bool followOurSDP);
+
   void getMediaAttributes(const MediaInfo &local, const MediaInfo& remote,
                           bool followOurSDP, bool &send,
                           bool& receive);
@@ -124,7 +128,6 @@ private:
   // this is a huge hack altogether
   bool areWeICEController(bool initialAgent, uint32_t sessionID) const;
 
-  QList<MediaID> createMediaIDs(uint32_t sessionID, const MediaInfo &media);
 
   MediaRole getMediaRole(QString role) const;
   ConferenceTopology getTopology(QString topology) const;

@@ -1,18 +1,17 @@
 #include "mediaid.h"
 
-#include "common.h"
-
 uint64_t MediaID::nextID_ = 1;
 
 
-MediaID::MediaID(uint32_t ssrc):
-    send_(true),
-    receive_(true),
-    ssrc_(ssrc)
+MediaID::MediaID(uint32_t localSSRC, uint32_t remoteSSRC):
+  send_(true),
+  receive_(true),
+  localSSRC_(localSSRC),
+  remoteSSRC_(remoteSSRC)
 {
-  if (ssrc_ == 0)
+  if (localSSRC_ == 0)
   {
-    ssrc_ = nextID_;
+    localSSRC_ = nextID_;
     nextID_++;
   }
 }
@@ -48,41 +47,37 @@ bool MediaID::getSend() const
 
 QString MediaID::toString() const
 {
-  return QString::number(ssrc_);
+  return "L: " + QString::number(localSSRC_) + " R: " + QString::number(remoteSSRC_);
 }
 
 
-uint32_t MediaID::getID() const
+bool MediaID::isLocal(uint32_t ssrc) const
 {
-  return (uint32_t)ssrc_;
+  return localSSRC_ == ssrc;
 }
 
 
-bool MediaID::operator==(uint32_t ssrc) const
+bool MediaID::isRemote(uint32_t ssrc) const
 {
-  return ssrc == ssrc_;
-}
-
-
-bool MediaID::operator!=(uint32_t ssrc) const
-{
-  return ssrc != ssrc_;
+  return remoteSSRC_ == ssrc;
 }
 
 
 bool operator==(const MediaID& l, const MediaID& r)
 {
-  return l.ssrc_ == r.ssrc_;
+  return l.localSSRC_ == r.localSSRC_ && l.remoteSSRC_ == r.remoteSSRC_;
 }
 
 
 bool operator!=(const MediaID& l, const MediaID& r)
 {
-  return l.ssrc_ != r.ssrc_;
+  return l.localSSRC_ != r.localSSRC_ || l.remoteSSRC_ != r.remoteSSRC_;
 }
 
 
 bool operator<(const MediaID& l, const MediaID& r)
 {
-  return l.ssrc_ < r.ssrc_;
+  uint64_t totalSSRC = l.localSSRC_ + l.remoteSSRC_;
+  uint64_t totalSSRC2 = r.localSSRC_ + r.remoteSSRC_;
+  return totalSSRC < totalSSRC2;
 }
