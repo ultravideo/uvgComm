@@ -14,110 +14,162 @@ void FilterGraphSFU::uninit()
   removeAllParticipants();
 }
 
-void FilterGraphSFU::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
+void FilterGraphSFU::sendVideoto(uint32_t sessionID,
+                                 std::shared_ptr<Filter> videoFramedSource,
                                  const MediaID &id)
 {
   checkParticipant(sessionID);
 
   // check if the participant is already in the graph
-  for (auto& mediaID : peers_.at(sessionID)->receivingStreams)
+  if (!peers_[sessionID]->videoSenders.empty())
   {
-    if (mediaID == id)
-    {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant already in graph");
-      return;
-    }
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant video sender already exists");
+    return;
   }
 
-  peers_.at(sessionID)->sendingStreams.push_back(id);
   peers_.at(sessionID)->videoSenders.push_back(videoFramedSource);
 
-  // connect the sender to receivers
-  for (auto& videoReceiver : peers_.at(sessionID)->videoReceivers)
+  // find the other participant whose stream is supposed to connected to this sender
+  for (auto& peer : peers_)
   {
-    connectFilters(videoReceiver->at(0), videoFramedSource);
+    // no need to participants video to themselves
+    if (peer.first != sessionID)
+    {
+      // check if the other participant has a receiver (they should)
+      if (!peer.second->videoReceivers.empty() && !peer.second->videoReceivers.at(0)->empty())
+      {
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Connecting receiver to newly created sender",
+                                        {"Sender SSRC"},
+                                        {id.toString()});
+
+        connectFilters(peer.second->videoReceivers.at(0)->at(0), videoFramedSource);
+      }
+      else
+      {
+        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "No receiver found for participant",
+                                        {"Participant"},
+                                        {QString::number(peer.first)});
+      }
+    }
   }
 
   videoFramedSource->start();
 }
 
 
-void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
-                                      VideoInterface *view, const MediaID &id)
+void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
+                                      std::shared_ptr<Filter> videoSink,
+                                      VideoInterface* view,
+                                      const MediaID &id)
 {
   Q_UNUSED(view);
 
   checkParticipant(sessionID);
 
   // check if the participant is already in the graph
-  for (auto& mediaID : peers_.at(sessionID)->receivingStreams)
+  if (!peers_[sessionID]->videoReceivers.empty())
   {
-    if (mediaID == id)
-    {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant already in graph");
-      return;
-    }
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant receiver already exists");
+    return;
   }
 
+  // create a receiver and connect it
   auto receiveGraph = std::make_shared<std::vector<std::shared_ptr<Filter>>>
       (std::vector<std::shared_ptr<Filter>>{videoSink});
 
   // add the participant to the graph
-  peers_.at(sessionID)->receivingStreams.push_back(id);
   peers_.at(sessionID)->videoReceivers.push_back(receiveGraph);
+
+  // connect the receiver to existing senders to distribute this new media
+  for (auto& peer : peers_)
+  {
+    if (peer.first != sessionID)
+    {
+      if (!peer.second->videoSenders.empty())
+      {
+        connectFilters(videoSink, peer.second->videoSenders.at(0));
+      }
+    }
+  }
 
   videoSink->start();
 }
 
-
-void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource,
+void FilterGraphSFU::sendAudioTo(uint32_t sessionID,
+                                 std::shared_ptr<Filter> audioFramedSource,
                                  const MediaID &id)
 {
   checkParticipant(sessionID);
 
   // check if the participant is already in the graph
-  for (auto& mediaID : peers_.at(sessionID)->receivingStreams)
+  if (!peers_[sessionID]->audioSenders.empty())
   {
-    if (mediaID == id)
-    {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant already in graph");
-      return;
-    }
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant audio sender already in graph");
+    return;
   }
 
-  peers_.at(sessionID)->sendingStreams.push_back(id);
   peers_.at(sessionID)->audioSenders.push_back(audioFramedSource);
 
-  // connect the sender to receivers
-  for (auto& audioReceiver : peers_.at(sessionID)->audioReceivers)
+  // find the other participant whose stream is supposed to connected to this sender
+  for (auto& peer : peers_)
   {
-    connectFilters(audioReceiver->at(0), audioFramedSource);
+    // no need to participants audio to themselves
+    if (peer.first != sessionID)
+    {
+      // check if the other participant has a receiver (they should)
+      if (!peer.second->audioReceivers.empty() && !peer.second->audioReceivers.at(0)->empty())
+      {
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Connecting receiver to newly created sender",
+                                        {"Sender SSRC"},
+                                        {id.toString()});
+
+        connectFilters(peer.second->audioReceivers.at(0)->at(0), audioFramedSource);
+      }
+      else
+      {
+        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "No receiver found for participant",
+                                        {"Participant"},
+                                        {QString::number(peer.first)});
+      }
+    }
   }
 
   audioFramedSource->start();
 }
 
 
-void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
+void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID,
+                                      std::shared_ptr<Filter> audioSink,
                                       const MediaID &id)
 {
+  checkParticipant(sessionID);
+
   // check if the participant is already in the graph
-  for (auto& mediaID : peers_.at(sessionID)->receivingStreams)
+  if (!peers_[sessionID]->audioReceivers.empty())
   {
-    if (mediaID == id)
-    {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant already in graph");
-      return;
-    }
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant receiver already exists");
+    return;
   }
 
   auto receiveGraph = std::make_shared<std::vector<std::shared_ptr<Filter>>>
       (std::vector<std::shared_ptr<Filter>>{audioSink});
 
   // add the participant to the graph
-  peers_.at(sessionID)->receivingStreams.push_back(id);
   peers_.at(sessionID)->audioReceivers.push_back(receiveGraph);
 
+  // connect the receiver to existing senders to distribute this new media
+  for (auto& peer : peers_)
+  {
+    if (peer.first != sessionID)
+    {
+      if (!peer.second->audioSenders.empty())
+      {
+        connectFilters(audioSink, peer.second->audioSenders.at(0));
+      }
+    }
+  }
+
+  // receiver is connected to senders later when the other call are renegotiated
   audioSink->start();
 }
 
