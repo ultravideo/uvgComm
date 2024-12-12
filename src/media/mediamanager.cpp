@@ -506,7 +506,7 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
                                                              localMedia.connection_address,
                                                              remoteMedia.connection_address,
                                                              localMedia.receivePort,
-                                                             remoteMedia.receivePort);
+                                                             remoteMedia.receivePort, remoteSSRC);
 
   if (enabled)
   {

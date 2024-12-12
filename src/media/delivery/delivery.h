@@ -1,7 +1,6 @@
 #pragma once
 #include "media/delivery/udprelay.h"
 #include "media/processing/filter.h"
-#include "mediaid.h"
 
 #include <QMutex>
 #include <QHostAddress>
@@ -47,15 +46,21 @@ public:
                                             uint32_t remoteSSRC = 0);
 
    std::shared_ptr<Filter> addUDPSendStream(uint32_t sessionID,
-                                            QString localAddress, QString remoteAddress,
-                                            uint16_t localPort, uint16_t peerPort);
+                                            QString localAddress,
+                                            QString remoteAddress,
+                                            uint16_t localPort,
+                                            uint16_t peerPort,
+                                            uint32_t remoteSSRC);
 
-
-  std::shared_ptr<Filter> addRTPReceiveStream(uint32_t sessionID,
-                                              QString localAddress, QString remoteAddress,
-                                              uint16_t localPort, uint16_t peerPort,
-                                              QString codec, uint8_t rtpNum,
-                                              uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
+   std::shared_ptr<Filter> addRTPReceiveStream(uint32_t sessionID,
+                                               QString localAddress,
+                                               QString remoteAddress,
+                                               uint16_t localPort,
+                                               uint16_t peerPort,
+                                               QString codec,
+                                               uint8_t rtpNum,
+                                               uint32_t localSSRC = 0,
+                                               uint32_t remoteSSRC = 0);
 
    std::shared_ptr<Filter> addUDPReceiveStream(uint32_t sessionID,
                                                QString localAddress, uint16_t localPort,
@@ -145,4 +150,8 @@ private:
 
   // the key is address:port as a string
   std::map<QString, std::shared_ptr<UDPRelay>> relays_;
+
+  // key is
+  std::map<uint32_t, std::shared_ptr<Filter>> udpSenders_;
+  std::map<uint32_t, std::shared_ptr<Filter>> udpReceivers_;
 };

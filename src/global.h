@@ -57,13 +57,3 @@ struct RoiMap {
   int height;
   std::unique_ptr<int8_t[]> data;
 };
-
-
-struct UvgRTPStream
-{
-  uvgrtp::media_stream *ms;
-  bool runZRTP;
-
-  uint32_t localSSRC;
-  uint32_t remoteSSRC;
-};

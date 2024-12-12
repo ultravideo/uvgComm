@@ -200,16 +200,25 @@ std::shared_ptr<Filter> Delivery::addRTPSendStream(uint32_t sessionID,
 
 std::shared_ptr<Filter> Delivery::addUDPSendStream(uint32_t sessionID,
                                          QString localAddress, QString remoteAddress,
-                                         uint16_t localPort, uint16_t peerPort)
+                                         uint16_t localPort, uint16_t peerPort, uint32_t remoteSSRC)
 {
-  std::shared_ptr<UDPRelay> relay = getUDPRelay(localAddress, localPort);
+  if (udpSenders_.find(remoteSSRC) == udpSenders_.end())
+  {
+    Logger::getLogger()->printNormal(this, "Creating a new UDP sender",
+                                     "Remote SSRC", QString::number(remoteSSRC));
+    std::shared_ptr<UDPRelay> relay = getUDPRelay(localAddress, localPort);
 
-  QString id = remoteAddress + ":" + QString::number(peerPort);
-  std::shared_ptr<UDPSender> sender = std::shared_ptr<UDPSender>(new UDPSender(id, stats_,  hwResources_,
-                                                                               remoteAddress.toStdString(),
-                                                                               peerPort, relay));
+    QString id = remoteAddress + ":" + QString::number(peerPort);
+    udpSenders_[remoteSSRC] = std::shared_ptr<UDPSender>(new UDPSender(id, stats_,  hwResources_,
+                                                                                 remoteAddress.toStdString(),
+                                                                                 peerPort, relay));
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Using existing UDP sender");
+  }
 
-  return sender;
+  return udpSenders_[remoteSSRC];
 }
 
 
@@ -286,13 +295,23 @@ std::shared_ptr<Filter> Delivery::addUDPReceiveStream(uint32_t sessionID,
                                                       QString localAddress, uint16_t localPort,
                                                       uint32_t remoteSSRC)
 {
-  std::shared_ptr<UDPRelay> relay = getUDPRelay(localAddress, localPort);
+  if (udpReceivers_.find(remoteSSRC) == udpReceivers_.end())
+  {
+    Logger::getLogger()->printNormal(this, "Creating new UDP receiver", "Path",
+                                     localAddress + ":" + QString::number(localPort));
 
-  QString id = localAddress + ":" + QString::number(localPort);
-  std::shared_ptr<UDPReceiver> receiver = std::shared_ptr<UDPReceiver>(new UDPReceiver(id, stats_, hwResources_));
-  relay->registerRTPReceiver(remoteSSRC, receiver);
+    std::shared_ptr<UDPRelay> relay = getUDPRelay(localAddress, localPort);
 
-  return receiver;
+    QString id = localAddress + ":" + QString::number(localPort);
+    udpReceivers_[remoteSSRC] = std::shared_ptr<UDPReceiver>(new UDPReceiver(id, stats_, hwResources_));
+    relay->registerRTPReceiver(remoteSSRC, udpReceivers_[remoteSSRC]);
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Using existing UDP receiver");
+  }
+
+  return udpReceivers_[remoteSSRC];
 }
 
 
