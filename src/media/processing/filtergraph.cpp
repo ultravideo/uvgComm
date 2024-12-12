@@ -35,23 +35,23 @@ void FilterGraph::running(bool state)
     {
       for (auto& senderFilter : peer.second->audioSenders)
       {
-        if(senderFilter)
+        if(senderFilter.second)
         {
-          changeState(senderFilter, state);
+          changeState(senderFilter.second, state);
         }
       }
 
       for (auto& senderFilter : peer.second->videoSenders)
       {
-        if(senderFilter)
+        if(senderFilter.second)
         {
-          changeState(senderFilter, state);
+          changeState(senderFilter.second, state);
         }
       }
 
       for (auto& graph : peer.second->audioReceivers)
       {
-        for(std::shared_ptr<Filter>& f : *graph)
+        for(std::shared_ptr<Filter>& f : *graph.second)
         {
           changeState(f, state);
         }
@@ -59,7 +59,7 @@ void FilterGraph::running(bool state)
 
       for (auto& graph : peer.second->videoReceivers)
       {
-        for(std::shared_ptr<Filter>& f : *graph)
+        for(std::shared_ptr<Filter>& f : *graph.second)
         {
           changeState(f, state);
         }
@@ -77,13 +77,13 @@ void FilterGraph::updateVideoSettings()
     {
       for (auto& senderFilter : peer.second->videoSenders)
       {
-        senderFilter->updateSettings();
+        senderFilter.second->updateSettings();
       }
 
       // decode and display settings
       for(auto& videoReceivers : peer.second->videoReceivers)
       {
-        for (auto& filter : *videoReceivers)
+        for (auto& filter : *videoReceivers.second)
         {
           filter->updateSettings();
         }
@@ -101,12 +101,12 @@ void FilterGraph::updateAudioSettings()
     {
       for (auto& senderFilter : peer.second->audioSenders)
       {
-        senderFilter->updateSettings();
+        senderFilter.second->updateSettings();
       }
 
       for (auto& audioReceivers : peer.second->audioReceivers)
       {
-        for (auto& filter : *audioReceivers)
+        for (auto& filter : *audioReceivers.second)
         {
           filter->updateSettings();
         }
@@ -216,20 +216,6 @@ bool FilterGraph::connectFilters(std::shared_ptr<Filter> previous, std::shared_p
 }
 
 
-bool FilterGraph::existingConnection(std::vector<MediaID>& connections, MediaID id)
-{
-  for (auto& connection: connections)
-  {
-    if (connection == id)
-    {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-
 void FilterGraph::removeParticipant(uint32_t sessionID)
 {
   if (peers_.find(sessionID) != peers_.end() &&
@@ -315,22 +301,22 @@ void FilterGraph::destroyPeer(Peer* peer)
 
   for (auto& audioSender : peer->audioSenders)
   {
-    changeState(audioSender, false);
-    audioSender = nullptr;
+    changeState(audioSender.second, false);
+    audioSender.second = nullptr;
   }
   for (auto& videoSender : peer->videoSenders)
   {
-    changeState(videoSender, false);
-    videoSender = nullptr;
+    changeState(videoSender.second, false);
+    videoSender.second = nullptr;
   }
   for (auto& graph : peer->audioReceivers)
   {
-    destroyFilters(*graph);
+    destroyFilters(*graph.second);
   }
 
   for (auto& graph : peer->videoReceivers)
   {
-    destroyFilters(*graph);
+    destroyFilters(*graph.second);
   }
 
   delete peer;

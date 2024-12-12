@@ -14,9 +14,8 @@ void FilterGraphSFU::uninit()
   removeAllParticipants();
 }
 
-void FilterGraphSFU::sendVideoto(uint32_t sessionID,
-                                 std::shared_ptr<Filter> videoFramedSource,
-                                 const MediaID &id)
+void FilterGraphSFU::
+    sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource, uint32_t localSSRC)
 {
   checkParticipant(sessionID);
 
@@ -27,7 +26,7 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
     return;
   }
 
-  peers_.at(sessionID)->videoSenders.push_back(videoFramedSource);
+  peers_.at(sessionID)->videoSenders[localSSRC] =videoFramedSource;
 
   // find the other participant whose stream is supposed to connected to this sender
   for (auto& peer : peers_)
@@ -36,13 +35,13 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
     if (peer.first != sessionID)
     {
       // check if the other participant has a receiver (they should)
-      if (!peer.second->videoReceivers.empty() && !peer.second->videoReceivers.at(0)->empty())
+      if (!peer.second->videoReceivers.empty() && !peer.second->videoReceivers.begin()->second->empty())
       {
         Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Connecting receiver to newly created sender",
                                         {"Sender SSRC"},
-                                        {id.toString()});
+                                        {QString::number(localSSRC)});
 
-        connectFilters(peer.second->videoReceivers.at(0)->at(0), videoFramedSource);
+        connectFilters(peer.second->videoReceivers.begin()->second->at(0), videoFramedSource);
       }
       else
       {
@@ -56,11 +55,10 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
   videoFramedSource->start();
 }
 
-
 void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
                                       std::shared_ptr<Filter> videoSink,
                                       VideoInterface* view,
-                                      const MediaID &id)
+                                      uint32_t remoteSSRC)
 {
   Q_UNUSED(view);
 
@@ -78,7 +76,7 @@ void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
       (std::vector<std::shared_ptr<Filter>>{videoSink});
 
   // add the participant to the graph
-  peers_.at(sessionID)->videoReceivers.push_back(receiveGraph);
+  peers_.at(sessionID)->videoReceivers[remoteSSRC] = receiveGraph;
 
   // connect the receiver to existing senders to distribute this new media
   for (auto& peer : peers_)
@@ -87,7 +85,7 @@ void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
     {
       if (!peer.second->videoSenders.empty())
       {
-        connectFilters(videoSink, peer.second->videoSenders.at(0));
+        connectFilters(videoSink, peer.second->videoSenders.begin()->second);
       }
     }
   }
@@ -95,9 +93,8 @@ void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
   videoSink->start();
 }
 
-void FilterGraphSFU::sendAudioTo(uint32_t sessionID,
-                                 std::shared_ptr<Filter> audioFramedSource,
-                                 const MediaID &id)
+void FilterGraphSFU::
+    sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource, uint32_t localSSRC)
 {
   checkParticipant(sessionID);
 
@@ -108,7 +105,7 @@ void FilterGraphSFU::sendAudioTo(uint32_t sessionID,
     return;
   }
 
-  peers_.at(sessionID)->audioSenders.push_back(audioFramedSource);
+  peers_.at(sessionID)->audioSenders[localSSRC] = audioFramedSource;
 
   // find the other participant whose stream is supposed to connected to this sender
   for (auto& peer : peers_)
@@ -117,13 +114,13 @@ void FilterGraphSFU::sendAudioTo(uint32_t sessionID,
     if (peer.first != sessionID)
     {
       // check if the other participant has a receiver (they should)
-      if (!peer.second->audioReceivers.empty() && !peer.second->audioReceivers.at(0)->empty())
+      if (!peer.second->audioReceivers.empty() && !peer.second->audioReceivers.begin()->second->empty())
       {
         Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Connecting receiver to newly created sender",
                                         {"Sender SSRC"},
-                                        {id.toString()});
+                                        {QString::number(localSSRC)});
 
-        connectFilters(peer.second->audioReceivers.at(0)->at(0), audioFramedSource);
+        connectFilters(peer.second->audioReceivers.begin()->second->at(0), audioFramedSource);
       }
       else
       {
@@ -137,10 +134,8 @@ void FilterGraphSFU::sendAudioTo(uint32_t sessionID,
   audioFramedSource->start();
 }
 
-
-void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID,
-                                      std::shared_ptr<Filter> audioSink,
-                                      const MediaID &id)
+void FilterGraphSFU::
+    receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink, uint32_t remoteSSRC)
 {
   checkParticipant(sessionID);
 
@@ -155,7 +150,7 @@ void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID,
       (std::vector<std::shared_ptr<Filter>>{audioSink});
 
   // add the participant to the graph
-  peers_.at(sessionID)->audioReceivers.push_back(receiveGraph);
+  peers_.at(sessionID)->audioReceivers[remoteSSRC] = receiveGraph;
 
   // connect the receiver to existing senders to distribute this new media
   for (auto& peer : peers_)
@@ -164,7 +159,7 @@ void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID,
     {
       if (!peer.second->audioSenders.empty())
       {
-        connectFilters(audioSink, peer.second->audioSenders.at(0));
+        connectFilters(audioSink, peer.second->audioSenders.begin()->second);
       }
     }
   }

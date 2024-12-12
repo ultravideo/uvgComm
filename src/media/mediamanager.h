@@ -153,6 +153,7 @@ private:
                     const MediaInfo& remoteMedia,
                     bool enabled,
                     MediaID id,
+                    uint32_t localSSRC,
                     uint32_t remoteSSRC);
 
   void sfuReceiveMedia(uint32_t sessionID,

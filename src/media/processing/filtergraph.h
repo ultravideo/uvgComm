@@ -1,6 +1,5 @@
 #pragma once
 
-#include "mediaid.h"
 #include <QWidget>
 #include <QtMultimedia/QAudioFormat>
 #include <QObject>
@@ -30,17 +29,17 @@ public:
 
   // These functions are used to manipulate filter graphs regarding a peer
   virtual void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
-                           const MediaID &id) = 0;
+                           uint32_t localSSRC) = 0;
 
   virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
                         VideoInterface *view,
-                        const MediaID &id) = 0;
+                        uint32_t remoteSSRC) = 0;
 
   virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource,
-                   const MediaID &id) = 0;
+                   uint32_t localSSRC) = 0;
 
   virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
-                        const MediaID &id) = 0;
+                        uint32_t remoteSSRC) = 0;
 
   // removes participant and all its associated filter from filter graph.
   void removeParticipant(uint32_t sessionID);
@@ -57,18 +56,13 @@ protected:
 
   struct Peer
   {
-    // keep track of existing connections, so we don't duplicate them
-    std::vector<MediaID> sendingStreams;
-    std::vector<MediaID> receivingStreams;
+    // key is local SSRC
+    std::map<uint32_t, std::shared_ptr<Filter>> audioSenders; // sends audio
+    std::map<uint32_t, std::shared_ptr<Filter>> videoSenders; // sends video
 
-    // Arrays of filters which send media, but are not connected to each other.
-    std::vector<std::shared_ptr<Filter>> audioSenders; // sends audio
-    std::vector<std::shared_ptr<Filter>> videoSenders; // sends video
-
-    // Arrays of filters which receive media.
-    // Each graphsegment receives one mediastream.
-    std::vector<std::shared_ptr<GraphSegment>> videoReceivers;
-    std::vector<std::shared_ptr<GraphSegment>> audioReceivers;
+    // key is remote SSRC
+    std::map<uint32_t, std::shared_ptr<GraphSegment>> videoReceivers;
+    std::map<uint32_t, std::shared_ptr<GraphSegment>> audioReceivers;
   };
 
   // destroy all filters associated with this peer.
@@ -92,8 +86,6 @@ protected:
 
 
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
-
-  bool existingConnection(std::vector<MediaID>& connections, MediaID id);
 
   void removeAllParticipants();
 

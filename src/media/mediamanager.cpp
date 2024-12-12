@@ -347,11 +347,11 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
 
     if(remoteMedia.type == "audio")
     {
-      p2pFg_->sendAudioTo(sessionID, senderFilter, id);
+      p2pFg_->sendAudioTo(sessionID, senderFilter, localSSRC);
     }
     else if(remoteMedia.type == "video")
     {
-      p2pFg_->sendVideoto(sessionID, senderFilter, id);
+      p2pFg_->sendVideoto(sessionID, senderFilter, localSSRC);
     }
     else
     {
@@ -397,7 +397,7 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& local
     Q_ASSERT(receiverFilter != nullptr);
     if (localMedia.type == "audio")
     {
-      p2pFg_->receiveAudioFrom(sessionID, receiverFilter, id);
+      p2pFg_->receiveAudioFrom(sessionID, receiverFilter, remoteSSRC);
     }
     else if (localMedia.type == "video")
     {
@@ -405,7 +405,7 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& local
 
       if (videoView != nullptr)
       {
-        p2pFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, id);
+        p2pFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, remoteSSRC);
       }
       else
       {
@@ -480,8 +480,7 @@ void MediaManager::sfuMedia(uint32_t sessionID,
 
     for (auto& localSSRC : localSSRCs)
     {
-      sfuSendMedia(sessionID, localMedia, remoteMedia, send, id,
-                   remoteSSRCs.at(0));
+      sfuSendMedia(sessionID, localMedia, remoteMedia, send, id, localSSRC, remoteSSRCs.at(0));
     }
 
     sfuReceiveMedia(sessionID, localMedia, remoteMedia, receive, id,
@@ -500,6 +499,7 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
                                 const MediaInfo& remoteMedia,
                                 bool enabled,
                                 MediaID id,
+                                uint32_t localSSRC,
                                 uint32_t remoteSSRC)
 {
   std::shared_ptr<Filter> send = streamer_->addUDPSendStream(sessionID,
@@ -521,11 +521,11 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
 
     if(localMedia.type == "audio")
     {
-      sfuFg_->sendAudioTo(sessionID, send, id);
+      sfuFg_->sendAudioTo(sessionID, send, localSSRC);
     }
     else if(localMedia.type == "video")
     {
-      sfuFg_->sendVideoto(sessionID, send, id);
+      sfuFg_->sendVideoto(sessionID, send, localSSRC);
     }
     else
     {
@@ -557,7 +557,7 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
   {
     if (localMedia.type == "audio")
     {
-      sfuFg_->receiveAudioFrom(sessionID, receive, id);
+      sfuFg_->receiveAudioFrom(sessionID, receive, remoteSSRC);
     }
     else if (localMedia.type == "video")
     {
@@ -565,7 +565,7 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
 
       if (videoView != nullptr)
       {
-        sfuFg_->receiveVideoFrom(sessionID, receive, videoView, id);
+        sfuFg_->receiveVideoFrom(sessionID, receive, videoView, remoteSSRC);
       }
     }
     else
