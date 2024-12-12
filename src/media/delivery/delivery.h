@@ -36,11 +36,15 @@ public:
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
-  std::shared_ptr<Filter> addRTPSendStream(uint32_t sessionID,
-                                           QString localAddress, QString remoteAddress,
-                                           uint16_t localPort, uint16_t peerPort,
-                                           QString codec, uint8_t rtpNum, MediaID id,
-                                           uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
+   std::shared_ptr<Filter> addRTPSendStream(uint32_t sessionID,
+                                            QString localAddress,
+                                            QString remoteAddress,
+                                            uint16_t localPort,
+                                            uint16_t peerPort,
+                                            QString codec,
+                                            uint8_t rtpNum,
+                                            uint32_t localSSRC = 0,
+                                            uint32_t remoteSSRC = 0);
 
    std::shared_ptr<Filter> addUDPSendStream(uint32_t sessionID,
                                             QString localAddress, QString remoteAddress,
@@ -50,7 +54,7 @@ public:
   std::shared_ptr<Filter> addRTPReceiveStream(uint32_t sessionID,
                                               QString localAddress, QString remoteAddress,
                                               uint16_t localPort, uint16_t peerPort,
-                                              QString codec, uint8_t rtpNum, MediaID id,
+                                              QString codec, uint8_t rtpNum,
                                               uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
 
    std::shared_ptr<Filter> addUDPReceiveStream(uint32_t sessionID,
@@ -74,20 +78,24 @@ private:
 
   struct MediaStream
   {
-    std::shared_ptr<UvgRTPStream> stream;
+    uvgrtp::media_stream *ms;
+    bool runZRTP;
 
     std::shared_ptr<UvgRTPSender> sender;
+
+    // key is remote SSRC
     std::map<uint32_t, std::shared_ptr<UvgRTPReceiver>> receivers;
   };
 
   struct DeliverySession
   {
-    uvg_rtp::session *session;
+    uvgrtp::session *session;
 
     QString localAddress;
     QString peerAddress;
 
-    std::map<MediaID, MediaStream*> streams;
+    // key is local SSRC
+    std::map<uint32_t, MediaStream*> streams;
     bool dhSelected;
   };
 
@@ -97,15 +105,23 @@ private:
   };
 
   bool initializeStream(uint32_t sessionID,
-                        DeliverySession& session,
-                        uint16_t localPort, uint16_t peerPort, MediaID id,
-                        rtp_format_t fmt, uint32_t localSSRC, uint32_t remoteSSRC);
+                        DeliverySession &session,
+                        uint16_t localPort,
+                        uint16_t peerPort,
+                        rtp_format_t fmt,
+                        uint32_t localSSRC,
+                        uint32_t remoteSSRC);
 
   bool addMediaStream(uint32_t sessionID,
-                      DeliverySession& session,
-                      uint16_t localPort, uint16_t peerPort,
-                      rtp_format_t fmt, bool dhSelected, MediaID &id, uint32_t localSSRC, uint32_t remoteSSRC);
-  void removeMediaStream(uint32_t sessionID, DeliverySession& session, MediaID &id);
+                      DeliverySession &session,
+                      uint16_t localPort,
+                      uint16_t peerPort,
+                      rtp_format_t fmt,
+                      bool dhSelected,
+                      uint32_t localSSRC,
+                      uint32_t remoteSSRC);
+  void removeMediaStream(uint32_t sessionID, DeliverySession& session,
+                         uint32_t localSSRC);
 
   void parseCodecString(QString codec, rtp_format_t& fmt,
                         DataType& type, QString& mediaName);

@@ -301,6 +301,7 @@ void MediaManager::clientMedia(uint32_t sessionID,
           attributeList.at(1).type == A_CNAME &&
           (attributeList.at(1).value != CName::cname() || remoteMedia.multiAttributes.size() == 1))
       {
+        // as a client we should only have one SSRC and the each remote SSRC will have its own attributeList
         clientReceiveMedia(sessionID, localMedia, remoteMedia, receive, codec, id,
                            localSSRCs.at(0), attributeList.at(0).value.toULong(), videoView);
       }
@@ -330,7 +331,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
                                                                      localMedia.receivePort,
                                                                      remoteMedia.receivePort,
                                                                      codec, remoteMedia.rtpNums.at(0),
-                                                                     id, localSSRC, remoteSSRC);
+                                                                     localSSRC, remoteSSRC);
 
   // if we want to send
   if(enabled && remoteMedia.receivePort != 0)
@@ -379,7 +380,7 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& local
                                                                           localMedia.receivePort,
                                                                           remoteMedia.receivePort,
                                                                           codec, localMedia.rtpNums.at(0),
-                                                                          id, localSSRC, remoteSSRC);
+                                                                          localSSRC, remoteSSRC);
 
   if (enabled)
   {

@@ -15,7 +15,8 @@ class UvgRTPSender : public Filter
 public:
   UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
                std::shared_ptr<ResourceAllocator> hwResources, DataType type,
-               QString media, std::shared_ptr<UvgRTPStream> stream);
+               QString media, uint32_t localSSRC, uint32_t remoteSSRC,
+               uvgrtp::media_stream* stream, bool runZRTP);
   ~UvgRTPSender();
 
   void updateSettings();
@@ -30,7 +31,7 @@ private:
 
   void processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr);
 
-  std::shared_ptr<UvgRTPStream> stream_;
+  uvgrtp::media_stream* stream_;
 
   QFutureWatcher<uvg_rtp::media_stream *> watcher_;
   uint32_t sessionID_;
@@ -39,8 +40,6 @@ private:
 
   int32_t framerateNumerator_;
   int32_t framerateDenominator_;
-
-
 
   QFuture<rtp_error_t> futureRes_;
 };

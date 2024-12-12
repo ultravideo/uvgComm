@@ -11,45 +11,50 @@
 #include <QtConcurrent>
 #include <QFuture>
 
-#include <functional>
 
-UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
+UvgRTPSender::UvgRTPSender(uint32_t sessionID,
+                           QString id,
+                           StatisticsInterface *stats,
                            std::shared_ptr<ResourceAllocator> hwResources,
-                           DataType type, QString media,
-                           std::shared_ptr<UvgRTPStream> stream):
-  Filter(id, "RTP Sender " + media, stats, hwResources, type, DT_NONE, false),
-  stream_(stream),
-  sessionID_(sessionID),
-  rtpFlags_(RTP_NO_FLAGS),
-  framerateNumerator_(0),
-  framerateDenominator_(0)
+                           DataType type,
+                           QString media,
+                           uint32_t localSSRC,
+                           uint32_t remoteSSRC,
+                           uvgrtp::media_stream* stream, bool runZRTP)
+    : Filter(id, "RTP Sender " + media, stats, hwResources, type, DT_NONE, false)
+    , stream_(stream)
+    , sessionID_(sessionID)
+    , rtpFlags_(RTP_NO_FLAGS)
+    , framerateNumerator_(0)
+    , framerateDenominator_(0)
 {
+  Q_ASSERT(stream_);
+
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initializing uvgRTP sender",
                                   {"LocalSSRC", "Remote SSRC", "Sender type"},
-                                  {QString::number(stream_->localSSRC),
-                                   QString::number(stream_->remoteSSRC),
+                                  {QString::number(localSSRC),
+                                   QString::number(remoteSSRC),
                                    datatypeToString(input_)});
 
   UvgRTPSender::updateSettings();
 
-  if (stream_->localSSRC != 0)
+  if (localSSRC != 0)
   {
-    stream_->ms->configure_ctx(RCC_SSRC, stream_->localSSRC);
+    stream_->configure_ctx(RCC_SSRC, localSSRC);
   }
-  if (stream_->remoteSSRC != 0)
+  if (remoteSSRC != 0)
   {
-    stream_->ms->configure_ctx(RCC_REMOTE_SSRC, stream_->remoteSSRC);
+    stream_->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC);
   }
 
-  if (stream->runZRTP)
+  if (runZRTP)
   {
-    stream->runZRTP = false;
     futureRes_ =
         QtConcurrent::run([=](uvgrtp::media_stream *ms)
                           {
                             return ms->start_zrtp();
                           },
-                          stream_->ms);
+                          stream_);
   }
 }
 
@@ -74,13 +79,13 @@ void UvgRTPSender::updateSettings()
     framerateNumerator_ = settingValue(SettingsKey::videoFramerateNumerator);
     framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
 
-    if (stream_->ms &&
+    if (stream_ &&
         dataFormat_ == RTP_FORMAT_H264 ||
         dataFormat_ == RTP_FORMAT_H265 ||
         dataFormat_ == RTP_FORMAT_H266)
     {
-      stream_->ms->configure_ctx(RCC_FPS_NUMERATOR, framerateNumerator_);
-      stream_->ms->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
+      stream_->configure_ctx(RCC_FPS_NUMERATOR, framerateNumerator_);
+      stream_->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
     }
   }
 }
@@ -88,7 +93,7 @@ void UvgRTPSender::updateSettings()
 
 void UvgRTPSender::process()
 {
-  if (!stream_->ms)
+  if (!stream_)
     return;
 
   if (futureRes_.isRunning())
@@ -103,7 +108,7 @@ void UvgRTPSender::process()
   // TODO: For HEVC, make sure that the first frame we send is intra
   while (input)
   {
-    ret = stream_->ms->push_frame(std::move(input->data), input->data_size, rtpFlags_);
+    ret = stream_->push_frame(std::move(input->data), input->data_size, rtpFlags_);
 
     if (ret != RTP_OK)
     {
@@ -120,7 +125,7 @@ void UvgRTPSender::process()
 
 void UvgRTPSender::processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr)
 {
-  uint32_t ourSSRC = stream_->ms->get_ssrc();
+  uint32_t ourSSRC = stream_->get_ssrc();
 
   for (auto& block : rr->report_blocks)
   {
