@@ -213,14 +213,14 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
           if (settingString(SettingsKey::sipRole) != "Server")
           {
             clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                        allIDs.at(idIndex), viewFactory_->getVideo(allIDs.at(idIndex)),
+                         viewFactory_->getVideo(allIDs.at(idIndex)),
                         allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
           }
 
           if (settingString(SettingsKey::sipRole) != "Client")
           {
             sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                     allIDs.at(idIndex), viewFactory_->getVideo(allIDs.at(idIndex)),
+                     viewFactory_->getVideo(allIDs.at(idIndex)),
                      allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
           }
 
@@ -238,7 +238,6 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
 void MediaManager::clientMedia(uint32_t sessionID,
                                const MediaInfo& localMedia,
                                const MediaInfo& remoteMedia,
-                               MediaID id,
                                VideoInterface* videoView,
                                bool send,
                                bool receive)
@@ -287,7 +286,7 @@ void MediaManager::clientMedia(uint32_t sessionID,
       return;
     }
 
-    clientSendMedia(sessionID, localMedia, remoteMedia, send, codec, id,
+    clientSendMedia(sessionID, localMedia, remoteMedia, send, codec,
                     localSSRCs.at(0), remoteSSRCs.at(0));
 
     // go through all SSRCs and try to receive them
@@ -302,7 +301,7 @@ void MediaManager::clientMedia(uint32_t sessionID,
           (attributeList.at(1).value != CName::cname() || remoteMedia.multiAttributes.size() == 1))
       {
         // as a client we should only have one SSRC and the each remote SSRC will have its own attributeList
-        clientReceiveMedia(sessionID, localMedia, remoteMedia, receive, codec, id,
+        clientReceiveMedia(sessionID, localMedia, remoteMedia, receive, codec,
                            localSSRCs.at(0), attributeList.at(0).value.toULong(), videoView);
       }
     }
@@ -320,7 +319,6 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
                                    const MediaInfo& remoteMedia,
                                    bool enabled,
                                    QString codec,
-                                   MediaID id,
                                    uint32_t localSSRC,
                                    uint32_t remoteSSRC)
 {
@@ -371,7 +369,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
 
 void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& localMedia,
                                       const MediaInfo& remoteMedia, bool enabled, QString codec,
-                                      MediaID id, uint32_t localSSRC, uint32_t remoteSSRC,
+                                      uint32_t localSSRC, uint32_t remoteSSRC,
                                       VideoInterface* videoView)
 {
   std::shared_ptr<Filter> receiverFilter = streamer_->addRTPReceiveStream(sessionID,
@@ -431,7 +429,6 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& local
 void MediaManager::sfuMedia(uint32_t sessionID,
                             const MediaInfo& localMedia,
                             const MediaInfo& remoteMedia,
-                            MediaID id,
                             VideoInterface* videoView,
                             bool send,
                             bool receive)
@@ -480,10 +477,10 @@ void MediaManager::sfuMedia(uint32_t sessionID,
 
     for (auto& localSSRC : localSSRCs)
     {
-      sfuSendMedia(sessionID, localMedia, remoteMedia, send, id, localSSRC, remoteSSRCs.at(0));
+      sfuSendMedia(sessionID, localMedia, remoteMedia, send, localSSRC, remoteSSRCs.at(0));
     }
 
-    sfuReceiveMedia(sessionID, localMedia, remoteMedia, receive, id,
+    sfuReceiveMedia(sessionID, localMedia, remoteMedia, receive,
                     remoteSSRCs.at(0), videoView);
   }
   else
@@ -498,7 +495,6 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
                                 const MediaInfo& localMedia,
                                 const MediaInfo& remoteMedia,
                                 bool enabled,
-                                MediaID id,
                                 uint32_t localSSRC,
                                 uint32_t remoteSSRC)
 {
@@ -544,7 +540,6 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
                                   const MediaInfo& localMedia,
                                   const MediaInfo& remoteMedia,
                                   bool enabled,
-                                  MediaID id,
                                   uint32_t remoteSSRC,
                                   VideoInterface* videoView)
 {
@@ -643,7 +638,7 @@ void MediaManager::iceSucceeded(const MediaID& id, uint32_t sessionID,
   }
 
   // TODO: Support SFU for ICE by also calling sfuMedia() here
-  clientMedia(sessionID, local, remote, id, view, id.getSend(), id.getReceive());
+  clientMedia(sessionID, local, remote, view, id.getSend(), id.getReceive());
 }
 
 
