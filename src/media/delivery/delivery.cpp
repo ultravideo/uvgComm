@@ -400,7 +400,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
     // enable SRTP
     flags |= RCE_SRTP;
 
-    if (false)
+    if (runZRTP)
     {
       // zrtp will always be performed explicitly
       if (!dhSelected)
@@ -411,8 +411,6 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
       {
         flags |= RCE_ZRTP_MULTISTREAM_MODE;
       }
-
-      runZRTP = true;
     }
     else
     {
@@ -435,21 +433,25 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
     stream->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC);
   }
 
-  constexpr int KEY_SIZE = 256;
-  constexpr int KEY_SIZE_BYTES = KEY_SIZE/8;
-  constexpr int SALT_SIZE = 112;
-  constexpr int SALT_SIZE_BYTES = SALT_SIZE/8;
-  uint8_t key[KEY_SIZE_BYTES]   = { 0 };
-  uint8_t salt[SALT_SIZE_BYTES] = { 0 };
 
-  // initialize SRTP key and salt with dummy values
-  for (int i = 0; i < KEY_SIZE_BYTES; ++i)
-    key[i] = i;
+  if (!runZRTP && ctx.crypto_enabled() && settingEnabled(SettingsKey::sipSRTP))
+  {
+    constexpr int KEY_SIZE = 256;
+    constexpr int KEY_SIZE_BYTES = KEY_SIZE / 8;
+    constexpr int SALT_SIZE = 112;
+    constexpr int SALT_SIZE_BYTES = SALT_SIZE / 8;
+    uint8_t key[KEY_SIZE_BYTES] = {0};
+    uint8_t salt[SALT_SIZE_BYTES] = {0};
 
-  for (int i = 0; i < SALT_SIZE_BYTES; ++i)
-    salt[i] = i * 2;
+    // initialize SRTP key and salt with dummy values
+    for (int i = 0; i < KEY_SIZE_BYTES; ++i)
+      key[i] = i;
 
-  stream->add_srtp_ctx(key, salt);
+    for (int i = 0; i < SALT_SIZE_BYTES; ++i)
+      salt[i] = i * 2;
+    
+    stream->add_srtp_ctx(key, salt);
+  }
 
   // check if there already exists a media session and overwrite
   if (session.streams.find(localSSRC) != session.streams.end() &&
