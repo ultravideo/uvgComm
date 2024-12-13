@@ -23,23 +23,20 @@ static void __receiveHook(void *arg, uvg_rtp::frame::rtp_frame *frame)
   }
 }
 
-UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID,
-                               QString id,
+UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id,
                                StatisticsInterface *stats,
                                std::shared_ptr<ResourceAllocator> hwResources,
-                               DataType type,
-                               QString media,
-                               uint32_t localSSRC,
-                               uint32_t remoteSSRC,
-                               uvgrtp::media_stream *stream)
-    : Filter(id, "RTP Receiver " + media, stats, hwResources, DT_NONE, type)
-    , discardUntilIntra_(false)
-    , lastSeq_(0)
-    , sessionID_(sessionID)
-    , localSSRC_(localSSRC)
-    , remoteSSRC_(remoteSSRC)
-    , stream_(stream)
-    , lastSEITime_(0)
+                               DataType type, QString media,
+                               uint32_t localSSRC,  uint32_t remoteSSRC,
+                               uvgrtp::media_stream *stream, bool runZRTP)
+:Filter(id, "RTP Receiver " + media, stats, hwResources, DT_NONE, type),
+  discardUntilIntra_(false),
+  lastSeq_(0),
+  sessionID_(sessionID),
+  localSSRC_(localSSRC),
+  remoteSSRC_(remoteSSRC),
+  stream_(stream),
+  lastSEITime_(0)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initializing uvgRTP receiver",
                                   {"LocalSSRC", "Remote SSRC", "Receiver type"},
@@ -50,6 +47,16 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID,
   stream_->install_receive_hook(this, __receiveHook);
   stream_->get_rtcp()->install_sender_hook(std::bind(&UvgRTPReceiver::processRTCPSenderReport,
                                                       this, std::placeholders::_1 ));
+
+  if (runZRTP)
+  {
+    futureRes_ =
+        QtConcurrent::run([=](uvgrtp::media_stream *ms)
+                          {
+                            return ms->start_zrtp();
+                          },
+                          stream_);
+  }
 }
 
 

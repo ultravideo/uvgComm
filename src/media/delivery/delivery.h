@@ -81,16 +81,24 @@ signals:
 
 private:
 
-  struct MediaStream
+  struct SendStream
   {
     uvgrtp::media_stream *ms;
     bool runZRTP;
 
     std::shared_ptr<UvgRTPSender> sender;
+  };
+
+
+  struct RecvStream
+  {
+    uvgrtp::media_stream *ms;
+    bool runZRTP;
 
     // key is remote SSRC
-    std::map<uint32_t, std::shared_ptr<UvgRTPReceiver>> receivers;
+    std::shared_ptr<UvgRTPReceiver> receiver;
   };
+
 
   struct DeliverySession
   {
@@ -100,7 +108,10 @@ private:
     QString peerAddress;
 
     // key is local SSRC
-    std::map<uint32_t, MediaStream*> streams;
+    std::map<uint32_t, SendStream*> outgoingStreams;
+
+    // key is remote SSRC
+    std::map<uint32_t, RecvStream*> incomingStreams;
     bool dhSelected;
   };
 
@@ -115,7 +126,8 @@ private:
                         uint16_t peerPort,
                         rtp_format_t fmt,
                         uint32_t localSSRC,
-                        uint32_t remoteSSRC);
+                        uint32_t remoteSSRC,
+                        bool recv);
 
   bool addMediaStream(uint32_t sessionID,
                       DeliverySession &session,
@@ -124,9 +136,14 @@ private:
                       rtp_format_t fmt,
                       bool dhSelected,
                       uint32_t localSSRC,
-                      uint32_t remoteSSRC);
-  void removeMediaStream(uint32_t sessionID, DeliverySession& session,
+                      uint32_t remoteSSRC,
+                      bool recv);
+
+  void removeSendStream(uint32_t sessionID, DeliverySession& session,
                          uint32_t localSSRC);
+
+  void removeRecvStream(uint32_t sessionID, DeliverySession& session,
+                         uint32_t remoteSSRC);
 
   void parseCodecString(QString codec, rtp_format_t& fmt,
                         DataType& type, QString& mediaName);
