@@ -12,21 +12,18 @@
 #include <QFuture>
 
 
-UvgRTPSender::UvgRTPSender(uint32_t sessionID,
-                           QString id,
+UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
                            StatisticsInterface *stats,
                            std::shared_ptr<ResourceAllocator> hwResources,
-                           DataType type,
-                           QString media,
-                           uint32_t localSSRC,
-                           uint32_t remoteSSRC,
+                           DataType type, QString media,
+                           uint32_t localSSRC, uint32_t remoteSSRC,
                            uvgrtp::media_stream* stream, bool runZRTP)
-    : Filter(id, "RTP Sender " + media, stats, hwResources, type, DT_NONE, false)
-    , stream_(stream)
-    , sessionID_(sessionID)
-    , rtpFlags_(RTP_NO_FLAGS)
-    , framerateNumerator_(0)
-    , framerateDenominator_(0)
+  :Filter(id, "RTP Sender " + media, stats, hwResources, type, DT_NONE, false),
+  stream_(stream),
+  sessionID_(sessionID),
+  rtpFlags_(RTP_NO_FLAGS),
+  framerateNumerator_(0),
+  framerateDenominator_(0)
 {
   Q_ASSERT(stream_);
 
@@ -37,15 +34,6 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID,
                                    datatypeToString(input_)});
 
   UvgRTPSender::updateSettings();
-
-  if (localSSRC != 0)
-  {
-    stream_->configure_ctx(RCC_SSRC, localSSRC);
-  }
-  if (remoteSSRC != 0)
-  {
-    stream_->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC);
-  }
 
   if (runZRTP)
   {

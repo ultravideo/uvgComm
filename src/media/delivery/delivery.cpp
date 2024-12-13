@@ -426,6 +426,15 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
 
   uvg_rtp::media_stream* stream = session.session->create_stream(localPort, peerPort, fmt, flags);
 
+  if (localSSRC != 0)
+  {
+    stream->configure_ctx(RCC_SSRC, localSSRC);
+  }
+  if (remoteSSRC != 0)
+  {
+    stream->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC);
+  }
+
   constexpr int KEY_SIZE = 256;
   constexpr int KEY_SIZE_BYTES = KEY_SIZE/8;
   constexpr int SALT_SIZE = 112;
