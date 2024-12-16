@@ -2,11 +2,15 @@
 
 #include "filter.h"
 
+#include <QSize>
+
 class LibYUVConverter : public Filter
 {
 public:
-    LibYUVConverter(QString id, StatisticsInterface* stats,
-                    std::shared_ptr<ResourceAllocator> hwResources, DataType input);
+  LibYUVConverter(QString id, StatisticsInterface* stats,
+                  std::shared_ptr<ResourceAllocator> hwResources, DataType input);
+
+  void setConferenceSize(uint32_t otherParticipants);
 
   virtual void updateSettings();
 
@@ -18,4 +22,5 @@ private:
 
   uint32_t getFourCC(DataType type) const;
 
+  QSize resolution_;
 };

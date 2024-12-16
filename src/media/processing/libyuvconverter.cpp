@@ -1,14 +1,23 @@
 #include "libyuvconverter.h"
 
 #include "logger.h"
+#include "common.h"
+
 
 #include <libyuv.h>
 
 LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
                                  std::shared_ptr<ResourceAllocator> hwResources,
                                  DataType input):
-Filter(id, "libyuv", stats, hwResources, input, DT_YUV420VIDEO)
+Filter(id, "libyuv", stats, hwResources, input, DT_YUV420VIDEO),
+resolution_(1920, 1080)
 {}
+
+
+void LibYUVConverter::setConferenceSize(uint32_t otherParticipants)
+{
+  resolution_ = participantsToResolution(QSize(1920, 1080), otherParticipants);
+}
 
 
 void LibYUVConverter::updateSettings()
@@ -23,6 +32,16 @@ void LibYUVConverter::process()
 
   while(input)
   {
+      /*
+    if (input->vInfo->width != 1920 || input->vInfo->height != 1080)
+    {
+      Logger::getLogger()->printError(this, "Wrong resolution");
+      sendOutput(std::move(input));
+      input = getInput();
+      continue;
+    }
+*/
+
     uint32_t fourcc = getFourCC(inputType());
 
     if (fourcc == 0 || fourcc == libyuv::FOURCC_I420)
@@ -32,8 +51,19 @@ void LibYUVConverter::process()
       continue;
     }
 
-    size_t y_size = input->vInfo->width*input->vInfo->height;
-    size_t color_size = input->vInfo->width*input->vInfo->height/4;
+    float heightScaling = float(resolution_.height())/float(input->vInfo->height);
+    float widthScaling = float(resolution_.width())/float(input->vInfo->width);
+
+    size_t width_crop = 0;
+
+    if (widthScaling < heightScaling)
+    {
+      size_t cropped_width = resolution_.width()*heightScaling;
+      width_crop = input->vInfo->width - cropped_width;
+    }
+
+    size_t y_size = (input->vInfo->width - width_crop)*input->vInfo->height;
+    size_t color_size = (input->vInfo->width - width_crop)*input->vInfo->height/4;
 
     size_t finalDataSize = y_size + 2*color_size;
     std::unique_ptr<uchar[]> yuv_data(new uchar[finalDataSize]);
@@ -42,18 +72,20 @@ void LibYUVConverter::process()
     uint8_t* u = yuv_data.get() + y_size;
     uint8_t* v = yuv_data.get() + y_size + color_size;
 
-    int y_stride = input->vInfo->width;
-    int u_stride = (input->vInfo->width + 1)/2;
-    int v_stride = (input->vInfo->width + 1)/2;
+    int y_stride = input->vInfo->width - width_crop;
+    int u_stride = (input->vInfo->width - width_crop + 1)/2;
+    int v_stride = (input->vInfo->width - width_crop + 1)/2;
 
     libyuv::ConvertToI420(input->data.get(), input->data_size,
                           y, y_stride,
                           u, u_stride,
                           v, v_stride,
-                          0, 0,
+                          width_crop/2, 0,
                           input->vInfo->width, input->vInfo->height,
-                          input->vInfo->width, input->vInfo->height,
+                          input->vInfo->width - width_crop/2, input->vInfo->height,
                           libyuv::kRotate0, fourcc);
+
+    input->vInfo->width = input->vInfo->width - width_crop;
 
     input->type = DT_YUV420VIDEO;
     input->data = std::move(yuv_data);
