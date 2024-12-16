@@ -23,84 +23,13 @@ void LibYUVConverter::process()
 
   while(input)
   {
-    uint32_t fourcc = 0;
+    uint32_t fourcc = getFourCC(inputType());
 
-    switch(inputType())
+    if (fourcc == 0 || fourcc == libyuv::FOURCC_I420)
     {
-        case DT_YUV420VIDEO:
-        {
-        Logger::getLogger()->printWarning(this, "Conversion without need for one");
-        sendOutput(std::move(input));
-        input = getInput();
-        continue;
-        }
-        case DT_YUV422VIDEO:
-        {
-        fourcc = libyuv::FOURCC_I422;
-        break;
-        }
-        case DT_NV12VIDEO:
-        {
-          fourcc = libyuv::FOURCC_NV12;
-          break;
-        }
-        case DT_NV21VIDEO:
-        {
-          fourcc = libyuv::FOURCC_NV21;
-          break;
-        }
-        case DT_YUYVVIDEO:
-        {
-          fourcc = libyuv::FOURCC_YUYV;
-          break;
-        }
-        case DT_UYVYVIDEO:
-        {
-          fourcc = libyuv::FOURCC_UYVY;
-          break;
-        }
-        case DT_ARGBVIDEO:
-        {
-          fourcc = libyuv::FOURCC_ARGB;
-          break;
-        }
-        case DT_BGRAVIDEO:
-        {
-          fourcc = libyuv::FOURCC_BGRA;
-          break;
-        }
-        case DT_ABGRVIDEO:
-        {
-          fourcc = libyuv::FOURCC_ABGR;
-          break;
-        }
-        case DT_RGB32VIDEO:
-        {
-          fourcc = libyuv::FOURCC_RGBA;
-          break;
-        }
-        case DT_RGB24VIDEO:
-        {
-          fourcc = 2; // copied from libyuv tests
-          break;
-        }
-        case DT_BGRXVIDEO:
-        {
-          fourcc = libyuv::FOURCC_24BG;
-          break;
-        }
-        case DT_MJPEGVIDEO:
-        {
-          fourcc = libyuv::FOURCC_MJPG;
-          break;
-        }
-        default:
-        {
-          Logger::getLogger()->printWarning(this, "Unsupported conversion requested");
-          sendOutput(std::move(input));
-          input = getInput();
-          continue;
-        }
+      sendOutput(std::move(input));
+      input = getInput();
+      continue;
     }
 
     size_t y_size = input->vInfo->width*input->vInfo->height;
@@ -133,4 +62,87 @@ void LibYUVConverter::process()
 
     input = getInput();
   }
+}
+
+
+uint32_t LibYUVConverter::getFourCC(DataType type) const
+{
+  uint32_t fourcc = 0;
+
+  switch(type)
+  {
+    case DT_YUV420VIDEO:
+    {
+      Logger::getLogger()->printProgramWarning(this, "Already in YUV 420 format");
+      fourcc = libyuv::FOURCC_I420;
+      break;
+    }
+    case DT_YUV422VIDEO:
+    {
+      fourcc = libyuv::FOURCC_I422;
+      break;
+    }
+    case DT_NV12VIDEO:
+    {
+      fourcc = libyuv::FOURCC_NV12;
+      break;
+    }
+    case DT_NV21VIDEO:
+    {
+      fourcc = libyuv::FOURCC_NV21;
+      break;
+    }
+    case DT_YUYVVIDEO:
+    {
+      fourcc = libyuv::FOURCC_YUYV;
+      break;
+    }
+    case DT_UYVYVIDEO:
+    {
+      fourcc = libyuv::FOURCC_UYVY;
+      break;
+    }
+    case DT_ARGBVIDEO:
+    {
+      fourcc = libyuv::FOURCC_ARGB;
+      break;
+    }
+    case DT_BGRAVIDEO:
+    {
+      fourcc = libyuv::FOURCC_BGRA;
+      break;
+    }
+    case DT_ABGRVIDEO:
+    {
+      fourcc = libyuv::FOURCC_ABGR;
+      break;
+    }
+    case DT_RGB32VIDEO:
+    {
+      fourcc = libyuv::FOURCC_RGBA;
+      break;
+    }
+    case DT_RGB24VIDEO:
+    {
+      fourcc = 2; // copied from libyuv tests
+      break;
+    }
+    case DT_BGRXVIDEO:
+    {
+      fourcc = libyuv::FOURCC_24BG;
+      break;
+    }
+    case DT_MJPEGVIDEO:
+    {
+      fourcc = libyuv::FOURCC_MJPG;
+      break;
+    }
+    default:
+    {
+      Logger::getLogger()->printWarning(this, "Unsupported conversion requested");
+      fourcc = 0;
+    }
+  }
+
+  return fourcc;
 }

@@ -8,10 +8,14 @@ public:
     LibYUVConverter(QString id, StatisticsInterface* stats,
                     std::shared_ptr<ResourceAllocator> hwResources, DataType input);
 
-    virtual void updateSettings();
+  virtual void updateSettings();
 
 protected:
 
-    void process();
+  void process();
+
+private:
+
+  uint32_t getFourCC(DataType type) const;
 
 };
