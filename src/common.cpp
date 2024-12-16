@@ -17,6 +17,7 @@
 #include <QNetworkInterface>
 
 #include <cstdlib>
+#include <cmath>
 
 
 const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -285,6 +286,33 @@ int64_t NTPToMsec(uint64_t ntp)
   return msw_ms + lsw_ms;
 }
 
+
+QSize participantsToResolution(QSize baseResolution, uint32_t otherParticipants)
+{
+  if (otherParticipants == 0)
+  {
+    Logger::getLogger()->printError("Common", "Zero participants is not legal");
+    return QSize(0,0);
+  }
+
+  if (otherParticipants > 134)
+  {
+    otherParticipants = 134;
+  }
+  if (otherParticipants > 82)
+  {
+    otherParticipants = 82;
+  }
+  else if (otherParticipants > 32)
+  {
+    otherParticipants = 32;
+  }
+
+  int cols = std::ceil(std::sqrt(otherParticipants));
+  int rows = std::ceil(float(otherParticipants)/cols);
+
+  return QSize(baseResolution.width()/cols, baseResolution.height()/rows);
+}
 
 QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info)
 {
