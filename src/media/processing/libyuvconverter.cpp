@@ -32,7 +32,6 @@ void LibYUVConverter::process()
 
   while(input)
   {
-      /*
     if (input->vInfo->width != 1920 || input->vInfo->height != 1080)
     {
       Logger::getLogger()->printError(this, "Wrong resolution");
@@ -40,7 +39,6 @@ void LibYUVConverter::process()
       input = getInput();
       continue;
     }
-*/
 
     uint32_t fourcc = getFourCC(inputType());
 
@@ -62,12 +60,15 @@ void LibYUVConverter::process()
       width_crop = input->vInfo->width - cropped_width;
     }
 
+    // how much each region of UUV takes space
     size_t y_size = (input->vInfo->width - width_crop)*input->vInfo->height;
     size_t color_size = (input->vInfo->width - width_crop)*input->vInfo->height/4;
 
+    // reserve memory for converted YUV
     size_t finalDataSize = y_size + 2*color_size;
     std::unique_ptr<uchar[]> yuv_data(new uchar[finalDataSize]);
 
+    // where each region begins
     uint8_t* y = yuv_data.get();
     uint8_t* u = yuv_data.get() + y_size;
     uint8_t* v = yuv_data.get() + y_size + color_size;
@@ -76,6 +77,7 @@ void LibYUVConverter::process()
     int u_stride = (input->vInfo->width - width_crop + 1)/2;
     int v_stride = (input->vInfo->width - width_crop + 1)/2;
 
+    // convert and possibly crop
     libyuv::ConvertToI420(input->data.get(), input->data_size,
                           y, y_stride,
                           u, u_stride,
@@ -85,7 +87,49 @@ void LibYUVConverter::process()
                           input->vInfo->width - width_crop/2, input->vInfo->height,
                           libyuv::kRotate0, fourcc);
 
+    // update the possible cropping to width
     input->vInfo->width = input->vInfo->width - width_crop;
+
+    // downscale the YUV if needed
+    if (heightScaling < 1)
+    {
+      // scaled resolution
+      int scaledWidth = input->vInfo->width*heightScaling;
+      int scaledHeight = input->vInfo->height*heightScaling;
+
+      // size of scaled YUV
+      size_t scaled_y_size = (scaledWidth)*scaledHeight;
+      size_t scaled_color_size = (scaledWidth)*scaledHeight/4;
+
+      // reserve memory for scaled YUV
+      finalDataSize = scaled_y_size + 2*scaled_color_size;
+      std::unique_ptr<uchar[]> scaled_yuv_data(new uchar[finalDataSize]);
+
+      // get YUV regions
+      uint8_t* sy = scaled_yuv_data.get();
+      uint8_t* su = scaled_yuv_data.get() + scaled_y_size;
+      uint8_t* sv = scaled_yuv_data.get() + scaled_y_size + scaled_color_size;
+
+      int sy_stride = scaledWidth;
+      int su_stride = (scaledWidth + 1)/2;
+      int sv_stride = (scaledWidth + 1)/2;
+
+      // scale the YUV
+      libyuv::I420Scale(y, y_stride,
+                        u, u_stride,
+                        v, v_stride,
+                        input->vInfo->width, input->vInfo->height,
+                        sy, sy_stride,
+                        su, su_stride,
+                        sv, sv_stride,
+                        scaledWidth, scaledHeight,
+                        libyuv::kFilterNone);
+
+      // use the scaled YUV when sending data forward
+      yuv_data = std::move(scaled_yuv_data);
+      input->vInfo->width = scaledWidth;
+      input->vInfo->height = scaledHeight;
+    }
 
     input->type = DT_YUV420VIDEO;
     input->data = std::move(yuv_data);
