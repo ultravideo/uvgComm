@@ -821,8 +821,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
           ui_->v_bitrate_chart->addPoint(d.second.performanceGraphIndex, videoBitrate);
           ui_->a_bitrate_chart->addPoint(d.second.performanceGraphIndex, audioBitrate);
-          ui_->v_delay_chart->addPoint(d.second.delayGraphIndex, videoDelay);
-          ui_->a_delay_chart->addPoint(d.second.delayGraphIndex, audioDelay);
+          ui_->v_delay_chart->addPoint(d.second.delayGraphIndex, (float)videoDelay);
+          ui_->a_delay_chart->addPoint(d.second.delayGraphIndex, (float)audioDelay);
           ui_->v_framerate_chart->addPoint(d.second.performanceGraphIndex, presentationVideoFramerate);
 
           sessionMutex_.unlock();

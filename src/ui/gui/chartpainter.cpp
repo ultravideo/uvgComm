@@ -218,7 +218,14 @@ void ChartPainter::addPoint(int lineID, float y)
       // if y is larger than maximum, then double the maxY and yLines
       while (y > maxY_)
       {
-        maxY_ *= 2;
+        if (maxY_ == 0)
+        {
+          maxY_ = 1;
+        }
+        else
+        {
+          maxY_ *= 2;
+        }
 
         // only double until 10
         if (yLines_*2 <= 10)
