@@ -89,6 +89,7 @@ set(uvgComm_SOURCES
     src/media/delivery/icesessiontester.cpp         src/media/delivery/icesessiontester.h
     src/media/delivery/uvgrtpreceiver.cpp           src/media/delivery/uvgrtpreceiver.h
     src/media/delivery/uvgrtpsender.cpp             src/media/delivery/uvgrtpsender.h
+    src/media/delivery/uvgrtp_socket.cc             src/media/delivery/uvgrtp_socket.hh
     src/media/mediamanager.cpp                      src/media/mediamanager.h
     src/media/processing/audiocapturefilter.cpp     src/media/processing/audiocapturefilter.h
     src/media/processing/audioframebuffer.cpp       src/media/processing/audioframebuffer.h

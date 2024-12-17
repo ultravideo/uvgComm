@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 
+// The performance of this Qt implementation is not good enough for SFU
 
 class Filter;
 
