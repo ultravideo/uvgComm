@@ -267,10 +267,10 @@ void CallWindow::closeEvent(QCloseEvent *event)
   QMainWindow::closeEvent(event);
 }
 
-
 void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
-                             uint32_t sessionID, QStringList names,
-                             const QList<std::pair<MediaID,MediaID>> &audioVideoIDs)
+                             uint32_t sessionID,
+                             QStringList names,
+                             const QList<std::pair<uint32_t, uint32_t> >& audioVideoIDs)
 {
   // Allow user to end the call
   ui_->EndCallButton->setEnabled(true);
@@ -290,7 +290,7 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
       for (auto& mid : audioVideoIDs)
       {
           // this layout is still needed
-          if (layout.mediaID == mid.second)
+          if (layout.remoteSSRC == mid.second)
         {
           expiredLayout = false;
         }
@@ -326,7 +326,7 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
 
       for (auto& layout : layoutIDs_[sessionID])
       {
-        if (layout.mediaID == mid.second)
+        if (layout.remoteSSRC == mid.second)
         {
           // we already have a layout location for this media
            newMedia = false;
@@ -368,18 +368,18 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
     for (unsigned int i = 0; i < layoutsUsed; ++i) {
       uint32_t layoutID = layoutIDs_[sessionID].at(i).layoutID;
 
-      if (audioVideoIDs.at(i).second.getReceive()) // video or avatar
+      if (true) // video or avatar
       {
          conference_.attachVideoWidget(
-           layoutID,
-           viewFactory->getView(layoutIDs_[sessionID].at(i).mediaID));
-      } else {
+           layoutID, viewFactory->getView(layoutIDs_[sessionID].at(i).remoteSSRC));
+      }
+      else
+      {
          conference_.attachAvatarWidget(layoutID, names.at(i));
       }
 
       // update audio icon status
-      viewFactory->getVideo(layoutIDs_[sessionID].at(i).mediaID)
-        ->drawMicOffIcon(!audioVideoIDs.at(i).first.getReceive());
+      viewFactory->getVideo(layoutIDs_[sessionID].at(i).remoteSSRC)->drawMicOffIcon(false);
     }
   }
 }

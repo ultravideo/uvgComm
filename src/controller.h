@@ -4,7 +4,6 @@
 #include "initiation/sipmanager.h"
 #include "ui/uimanager.h"
 #include "participantinterface.h"
-#include "mediaid.h"
 
 #include <QObject>
 
@@ -102,19 +101,8 @@ private:
 
   void createSIPDialog(QString name, QString username, QString ip, uint32_t sessionID);
 
-  void updateMediaIDs(uint32_t sessionID,
-                      QList<MediaInfo>& localMedia,
-                      QList<MediaInfo>& remoteMedia,
-                      bool followOurSDP,
-                      QList<std::pair<MediaID, MediaID>>& audioVideoIDs, QList<MediaID>& allIDs);
+  void getRemoteSSRCs(QList<MediaInfo>& remoteMedia, QList<std::pair<uint32_t, uint32_t> > &ssrcs);
 
-
-
-  QList<MediaID> mediaPairIDs(uint32_t sessionID, const MediaInfo &localMedia, const MediaInfo &remoteMedia, bool followOurSDP);
-
-  void getMediaAttributes(const MediaInfo &local, const MediaInfo& remote,
-                          bool followOurSDP, bool &send,
-                          bool& receive);
 
   // the stun addresses are our outward network addresses which our peer uses to send data to us
   // we cannot however bind to those so we must translate the addresses to our local addresses
@@ -127,7 +115,6 @@ private:
 
   // this is a huge hack altogether
   bool areWeICEController(bool initialAgent, uint32_t sessionID) const;
-
 
   MediaRole getMediaRole(QString role) const;
   ConferenceTopology getTopology(QString topology) const;
@@ -171,7 +158,8 @@ private:
 
   QTimer delayedNegotiation_;
 
-  std::map<uint32_t, std::shared_ptr<std::vector<MediaID>>> sessionMedias_;
+  // sessionID to remote SSRCs
+  std::map<uint32_t, std::shared_ptr<std::vector<uint32_t>>> sessionMedias_;
 
   std::shared_ptr<VideoviewFactory> viewFactory_;
 

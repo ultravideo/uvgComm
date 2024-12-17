@@ -95,12 +95,11 @@ void MediaManager::uninit()
   }
 }
 
-
 void MediaManager::newParticipant(uint32_t sessionID,
                                   std::shared_ptr<SDPMessageInfo> peerInfo,
                                   const std::shared_ptr<SDPMessageInfo> localInfo,
-                                  const QList<MediaID> &allIDs,
-                                  bool iceController, bool followOurSDP)
+                                  bool iceController,
+                                  bool followOurSDP)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
   if (!sessionChecks(peerInfo, localInfo))
@@ -136,15 +135,14 @@ void MediaManager::newParticipant(uint32_t sessionID,
                      this, &MediaManager::iceFailed);
   }
 
-  return modifyParticipant(sessionID, peerInfo, localInfo, allIDs, iceController, followOurSDP);
+  return modifyParticipant(sessionID, peerInfo, localInfo, iceController, followOurSDP);
 }
-
 
 void MediaManager::modifyParticipant(uint32_t sessionID,
                                      std::shared_ptr<SDPMessageInfo> peerInfo,
                                      const std::shared_ptr<SDPMessageInfo> localInfo,
-                                     const QList<MediaID> &allIDs,
-                                     bool iceController, bool followOurSDP)
+                                     bool iceController,
+                                     bool followOurSDP)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
   if (!sessionChecks(peerInfo, localInfo))
@@ -171,7 +169,6 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
   {
     participants_[sessionID].localInfo = localInfo;
     participants_[sessionID].peerInfo = peerInfo;
-    participants_[sessionID].allIDs = allIDs;
     participants_[sessionID].followOurSDP = followOurSDP;
 
      // in mesh conference host, we also have media meant for others, so we don't have and id for those
@@ -183,11 +180,14 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
       // only test if this is a local candidate
       if (isLocalCandidate(localInfo->media.at(i).candidates.first()))
       {
-          participants_[sessionID].ice->startNomination(allIDs.at(idIndex),
-                                                        localInfo->media.at(i),
-                                                        peerInfo->media.at(i),
-                                                        iceController);
+        /*
+         * TODO: Search for SSRC in the media and use that as the ID
+        participants_[sessionID].ice->startNomination(allIDs.at(idIndex),
+                                                      localInfo->media.at(i),
+                                                      peerInfo->media.at(i),
+                                                      iceController);
         ++idIndex;
+*/
       }
     }
   }
@@ -203,34 +203,25 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
       medias = peerInfo->media.size();
     }
 
-    if (!allIDs.empty())
+    for (unsigned int i = 0; i < medias; ++i)
     {
-      unsigned int idIndex = 0;
-      for (unsigned int i = 0; i < medias; ++i)
+      bool send = false;
+      bool receive = false;
+      getMediaAttributes(localInfo->media.at(i), peerInfo->media.at(i), followOurSDP,
+                         send, receive);
+
+      if (isLocalAddress(localInfo->media.at(i).connection_address))
       {
-        if (isLocalAddress(localInfo->media.at(i).connection_address))
+        if (settingString(SettingsKey::sipRole) != "Server")
         {
-          if (settingString(SettingsKey::sipRole) != "Server")
-          {
-            clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                         viewFactory_->getVideo(allIDs.at(idIndex)),
-                        allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
-          }
+          clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
+        }
 
-          if (settingString(SettingsKey::sipRole) != "Client")
-          {
-            sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
-                     viewFactory_->getVideo(allIDs.at(idIndex)),
-                     allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
-          }
-
-          ++idIndex;
+        if (settingString(SettingsKey::sipRole) != "Client")
+        {
+          sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
         }
       }
-    }
-    else
-    {
-      Logger::getLogger()->printNormal(this, "No media IDs for participant, not initializing anything");
     }
   }
 }
@@ -238,7 +229,6 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
 void MediaManager::clientMedia(uint32_t sessionID,
                                const MediaInfo& localMedia,
                                const MediaInfo& remoteMedia,
-                               VideoInterface* videoView,
                                bool send,
                                bool receive)
 {
@@ -302,7 +292,7 @@ void MediaManager::clientMedia(uint32_t sessionID,
       {
         // as a client we should only have one SSRC and the each remote SSRC will have its own attributeList
         clientReceiveMedia(sessionID, localMedia, remoteMedia, receive, codec,
-                           localSSRCs.at(0), attributeList.at(0).value.toULong(), videoView);
+                           localSSRCs.at(0), attributeList.at(0).value.toULong());
       }
     }
   }
@@ -369,8 +359,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
 
 void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& localMedia,
                                       const MediaInfo& remoteMedia, bool enabled, QString codec,
-                                      uint32_t localSSRC, uint32_t remoteSSRC,
-                                      VideoInterface* videoView)
+                                      uint32_t localSSRC, uint32_t remoteSSRC)
 {
   std::shared_ptr<Filter> receiverFilter = streamer_->addRTPReceiveStream(sessionID,
                                                                           localMedia.connection_address,
@@ -399,8 +388,7 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& local
     }
     else if (localMedia.type == "video")
     {
-      Q_ASSERT(videoView);
-
+      VideoInterface* videoView = viewFactory_->getVideo(remoteSSRC);
       if (videoView != nullptr)
       {
         p2pFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, remoteSSRC);
@@ -429,9 +417,7 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& local
 void MediaManager::sfuMedia(uint32_t sessionID,
                             const MediaInfo& localMedia,
                             const MediaInfo& remoteMedia,
-                            VideoInterface* videoView,
-                            bool send,
-                            bool receive)
+                            bool send, bool receive)
 {
   if (localMedia.connection_address == "" || remoteMedia.connection_address == "")
   {
@@ -480,8 +466,7 @@ void MediaManager::sfuMedia(uint32_t sessionID,
       sfuSendMedia(sessionID, localMedia, remoteMedia, send, localSSRC, remoteSSRCs.at(0));
     }
 
-    sfuReceiveMedia(sessionID, localMedia, remoteMedia, receive,
-                    remoteSSRCs.at(0), videoView);
+    sfuReceiveMedia(sessionID, localMedia, remoteMedia, receive, remoteSSRCs.at(0));
   }
   else
   {
@@ -540,8 +525,7 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
                                   const MediaInfo& localMedia,
                                   const MediaInfo& remoteMedia,
                                   bool enabled,
-                                  uint32_t remoteSSRC,
-                                  VideoInterface* videoView)
+                                  uint32_t remoteSSRC)
 {
   std::shared_ptr<Filter> receive = streamer_->addUDPReceiveStream(sessionID,
        localMedia.connection_address,
@@ -556,12 +540,8 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
     }
     else if (localMedia.type == "video")
     {
-      Q_ASSERT(videoView);
-
-      if (videoView != nullptr)
-      {
-        sfuFg_->receiveVideoFrom(sessionID, receive, videoView, remoteSSRC);
-      }
+      VideoInterface* videoView = viewFactory_->getVideo(remoteSSRC);
+      sfuFg_->receiveVideoFrom(sessionID, receive, videoView, remoteSSRC);
     }
     else
     {
@@ -599,8 +579,7 @@ void MediaManager::removeParticipant(uint32_t sessionID)
             {"SessionID"}, {QString::number(sessionID)});
 }
 
-
-void MediaManager::iceSucceeded(const MediaID& id, uint32_t sessionID,
+void MediaManager::iceSucceeded(const uint32_t& ssrc, uint32_t sessionID,
                                 MediaInfo local, MediaInfo remote)
 {
   if (participants_.find(sessionID) == participants_.end())
@@ -612,6 +591,8 @@ void MediaManager::iceSucceeded(const MediaID& id, uint32_t sessionID,
   Logger::getLogger()->printNormal(this, "ICE nomination has succeeded", {"SessionID"},
                                    {QString::number(sessionID)});
 
+  /*
+   * TODO: Figure out how this goes with SSRCs
   VideoInterface* view = nullptr;
 
   if (local.type == "video")
@@ -639,10 +620,11 @@ void MediaManager::iceSucceeded(const MediaID& id, uint32_t sessionID,
 
   // TODO: Support SFU for ICE by also calling sfuMedia() here
   clientMedia(sessionID, local, remote, view, id.getSend(), id.getReceive());
+*/
 }
 
 
-void MediaManager::iceFailed(const MediaID &id, uint32_t sessionID)
+void MediaManager::iceFailed(const uint32_t &ssrc, uint32_t sessionID)
 {
   Logger::getLogger()->printError(this, "ICE failed, removing participant");
 

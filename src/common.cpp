@@ -151,6 +151,23 @@ bool getReceiveAttribute(const MediaInfo &media, bool local)
 }
 
 
+void getMediaAttributes(const MediaInfo &local, const MediaInfo &remote,
+                                           bool followOurSDP,
+                                           bool& send, bool& receive)
+{
+  if (followOurSDP)
+  {
+    receive = getReceiveAttribute(local, followOurSDP);
+    send =    getSendAttribute(local, followOurSDP);
+  }
+  else
+  {
+    receive = getReceiveAttribute(remote, followOurSDP);
+    send =    getSendAttribute(remote, followOurSDP);
+  }
+}
+
+
 void setSDPAddress(QString inAddress, QString& address, QString& nettype, QString& addressType)
 {
   if (!inAddress.isEmpty())

@@ -32,6 +32,10 @@ bool isLocalAddress(QString candidateAddress);
 bool getSendAttribute(const MediaInfo &media, bool local);
 bool getReceiveAttribute(const MediaInfo &media, bool local);
 
+void getMediaAttributes(const MediaInfo &local, const MediaInfo& remote,
+                        bool followOurSDP, bool &send,
+                        bool& receive);
+
 void setSDPAddress(QString inAddress, QString& address,
                    QString& nettype, QString& addressType);
 

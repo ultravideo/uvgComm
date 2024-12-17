@@ -2,7 +2,6 @@
 
 #include "initiation/negotiation/sdptypes.h"
 #include "delivery/ice.h"
-#include "mediaid.h"
 
 #include <QObject>
 #include <QMutex>
@@ -45,7 +44,6 @@ struct ParticipantMedia
   std::shared_ptr<SDPMessageInfo> localInfo;
   std::shared_ptr<SDPMessageInfo> peerInfo;
 
-  QList<MediaID> allIDs;
   bool followOurSDP;
 };
 
@@ -68,14 +66,14 @@ public:
   void newParticipant(uint32_t sessionID,
                       const std::shared_ptr<SDPMessageInfo> peerInfo,
                       const std::shared_ptr<SDPMessageInfo> localInfo,
-                      const QList<MediaID>& allIDs,
-                      bool iceController, bool followOurSDP);
+                      bool iceController,
+                      bool followOurSDP);
 
   void modifyParticipant(uint32_t sessionID,
                          const std::shared_ptr<SDPMessageInfo> peerInfo,
                          const std::shared_ptr<SDPMessageInfo> localInfo,
-                         const QList<MediaID>& allIDs,
-                         bool iceController, bool followOurSDP);
+                         bool iceController,
+                         bool followOurSDP);
 
   void removeParticipant(uint32_t sessionID);
 
@@ -110,18 +108,19 @@ signals:
   void updateAutomaticSettings();
 
 public slots:
-  void iceSucceeded(const MediaID &id, uint32_t sessionID,
+  void iceSucceeded(const uint32_t &ssrc, uint32_t sessionID,
                     MediaInfo local, MediaInfo remote);
-  void iceFailed(const MediaID& id, uint32_t sessionID);
+  void iceFailed(const uint32_t& ssrc, uint32_t sessionID);
 
 signals:
   void iceMediaFailed(uint32_t sessionID);
 
 private:
-
-  void clientMedia(uint32_t sessionID, const MediaInfo& localMedia,
+  void clientMedia(uint32_t sessionID,
+                   const MediaInfo& localMedia,
                    const MediaInfo& remoteMedia,
-                   VideoInterface *videoView, bool send, bool receive);
+                   bool send,
+                   bool receive);
 
   void clientSendMedia(uint32_t sessionID,
                        const MediaInfo& localMedia,
@@ -137,13 +136,11 @@ private:
                           bool enabled,
                           QString codec,
                           uint32_t localSSRC,
-                          uint32_t remoteSSRC,
-                          VideoInterface* videoView);
+                          uint32_t remoteSSRC);
 
   void sfuMedia(uint32_t sessionID,
                 const MediaInfo& localMedia,
                 const MediaInfo& remoteMedia,
-                VideoInterface* videoView,
                 bool send,
                 bool receive);
 
@@ -158,8 +155,7 @@ private:
                        const MediaInfo& localMedia,
                        const MediaInfo& remoteMedia,
                        bool enabled,
-                       uint32_t remoteSSRC,
-                       VideoInterface* videoView);
+                       uint32_t remoteSSRC);
 
   QString rtpNumberToCodec(const MediaInfo& info);
 

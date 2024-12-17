@@ -151,7 +151,6 @@ set(uvgComm_SOURCES
     src/ui/settings/videosettings.cpp               src/ui/settings/videosettings.h     src/ui/settings/videosettings.ui
     src/ui/uimanager.cpp                            src/ui/uimanager.h
     src/videoviewfactory.cpp                        src/videoviewfactory.h
-    src/mediaid.h                                   src/mediaid.cpp
 )
 
 

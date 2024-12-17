@@ -3,8 +3,6 @@
 #include "conferenceview.h"
 #include "contactlist.h"
 
-#include "mediaid.h"
-
 #include <QMainWindow>
 #include <QPushButton>
 
@@ -39,7 +37,7 @@ public:
   // adds video stream to view
   void callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
                    uint32_t sessionID, QStringList names,
-                   const QList<std::pair<MediaID, MediaID>> &audioVideoIDs);
+                   const QList<std::pair<uint32_t, uint32_t>> &audioVideoIDs);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
@@ -131,11 +129,11 @@ private:
   struct LayoutMedia
   {
     LayoutID layoutID;
-    MediaID mediaID;
+    uint32_t remoteSSRC;
   };
 
   std::map<uint32_t, LayoutID> temporaryLayoutIDs_;
 
-  // key is sessionID, used to store layoutID/mediaID combinations
+  // key is sessionID, used to store layoutID/ssrc combinations
   std::map<uint32_t, std::vector<LayoutMedia>> layoutIDs_;
 };

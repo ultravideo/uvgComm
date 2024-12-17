@@ -7,6 +7,7 @@
 #include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
+#include "cname.h"
 
 #include <QSettings>
 #include <QHostAddress>
@@ -518,11 +519,8 @@ void uvgCommController::createCall(uint32_t sessionID)
     remoteSDP->media.erase(remoteSDP->media.begin() + index);
   }
 
-  QList<std::pair<MediaID, MediaID>> audioVideoIDs;
-  QList<MediaID> allIDs;
-
-  updateMediaIDs(sessionID, localSDP->media, remoteSDP->media,
-                 states_[sessionID].followOurSDP, audioVideoIDs, allIDs);
+  QList<std::pair<uint32_t, uint32_t>> audioVideoIDs;
+  getRemoteSSRCs(remoteSDP->media, audioVideoIDs);
 
   QStringList names;
 
@@ -542,7 +540,7 @@ void uvgCommController::createCall(uint32_t sessionID)
       stats_->addSession(sessionID);
     }
 
-    media_.newParticipant(sessionID, remoteSDP, localSDP, allIDs,
+    media_.newParticipant(sessionID, remoteSDP, localSDP,
                           states_[sessionID].iceController,
                           states_[sessionID].followOurSDP);
 
@@ -550,7 +548,7 @@ void uvgCommController::createCall(uint32_t sessionID)
    }
   else
   {
-    media_.modifyParticipant(sessionID, remoteSDP, localSDP, allIDs,
+    media_.modifyParticipant(sessionID, remoteSDP, localSDP,
                              states_[sessionID].iceController,
                              states_[sessionID].followOurSDP);
   }
@@ -561,130 +559,53 @@ void uvgCommController::createCall(uint32_t sessionID)
 }
 
 
-void uvgCommController::updateMediaIDs(uint32_t sessionID,
-                                       QList<MediaInfo>& localMedia,
-                                       QList<MediaInfo>& remoteMedia,
-                                       bool followOurSDP,
-                                       QList<std::pair<MediaID, MediaID>> &audioVideoIDs,
-                                       QList<MediaID>& allIDs)
+void uvgCommController::getRemoteSSRCs(QList<MediaInfo>& remoteMedia,
+                                       QList<std::pair<uint32_t, uint32_t>>& ssrcs)
 {
-  Q_ASSERT(localMedia.size() == remoteMedia.size());
+  int audioIndex = 0;
+  int videoIndex = 0;
 
-  QStringList medias = {"SessionID"};
-  QStringList ssrcs = {QString::number(sessionID)};
-
-  for (auto& media : localMedia)
+  /* we go through all medias. This function should support
+   * both more than two medias and more than one ssrc per media */
+  for (auto& media : remoteMedia)
   {
-    medias.push_back(media.type + " ssrc");
-    ssrcs.push_back(QString::number(findSSRC(media)));
-  }
-
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Getting mediaIDs for " +
-                                                        QString::number(localMedia.size()) + " medias",
-                                  {medias}, {ssrcs});
-
-  // first we set correct attributes
-  for (int i = 0; i < localMedia.size(); i += 1)
-  {
-
-    if (!localMedia.at(i).candidates.empty())
+    QList<uint32_t> ssrcList;
+    // typically multiAttributes contains one SSRC and CNAME
+    for (auto& attribute : media.multiAttributes)
     {
-      if (isLocalCandidate(localMedia.at(i).candidates.first())) // if we are using ICE
+      bool possibleLocalcall = media.multiAttributes.size() == 1;
+      // record all cnames from this media unless it has been generated for us
+      if (attribute.size() == 2 && attribute.at(0).type == A_SSRC &&
+          attribute.at(1).type == A_CNAME && (attribute.at(1).value != CName::cname() || possibleLocalcall))
       {
-        allIDs.append(mediaPairIDs(sessionID, localMedia.at(i), remoteMedia.at(i), followOurSDP));
+        ssrcList.push_back(attribute.at(0).value.toUInt());
       }
     }
-    else if (isLocalAddress(localMedia.at(i).connection_address)) // if we are not using ICE
+
+    // go through all found SSRCs from this media and add them to remote SSRCs
+    for (auto& ssrc : ssrcList)
     {
-      allIDs.append(mediaPairIDs(sessionID, localMedia.at(i), remoteMedia.at(i), followOurSDP));
-    }
-    else
-    {
-      Logger::getLogger()->printNormal(this, "Remote candidate, not processing. Happens when we are the conference host",
-                                       "Address", localMedia.at(i).connection_address);
-    }
-  }
-
-  // TODO: Use lipsync to determine pairs
-  for (int i = 0; i < allIDs.size(); i +=2)
-  {
-    audioVideoIDs.push_back({allIDs.at(i), allIDs.at(i + 1)});
-  }
-}
-
-
-void uvgCommController::getMediaAttributes(const MediaInfo &local, const MediaInfo &remote,
-                                           bool followOurSDP,
-                                           bool& send, bool& receive)
-{
-  if (followOurSDP)
-  {
-    receive = getReceiveAttribute(local, followOurSDP);
-    send =    getSendAttribute(local, followOurSDP);
-  }
-  else
-  {
-    receive = getReceiveAttribute(remote, followOurSDP);
-    send =    getSendAttribute(remote, followOurSDP);
-  }
-}
-
-
-QList<MediaID> uvgCommController::mediaPairIDs(uint32_t sessionID,
-                                               const MediaInfo &localMedia,
-                                               const MediaInfo &remoteMedia,
-                                               bool followOurSDP)
-{
-  bool send = false;
-  bool receive = false;
-  getMediaAttributes(localMedia, remoteMedia, followOurSDP, send, receive);
-
-  std::vector<uint32_t> localSSRCs;
-  std::vector<uint32_t> remoteSSRCs;
-  findSSRCs(localMedia, localSSRCs);
-  findSSRCs(remoteMedia, remoteSSRCs);
-
-  QList<MediaID> ids;
-
-  if (sessionMedias_.find(sessionID) == sessionMedias_.end())
-  {
-    sessionMedias_[sessionID] =
-        std::shared_ptr<std::vector<MediaID>>(new std::vector<MediaID>());
-  }
-
-  for (auto& local : localSSRCs)
-  {
-    for (auto& remote : remoteSSRCs)
-    {
-      bool found = false;
-      for (auto& sMedia : *sessionMedias_[sessionID])
+      if (media.type == "audio")
       {
-        if (sMedia == MediaID(local, remote))
+        if (audioIndex >= ssrcs.size())
         {
-          Logger::getLogger()->printNormal(this, "Using existing MediaID",
-                                           "Media type", localMedia.type);
-
-          found = true;
-          ids.push_back(sMedia);
-
-          break;
+          ssrcs.push_back(std::make_pair(0,0));
         }
-      }
 
-      if(!found)
+        ssrcs[audioIndex].first = ssrc;
+        ++audioIndex;
+      }
+      else if (media.type == "video")
       {
-        Logger::getLogger()->printNormal(this, "Creating a new MediaID",
-                                         "SSRC", QString::number(local));
-        ids.push_back(MediaID(local, remote));
-        sessionMedias_[sessionID]->push_back(ids.back());
+        if (videoIndex >= ssrcs.size())
+        {
+          ssrcs.push_back(std::make_pair(0,0));
+        }
+        ssrcs[videoIndex].second = ssrc;
+        ++videoIndex;
       }
-
-      ids.back().setReceive(receive);
-      ids.back().setSend(send);
     }
   }
-
-  return ids;
 }
 
 

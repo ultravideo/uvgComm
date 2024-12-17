@@ -1,15 +1,13 @@
 #pragma once
 
 #include "global.h"
-#include "mediaid.h"
 
 #include <QList>
 
 #include <stdint.h>
 
 #include <map>
-#include <vector>
-#include <memory>
+
 
 /* Handles creating and managing the video view components.
  * Is responsible for releasing the memory.
@@ -28,22 +26,22 @@ public:
   // set self view
   void addSelfview(VideoWidget* view);
 
-  void createWidget(uint32_t sessionID, LayoutID layoutID, const MediaID &id);
+  void createWidget(uint32_t sessionID, LayoutID layoutID, const uint32_t remoteSSRC);
 
   // id is the index of that view or video
-  QWidget*        getView  (MediaID& id);
-  VideoInterface* getVideo (const MediaID &id);
+  QWidget*        getView  (uint32_t remoteSSRC);
+  VideoInterface* getVideo (const uint32_t remoteSSRC);
 
   QList<QWidget*>        getSelfViews();
   QList<VideoInterface*> getSelfVideos();
 
   // Does not clear selfview
-  void clearWidgets(MediaID& id);
+  void clearWidgets(uint32_t remoteSSRC);
 
 private:
 
-  std::map<MediaID, QWidget*>        mediaIDtoWidgetlist_;
-  std::map<MediaID, VideoInterface*> mediaIDtoVideolist_;
+  std::map<uint32_t, QWidget*>        ssrcToWidgetlist_;
+  std::map<uint32_t, VideoInterface*> ssrcToVideolist_;
 
   QList<VideoWidget*> selfViews_;
 

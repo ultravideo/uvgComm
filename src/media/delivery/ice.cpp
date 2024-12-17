@@ -8,7 +8,6 @@
 #include <QSettings>
 
 #include <memory>
-#include <cstdlib>
 #include <chrono>
 #include <thread>
 #include <math.h>       /* pow */
@@ -29,7 +28,7 @@ ICE::~ICE()
 }
 
 
-void ICE::startNomination(const MediaID &id, const MediaInfo &local, const MediaInfo &remote, bool controller)
+void ICE::startNomination(const uint32_t &ssrc, const MediaInfo &local, const MediaInfo &remote, bool controller)
 {
   std::vector<std::shared_ptr<ICEPair>> newCandidates = makeCandidatePairs(local.candidates,
                                                                            remote.candidates, controller);
@@ -41,7 +40,7 @@ void ICE::startNomination(const MediaID &id, const MediaInfo &local, const Media
 
     updateMedia(mediaNominations_[matchIndex].localMedia, local);
     updateMedia(mediaNominations_[matchIndex].remoteMedia, remote);
-    emit mediaNominationSucceeded(id, sessionID_,
+    emit mediaNominationSucceeded(ssrc, sessionID_,
                                   mediaNominations_[matchIndex].localMedia,
                                   mediaNominations_[matchIndex].remoteMedia);
   }
@@ -69,7 +68,7 @@ void ICE::startNomination(const MediaID &id, const MediaInfo &local, const Media
                                  local,
                                  remote,
                                  false,
-                                 id,
+                                 ssrc,
                                  newCandidates,
                                  {},
                                  std::unique_ptr<IceSessionTester> (new IceSessionTester(controller)),
@@ -167,7 +166,7 @@ void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair>> &streams)
         }
       }
 
-      emit mediaNominationSucceeded(media.id, sessionID_, media.localMedia, media.remoteMedia);
+      emit mediaNominationSucceeded(media.ssrc, sessionID_, media.localMedia, media.remoteMedia);
 
       return;
     }
@@ -190,7 +189,7 @@ void ICE::handleICEFailure(std::vector<std::shared_ptr<ICEPair> > &candidates)
       media.state = ICE_FAILED;
       media.iceTester->quit();
 
-      emit mediaNominationFailed(media.id, sessionID_);
+      emit mediaNominationFailed(media.ssrc, sessionID_);
     }
   }
 
