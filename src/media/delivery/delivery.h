@@ -151,7 +151,7 @@ private:
   bool findSession(uint32_t sessionID, uint32_t& outIndex,
                    QString localAddress, QString remoteAddress);
 
-  std::shared_ptr<UDPRelay> getUDPRelay(QString localAddress, uint16_t localPort);
+  std::shared_ptr<RelayInterface> getUDPRelay(QString localAddress, uint16_t localPort);
 
   // key is sessionID
   std::map<uint32_t, std::shared_ptr<Peer>> peers_;
@@ -166,7 +166,7 @@ private:
   std::shared_ptr<ResourceAllocator> hwResources_;
 
   // the key is address:port as a string
-  std::map<QString, std::shared_ptr<UDPRelay>> relays_;
+  std::map<QString, std::shared_ptr<RelayInterface>> relays_;
 
   // key is
   std::map<uint32_t, std::shared_ptr<Filter>> udpSenders_;

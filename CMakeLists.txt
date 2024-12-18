@@ -173,6 +173,8 @@ qt_add_executable(uvgComm WIN32 MACOSX_BUNDLE
     src/media/delivery/udpreceiver.h src/media/delivery/udpreceiver.cpp
     src/media/delivery/udpsender.h src/media/delivery/udpsender.cpp
     src/cname.h src/cname.cpp
+    src/media/delivery/uvgrelay.h src/media/delivery/uvgrelay.cpp
+    src/media/delivery/relayinterface.h
 
 )
 
@@ -305,5 +307,3 @@ else()
     )
     install(SCRIPT ${deploy_script})
 endif()
-
-

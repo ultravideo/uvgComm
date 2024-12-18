@@ -1,17 +1,20 @@
 #include "udpsender.h"
 
-#include "media/delivery/udprelay.h"
+#include "media/delivery/relayinterface.h"
 
 #include "logger.h"
 
-UDPSender::UDPSender(QString id, StatisticsInterface *stats,
+UDPSender::UDPSender(QString id,
+                     StatisticsInterface *stats,
                      std::shared_ptr<ResourceAllocator> hwResources,
-                     std::string destination, int port, std::shared_ptr<UDPRelay> relay):
-    Filter("UDPSender", "UDPSender", stats, hwResources, DT_RTP, DT_NONE),
-    destination_(destination),
-    port_(port),
-    relay_(relay),
-    keepLiveTimer_(this)
+                     std::string destination,
+                     int port,
+                     std::shared_ptr<RelayInterface> relay)
+    : Filter("UDPSender", "UDPSender", stats, hwResources, DT_RTP, DT_NONE)
+    , destination_(destination)
+    , port_(port)
+    , relay_(relay)
+    , keepLiveTimer_(this)
 {
   maxBufferSize_ = 1000;
   keepLiveTimer_.setInterval(5000);
@@ -38,8 +41,8 @@ void UDPSender::process()
 
 void UDPSender::keepLive()
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Sending keep alive packet",
-                                  {"Destination"}, {QString::fromStdString(destination_) + ":" + QString::number(port_)});
+  //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Sending keep alive packet",
+  //                                {"Destination"}, {QString::fromStdString(destination_) + ":" + QString::number(port_)});
   // send keep alive packet
   int packetSize = 2;
   std::unique_ptr<unsigned char[]> data(new unsigned char[packetSize]);

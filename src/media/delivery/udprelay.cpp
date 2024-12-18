@@ -43,11 +43,14 @@ void UDPRelay::readPendingDatagrams()
 
     if (datagram.size() < 12)
     {
-      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received a packet which is too small",
-                                      {"Packet size"},
-                                      {QString::number(datagram.size())});
+      //Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received a packet which is too small",
+      //                                {"Packet size"}, {QString::number(datagram.size())});
       continue;
     }
+
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received a packet",
+                                    {"Packet size", "Sender IP", "Sender port"},
+                                    {QString::number(datagram.size()), sender.toString(), QString::number(senderPort)});
 
     // first figure out if this is and RTP packet or an RTCP packet
     uint8_t rtcp_pt = *reinterpret_cast<uint8_t*>(datagram.data() + 1);

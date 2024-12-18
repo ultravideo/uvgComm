@@ -6,6 +6,7 @@
 #include "logger.h"
 #include "settingskeys.h"
 #include "udprelay.h"
+#include "uvgrelay.h"
 #include "udpsender.h"
 #include "udpreceiver.h"
 
@@ -206,12 +207,13 @@ std::shared_ptr<Filter> Delivery::addUDPSendStream(uint32_t sessionID,
   {
     Logger::getLogger()->printNormal(this, "Creating a new UDP sender",
                                      "Remote SSRC", QString::number(remoteSSRC));
-    std::shared_ptr<UDPRelay> relay = getUDPRelay(localAddress, localPort);
+    std::shared_ptr<RelayInterface> relay = getUDPRelay(localAddress, localPort);
 
     QString id = remoteAddress + ":" + QString::number(peerPort);
+
     udpSenders_[remoteSSRC] = std::shared_ptr<UDPSender>(new UDPSender(id, stats_,  hwResources_,
-                                                                                 remoteAddress.toStdString(),
-                                                                                 peerPort, relay));
+                                                                       remoteAddress.toStdString(),
+                                                                       peerPort, relay));
   }
   else
   {
@@ -302,8 +304,7 @@ std::shared_ptr<Filter> Delivery::addUDPReceiveStream(uint32_t sessionID,
     Logger::getLogger()->printNormal(this, "Creating new UDP receiver", "Path",
                                      localAddress + ":" + QString::number(localPort));
 
-    std::shared_ptr<UDPRelay> relay = getUDPRelay(localAddress, localPort);
-
+    std::shared_ptr<RelayInterface> relay = getUDPRelay(localAddress, localPort);
     QString id = localAddress + ":" + QString::number(localPort);
     udpReceivers_[remoteSSRC] = std::shared_ptr<UDPReceiver>(new UDPReceiver(id, stats_, hwResources_));
     relay->registerRTPReceiver(remoteSSRC, udpReceivers_[remoteSSRC]);
@@ -317,14 +318,28 @@ std::shared_ptr<Filter> Delivery::addUDPReceiveStream(uint32_t sessionID,
 }
 
 
-std::shared_ptr<UDPRelay> Delivery::getUDPRelay(QString localAddress, uint16_t localPort)
+std::shared_ptr<RelayInterface> Delivery::getUDPRelay(QString localAddress, uint16_t localPort)
 {
   QString relayKey = localAddress + ":" + QString::number(localPort);
 
   if (relays_.find(relayKey) == relays_.end())
   {
     Logger::getLogger()->printNormal(this, "Creating new UDP relay", "Path", relayKey);
-    relays_[relayKey] = std::shared_ptr<UDPRelay>(new UDPRelay(localAddress.toStdString(), localPort));
+
+    bool customRelay = true;
+
+    if (customRelay)
+    {
+      Logger::getLogger()->printNormal(this, "Using custom UDP relay", "Path", relayKey);
+      relays_[relayKey] = std::shared_ptr<RelayInterface>(new UVGRelay(localAddress.toStdString(), localPort));
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Using Qts UDP relay", "Path", relayKey);
+      relays_[relayKey] = std::shared_ptr<RelayInterface>(new UDPRelay(localAddress.toStdString(), localPort));
+    }
+
+    relays_[relayKey]->start();
   }
   else
   {
@@ -601,6 +616,17 @@ void Delivery::removeAllPeers()
   {
     removePeer(i);
   }
+
+  for (auto& relay : relays_)
+  {
+    relay.second->stop();
+    while (relay.second->isRunning())
+    {
+      QCoreApplication::processEvents();
+    }
+  }
+
+  relays_.clear();
 }
 
 

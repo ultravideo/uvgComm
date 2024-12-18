@@ -1,0 +1,177 @@
+#include "uvgrelay.h"
+
+#include "logger.h"
+
+#include "src/media/processing/filter.h"
+
+#include <QDateTime>
+
+#ifndef _WIN32
+#include <errno.h>
+#include <poll.h>
+#include <pthread.h>
+#else
+#define MSG_DONTWAIT 0
+#endif
+
+const int POLL_TIMEOUT_MS = 200;
+
+const int BUFFER_SIZE = 1500;
+
+UVGRelay::UVGRelay(std::string localAddress, uint16_t port):
+  socket_(0),
+running_(false)
+{
+  // check if the local address is IPv4 or IPv6
+  if (localAddress.find(':') != std::string::npos)
+  {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "IPv6 address detected");
+    socket_.init(AF_INET6, SOCK_DGRAM, 0);
+
+    sockaddr_in6 local_addr;
+    local_addr.sin6_family = AF_INET6;
+    local_addr.sin6_port = htons(port);
+    inet_pton(AF_INET6, localAddress.c_str(), &local_addr.sin6_addr);
+
+    socket_.bind_ip6(local_addr);
+  }
+  else
+  {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "IPv4 address detected");
+    socket_.init(AF_INET, SOCK_DGRAM, 0);
+
+    sockaddr_in local_addr;
+    local_addr.sin_family = AF_INET;
+    local_addr.sin_port = htons(port);
+    inet_pton(AF_INET, localAddress.c_str(), &local_addr.sin_addr);
+
+    socket_.bind(local_addr);
+  }
+}
+
+
+UVGRelay::~UVGRelay()
+{}
+
+
+void UVGRelay::registerRTPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter)
+{
+  receivers_[ssrc] = filter;
+}
+
+
+void UVGRelay::sendUDPData(std::string destinationAddress, uint16_t port,
+                           std::unique_ptr<unsigned char[]> data, uint32_t size)
+{
+  sockaddr_in dest_addr = {};
+  sockaddr_in6 dest_addr6 = {};
+
+  if (destinationAddress.find(':') != std::string::npos)
+  {
+    dest_addr6.sin6_family = AF_INET6;
+    dest_addr6.sin6_port = htons(port);
+    inet_pton(AF_INET6, destinationAddress.c_str(), &dest_addr6.sin6_addr);
+  }
+  else
+  {
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_port = htons(port);
+    inet_pton(AF_INET, destinationAddress.c_str(), &dest_addr.sin_addr);
+  }
+
+  socket_.sendto(dest_addr, dest_addr6, data.get(), size, 0);
+}
+
+
+void UVGRelay::run()
+{
+  while (running_)
+  {
+    // poll from socket
+#ifdef _WIN32
+    LPWSAPOLLFD pfds = new pollfd();
+#else
+    pollfd* pfds = new pollfd();
+#endif
+
+    size_t read_fds = socket_.get_raw_socket();
+    pfds->fd = read_fds;
+    pfds->events = POLLIN;
+
+#ifdef _WIN32
+    if (WSAPoll(pfds, 1, POLL_TIMEOUT_MS) < 0) {
+#else
+    if (poll(pfds, 1, POLL_TIMEOUT_MS) < 0) {
+#endif
+      Logger::getLogger()->printDebug(DEBUG_ERROR, this, "poll() failed");
+      delete pfds;
+      return;
+    }
+
+    if (pfds->revents & POLLIN)
+    {
+      uint8_t buffer[BUFFER_SIZE];
+      sockaddr_in src_addr;
+      sockaddr_in6 src_addr6;
+
+      int read = 0;
+      if (socket_.recvfrom(buffer, BUFFER_SIZE, MSG_DONTWAIT, &read) < 0)
+      {
+        Logger::getLogger()->printDebug(DEBUG_ERROR, this, "recvfrom() failed");
+        delete pfds;
+        return;
+      }
+
+      if (read < 12)
+      {
+        //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received a packet which is too small to be an RTP packet",
+        //                                {"Packet size"}, {QString::number(read)});
+        continue;
+      }
+
+      // check if this is an RTP or RTCP packet
+      uint8_t rtcp_pt = buffer[1];
+      uint8_t rtp_pt = rtcp_pt & 0x7F;
+
+      if (rtcp_pt == 200 || rtcp_pt == 201 || rtcp_pt == 202)
+      {
+        // RTCP
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received an RTCP packet, not doing anything",
+                                        {"Payload type"},
+                                        {QString::number(rtcp_pt)});
+      }
+      else if (rtp_pt <= 34 || 96 <= rtp_pt)
+      {
+        // RTP
+        uint32_t ssrc = *reinterpret_cast<uint32_t*>(buffer + 8);
+        ssrc = htonl(ssrc);
+
+        if (receivers_.find(ssrc) != receivers_.end())
+        {
+          std::shared_ptr<Filter> filter = receivers_[ssrc];
+
+          std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
+          receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+          receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
+
+          receivedRTPFrame->data = std::unique_ptr<uchar[]>(new uchar[read]);
+          memcpy(receivedRTPFrame->data.get(), buffer, read);
+          receivedRTPFrame->data_size = read;
+
+          filter->putInput(std::move(receivedRTPFrame));
+        }
+        else
+        {
+          Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received an RTP packet for which we have no receiver",
+                                          {"SSRC"}, {QString::number(ssrc)});
+        }
+      }
+      else
+      {
+        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received a packet which does not follow RTP specifications",
+                                        {"Payload type"},
+                                        {QString::number(rtp_pt)});
+      }
+    }
+  }
+}

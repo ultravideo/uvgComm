@@ -1,5 +1,7 @@
 #pragma once
 
+#include "relayinterface.h"
+
 #include <QUdpSocket>
 #include <QObject>
 
@@ -11,18 +13,21 @@
 
 class Filter;
 
-class UDPRelay : public QObject
+class UDPRelay : public QObject, public RelayInterface
 {
 public:
   UDPRelay(std::string localAddress, uint16_t port);
 
-  void registerRTPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter);
+  virtual void registerRTPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter);
 
-  void sendUDPData(std::string destinationAddress, uint16_t port,
-                   std::unique_ptr<unsigned char[]> data, uint32_t size);
+  virtual void sendUDPData(std::string destinationAddress, uint16_t port,
+                           std::unique_ptr<unsigned char[]> data, uint32_t size);
 
-  private slots:
-    void readPendingDatagrams();
+  virtual void start() {}
+  virtual void stop() {}
+
+private slots:
+  void readPendingDatagrams();
 
 private:
 
