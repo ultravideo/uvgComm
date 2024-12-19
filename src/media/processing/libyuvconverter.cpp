@@ -124,6 +124,15 @@ void LibYUVConverter::process()
       int su_stride = (scaledWidth + 1)/2;
       int sv_stride = (scaledWidth + 1)/2;
 
+      libyuv::FilterMode mode = libyuv::kFilterBilinear;
+
+      // the small resolutions can use the best filtering as it does not cost much
+      // and looks much better
+      if (scaledHeight <= 270)
+      {
+        mode = libyuv::kFilterBox;
+      }
+
       // scale the YUV
       libyuv::I420Scale(dst_y, dst_y_stride,
                         dst_u, dst_u_stride,
@@ -133,7 +142,7 @@ void LibYUVConverter::process()
                         su, su_stride,
                         sv, sv_stride,
                         scaledWidth, scaledHeight,
-                        libyuv::kFilterNone);
+                        mode);
 
       // use the scaled YUV when sending data forward
       yuv_data = std::move(scaled_yuv_data);
