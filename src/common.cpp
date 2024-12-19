@@ -299,14 +299,6 @@ QSize participantsToResolution(QSize baseResolution, uint32_t otherParticipants)
   {
     otherParticipants = 134;
   }
-  if (otherParticipants > 82)
-  {
-    otherParticipants = 82;
-  }
-  else if (otherParticipants > 32)
-  {
-    otherParticipants = 32;
-  }
 
   int cols = std::ceil(std::sqrt(otherParticipants));
   int rows = std::ceil(float(otherParticipants)/cols);
