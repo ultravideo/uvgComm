@@ -4,6 +4,7 @@
 
 #include "settingskeys.h"
 #include "logger.h"
+#include "common.h"
 
 #include <kvazaar.h>
 
@@ -12,6 +13,21 @@
 #include <QSize>
 
 enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
+
+const int CU_MIN_SIZE_PIXELS = 8;
+
+unsigned get_padding(unsigned width_or_height)
+{
+  if (width_or_height % CU_MIN_SIZE_PIXELS)
+  {
+    return CU_MIN_SIZE_PIXELS - (width_or_height % CU_MIN_SIZE_PIXELS);
+  }
+  else
+  {
+    return 0;
+  }
+}
+
 
 KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
                              std::shared_ptr<ResourceAllocator> hwResources):
@@ -66,7 +82,10 @@ void KvazaarFilter::addInputPic(int index)
     return;
   }
 
-  kvz_picture* pic = api_->picture_alloc(config_->width, config_->height);
+  int padding_x = get_padding(config_->width);
+  int padding_y = get_padding(config_->height);
+
+  kvz_picture* pic = api_->picture_alloc(config_->width + padding_x, config_->height + padding_y);
   if (pic)
   {
     inputPics_.insert(inputPics_.begin() + index, pic);
