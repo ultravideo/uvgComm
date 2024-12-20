@@ -306,6 +306,16 @@ QSize participantsToResolution(QSize baseResolution, uint32_t otherParticipants)
   return QSize(baseResolution.width()/cols, baseResolution.height()/rows);
 }
 
+
+int32_t participantsToBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants)
+{
+  QSize resolution = participantsToResolution(baseResolution, otherParticipants);
+
+  double bitsPerPixel = (double)baseBitrate/(baseResolution.width()*baseResolution.height());
+  return resolution.width()*resolution.height()*bitsPerPixel;
+}
+
+
 QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info)
 {
   // use relay address

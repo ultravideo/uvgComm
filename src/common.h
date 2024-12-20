@@ -52,6 +52,8 @@ int64_t NTPToMsec(uint64_t ntp);
 
 QSize participantsToResolution(QSize baseResolution, uint32_t otherParticipants);
 
+int32_t participantsToBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants);
+
 // helper functions that get either actual address/port or
 // relay address/port if needed
 QHostAddress getLocalAddress(std::shared_ptr<ICEInfo> info);
