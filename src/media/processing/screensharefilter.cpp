@@ -77,8 +77,8 @@ void ScreenShareFilter::process()
     return;
   }
 
-  if (currentResolution_.width() != screen->size().width() - screen->size().width() ||
-      currentResolution_.height() != screen->size().height() - screen->size().height())
+  if (currentResolution_.width() != screen->size().width() ||
+      currentResolution_.height() != screen->size().height())
   {
     QString currentResolution = QString::number(currentResolution_.width()) + "x" +
         QString::number(currentResolution_.height());
