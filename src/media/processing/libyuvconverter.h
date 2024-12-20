@@ -23,4 +23,6 @@ private:
   uint32_t getFourCC(DataType type) const;
 
   QSize resolution_;
+
+  uint32_t participants_;
 };

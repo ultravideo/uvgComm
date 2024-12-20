@@ -2,6 +2,7 @@
 
 #include "logger.h"
 #include "common.h"
+#include "settingskeys.h"
 
 
 #include <libyuv.h>
@@ -9,19 +10,28 @@
 LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
                                  std::shared_ptr<ResourceAllocator> hwResources,
                                  DataType input):
-Filter(id, "libyuv", stats, hwResources, input, DT_YUV420VIDEO),
-resolution_(1920, 1080)
-{}
+ Filter(id, "libyuv", stats, hwResources, input, DT_YUV420VIDEO),
+  resolution_(1920, 1080),
+  participants_(1)
+{
+  setConferenceSize(participants_);
+}
 
 
 void LibYUVConverter::setConferenceSize(uint32_t otherParticipants)
 {
-  resolution_ = participantsToResolution(QSize(1920, 1080), otherParticipants);
+  QSettings settings(settingsFile, settingsFileFormat);
+  QSize resolution = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
+                           settings.value(SettingsKey::videoResolutionHeight).toInt());
+
+  participants_ = otherParticipants;
+  resolution_ = participantsToResolution(resolution, participants_);
 }
 
 
 void LibYUVConverter::updateSettings()
 {
+  setConferenceSize(participants_);
   Filter::updateSettings();
 }
 

@@ -295,15 +295,26 @@ QSize participantsToResolution(QSize baseResolution, uint32_t otherParticipants)
     return QSize(0,0);
   }
 
-  if (otherParticipants > 134)
-  {
-    otherParticipants = 134;
-  }
-
   int cols = std::ceil(std::sqrt(otherParticipants));
   int rows = std::ceil(float(otherParticipants)/cols);
 
-  return QSize(baseResolution.width()/cols, baseResolution.height()/rows);
+  QSize resolution = QSize(baseResolution.width()/cols, baseResolution.height()/rows);
+
+  // the encoder only supports resolutions larger than or equal to 64x64
+  if (resolution.width() < 64)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Resolution too small",
+                                    {"Width"}, {QString::number(resolution.width())});
+    resolution.setWidth(64);
+  }
+  if (resolution.height() < 64)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Resolution too small",
+                                    {"Height"}, {QString::number(resolution.height())});
+    resolution.setHeight(64);
+  }
+
+  return resolution;
 }
 
 
