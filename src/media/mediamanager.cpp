@@ -212,6 +212,7 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
         {
           if (settingString(SettingsKey::sipRole) != "Server")
           {
+            p2pFg_->setConferenceSize(countParticipants(peerInfo));
             clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i),
                          viewFactory_->getVideo(allIDs.at(idIndex)),
                         allIDs.at(idIndex).getSend(), allIDs.at(idIndex).getReceive());
@@ -738,4 +739,30 @@ bool MediaManager::sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
   }
 
   return true;
+}
+
+
+uint32_t MediaManager::countParticipants(const std::shared_ptr<SDPMessageInfo> peerInfo)
+{
+  uint32_t participants = 0;
+
+  for (auto& media : peerInfo->media)
+  {
+    if (media.type == "video")
+    {
+      for (auto& attributeList : media.multiAttributes)
+      {
+        QString localCName = CName::cname();
+        if (attributeList.size() == 2 &&
+            attributeList.at(0).type == A_SSRC &&
+            attributeList.at(1).type == A_CNAME &&
+            attributeList.at(1).value != localCName)
+        {
+          ++participants;
+        }
+      }
+    }
+  }
+
+  return participants;
 }

@@ -103,6 +103,20 @@ void FilterGraphP2P::setSelfViews(QList<VideoInterface*> selfViews)
 }
 
 
+void FilterGraphP2P::setConferenceSize(uint32_t otherParticipants)
+{
+  if (kvazaar_)
+  {
+    kvazaar_->setConferenceSize(otherParticipants);
+  }
+
+  if (libyuv_)
+  {
+    libyuv_->setConferenceSize(otherParticipants);
+  }
+}
+
+
 void FilterGraphP2P::uninit()
 {
   quitting_ = true;
@@ -305,11 +319,10 @@ void FilterGraphP2P::initVideoSend()
   addToGraph(roi, cameraGraph_, cameraGraph_.size() - 1);
 #endif
 
-  std::shared_ptr<Filter> kvazaar =
-      std::shared_ptr<Filter>(new KvazaarFilter("", stats_, hwResources_));
+  kvazaar_ = std::shared_ptr<KvazaarFilter>(new KvazaarFilter("", stats_, hwResources_));
 
-  addToGraph(kvazaar, cameraGraph_, cameraGraph_.size() - 1);
-  addToGraph(kvazaar, screenShareGraph_, 0);
+  addToGraph(kvazaar_, cameraGraph_, cameraGraph_.size() - 1);
+  addToGraph(kvazaar_, screenShareGraph_, 0);
 
   videoSendIniated_ = true;
 }

@@ -12,6 +12,7 @@ class VideoInterface;
 class Filter;
 class ResourceAllocator;
 class StatisticsInterface;
+class LibYUVConverter;
 
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
@@ -88,6 +89,8 @@ protected:
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
 
   void removeAllParticipants();
+
+  std::shared_ptr<LibYUVConverter> libyuv_;
 
   // --------------- General stuff ----------------
 
