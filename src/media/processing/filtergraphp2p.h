@@ -2,7 +2,6 @@
 
 #include "filtergraph.h"
 
-
 class ScreenShareFilter;
 class DisplayFilter;
 class AudioCaptureFilter;
@@ -10,6 +9,8 @@ class AudioOutputFilter;
 
 class SpeexAEC;
 class AudioMixer;
+class KvazaarFilter;
+class LibYUVConverter;
 
 
 class FilterGraphP2P : public FilterGraph
@@ -35,6 +36,8 @@ public:
                                 uint32_t remoteSSRC);
 
   virtual void running(bool state);
+
+  void setConferenceSize(uint32_t otherParticipants);
 
 public slots:
 
@@ -69,6 +72,8 @@ private:
   // --------------- Video stuff   --------------------
   GraphSegment cameraGraph_;
   GraphSegment screenShareGraph_;
+
+  std::shared_ptr<KvazaarFilter> kvazaar_;
 
   std::shared_ptr<DisplayFilter> selfviewFilter_;
   VideoInterface* roiInterface_; // this is the roi surface from settings

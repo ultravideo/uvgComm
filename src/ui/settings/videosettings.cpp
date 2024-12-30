@@ -232,8 +232,8 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
 
     // since kvazaar requires resolution to be divisible by eight
     // TODO: Use QSize to record resolution
-    settings_.setValue(SettingsKey::videoResolutionWidth,   res.width() - res.width()%8);
-    settings_.setValue(SettingsKey::videoResolutionHeight,  res.height() - res.height()%8);
+    settings_.setValue(SettingsKey::videoResolutionWidth,   res.width());
+    settings_.setValue(SettingsKey::videoResolutionHeight,  res.height());
 
     // TODO: does not work if minimum and maximum framerates differ
     if (!videoSettingsUI_->framerate_box->currentText().isEmpty())
@@ -254,8 +254,8 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
 
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded following video settings.",
                                     {"Resolution", "Format"},
-                                    {QString::number(res.width() - res.width()%8) + "x" +
-                                     QString::number(res.height() - res.height()%8), format});
+                                    {QString::number(res.width()) + "x" +
+                                     QString::number(res.height()), format});
   }
 }
 

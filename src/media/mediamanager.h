@@ -168,6 +168,8 @@ private:
   bool sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
                      const std::shared_ptr<SDPMessageInfo> localInfo) const;
 
+  uint32_t countParticipants(const std::shared_ptr<SDPMessageInfo> peerInfo);
+
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraphP2P> p2pFg_;

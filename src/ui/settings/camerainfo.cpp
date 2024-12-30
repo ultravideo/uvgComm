@@ -87,8 +87,7 @@ void CameraInfo::getFormatResolutions(int deviceID, QString format, QStringList 
     {
       if (format == videoFormatToString(formatOption.pixelFormat()))
       {
-          if (!supportedResolutions.contains(formatOption.resolution()) &&
-              goodResolution(formatOption.resolution()))
+          if (!supportedResolutions.contains(formatOption.resolution()))
           {
             supportedResolutions.push_back(formatOption.resolution());
           }
@@ -247,8 +246,7 @@ void CameraInfo::getCameraOptions(std::vector<SettingsCameraFormat>& options, in
       QList<int> framerates;
       for (auto& formatOption : camera->cameraDevice().videoFormats())
       {
-        if (!uvgCommFormats.contains(formatOption.pixelFormat()) ||
-            !goodResolution(formatOption.resolution()))
+        if (!uvgCommFormats.contains(formatOption.pixelFormat()))
         {
           continue;
         }
@@ -304,10 +302,4 @@ void CameraInfo::printFormatOption(QCameraFormat& formatOption) const
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "CameraInfo", "Camera format option",
                                    {"Format", "Resolution", "Frame rate"},
                                    {format, resolution, framerate});
-}
-
-
-bool CameraInfo::goodResolution(QSize resolution)
-{
-  return resolution.width()%8 == 0 && resolution.height()%8 == 0;
 }

@@ -55,6 +55,4 @@ private:
   std::unique_ptr<QCamera> loadCamera(int deviceID);
 
   void printFormatOption(QCameraFormat& formatOption) const;
-
-  bool goodResolution(QSize resolution);
 };

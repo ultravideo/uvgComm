@@ -17,6 +17,7 @@
 #include <QNetworkInterface>
 
 #include <cstdlib>
+#include <cmath>
 
 
 const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -300,6 +301,46 @@ int64_t NTPToMsec(uint64_t ntp)
   uint32_t lsw_ms = double(1/lsw)*1000;
 
   return msw_ms + lsw_ms;
+}
+
+
+QSize participantsToResolution(QSize baseResolution, uint32_t otherParticipants)
+{
+  if (otherParticipants == 0)
+  {
+    Logger::getLogger()->printError("Common", "Zero participants is not legal");
+    return QSize(0,0);
+  }
+
+  int cols = std::ceil(std::sqrt(otherParticipants));
+  int rows = std::ceil(float(otherParticipants)/cols);
+
+  QSize resolution = QSize(baseResolution.width()/cols, baseResolution.height()/rows);
+
+  // the encoder only supports resolutions larger than or equal to 64x64
+  if (resolution.width() < 64)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Resolution too small",
+                                    {"Width"}, {QString::number(resolution.width())});
+    resolution.setWidth(64);
+  }
+  if (resolution.height() < 64)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Resolution too small",
+                                    {"Height"}, {QString::number(resolution.height())});
+    resolution.setHeight(64);
+  }
+
+  return resolution;
+}
+
+
+int32_t participantsToBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants)
+{
+  QSize resolution = participantsToResolution(baseResolution, otherParticipants);
+
+  double bitsPerPixel = (double)baseBitrate/(baseResolution.width()*baseResolution.height());
+  return resolution.width()*resolution.height()*bitsPerPixel;
 }
 
 

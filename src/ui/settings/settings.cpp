@@ -229,8 +229,8 @@ void Settings::setScreenShareState(bool enabled)
       if (screen != nullptr)
       {
         QSize resolution;
-        resolution.setWidth(screen->size().width() - screen->size().width()%8);
-        resolution.setHeight(screen->size().height() - screen->size().height()%8);
+        resolution.setWidth(screen->size().width());
+        resolution.setHeight(screen->size().height());
 
         settings_.setValue(SettingsKey::screenShareStatus, "1");
         settings_.setValue(SettingsKey::videoResolutionWidth, resolution.width());

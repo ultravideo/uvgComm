@@ -125,7 +125,6 @@ void FilterGraph::updateAutomaticSettings()
 }
 
 
-
 void FilterGraph::checkParticipant(uint32_t sessionID)
 {
   Q_ASSERT(stats_);
@@ -162,9 +161,10 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
       if(filter->inputType() == DT_YUV420VIDEO)
       {
         Logger::getLogger()->printNormal(this, "Adding libyuv conversion filter to YUV420");
-        addToGraph(std::shared_ptr<Filter>(new LibYUVConverter("", stats_, hwResources_,
-                                                               graph.at(connectIndex)->outputType())),
-                   graph, connectIndex);
+
+        libyuv_ = std::shared_ptr<LibYUVConverter>(new LibYUVConverter("libYUV", stats_, hwResources_,
+                                                                      graph.at(connectIndex)->outputType()));
+        addToGraph(libyuv_, graph, connectIndex);
       }
       else if(graph.at(connectIndex)->outputType() == DT_YUV420VIDEO &&
                filter->inputType() == DT_RGB32VIDEO)

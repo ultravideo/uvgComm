@@ -329,8 +329,8 @@ void CameraFilter::process()
     newImage->data_size = totalSize;
 
     // kvazaar requires divisable by 8 resolution
-    newImage->vInfo->width = cloneFrame.width() - cloneFrame.width()%8;
-    newImage->vInfo->height = cloneFrame.height() - cloneFrame.height()%8;
+    newImage->vInfo->width = cloneFrame.width();
+    newImage->vInfo->height = cloneFrame.height();
     newImage->vInfo->framerateNumerator = framerateNumerator_;
     newImage->vInfo->framerateDenominator = framerateDenominator_;
 
