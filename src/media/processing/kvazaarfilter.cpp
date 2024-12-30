@@ -34,6 +34,7 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
   Filter(id, "Kvazaar", stats, hwResources, DT_YUV420VIDEO, DT_HEVCVIDEO),
   api_(nullptr),
   config_(nullptr),
+  otherParticipants_(1),
   currentResolution_(),
   encoders_(),
   pts_(0),
@@ -46,6 +47,14 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
   QSettings settings(settingsFile, settingsFileFormat);
   cameraResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
                             settings.value(SettingsKey::videoResolutionHeight).toInt());
+}
+
+
+void KvazaarFilter::setConferenceSize(uint32_t otherParticipants)
+{
+  otherParticipants_ = otherParticipants;
+
+  // TODO: Implement changing of the encoders
 }
 
 
@@ -180,16 +189,15 @@ bool KvazaarFilter::init()
 
     QString preset = settings.value(SettingsKey::videoPreset).toString().toUtf8();
 
-    int participants = 1;
     //config_->target_bitrate = settings.value(SettingsKey::videoBitrate).toInt();
 
-    QSize qResolution = cameraResolution_;
-    config_->target_bitrate = participantsToBitrate(qResolution, settings.value(SettingsKey::videoBitrate).toInt(),
-                                                    participants);
+    QSize partResolution = cameraResolution_;
+    config_->target_bitrate = participantsToBitrate(partResolution, settings.value(SettingsKey::videoBitrate).toInt(),
+                                                    otherParticipants_);
 
-    qResolution = participantsToResolution(qResolution, participants);
-    currentResolution_ = std::make_pair(qResolution.width(), qResolution.height());
-    QString resolutionStr = QString::number(qResolution.width()) + "x" + QString::number(qResolution.height());
+    partResolution = participantsToResolution(partResolution, otherParticipants_);
+    currentResolution_ = std::make_pair(partResolution.width(), partResolution.height());
+    QString resolutionStr = QString::number(partResolution.width()) + "x" + QString::number(partResolution.height());
 
     QString framerate = QString::number(settings.value(SettingsKey::videoFramerateNumerator).toInt()) + "/" +
                         QString::number(settings.value(SettingsKey::videoFramerateDenominator).toInt());

@@ -16,6 +16,8 @@ public:
   KvazaarFilter(QString id, StatisticsInterface* stats,
                 std::shared_ptr<ResourceAllocator> hwResources);
 
+  void setConferenceSize(uint32_t otherParticipants);
+
   virtual void updateSettings();
 
   virtual bool init();
@@ -49,6 +51,8 @@ private:
 
   const kvz_api *api_;
   kvz_config *config_;
+
+  uint32_t otherParticipants_;
 
   QSize cameraResolution_;
   std::pair<int, int> currentResolution_;
