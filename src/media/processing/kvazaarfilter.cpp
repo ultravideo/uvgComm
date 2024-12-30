@@ -54,7 +54,7 @@ void KvazaarFilter::setConferenceSize(uint32_t otherParticipants)
 {
   otherParticipants_ = otherParticipants;
 
-  // TODO: Implement changing of the encoders
+  reInitializeKvazaar();
 }
 
 
@@ -128,6 +128,14 @@ void KvazaarFilter::updateSettings()
   cameraResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
                             settings.value(SettingsKey::videoResolutionHeight).toInt());
 
+  reInitializeKvazaar();
+
+  Filter::updateSettings();
+}
+
+
+void KvazaarFilter::reInitializeKvazaar()
+{
   stop();
   while(isRunning())
   {
@@ -148,8 +156,6 @@ void KvazaarFilter::updateSettings()
   settingsMutex_.unlock();
 
   start();
-
-  Filter::updateSettings();
 }
 
 

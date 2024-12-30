@@ -49,6 +49,8 @@ private:
 
   kvz_picture* getNextPic();
 
+  void reInitializeKvazaar();
+
   const kvz_api *api_;
   kvz_config *config_;
 
