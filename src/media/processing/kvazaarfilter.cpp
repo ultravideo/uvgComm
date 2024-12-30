@@ -181,13 +181,16 @@ bool KvazaarFilter::init()
   if(inputPics_.empty() && !api_)
   {
     QSettings settings(settingsFile, settingsFileFormat);
+
+    int enumerator = settings.value(SettingsKey::videoFramerateNumerator).toInt();
+    int denominator = settings.value(SettingsKey::videoFramerateDenominator).toInt();
     
-    if (cameraResolution_.width() < 64 ||
-        cameraResolution_.height() < 64 ||
-        settings.value(SettingsKey::videoFramerateNumerator).toInt() == 0 ||
-        settings.value(SettingsKey::videoFramerateDenominator).toInt() == 0)
+    if (cameraResolution_.width() < 64 || cameraResolution_.height() < 64 ||
+        enumerator == 0 || denominator == 0)
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Invalid values when initializing a video encoder");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Invalid values when initializing a video encoder",
+                                      {"Framerate"},
+                                      {QString::number(enumerator) + "/" + QString::number(denominator)});
       return false;
     }
 
