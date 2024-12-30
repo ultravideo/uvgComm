@@ -34,13 +34,18 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
   Filter(id, "Kvazaar", stats, hwResources, DT_YUV420VIDEO, DT_HEVCVIDEO),
   api_(nullptr),
   config_(nullptr),
-  enc_(nullptr),
+  currentResolution_(),
+  encoders_(),
   pts_(0),
   encodingFrames_(),
   inputPics_(),
   nextInputPic_(-1)
 {
   maxBufferSize_ = 30;
+
+  QSettings settings(settingsFile, settingsFileFormat);
+  cameraResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
+                            settings.value(SettingsKey::videoResolutionHeight).toInt());
 }
 
 
@@ -110,15 +115,16 @@ kvz_picture* KvazaarFilter::getNextPic()
 void KvazaarFilter::updateSettings()
 {
   Logger::getLogger()->printNormal(this, "Updating kvazaar settings");
+  QSettings settings(settingsFile, settingsFileFormat);
+  cameraResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
+                            settings.value(SettingsKey::videoResolutionHeight).toInt());
 
   stop();
-
   while(isRunning())
   {
     sleep(1);
   }
-
-  close();
+  close(std::make_pair(cameraResolution_.width(), cameraResolution_.height()));
 
   settingsMutex_.lock();
   if(init())
@@ -147,17 +153,12 @@ bool KvazaarFilter::init()
   {
     QSettings settings(settingsFile, settingsFileFormat);
     
-    if (settings.value(SettingsKey::videoResolutionWidth).toInt() == 0 ||
-        settings.value(SettingsKey::videoResolutionHeight).toInt() == 0 ||
+    if (cameraResolution_.width() < 64 ||
+        cameraResolution_.height() < 64 ||
         settings.value(SettingsKey::videoFramerateNumerator).toInt() == 0 ||
         settings.value(SettingsKey::videoFramerateDenominator).toInt() == 0)
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Invalid values in settings",
-                                      {"Width", "Height", "Framerate Numerator", "Framerate Denominator"},
-                                        {settings.value(SettingsKey::videoResolutionWidth).toString(),
-                                       settings.value(SettingsKey::videoResolutionHeight).toString(),
-                                       settings.value(SettingsKey::videoFramerateNumerator).toString(),
-                                       settings.value(SettingsKey::videoFramerateDenominator).toString()});
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Invalid values when initializing a video encoder");
       return false;
     }
 
@@ -168,7 +169,6 @@ bool KvazaarFilter::init()
       return false;
     }
     config_ = api_->config_alloc();
-    enc_ = nullptr;
 
     if(!config_)
     {
@@ -179,15 +179,22 @@ bool KvazaarFilter::init()
     api_->config_init(config_);
 
     QString preset = settings.value(SettingsKey::videoPreset).toString().toUtf8();
-    
-    QString resolutionStr = settings.value(SettingsKey::videoResolutionWidth).toString() + "x" +
-        settings.value(SettingsKey::videoResolutionHeight).toString();
+
+    int participants = 1;
+    //config_->target_bitrate = settings.value(SettingsKey::videoBitrate).toInt();
+
+    QSize qResolution = cameraResolution_;
+    config_->target_bitrate = participantsToBitrate(qResolution, settings.value(SettingsKey::videoBitrate).toInt(),
+                                                    participants);
+
+    qResolution = participantsToResolution(qResolution, participants);
+    currentResolution_ = std::make_pair(qResolution.width(), qResolution.height());
+    QString resolutionStr = QString::number(qResolution.width()) + "x" + QString::number(qResolution.height());
 
     QString framerate = QString::number(settings.value(SettingsKey::videoFramerateNumerator).toInt()) + "/" +
                         QString::number(settings.value(SettingsKey::videoFramerateDenominator).toInt());
 
     // Input
-
     api_->config_parse(config_, "preset",    preset.toLocal8Bit());
     api_->config_parse(config_, "input-res", resolutionStr.toLocal8Bit());
     api_->config_parse(config_, "input-fps", framerate.toLocal8Bit());
@@ -238,8 +245,6 @@ bool KvazaarFilter::init()
     api_->config_parse(config_, "qp",         settings.value(SettingsKey::videoQP).toString().toLocal8Bit());
     api_->config_parse(config_, "period",     settings.value(SettingsKey::videoIntra).toString().toLocal8Bit());
     api_->config_parse(config_, "vps-period", settings.value(SettingsKey::videoVPS).toString().toLocal8Bit());
-
-    config_->target_bitrate = settings.value(SettingsKey::videoBitrate).toInt();
 
     if (config_->target_bitrate != 0)
     {
@@ -307,9 +312,9 @@ bool KvazaarFilter::init()
 
     config_->hash = KVZ_HASH_NONE;
 
-    enc_ = api_->encoder_open(config_);
+    encoders_[currentResolution_] = api_->encoder_open(config_);
 
-    if(!enc_)
+    if(!encoders_[currentResolution_])
     {
       Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to open Kvazaar encoder.");
       return false;
@@ -329,13 +334,13 @@ bool KvazaarFilter::init()
   return true;
 }
 
-void KvazaarFilter::close()
+void KvazaarFilter::close(std::pair<int, int> resolution)
 {
-  if(api_)
+  if(api_ && encoders_.find(resolution) != encoders_.end())
   {
-    api_->encoder_close(enc_);
+    api_->encoder_close(encoders_[resolution]);
     api_->config_destroy(config_);
-    enc_ = nullptr;
+    encoders_.erase(resolution);
     config_ = nullptr;
 
     cleanupInputVector();
@@ -451,7 +456,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 
   encodingFrames_.push_front({std::move(input), inputPic->roi.roi_array});
 
-  api_->encoder_encode(enc_, inputPic,
+  api_->encoder_encode(encoders_[currentResolution_], inputPic,
                        &data_out, &len_out,
                        &recon_pic, nullptr,
                        &frame_info );
@@ -461,7 +466,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
     parseEncodedFrame(data_out, len_out, recon_pic);
 
     // see if there is more output ready
-    api_->encoder_encode(enc_, nullptr,
+    api_->encoder_encode(encoders_[currentResolution_], nullptr,
                          &data_out, &len_out,
                          &recon_pic, nullptr,
                          &frame_info );

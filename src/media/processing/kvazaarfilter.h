@@ -20,7 +20,7 @@ public:
 
   virtual bool init();
 
-  void close();
+  void close(std::pair<int, int> resolution);
 
 protected:
   virtual void process();
@@ -49,7 +49,10 @@ private:
 
   const kvz_api *api_;
   kvz_config *config_;
-  kvz_encoder *enc_;
+
+  QSize cameraResolution_;
+  std::pair<int, int> currentResolution_;
+  std::map<std::pair<int, int>, kvz_encoder*> encoders_;
 
   int64_t pts_;
 
