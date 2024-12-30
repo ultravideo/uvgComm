@@ -52,9 +52,21 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
 
 void KvazaarFilter::setConferenceSize(uint32_t otherParticipants)
 {
-  otherParticipants_ = otherParticipants;
+  if (otherParticipants == 0)
+  {
+    otherParticipants = 1;
+  }
 
-  reInitializeKvazaar();
+  if (otherParticipants != otherParticipants_)
+  {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Changing conference size",
+                                    {"Old", "New"},
+                                    {QString::number(otherParticipants_),
+                                     QString::number(otherParticipants)});
+
+    otherParticipants_ = otherParticipants;
+    reInitializeKvazaar();
+  }
 }
 
 
@@ -125,9 +137,11 @@ void KvazaarFilter::updateSettings()
 {
   Logger::getLogger()->printNormal(this, "Updating kvazaar settings");
   QSettings settings(settingsFile, settingsFileFormat);
-  cameraResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
-                            settings.value(SettingsKey::videoResolutionHeight).toInt());
 
+  QSize resolution = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
+                           settings.value(SettingsKey::videoResolutionHeight).toInt());
+
+  cameraResolution_ = resolution;
   reInitializeKvazaar();
 
   Filter::updateSettings();
