@@ -11,9 +11,10 @@ LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
                                  std::shared_ptr<ResourceAllocator> hwResources,
                                  DataType input):
  Filter(id, "libyuv", stats, hwResources, input, DT_YUV420VIDEO),
-  resolution_(1920, 1080),
+  resolution_(0, 0),
   participants_(1)
 {
+  // also sets resolution
   setConferenceSize(participants_);
 }
 
@@ -42,9 +43,7 @@ void LibYUVConverter::process()
 
   while(input)
   {
-    if (input->vInfo->width != 1920 ||
-        input->vInfo->height != 1080 ||
-        input->type != inputType() ||
+    if (input->type != inputType() ||
         input->data_size == 0 ||
         input->data == nullptr ||
         input->data.get() == nullptr ||
