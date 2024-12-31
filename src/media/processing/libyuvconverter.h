@@ -25,4 +25,6 @@ private:
   QSize resolution_;
 
   uint32_t participants_;
+
+  QMutex resolutionMutex_;
 };

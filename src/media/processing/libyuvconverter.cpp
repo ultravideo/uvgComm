@@ -26,7 +26,9 @@ void LibYUVConverter::setConferenceSize(uint32_t otherParticipants)
                            settings.value(SettingsKey::videoResolutionHeight).toInt());
 
   participants_ = otherParticipants;
+  resolutionMutex_.lock();
   resolution_ = participantsToResolution(resolution, participants_);
+  resolutionMutex_.unlock();
 }
 
 
@@ -65,6 +67,7 @@ void LibYUVConverter::process()
       continue;
     }
 
+    resolutionMutex_.lock();
     float heightScaling = float(resolution_.height())/float(input->vInfo->height);
     float widthScaling = float(resolution_.width())/float(input->vInfo->width);
 
@@ -75,6 +78,7 @@ void LibYUVConverter::process()
       // we reverse the coming scaling for the desired resolution to get how much we need to crop
       width_crop = input->vInfo->width - resolution_.width()/heightScaling;
     }
+    resolutionMutex_.unlock();
 
     size_t newWidth = input->vInfo->width - width_crop;
 
