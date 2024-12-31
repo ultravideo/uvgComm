@@ -178,7 +178,7 @@ bool KvazaarFilter::init()
   Logger::getLogger()->printNormal(this, "Iniating Kvazaar");
 
   // input picture should not exist at this point
-  if(inputPics_.empty() && !api_)
+  if(inputPics_.empty())
   {
     QSettings settings(settingsFile, settingsFileFormat);
 
@@ -194,12 +194,17 @@ bool KvazaarFilter::init()
       return false;
     }
 
-    api_ = kvz_api_get(8);
-    if(!api_)
+    if (!api_)
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to retrieve Kvazaar API.");
-      return false;
+      api_ = kvz_api_get(8);
+
+      if(!api_)
+      {
+        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to retrieve Kvazaar API.");
+        return false;
+      }
     }
+
     config_ = api_->config_alloc();
 
     if(!config_)
@@ -214,21 +219,20 @@ bool KvazaarFilter::init()
 
     //config_->target_bitrate = settings.value(SettingsKey::videoBitrate).toInt();
 
-    QSize partResolution = cameraResolution_;
-    config_->target_bitrate = participantsToBitrate(partResolution, settings.value(SettingsKey::videoBitrate).toInt(),
+    config_->target_bitrate = participantsToBitrate(cameraResolution_, settings.value(SettingsKey::videoBitrate).toInt(),
                                                     otherParticipants_);
 
-    partResolution = participantsToResolution(partResolution, otherParticipants_);
+    QSize partResolution = participantsToResolution(cameraResolution_, otherParticipants_);
     currentResolution_ = std::make_pair(partResolution.width(), partResolution.height());
     QString resolutionStr = QString::number(partResolution.width()) + "x" + QString::number(partResolution.height());
 
-    QString framerate = QString::number(settings.value(SettingsKey::videoFramerateNumerator).toInt()) + "/" +
+    QString framerateStr = QString::number(settings.value(SettingsKey::videoFramerateNumerator).toInt()) + "/" +
                         QString::number(settings.value(SettingsKey::videoFramerateDenominator).toInt());
 
     // Input
     api_->config_parse(config_, "preset",    preset.toLocal8Bit());
     api_->config_parse(config_, "input-res", resolutionStr.toLocal8Bit());
-    api_->config_parse(config_, "input-fps", framerate.toLocal8Bit());
+    api_->config_parse(config_, "input-fps", framerateStr.toLocal8Bit());
 
     QString threads = "0";
 
@@ -359,7 +363,7 @@ bool KvazaarFilter::init()
       return false;
     }
 
-    Logger::getLogger()->printNormal(this, "Kvazaar iniation succeeded");
+    Logger::getLogger()->printNormal(this, "Kvazaar iniation succeeded", "Resolution", resolutionStr);
   }
 
   return true;
