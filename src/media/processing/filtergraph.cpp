@@ -162,9 +162,10 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
       {
         Logger::getLogger()->printNormal(this, "Adding libyuv conversion filter to YUV420");
 
-        libyuv_ = std::shared_ptr<LibYUVConverter>(new LibYUVConverter("libYUV", stats_, hwResources_,
-                                                                      graph.at(connectIndex)->outputType()));
-        addToGraph(libyuv_, graph, connectIndex);
+        std::shared_ptr<LibYUVConverter> libyuv = std::shared_ptr<LibYUVConverter>(
+            new LibYUVConverter("libYUV", stats_, hwResources_, graph.at(connectIndex)->outputType()));
+
+        addToGraph(libyuv, graph, connectIndex);
       }
       else if(graph.at(connectIndex)->outputType() == DT_YUV420VIDEO &&
                filter->inputType() == DT_RGB32VIDEO)

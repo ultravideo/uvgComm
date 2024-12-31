@@ -274,15 +274,16 @@ void FilterGraphP2P::initCameraSelfView()
     std::shared_ptr<Filter> resizeFilter2 = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
     if (!cameraGraph_.empty())
     {
-      addToGraph(std::shared_ptr<Filter>(new LibYUVConverter("", stats_, hwResources_,
-                                                             cameraGraph_.at(0)->outputType())), cameraGraph_, 0);
+      libyuv_ = std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
+                                                            cameraGraph_.at(0)->outputType()));
+      addToGraph(libyuv_, cameraGraph_, 0);
       addToGraph(resizeFilter1, cameraGraph_, cameraGraph_.size() - 1);
       addToGraph(selfviewFilter_, cameraGraph_, cameraGraph_.size() - 1);
     }
 
     if (!screenShareGraph_.empty())
     {
-      addToGraph(std::shared_ptr<Filter>(new LibYUVConverter("", stats_, hwResources_,
+      addToGraph(std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
                                                              screenShareGraph_.at(0)->outputType())),
                  screenShareGraph_, 0);
       addToGraph(resizeFilter2, screenShareGraph_, screenShareGraph_.size() - 1);

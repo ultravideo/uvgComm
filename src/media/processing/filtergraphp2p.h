@@ -73,6 +73,7 @@ private:
   GraphSegment cameraGraph_;
   GraphSegment screenShareGraph_;
 
+  std::shared_ptr<LibYUVConverter> libyuv_;
   std::shared_ptr<KvazaarFilter> kvazaar_;
 
   std::shared_ptr<DisplayFilter> selfviewFilter_;

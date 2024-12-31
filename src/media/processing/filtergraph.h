@@ -90,8 +90,6 @@ protected:
 
   void removeAllParticipants();
 
-  std::shared_ptr<LibYUVConverter> libyuv_;
-
   // --------------- General stuff ----------------
 
   bool quitting_;
