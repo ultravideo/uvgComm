@@ -16,11 +16,24 @@ LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
 {
   // also sets resolution
   setConferenceSize(participants_);
+
+  QSettings settings(settingsFile, settingsFileFormat);
+  QSize resolution = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
+                           settings.value(SettingsKey::videoResolutionHeight).toInt());
+
+  for(unsigned int i = 1; i < 200; ++i)
+  {
+    QSize res = participantsToResolution(resolution, i);
+    //Logger::getLogger()->printNormal(this, "Resolution", "Res", QString::number(i) + ":" + QString::number(res.width()) + "x" + QString::number(res.height()));
+  }
 }
 
 
 void LibYUVConverter::setConferenceSize(uint32_t otherParticipants)
 {
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Setting conference size",
+                                  {"New size"}, {QString::number(otherParticipants)});
+
   QSettings settings(settingsFile, settingsFileFormat);
   QSize resolution = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
                            settings.value(SettingsKey::videoResolutionHeight).toInt());
@@ -117,8 +130,13 @@ void LibYUVConverter::process()
     if (heightScaling < 1)
     {
       // scaled resolution
-      int scaledWidth = input->vInfo->width*heightScaling;
-      int scaledHeight = input->vInfo->height*heightScaling;
+      int scaledWidth = std::round(input->vInfo->width*heightScaling);
+      int scaledHeight = std::round(input->vInfo->height*heightScaling);
+
+      if (width_crop == 0)
+      {
+        scaledWidth = std::round(input->vInfo->width*widthScaling);
+      }
 
       // size of scaled YUV
       size_t scaled_y_size = (scaledWidth)*scaledHeight;
@@ -161,6 +179,14 @@ void LibYUVConverter::process()
       yuv_data = std::move(scaled_yuv_data);
       input->vInfo->width = scaledWidth;
       input->vInfo->height = scaledHeight;
+    }
+
+    if(input->vInfo->width != resolution_.width() || input->vInfo->height != resolution_.height())
+    {
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Incorrect resolution conversion",
+                                      {"Excepted resolutions", "Converted resolution"},
+                                       {QString::number(resolution_.width()) + "x" + QString::number(resolution_.height()),
+                                        QString::number(input->vInfo->width) + "x" + QString::number(input->vInfo->height)});
     }
 
     input->type = DT_YUV420VIDEO;
