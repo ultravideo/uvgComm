@@ -315,7 +315,18 @@ QSize participantsToResolution(QSize baseResolution, uint32_t otherParticipants)
   int cols = std::ceil(std::sqrt(otherParticipants));
   int rows = std::ceil(float(otherParticipants)/cols);
 
-  QSize resolution = QSize(baseResolution.width()/cols, baseResolution.height()/rows);
+  int width = baseResolution.width()/cols - (baseResolution.width()/cols)%8;
+  int height = baseResolution.height()/rows - (baseResolution.height()/rows)%2;
+
+  QSize resolution = QSize(width, height);
+
+  if ((baseResolution.width()/cols)%8 != 0 || (baseResolution.height()/rows)%2 != 0)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Target resolution not divisible by 8 or 2",
+                                    {"Resolution reduction"},
+                                    {QString::number((baseResolution.width()/cols)%8) + "x" +
+                                     QString::number((baseResolution.height()/rows)%2)});
+  }
 
   // the encoder only supports resolutions larger than or equal to 64x64
   if (resolution.width() < 64)
