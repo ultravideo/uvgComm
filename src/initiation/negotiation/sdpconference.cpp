@@ -129,20 +129,21 @@ void SDPConference::updateAllMedias(SDPMessageInfo &sdp)
 
     if (findSSRC(sdp.media[i], recvSSRC))
     {
-      for (auto& message : p2pPreparedMessages_)
+      for (auto& existingMessage : p2pPreparedMessages_)
       {
-        for (auto& preparedMedia : message.second)
+        // go through the medias of the existing session
+        for (auto& preparedMedia : existingMessage.second)
         {
-          std::vector<uint32_t> ssrcs;
-          if (findSSRC(preparedMedia, ssrcs) &&
-              (ssrcs.size() >= 1 && ssrcs[0] == recvSSRC ||
-               ssrcs.size() >= 2 && ssrcs[1] == recvSSRC) &&
+          std::vector<uint32_t> existingSSRCs;
+          if (findSSRC(preparedMedia, existingSSRCs) &&
+              (existingSSRCs.size() >= 1 && existingSSRCs[0] == recvSSRC ||
+               existingSSRCs.size() >= 2 && existingSSRCs[1] == recvSSRC) &&
               verifyMediaInfoMatch(preparedMedia, sdp.media[i]))
           {
             Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
                                             "Updated media for session from new participant",
                                             {"SessionID", "index"},
-                                            {QString::number(message.first), QString::number(i)});
+                                            {QString::number(existingMessage.first), QString::number(i)});
 
             updateMediaState(preparedMedia, sdp.media[i]);
           }
@@ -506,19 +507,16 @@ bool SDPConference::verifyMediaInfoMatch(const MediaInfo& currentState,
 {
   if (currentState.type != newState.type)
   {
-    Logger::getLogger()->printError("SDPMeshConference", "Media types do not match");
     return false;
   }
 
   if (currentState.receivePort != newState.receivePort)
   {
-    Logger::getLogger()->printError("SDPMeshConference", "Receive ports do not match");
     return false;
   }
 
   if (currentState.proto != newState.proto)
   {
-    Logger::getLogger()->printError("SDPMeshConference", "Protocols do not match");
     return false;
   }
 
@@ -526,10 +524,6 @@ bool SDPConference::verifyMediaInfoMatch(const MediaInfo& currentState,
       currentState.connection_addrtype != newState.connection_addrtype ||
       currentState.connection_nettype != newState.connection_nettype)
   {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPMeshConference", "Connection addresses do not match",
-                                    {"Old address", "New Address"},
-                                    {currentState.connection_address, newState.connection_address});
-
     return false;
   }
 
