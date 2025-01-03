@@ -117,6 +117,12 @@ void FilterGraphP2P::setConferenceSize(uint32_t otherParticipants)
 }
 
 
+void FilterGraphP2P::updateConferenceSize()
+{
+  setConferenceSize(peers_.size());
+}
+
+
 void FilterGraphP2P::uninit()
 {
   quitting_ = true;
@@ -691,6 +697,9 @@ void FilterGraphP2P::lastPeerRemoved()
   destroyFilters(audioOutputGraph_);
   audioOutput_ = nullptr;
   audioCapture_ = nullptr;
+
+  libyuv_ = nullptr;
+  kvazaar_ = nullptr;
 
   videoSendIniated_ = false;
   audioInputInitialized_ = false;

@@ -214,18 +214,8 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
       {
         if (settingString(SettingsKey::sipRole) != "Server")
         {
-          int count = countParticipants(peerInfo);
-
-          if (count != 0)
-          {
-            p2pFg_->setConferenceSize(countParticipants(peerInfo));
-          }
-          else
-          {
-            Logger::getLogger()->printWarning(this, "No participants found, assuming self call");
-          }
-
           clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
+          p2pFg_->updateConferenceSize();
         }
 
         if (settingString(SettingsKey::sipRole) != "Client")
