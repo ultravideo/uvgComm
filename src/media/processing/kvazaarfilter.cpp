@@ -155,7 +155,11 @@ void KvazaarFilter::reInitializeKvazaar()
   {
     sleep(1);
   }
-  close(std::make_pair(cameraResolution_.width(), cameraResolution_.height()));
+
+  for (auto encoder : encoders_)
+  {
+    close(encoder.first);
+  }
 
   settingsMutex_.lock();
   if(init())
@@ -365,9 +369,15 @@ bool KvazaarFilter::init()
 
     Logger::getLogger()->printNormal(this, "Kvazaar iniation succeeded", "Resolution", resolutionStr);
   }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Input buffer not empty!");
+    return false;
+  }
 
   return true;
 }
+
 
 void KvazaarFilter::close(std::pair<int, int> resolution)
 {
@@ -386,6 +396,7 @@ void KvazaarFilter::close(std::pair<int, int> resolution)
 
   Logger::getLogger()->printNormal(this, "Closed Kvazaar");
 }
+
 
 void KvazaarFilter::process()
 {
@@ -406,6 +417,7 @@ void KvazaarFilter::process()
     input = getInput();
   }
 }
+
 
 void KvazaarFilter::customParameters(QSettings& settings)
 {
