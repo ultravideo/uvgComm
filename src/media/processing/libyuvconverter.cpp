@@ -20,12 +20,14 @@ LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
   QSettings settings(settingsFile, settingsFileFormat);
   QSize resolution = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
                            settings.value(SettingsKey::videoResolutionHeight).toInt());
-
+/*
   for(unsigned int i = 1; i < 200; ++i)
   {
     QSize res = participantsToResolution(resolution, i);
-    //Logger::getLogger()->printNormal(this, "Resolution", "Res", QString::number(i) + ":" + QString::number(res.width()) + "x" + QString::number(res.height()));
+    Logger::getLogger()->printNormal(this, "Resolution", "Res",
+        QString::number(i) + ":" + QString::number(res.width()) + "x" + QString::number(res.height()));
   }
+*/
 }
 
 
