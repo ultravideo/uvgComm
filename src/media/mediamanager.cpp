@@ -215,7 +215,6 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
         if (settingString(SettingsKey::sipRole) != "Server")
         {
           clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
-          p2pFg_->updateConferenceSize();
         }
 
         if (settingString(SettingsKey::sipRole) != "Client")
@@ -223,6 +222,12 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
           sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
         }
       }
+    }
+
+    if (settingString(SettingsKey::sipRole) != "Server")
+    {
+      // TODO: This does not work if video is not enabled
+      p2pFg_->updateConferenceSize();
     }
   }
 }
