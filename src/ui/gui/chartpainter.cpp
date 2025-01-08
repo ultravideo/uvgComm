@@ -201,6 +201,7 @@ void ChartPainter::addPoint(int lineID, float y)
         while (largest < maxY_/2 && yLines_ > 5)
         {
           maxY_ /= 2;
+          Logger::getLogger()->printNormal(this, "Reducing max Y", "New Max Y", QString::number(maxY_));
 
           if (overLines_ == 0)
           {
@@ -218,8 +219,9 @@ void ChartPainter::addPoint(int lineID, float y)
       // if y is larger than maximum, then double the maxY and yLines
       while (y > maxY_)
       {
-        if (maxY_ == 0)
+        if (maxY_ <= 0)
         {
+          Logger::getLogger()->printProgramWarning(this, "Invalid max Y", "Max Y", QString::number(maxY_));
           maxY_ = 1;
         }
         else
