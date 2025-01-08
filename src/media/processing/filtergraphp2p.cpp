@@ -119,7 +119,17 @@ void FilterGraphP2P::setConferenceSize(uint32_t otherParticipants)
 
 void FilterGraphP2P::updateConferenceSize()
 {
-  setConferenceSize(peers_.size());
+  uint32_t otherParticipants = 0;
+
+  for (auto& peer : peers_)
+  {
+    if (peer.second != nullptr)
+    {
+      otherParticipants += peer.second->videoReceivers.size();
+    }
+  }
+
+  setConferenceSize(otherParticipants);
 }
 
 
