@@ -156,12 +156,13 @@ void KvazaarFilter::reInitializeKvazaar()
     sleep(1);
   }
 
+  settingsMutex_.lock();
   for (auto encoder : encoders_)
   {
     close(encoder.first);
   }
+  encoders_.clear();
 
-  settingsMutex_.lock();
   if(init())
   {
     Logger::getLogger()->printNormal(this, "Resolution change successful");
@@ -385,7 +386,6 @@ void KvazaarFilter::close(std::pair<int, int> resolution)
   {
     api_->encoder_close(encoders_[resolution]);
     api_->config_destroy(config_);
-    encoders_.erase(resolution);
     config_ = nullptr;
 
     cleanupInputVector();
