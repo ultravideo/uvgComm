@@ -32,7 +32,7 @@ void FilterGraphSFU::
   for (auto& peer : peers_)
   {
     // no need to participants video to themselves
-    if (peer.first != sessionID)
+    if (peer.first != sessionID && peer.second != nullptr)
     {
       // check if the other participant has a receiver (they should)
       if (!peer.second->videoReceivers.empty() && !peer.second->videoReceivers.begin()->second->empty())
@@ -81,7 +81,7 @@ void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
   // connect the receiver to existing senders to distribute this new media
   for (auto& peer : peers_)
   {
-    if (peer.first != sessionID)
+    if (peer.first != sessionID && peer.second != nullptr)
     {
       if (!peer.second->videoSenders.empty())
       {
@@ -111,7 +111,7 @@ void FilterGraphSFU::
   for (auto& peer : peers_)
   {
     // no need to participants audio to themselves
-    if (peer.first != sessionID)
+    if (peer.first != sessionID && peer.second != nullptr)
     {
       // check if the other participant has a receiver (they should)
       if (!peer.second->audioReceivers.empty() && !peer.second->audioReceivers.begin()->second->empty())
@@ -155,7 +155,7 @@ void FilterGraphSFU::
   // connect the receiver to existing senders to distribute this new media
   for (auto& peer : peers_)
   {
-    if (peer.first != sessionID)
+    if (peer.first != sessionID && peer.second != nullptr)
     {
       if (!peer.second->audioSenders.empty())
       {
