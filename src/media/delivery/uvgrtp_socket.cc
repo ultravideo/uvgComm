@@ -1036,6 +1036,13 @@ rtp_error_t uvgrtp::socket::__recvfrom(uint8_t *buf, size_t buf_len, int recv_fl
     set_bytes(bytes_read, ret);
 #else
 
+    if (recv_flags == 0)
+    {
+      // Ensure socket is non-blocking
+      u_long mode = 1;  // Non-blocking mode
+      ioctlsocket(socket_, FIONBIO, &mode);
+    }
+
     (void)recv_flags;
 
     WSABUF DataBuf;
