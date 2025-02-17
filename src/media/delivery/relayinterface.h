@@ -4,6 +4,9 @@
 #include <memory>
 
 
+struct sockaddr_in;
+struct sockaddr_in6;
+
 class Filter;
 
 class RelayInterface
@@ -23,4 +26,9 @@ public:
 
   virtual void sendUDPData(std::string destinationAddress, uint16_t port,
                    std::unique_ptr<unsigned char[]> data, uint32_t size) = 0;
+
+  virtual void sendUDPData(sockaddr_in &dest_addr,
+                           sockaddr_in6 &dest_addr6,
+                           std::unique_ptr<unsigned char[]> data,
+                           uint32_t size) = 0;
 };

@@ -47,6 +47,16 @@ running_(false)
 
     socket_.bind(local_addr);
   }
+
+  /* Set the default UDP send/recv buffer sizes to 4MB as on Windows
+     * the default size is way too small for a larger video conference */
+  int buf_size = 4 * 1024 * 1024;
+
+  if (socket_.setsockopt(SOL_SOCKET, SO_SNDBUF, (const char*)&buf_size, sizeof(int)) != RTP_OK ||
+      socket_.setsockopt(SOL_SOCKET, SO_RCVBUF, (const char*)&buf_size, sizeof(int)) != RTP_OK)
+  {
+    Logger::getLogger()->printDebug(DEBUG_ERROR, this, "Failed to set the UDP buffer sizes");
+  }
 }
 
 
@@ -83,95 +93,113 @@ void UVGRelay::sendUDPData(std::string destinationAddress, uint16_t port,
 }
 
 
+void UVGRelay::sendUDPData(sockaddr_in& dest_addr, sockaddr_in6& dest_addr6,
+                           std::unique_ptr<unsigned char[]> data, uint32_t size)
+{
+  socket_.sendto(dest_addr, dest_addr6, data.get(), size, 0);
+}
+
+
 void UVGRelay::run()
 {
-  while (running_)
-  {
-    // poll from socket
+  setPriority(QThread::TimeCriticalPriority);
+
+   // poll from socket
 #ifdef _WIN32
-    LPWSAPOLLFD pfds = new pollfd();
+  LPWSAPOLLFD pfds = new pollfd();
 #else
-    pollfd* pfds = new pollfd();
+  pollfd* pfds = new pollfd();
 #endif
 
-    size_t read_fds = socket_.get_raw_socket();
-    pfds->fd = read_fds;
-    pfds->events = POLLIN;
+  size_t read_fds = socket_.get_raw_socket();
+  pfds->fd = read_fds;
+  pfds->events = POLLIN;
 
+ uint8_t buffer[BUFFER_SIZE];
+
+  while (running_)
+  {
+    // poll for incoming data
 #ifdef _WIN32
     if (WSAPoll(pfds, 1, POLL_TIMEOUT_MS) < 0) {
 #else
     if (poll(pfds, 1, POLL_TIMEOUT_MS) < 0) {
 #endif
       Logger::getLogger()->printDebug(DEBUG_ERROR, this, "poll() failed");
-      delete pfds;
-      return;
+      break;
     }
 
     if (pfds->revents & POLLIN)
     {
-      uint8_t buffer[BUFFER_SIZE];
-      sockaddr_in src_addr;
-      sockaddr_in6 src_addr6;
-
-      int read = 0;
-      if (socket_.recvfrom(buffer, BUFFER_SIZE, MSG_DONTWAIT, &read) < 0)
+      while(running_)
       {
-        Logger::getLogger()->printDebug(DEBUG_ERROR, this, "recvfrom() failed");
-        delete pfds;
-        return;
-      }
+        int read = 0;
+        rtp_error_t ret = socket_.recvfrom(buffer, BUFFER_SIZE, MSG_DONTWAIT, &read);
 
-      if (read < 12)
-      {
-        //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received a packet which is too small to be an RTP packet",
-        //                                {"Packet size"}, {QString::number(read)});
-        continue;
-      }
-
-      // check if this is an RTP or RTCP packet
-      uint8_t rtcp_pt = buffer[1];
-      uint8_t rtp_pt = rtcp_pt & 0x7F;
-
-      if (rtcp_pt == 200 || rtcp_pt == 201 || rtcp_pt == 202)
-      {
-        // RTCP
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received an RTCP packet, not doing anything",
-                                        {"Payload type"},
-                                        {QString::number(rtcp_pt)});
-      }
-      else if (rtp_pt <= 34 || 96 <= rtp_pt)
-      {
-        // RTP
-        uint32_t ssrc = *reinterpret_cast<uint32_t*>(buffer + 8);
-        ssrc = htonl(ssrc);
-
-        if (receivers_.find(ssrc) != receivers_.end())
+        if (ret == RTP_INTERRUPTED)
         {
-          std::shared_ptr<Filter> filter = receivers_[ssrc];
+          break;
+        }
+        else if (ret != RTP_OK)
+        {
+          Logger::getLogger()->printDebug(DEBUG_ERROR, this, "recvfrom() failed");
+          running_ = false;
+          break;
+        }
 
-          std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
-          receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
-          receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
+        if (read < 12)
+        {
+          //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received a packet which is too small to be an RTP packet",
+          //                                {"Packet size"}, {QString::number(read)});
+          continue;
+        }
 
-          receivedRTPFrame->data = std::unique_ptr<uchar[]>(new uchar[read]);
-          memcpy(receivedRTPFrame->data.get(), buffer, read);
-          receivedRTPFrame->data_size = read;
+        // check if this is an RTP or RTCP packet
+        uint8_t rtcp_pt = buffer[1];
+        uint8_t rtp_pt = rtcp_pt & 0x7F;
 
-          filter->putInput(std::move(receivedRTPFrame));
+        if (rtcp_pt == 200 || rtcp_pt == 201 || rtcp_pt == 202)
+        {
+          // RTCP
+          Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received an RTCP packet, not doing anything",
+                                          {"Payload type"},
+                                          {QString::number(rtcp_pt)});
+        }
+        else if (rtp_pt <= 34 || 96 <= rtp_pt)
+        {
+          // RTP
+          uint32_t ssrc = *reinterpret_cast<uint32_t*>(buffer + 8);
+          ssrc = htonl(ssrc);
+
+          if (receivers_.find(ssrc) != receivers_.end())
+          {
+            std::shared_ptr<Filter> filter = receivers_[ssrc];
+
+            std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
+            receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+            receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
+
+            receivedRTPFrame->data = std::unique_ptr<uchar[]>(new uchar[read]);
+            memcpy(receivedRTPFrame->data.get(), buffer, read);
+            receivedRTPFrame->data_size = read;
+
+            filter->putInput(std::move(receivedRTPFrame));
+          }
+          else
+          {
+            Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received an RTP packet for which we have no receiver",
+                                            {"SSRC"}, {QString::number(ssrc)});
+          }
         }
         else
         {
-          Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received an RTP packet for which we have no receiver",
-                                          {"SSRC"}, {QString::number(ssrc)});
+          Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received a packet which does not follow RTP specifications",
+                                          {"Payload type"},
+                                          {QString::number(rtp_pt)});
         }
-      }
-      else
-      {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received a packet which does not follow RTP specifications",
-                                        {"Payload type"},
-                                        {QString::number(rtp_pt)});
       }
     }
   }
+
+  delete pfds;
 }

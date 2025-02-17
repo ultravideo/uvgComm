@@ -29,6 +29,12 @@ void UDPRelay::sendUDPData(std::string destinationAddress, uint16_t port,
                         QHostAddress(destinationAddress.c_str()), port);
 }
 
+void UDPRelay::sendUDPData(sockaddr_in& dest_addr, sockaddr_in6& dest_addr6,
+                           std::unique_ptr<unsigned char[]> data, uint32_t size)
+{
+  return;
+}
+
 
 void UDPRelay::readPendingDatagrams()
 {

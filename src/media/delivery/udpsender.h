@@ -15,6 +15,7 @@ public:
             std::shared_ptr<ResourceAllocator> hwResources,
             std::string destination, int port, std::shared_ptr<RelayInterface> relay);
 
+  ~UDPSender();
 
 public slots:
 
@@ -33,5 +34,8 @@ private:
   std::shared_ptr<RelayInterface> relay_;
 
   QTimer keepLiveTimer_;
+
+  sockaddr_in dest_addr_ = {};
+  sockaddr_in6 dest_addr6_ = {};
 };
 
