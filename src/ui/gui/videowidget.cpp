@@ -17,7 +17,7 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID,
 {
   helper_.initWidget(this);
 
-  QObject::connect(&updateTimer_, SIGNAL(timeout()), this, SLOT(repaint()));
+  QObject::connect(&updateTimer_, &QTimer::timeout, this, &VideoWidget::paintTimer);
   updateTimer_.start(16); // 16 ms is the screen refresh time for 60 hz monitors
 
   // the new syntax does not work for some reason (unresolved overloaded function type)
@@ -25,6 +25,10 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID,
   QObject::connect(&helper_, &VideoDrawHelper::reattach, this, &VideoWidget::reattach);
 
   helper_.updateTargetRect(this);
+
+  setAttribute(Qt::WA_OpaquePaintEvent);
+  setAttribute(Qt::WA_NoSystemBackground);
+  setAttribute(Qt::WA_PaintOnScreen);
 }
 
 
@@ -94,13 +98,15 @@ void VideoWidget::paintEvent(QPaintEvent *event)
 {
   QPainter painter(this);
 
+  painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
+  painter.setRenderHint(QPainter::Antialiasing, false);
+
   if(helper_.readyToDraw())
   {
-    drawMutex_.lock();
-
     QImage frame;
     int64_t latency = 0;
 
+    drawMutex_.lock();
     if(helper_.getRecentImage(frame, latency))
     {
       // sessionID 0 is the self display and we are not interested
@@ -110,6 +116,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
         stats_->presentPackage(sessionID_, "Video");
       }
     }
+    drawMutex_.unlock();
 
     painter.drawImage(helper_.getTargetRect(), frame);
 
@@ -120,12 +127,14 @@ void VideoWidget::paintEvent(QPaintEvent *event)
       painter.setPen(QColor::fromRgb(255, 255, 255));
       painter.drawText(QPoint(width()/2, height()/2), QString::number(latency) + " ms");
     }
-    drawMutex_.unlock();
+
   }
   else
   {
     painter.fillRect(event->rect(), QBrush(QColor(0,0,0)));
   }
+
+  //painter.end();  // Force the painter to flush immediately
 
   QWidget::paintEvent(event);
 }
@@ -180,4 +189,13 @@ void VideoWidget::mouseMoveEvent(QMouseEvent *e)
 void VideoWidget::mouseDoubleClickEvent(QMouseEvent *e) {
   QWidget::mouseDoubleClickEvent(e);
   helper_.mouseDoubleClickEvent(this);
+}
+
+
+void VideoWidget::paintTimer()
+{
+  if (helper_.haveFrames())
+  {
+    repaint();
+  }
 }

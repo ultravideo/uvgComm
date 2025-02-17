@@ -56,6 +56,10 @@ public:
   void disableOverlay();
   void resetOverlay();
 
+public slots:
+
+  void paintTimer();
+
 signals:
 
   void reattach(LayoutID layoutID_);

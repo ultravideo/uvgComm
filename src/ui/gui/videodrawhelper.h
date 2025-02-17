@@ -79,6 +79,11 @@ public:
 
   std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
 
+  bool haveFrames()
+  {
+    return !frameBuffer_.empty();
+  }
+
 signals:
 
   void reattach(LayoutID layoutID);
