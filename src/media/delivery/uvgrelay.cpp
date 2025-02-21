@@ -20,7 +20,8 @@ const int BUFFER_SIZE = 1500;
 
 UVGRelay::UVGRelay(std::string localAddress, uint16_t port):
   socket_(0),
-running_(false)
+running_(false),
+    ipv6_(false)
 {
   // check if the local address is IPv4 or IPv6
   if (localAddress.find(':') != std::string::npos)
@@ -32,14 +33,15 @@ running_(false)
     local_addr.sin6_family = AF_INET6;
     local_addr.sin6_port = htons(port);
     inet_pton(AF_INET6, localAddress.c_str(), &local_addr.sin6_addr);
-
+    ipv6_ = true;
     socket_.bind_ip6(local_addr);
+
   }
   else
   {
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "IPv4 address detected");
     socket_.init(AF_INET, SOCK_DGRAM, 0);
-
+    ipv6_ = false;
     sockaddr_in local_addr;
     local_addr.sin_family = AF_INET;
     local_addr.sin_port = htons(port);
@@ -97,6 +99,14 @@ void UVGRelay::sendUDPData(sockaddr_in& dest_addr, sockaddr_in6& dest_addr6,
                            std::unique_ptr<unsigned char[]> data, uint32_t size)
 {
   socket_.sendto(dest_addr, dest_addr6, data.get(), size, 0);
+}
+
+void UVGRelay::sendUDPData(sockaddr_in& dest_addr,
+                           sockaddr_in6& dest_addr6,
+                           std::vector<std::vector<std::pair<size_t, uint8_t*>>>& buffers)
+{
+  int bytes_sent = 0;
+  socket_.__sendtov(dest_addr, dest_addr6, ipv6_, buffers, 0, &bytes_sent);
 }
 
 

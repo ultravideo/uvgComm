@@ -26,6 +26,11 @@ public:
   virtual void sendUDPData(sockaddr_in& dest_addr, sockaddr_in6& dest_addr6,
                            std::unique_ptr<unsigned char[]> data, uint32_t size);
 
+  virtual void sendUDPData(sockaddr_in &dest_addr,
+                           sockaddr_in6 &dest_addr6,
+                           std::vector<std::vector<std::pair<size_t, uint8_t *>>>& buffers)
+  {}
+
 
   virtual void start() {}
   virtual void stop() {}

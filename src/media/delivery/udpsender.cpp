@@ -61,9 +61,16 @@ UDPSender::UDPSender(QString id,
   keepLive(); // opens the firewall
 }
 
+
 UDPSender::~UDPSender()
 {
   keepLiveTimer_.stop();
+}
+
+
+bool UDPSender::lastFragment(std::unique_ptr<uchar[]>& data)
+{
+  return (data[1] >> 7) & 0x01;
 }
 
 
@@ -72,9 +79,34 @@ void UDPSender::process()
   std::unique_ptr<Data> input = getInput();
 
   while (input)
-  {
-    // send data over the network
-    relay_->sendUDPData(dest_addr_, dest_addr6_, std::move(input->data), input->data_size);
+  { 
+    if (fragments_.empty() && lastFragment(input->data))
+    {
+      // no need to fragment
+      relay_->sendUDPData(dest_addr_, dest_addr6_, std::move(input->data), input->data_size);
+    }
+    else if (lastFragment(input->data))
+    {
+      fragments_.push_back(std::move(input));
+
+      std::vector<std::vector<std::pair<size_t, uint8_t *>>> fragments;
+
+      for(auto& fragment : fragments_)
+      {
+        std::vector<std::pair<size_t, uint8_t *>> frag;
+        frag.push_back(std::make_pair(fragment->data_size, fragment->data.get()));
+        fragments.push_back(frag);
+      }
+
+      // send all fragments
+      relay_->sendUDPData(dest_addr_, dest_addr6_, fragments);
+      fragments_.clear();
+    }
+    else
+    {
+      fragments_.push_back(std::move(input));
+    }
+
     input = getInput();
   }
 }

@@ -25,9 +25,9 @@ protected:
 
   void process();
 
-
-
 private:
+
+  bool lastFragment(std::unique_ptr<uchar[]>& data);
 
   std::string destination_;
   int port_;
@@ -37,5 +37,7 @@ private:
 
   sockaddr_in dest_addr_ = {};
   sockaddr_in6 dest_addr6_ = {};
+
+  std::vector<std::unique_ptr<Data>> fragments_;
 };
 

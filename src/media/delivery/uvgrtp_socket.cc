@@ -4,6 +4,8 @@
 
 #include <thread>
 
+#include <iostream>
+
 #ifdef _WIN32
 #include <Windows.h>
 #include <winsock2.h>
@@ -595,12 +597,14 @@ rtp_error_t uvgrtp::socket::__sendto(sockaddr_in& addr, sockaddr_in6& addr6, boo
     data_buf.buf = (char *)buf;
     data_buf.len = (ULONG)buf_len;
     int result = -1;
+
     if (ipv6) {
         result = WSASendTo(socket_, &data_buf, 1, &sent_bytes, send_flags, (const struct sockaddr*)&addr6, sizeof(addr6), nullptr, nullptr);
     }
     else {
         result = WSASendTo(socket_, &data_buf, 1, &sent_bytes, send_flags, (const struct sockaddr*)&addr, sizeof(addr), nullptr, nullptr);
     }
+
     if (result == -1) {
         win_get_last_error();
         if (ipv6_) {

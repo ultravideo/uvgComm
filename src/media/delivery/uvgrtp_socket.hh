@@ -185,6 +185,7 @@ namespace uvgrtp {
             static bool is_multicast(sockaddr_in& local_address);
             static bool is_multicast(sockaddr_in6& local_address);
 
+            rtp_error_t __sendtov(sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6, uvgrtp::pkt_vec& buffers, int send_flags, int *bytes_sent);
 
         private:
 
@@ -198,7 +199,7 @@ namespace uvgrtp {
 
             /* __sendtov() does the same as __sendto but it combines multiple buffers into one frame and sends them */
             rtp_error_t __sendtov(sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6, buf_vec& buffers, int send_flags, int *bytes_sent);
-            rtp_error_t __sendtov(sockaddr_in& addr, sockaddr_in6& addr6, bool ipv6, uvgrtp::pkt_vec& buffers, int send_flags, int *bytes_sent);
+
 
             socket_t socket_;
             //sockaddr_in remote_address_;
