@@ -175,6 +175,7 @@ qt_add_executable(uvgComm WIN32 MACOSX_BUNDLE
     src/cname.h src/cname.cpp
     src/media/delivery/uvgrelay.h src/media/delivery/uvgrelay.cpp
     src/media/delivery/relayinterface.h
+    src/ui/scripting.h src/ui/scripting.cpp
 
 )
 

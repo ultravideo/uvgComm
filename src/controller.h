@@ -25,6 +25,9 @@ public:
   uvgCommController();
 
   void init();
+  void init(QString& scriptFilename);
+  void initStdin();
+
   void uninit();
 
   // participant interface funtions used to start a call or a chat.

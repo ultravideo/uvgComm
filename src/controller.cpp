@@ -118,7 +118,38 @@ void uvgCommController::init()
   // lastly, show the window when our signals are ready
   userInterface_.showMainWindow();
 
+  // test all resolutions
+  for (int i = 1; i < 200; i++)
+  {
+    QSize baseResolution = QSize(1280, 720);
+    int32_t baseBitrate = 1000000;
+    QSize resolution = participantsToResolution(baseResolution, i);
+    int32_t bitrate = participantsToBitrate(baseResolution, baseBitrate, i);
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Resolution",
+                                    {"Participants", "Width", "Height", "Bitrate"},
+                                    {QString::number(i),
+                                     QString::number(resolution.width()),
+                                     QString::number(resolution.height()),
+                                     QString::number(bitrate)});
+  }
+
   Logger::getLogger()->printImportant(this, "uvgComm initiation finished");
+}
+
+
+void uvgCommController::init(QString& scriptFilename)
+{
+  init();
+
+  userInterface_.runScriptFromFile(scriptFilename);
+}
+
+
+void uvgCommController::initStdin()
+{
+  init();
+
+  userInterface_.runScriptFromStdin();
 }
 
 

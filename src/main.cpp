@@ -101,6 +101,20 @@ int main(int argc, char *argv[])
   a.setWindowIcon(QIcon(":/favicon.ico"));
 
   uvgCommController controller;
+
+  switch (script)
+  {
+    case ScriptMode::SCRIPT_FILE:
+      controller.init(file);
+      break;
+    case ScriptMode::SCRIPT_STDIN:
+      controller.initStdin();
+      break;
+    case ScriptMode::SCRIPT_NONE:
+      controller.init();
+      break;
+  }
+
   controller.init();
 
   return a.exec(); // starts main thread

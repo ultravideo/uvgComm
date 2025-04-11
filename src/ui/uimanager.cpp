@@ -85,6 +85,20 @@ void UIManager::init(ParticipantInterface *partInt, std::shared_ptr<VideoviewFac
 }
 
 
+void UIManager::runScriptFromFile(const QString& filename)
+{
+  script_.fileScripting(filename);
+  script_.start();
+}
+
+
+void UIManager::runScriptFromStdin()
+{
+  script_.stdinScripting();
+  script_.start();
+}
+
+
 void UIManager::updateServerStatus(QString status)
 {
   settingsView_.updateServerStatus(status);
