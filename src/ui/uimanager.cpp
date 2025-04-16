@@ -82,6 +82,14 @@ void UIManager::init(ParticipantInterface *partInt, std::shared_ptr<VideoviewFac
   window_.init(partInt);
   viewFactory->addSelfview(settingsView_.getSelfView());
   viewFactory->addSelfview(window_.getSelfView());
+
+  connect(&script_, &Scripting::endCall, this, &UIManager::endCall);
+  connect(&script_, &Scripting::updateVideoSetting, this, &UIManager::updateVideoSettings);
+  connect(&script_, &Scripting::updateAudioSetting, this, &UIManager::updateAudioSettings);
+  connect(&script_, &Scripting::updateCallSetting, this, &UIManager::updateCallSettings);
+  connect(&script_, &Scripting::quitScript,  this,  &UIManager::closeUI);
+
+  script_.setPartInterface(partInt);
 }
 
 
