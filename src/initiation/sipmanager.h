@@ -84,7 +84,8 @@ enum ConferenceTopology
   P2P_MESH,
   RELAY,
   SFU,
-  MCU
+  MCU,
+  HYBRID
 };
 
 struct SIPConfig

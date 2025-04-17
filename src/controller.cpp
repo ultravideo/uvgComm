@@ -1127,6 +1127,11 @@ ConferenceTopology uvgCommController::getTopology(QString topology) const
   {
     return ConferenceTopology::MCU;
   }
+  else if (topology == "Hybrid")
+  {
+    return ConferenceTopology::HYBRID;
+  }
+
 
   return ConferenceTopology::P2P;
 }

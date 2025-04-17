@@ -227,6 +227,10 @@ void SIPManager::setConfig(const SIPConfig& config)
     {
       sdpConf_->setConferenceMode(SDP_CONF_LOCAL_RELAY);
     }
+    else if (config.topology == HYBRID)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_HYBRID);
+    }
   }
 }
 

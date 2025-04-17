@@ -14,7 +14,8 @@ enum ConferenceType
   SDP_CONF_LOCAL_MCU,
   SDP_CONF_MCU,
   SDP_CONF_LOCAL_RELAY,
-  SDP_CONF_RELAY
+  SDP_CONF_RELAY,
+  SDP_CONF_HYBRID
 };
 
 /* This class handles the generation of P2P Mesh conference via SDP Messages.
