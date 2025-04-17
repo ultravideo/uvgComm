@@ -87,7 +87,7 @@ void UIManager::init(ParticipantInterface *partInt, std::shared_ptr<VideoviewFac
   connect(&script_, &Scripting::updateVideoSetting, this, &UIManager::updateVideoSettings);
   connect(&script_, &Scripting::updateAudioSetting, this, &UIManager::updateAudioSettings);
   connect(&script_, &Scripting::updateCallSetting, this, &UIManager::updateCallSettings);
-  connect(&script_, &Scripting::quitScript,  this,  &UIManager::closeUI);
+  connect(&script_, &Scripting::quitScript,  &window_,  &CallWindow::close);
 
   script_.setPartInterface(partInt);
 }

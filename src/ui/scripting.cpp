@@ -81,7 +81,9 @@ void Scripting::executeCommand(const QString& command)
     QString username = parts[0];
     QString address = parts[1];
 
-    interface_->startINVITETransaction(username, username, address);
+    QMetaObject::invokeMethod(interface_, [=]() {
+      interface_->startINVITETransaction(username, username, address);
+    }, Qt::QueuedConnection);
   }
   else if (cmd == "wait")
   {
@@ -128,7 +130,7 @@ void Scripting::executeCommand(const QString& command)
   {
     emit updateCallSetting();
   }
-  else if (cmd == "quit" || cmd == "exit")
+  else if (cmd == "quit" || cmd == "exit" || cmd == "close")
   {
     emit quitScript();
     quit();
