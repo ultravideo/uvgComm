@@ -716,6 +716,9 @@ void uvgCommController::endTheCall()
 void uvgCommController::removeSession(uint32_t sessionID, QString message,
                                       bool temporaryMessage)
 {
+  Logger::getLogger()->printNormal(this, "Removing session",
+                                   {"SessionID"}, {QString::number(sessionID)});
+
   if (message == "" || message.isEmpty())
   {
     userInterface_.removeParticipant(sessionID);
@@ -743,6 +746,8 @@ void uvgCommController::removeSession(uint32_t sessionID, QString message,
   {
     stats_->removeSession(sessionID);
   }
+
+  Logger::getLogger()->printNormal(this, "Removed session", {"Remaining states"}, {QString::number(states_.size())});
 }
 
 
@@ -989,9 +994,16 @@ void uvgCommController::negotiateNextCall()
 {
   if (!pendingRenegotiations_.empty() && ongoingNegotiations_ == 0)
   {
-    ++ongoingNegotiations_;
     uint32_t sessionID = pendingRenegotiations_.front();
     pendingRenegotiations_.pop_front();
+
+    if (states_.find(sessionID) == states_.end())
+    {
+      Logger::getLogger()->printProgramWarning(this, "Negotiating a call which does not exist");
+      return;
+    }
+    ++ongoingNegotiations_;
+
     states_[sessionID].localSDP = nullptr;
     states_[sessionID].remoteSDP = nullptr;
 
