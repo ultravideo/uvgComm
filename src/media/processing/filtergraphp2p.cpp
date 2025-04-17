@@ -4,6 +4,7 @@
 #include "media/processing/screensharefilter.h"
 #include "media/processing/kvazaarfilter.h"
 #include "media/processing/roimanualfilter.h"
+#include "media/processing/hybridfilter.h"
 
 #include "media/processing/openhevcfilter.h"
 
@@ -340,6 +341,10 @@ void FilterGraphP2P::initVideoSend()
 
   addToGraph(kvazaar_, cameraGraph_, cameraGraph_.size() - 1);
   addToGraph(kvazaar_, screenShareGraph_, 0);
+
+  hybrid_ = std::shared_ptr<HybridFilter>(new HybridFilter("", stats_, hwResources_));
+  addToGraph(hybrid_, cameraGraph_, cameraGraph_.size() - 1);
+  //addToGraph(hybrid_, screenShareGraph_, screenShareGraph_.size() - 1);
 
   videoSendIniated_ = true;
 }
@@ -710,6 +715,7 @@ void FilterGraphP2P::lastPeerRemoved()
 
   libyuv_ = nullptr;
   kvazaar_ = nullptr;
+  hybrid_ = nullptr;
 
   videoSendIniated_ = false;
   audioInputInitialized_ = false;

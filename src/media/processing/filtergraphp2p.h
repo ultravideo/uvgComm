@@ -11,6 +11,7 @@ class SpeexAEC;
 class AudioMixer;
 class KvazaarFilter;
 class LibYUVConverter;
+class HybridFilter;
 
 
 class FilterGraphP2P : public FilterGraph
@@ -76,6 +77,7 @@ private:
 
   std::shared_ptr<LibYUVConverter> libyuv_;
   std::shared_ptr<KvazaarFilter> kvazaar_;
+  std::shared_ptr<HybridFilter> hybrid_;
 
   std::shared_ptr<DisplayFilter> selfviewFilter_;
   VideoInterface* roiInterface_; // this is the roi surface from settings
