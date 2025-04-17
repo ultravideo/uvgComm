@@ -48,7 +48,11 @@ private:
                                        std::shared_ptr<SDPMessageInfo> localSDP);
 
   std::shared_ptr<SDPMessageInfo> getSFUSDP(uint32_t sessionID,
-                                             std::shared_ptr<SDPMessageInfo> localSDP);
+                                            std::shared_ptr<SDPMessageInfo> localSDP);
+
+
+  std::shared_ptr<SDPMessageInfo> getHybridSDP(uint32_t sessionID,
+                                               std::shared_ptr<SDPMessageInfo> localSDP);
 
   std::shared_ptr<SDPMessageInfo> getTemplateSDP(SDPMessageInfo& sdp);
   void updateGeneratedSDPs(SDPMessageInfo& sdp);

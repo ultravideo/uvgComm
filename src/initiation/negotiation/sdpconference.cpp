@@ -47,7 +47,7 @@ void SDPConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
     Logger::getLogger()->printError("SDPMeshConference", "Received SDP message without CNAME");
   }
 
-  if (type_ == SDP_CONF_P2P_MESH)
+  if (type_ == SDP_CONF_P2P_MESH | type_ == SDP_CONF_HYBRID)
   {
     // if sent them a generated SSRC, it means the received medias should be distributed to existing sessions
     if (generatedSSRCs_.find(sessionID) != generatedSSRCs_.end())
@@ -60,7 +60,7 @@ void SDPConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
     }
   }
 
-  if (type_ == SDP_CONF_LOCAL_SFU || type_ == SDP_CONF_SFU)
+  if (type_ == SDP_CONF_LOCAL_SFU || type_ == SDP_CONF_SFU || type_ == SDP_CONF_HYBRID)
   {
     distributeSSRCs(sessionID, sdp);
   }
@@ -280,6 +280,10 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getConferenceSDP(uint32_t session
   {
     return getSFUSDP(sessionID, localSDP);
   }
+  else if ( type_ == SDP_CONF_HYBRID)
+  {
+    return getHybridSDP(sessionID, localSDP);
+  }
   else
   {
     Logger::getLogger()->printError("SDPMeshConference", "Unsupported conference type");
@@ -393,6 +397,41 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getSFUSDP(uint32_t sessionID,
   }
 
   return meshSDP;
+}
+
+
+std::shared_ptr<SDPMessageInfo> SDPConference::getHybridSDP(uint32_t sessionID,
+                                                            std::shared_ptr<SDPMessageInfo> localSDP)
+{
+  std::shared_ptr<SDPMessageInfo> hybridSDP = std::make_shared<SDPMessageInfo>();
+  *hybridSDP = *localSDP;
+
+  auto meshSDP = getMeshSDP(sessionID, localSDP);
+  auto sfuSDP = getSFUSDP(sessionID, localSDP);
+
+  // Start from local
+  hybridSDP->media = meshSDP->media;
+
+  // Append SFU media if it's not a duplicate
+  for (const auto& media : sfuSDP->media)
+  {
+    bool found = false;
+    for (const auto& existing : hybridSDP->media)
+    {
+      if (verifyMediaInfoMatch(existing, media))
+      {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found)
+    {
+      hybridSDP->media.append(media);
+    }
+  }
+
+  return hybridSDP;
 }
 
 
