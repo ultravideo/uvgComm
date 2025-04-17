@@ -37,7 +37,7 @@ enum DataType {DT_NONE        = 0,
                DT_ARGBVIDEO   = (1 << 7),
                DT_BGRAVIDEO   = (1 << 8), // reverse of ARGB
                DT_ABGRVIDEO   = (1 << 9), // reverse of RGBA
-               DT_RGB32VIDEO   = (1 << 10), // also known as RGBA
+               DT_RGB32VIDEO  = (1 << 10), // also known as RGBA
 
                DT_RGB24VIDEO  = (1 << 11), // also known as RGBX
                DT_BGRXVIDEO   = (1 << 12), // also known as RAW, reverse of RGBX
@@ -218,7 +218,14 @@ protected:
   DataType input_;
   DataType output_;
 
-
+  void setOutputStatus(int index, bool status)
+  {
+    if (outConnections_.size() > index)
+    {
+      QMutexLocker lock(&connectionMutex_);
+      outConnections_[index].enabled = status;
+    }
+  }
 
   void printDataBytes(QString type, const uint8_t *payload, size_t size,
                       int bytes, int shift);
@@ -244,7 +251,13 @@ private:
   std::vector<std::function<void(std::unique_ptr<Data>)> > outDataCallbacks_;
 
   QMutex connectionMutex_;
-  std::vector<std::shared_ptr<Filter>> outConnections_;
+  struct FilterOutput
+  {
+    std::shared_ptr<Filter> filter;
+    bool enabled;
+  };
+
+  std::vector<FilterOutput> outConnections_;
 
   QMutex bufferMutex_;
   //std::queue<std::unique_ptr<Data>> inBuffer_;

@@ -114,7 +114,7 @@ bool Filter::isAudio(DataType type)
 
 void Filter::addOutConnection(std::shared_ptr<Filter> out)
 {
-  outConnections_.push_back(out);
+  outConnections_.push_back({out, true});
 }
 
 void Filter::removeOutConnection(std::shared_ptr<Filter> out)
@@ -123,7 +123,7 @@ void Filter::removeOutConnection(std::shared_ptr<Filter> out)
   connectionMutex_.lock();
   for(unsigned int i = 0; i < outConnections_.size(); ++i)
   {
-    if(outConnections_[i].get() == out.get())
+    if(outConnections_[i].filter.get() == out.get())
     {
       outConnections_.erase(outConnections_.begin() + i);
       removed = true;
@@ -365,7 +365,7 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
 {
   Q_ASSERT(output);
 
-  if(outDataCallbacks_.size() == 0 && outConnections_.size() == 0)
+  if (outDataCallbacks_.empty() && outConnections_.empty())
   {
     Logger::getLogger()->printDebug(DEBUG_WARNING, this,
                                     "Trying to send output data without outconnections.",
@@ -376,44 +376,52 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
   // TODO: If data is HEVC, I think we can safely use shallowcopy
 
   connectionMutex_.lock();
-  // copy data to callbacks expect the last one is moved
-  // in either callbacks or outconnections(default).
-  if(outDataCallbacks_.size() != 0)
+  // Copy data to callbacks (except for the last one which is moved)
+  if (!outDataCallbacks_.empty())
   {
-    // all expect the last
-    for(unsigned int i = 0; i < outDataCallbacks_.size() - 1; ++i)
+    // All callbacks except the last
+    for (unsigned int i = 0; i < outDataCallbacks_.size() - 1; ++i)
     {
       Data* copy = deepDataCopy(output.get());
       std::unique_ptr<Data> u_copy(copy);
       outDataCallbacks_[i](std::move(u_copy));
     }
 
-    // copy last callback and move last connection
-    if(outConnections_.size() != 0)
+    // Copy the last callback and move the last connection
+    if (!outConnections_.empty())
     {
       Data* copy = deepDataCopy(output.get());
       std::unique_ptr<Data> u_copy(copy);
       outDataCallbacks_.back()(std::move(u_copy));
     }
-    else // move last callback
+    else // Move the last callback
     {
       outDataCallbacks_.back()(std::move(output));
     }
   }
 
-  // handle all connected filters.
-  if(outConnections_.size() != 0)
+  // Handle all connected filters, considering 'enabled' status
+  if (!outConnections_.empty())
   {
-    // all expect the last
-    for(unsigned int i = 0; i < outConnections_.size() - 1; ++i)
+    // All output connections except the last (which will be moved)
+    for (unsigned int i = 0; i < outConnections_.size() - 1; ++i)
     {
-      Data* copy = deepDataCopy(output.get());
-      std::unique_ptr<Data> u_copy(copy);
-      outConnections_[i]->putInput(std::move(u_copy));
+      // Only send to enabled connections
+      if (outConnections_[i].enabled)
+      {
+        Data* copy = deepDataCopy(output.get());
+        std::unique_ptr<Data> u_copy(copy);
+        outConnections_[i].filter->putInput(std::move(u_copy));
+      }
     }
-    // always move the last outconnection
-    outConnections_.back()->putInput(std::move(output));
+
+    // Always move the last connection
+    if (outConnections_.back().enabled)
+    {
+      outConnections_.back().filter->putInput(std::move(output));
+    }
   }
+
   connectionMutex_.unlock();
 }
 
@@ -506,7 +514,7 @@ QString Filter::printOutputs()
 
   for(auto& out : outConnections_)
   {
-    outs += "   \"" + name_ + "\" -> \"" + out->name_ + "\";" + "\r\n";
+    outs += "   \"" + name_ + "\" -> \"" + out.filter->name_ + "\";" + "\r\n";
   }
 
   outs += "plus " + QString::number(outDataCallbacks_.size()) + " callbacks";
