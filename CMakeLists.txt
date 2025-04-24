@@ -309,3 +309,23 @@ else()
     )
     install(SCRIPT ${deploy_script})
 endif()
+
+
+
+if (MSVC)
+    if(DEFINED ENV{VCToolsRedistDir})
+        set(VC_REDIST_DIR "$ENV{VCToolsRedistDir}x64\\Microsoft.VC${MSVC_TOOLSET_VERSION}.CRT")
+        file(GLOB MSVC_DLLS "${VC_REDIST_DIR}\*.dll")
+        install(FILES ${MSVC_DLLS} DESTINATION ${CMAKE_INSTALL_BINDIR})
+        message(STATUS "MSVC runtime DLLs installed from ${VC_REDIST_DIR}")
+    else()
+        message(WARNING "VCToolsRedistDir environment variable not set. Cannot locate MSVC runtime DLLs.")
+    endif()
+endif()
+
+#TODO: MSVC 2010 redistributables
+
+# Install the license file
+install(FILES LICENSE
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/uvgComm
+)
