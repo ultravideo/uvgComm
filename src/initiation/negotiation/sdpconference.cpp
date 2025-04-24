@@ -47,7 +47,7 @@ void SDPConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
     Logger::getLogger()->printError("SDPMeshConference", "Received SDP message without CNAME");
   }
 
-  if (type_ == SDP_CONF_P2P_MESH | type_ == SDP_CONF_HYBRID)
+  if (type_ == SDP_CONF_MESH | type_ == SDP_CONF_LOCAL_MESH | type_ == SDP_CONF_HYBRID)
   {
     // if sent them a generated SSRC, it means the received medias should be distributed to existing sessions
     if (generatedSSRCs_.find(sessionID) != generatedSSRCs_.end())
@@ -272,9 +272,19 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getConferenceSDP(uint32_t session
   {
     return localSDP;
   }
-  else if( type_ == SDP_CONF_P2P_MESH)
+  else if( type_ == SDP_CONF_LOCAL_MESH)
   {
     return getMeshSDP(sessionID, localSDP);
+  }
+  else if(type_ == SDP_CONF_MESH)
+  {
+    std::shared_ptr<SDPMessageInfo> meshSDP = getMeshSDP(sessionID, localSDP);
+    if (meshSDP->media.size() > MEDIA_COUNT)
+    {
+      // remove the first two medias as they are our own
+      meshSDP->media.erase(meshSDP->media.begin(), meshSDP->media.begin() + MEDIA_COUNT);
+    }
+    return meshSDP;
   }
   else if( type_ == SDP_CONF_LOCAL_SFU)
   {

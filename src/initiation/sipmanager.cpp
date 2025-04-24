@@ -186,7 +186,7 @@ void SIPManager::setConfig(const SIPConfig& config)
     }
     else if (config.topology == P2P_MESH)
     {
-      sdpConf_->setConferenceMode(SDP_CONF_P2P_MESH);
+      sdpConf_->setConferenceMode(SDP_CONF_LOCAL_MESH);
     }
     else if (config.topology == SFU)
     {
@@ -213,7 +213,7 @@ void SIPManager::setConfig(const SIPConfig& config)
     }
     else if (config.topology == P2P_MESH)
     {
-      sdpConf_->setConferenceMode(SDP_CONF_P2P_MESH);
+      sdpConf_->setConferenceMode(SDP_CONF_MESH);
     }
     else if (config.topology == SFU)
     {
