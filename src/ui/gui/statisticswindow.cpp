@@ -373,17 +373,29 @@ void StatisticsWindow::removeSession(uint32_t sessionID)
 
   // remove line from all charts. Charts automatically adjust their lineID:s
   // after removal
-  ui_->v_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
-  ui_->a_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
-  ui_->v_delay_chart->removeLine(sessions_[sessionID].delayGraphIndex);
-  ui_->a_delay_chart->removeLine(sessions_[sessionID].delayGraphIndex);
-  ui_->v_framerate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+  if (sessions_[sessionID].performanceGraphIndex >= 0)
+  {
+    ui_->v_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+    ui_->a_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+  }
+  if (sessions_[sessionID].delayGraphIndex >= 0)
+  {
+    ui_->v_delay_chart->removeLine(sessions_[sessionID].delayGraphIndex);
+    ui_->a_delay_chart->removeLine(sessions_[sessionID].delayGraphIndex);
+  }
+  if (sessions_[sessionID].performanceGraphIndex >= 0)
+  {
+    ui_->v_framerate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+  }
 
   // these do not have local so -1 is needed
-  ui_->a_jitter->removeLine(sessions_[sessionID].deliveryGraphIndex);
-  ui_->v_jitter->removeLine(sessions_[sessionID].deliveryGraphIndex);
-  ui_->a_lost->removeLine(sessions_[sessionID].deliveryGraphIndex);
-  ui_->v_lost->removeLine(sessions_[sessionID].deliveryGraphIndex);
+  if (sessions_[sessionID].deliveryGraphIndex >= 0)
+  {
+    ui_->v_jitter->removeLine(sessions_[sessionID].deliveryGraphIndex);
+    ui_->a_jitter->removeLine(sessions_[sessionID].deliveryGraphIndex);
+    ui_->a_lost->removeLine(sessions_[sessionID].deliveryGraphIndex);
+    ui_->v_lost->removeLine(sessions_[sessionID].deliveryGraphIndex);
+  }
 
   // TODO: There is still unreleased memory in session!!
 
