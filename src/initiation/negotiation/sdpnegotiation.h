@@ -93,6 +93,7 @@ private:
   void setMID(unsigned int mediaIndex, MediaInfo& media);
 
   void copyMID(MediaInfo& target, const MediaInfo &source);
+  void copyLabel(MediaInfo& target, const MediaInfo &source);
 
   uint32_t sessionID_;
 
