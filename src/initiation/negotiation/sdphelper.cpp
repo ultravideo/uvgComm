@@ -70,6 +70,20 @@ bool findSSRC(const MediaInfo &media, std::vector<uint32_t> &ssrc)
 }
 
 
+QString findLabel(const MediaInfo &media)
+{
+  for (auto& attribute : media.valueAttributes)
+  {
+    if (attribute.type == A_LABEL)
+    {
+      return attribute.value;
+    }
+  }
+
+  return QString();
+}
+
+
 bool findMID(const MediaInfo &media, int& mid)
 {
   for (auto& attribute : media.valueAttributes)
