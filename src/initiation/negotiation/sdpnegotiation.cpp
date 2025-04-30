@@ -179,17 +179,24 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
   {
     ourSDP = localSDP_;
     negotiationState_ = NEG_FINISHED;
+
+    ourSDP = sdpConf_->getConferenceSDP(sessionID_, ourSDP);
   }
   else if (negotiationState_ == NEG_NO_STATE)
   {
     negotiationState_ = NEG_OFFER_SENT;
 
+    ourSDP = sdpConf_->getConferenceSDP(sessionID_, ourSDP);
+
     if (setSSRC_)
     {
       for (unsigned int i = 0; i < ourSDP->media.size(); ++i) {
         setSSRC(i, ourSDP->media[i]);
-        setMID(i, ourSDP->media[i]);
       }
+    }
+
+    for (unsigned int i = 0; i < ourSDP->media.size(); ++i) {
+      setMID(i, ourSDP->media[i]);
     }
   }
   else
@@ -197,9 +204,6 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
     Logger::getLogger()->printWarning(this, "SDP negotiation in wrong state when including SDP");
     return false;
   }
-
-
-  ourSDP = sdpConf_->getConferenceSDP(sessionID_, ourSDP);
 
   Q_ASSERT(ourSDP != nullptr);
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Adding local SDP to content");
