@@ -5,6 +5,8 @@
 #include "ssrcgenerator.h"
 #include "sdphelper.h"
 
+#undef max
+#include <algorithm>
 
 const int MEDIA_COUNT = 2;
 
@@ -25,15 +27,13 @@ void SDPConference::uninit()
 }
 
 
-void SDPConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
+void SDPConference::recordReceivedSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 {
   if (sdp.media.size() < MEDIA_COUNT)
   {
     Logger::getLogger()->printError("SDPMeshConference", "Received SDP message with too few media lines");
     return;
   }
-
-  updateTemplateMedia(sessionID, sdp.media);
 
   // store the cname
   QString cname = "";
@@ -49,25 +49,27 @@ void SDPConference::addRemoteSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 
   if (type_ == SDP_CONF_MESH | type_ == SDP_CONF_LOCAL_MESH | type_ == SDP_CONF_HYBRID)
   {
+    updateP2PTemplate(sessionID, sdp.media);
+
     // if sent them a generated SSRC, it means the received medias should be distributed to existing sessions
     if (generatedSSRCs_.find(sessionID) != generatedSSRCs_.end())
     {
-      distributeMediaToSessions(sessionID, sdp);
+      distributeGeneratedMedia(sessionID, sdp);
     }
     else // update the existing sessions with details so new participants get correct media state
     {
-      updateAllMedias(sdp);
+      updateP2PMedias(sdp);
     }
   }
 
   if (type_ == SDP_CONF_LOCAL_SFU || type_ == SDP_CONF_SFU || type_ == SDP_CONF_HYBRID)
   {
-    distributeSSRCs(sessionID, sdp);
+    distributeSFUSSRCs(sessionID, sdp);
   }
 }
 
 
-void SDPConference::distributeMediaToSessions(uint32_t sessionID,SDPMessageInfo &sdp)
+void SDPConference::distributeGeneratedMedia(uint32_t sessionID,SDPMessageInfo &sdp)
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
                                   "Received SDP message as a reply to generated SSRCs",
@@ -96,13 +98,16 @@ void SDPConference::distributeMediaToSessions(uint32_t sessionID,SDPMessageInfo 
                                           "Distributing media to existing session from new participant",
                                           {"Target SessionID", "MID"}, {QString::number(details.sessionID), QString::number(mid)});
 
-          p2pPreparedMessages_[details.sessionID].push_back(media);
+          // copy the media and remove the mid
+          MediaInfo newMedia = copyMedia(media);
+          removeMID(newMedia);
+          p2pPreparedMessages_[details.sessionID].push_back(newMedia);
           // the ssrc we generated for them
           p2pPreparedMessages_[details.sessionID].last().multiAttributes.push_back({{A_SSRC, QString::number(details.ssrc)},
                                                                                     {A_CNAME, details.cname}});
 
-          removeMID(p2pPreparedMessages_[details.sessionID].last());
-          p2pPreparedMessages_[details.sessionID].last().valueAttributes.push_back({A_MID, QString::number(nextMID(details.sessionID))});
+          //removeMID(p2pPreparedMessages_[details.sessionID].last());
+          //p2pPreparedMessages_[details.sessionID].last().valueAttributes.push_back({A_MID, QString::number(nextMID(details.sessionID))});
         }
         else
         {
@@ -120,32 +125,39 @@ void SDPConference::distributeMediaToSessions(uint32_t sessionID,SDPMessageInfo 
 }
 
 
-void SDPConference::updateAllMedias(SDPMessageInfo &sdp)
+void SDPConference::updateP2PMedias(SDPMessageInfo &sdp)
 {
   // go through received medias for updating
   for (int i = MEDIA_COUNT - 1; i < sdp.media.size(); ++i)
   {
-    uint32_t recvSSRC = 0;
+    QString label = findLabel(sdp.media[i]);
 
-    if (findSSRC(sdp.media[i], recvSSRC))
+    if (label == "P2P")
     {
-      for (auto& existingMessage : p2pPreparedMessages_)
-      {
-        // go through the medias of the existing session
-        for (auto& preparedMedia : existingMessage.second)
-        {
-          std::vector<uint32_t> existingSSRCs;
-          if (findSSRC(preparedMedia, existingSSRCs) &&
-              (existingSSRCs.size() >= 1 && existingSSRCs[0] == recvSSRC ||
-               existingSSRCs.size() >= 2 && existingSSRCs[1] == recvSSRC) &&
-              verifyMediaInfoMatch(preparedMedia, sdp.media[i]))
-          {
-            Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
-                                            "Updated media for session from new participant",
-                                            {"SessionID", "index"},
-                                            {QString::number(existingMessage.first), QString::number(i)});
+      uint32_t recvSSRC = 0;
 
-            updateMediaState(preparedMedia, sdp.media[i]);
+      if (findSSRC(sdp.media[i], recvSSRC))
+      {
+        for (auto& existingMessage : p2pPreparedMessages_)
+        {
+          // go through the medias of the existing session
+          for (auto& preparedMedia : existingMessage.second)
+          {
+            std::vector<uint32_t> existingSSRCs;
+            if (findSSRC(preparedMedia, existingSSRCs)
+                && (existingSSRCs.size() >= 1 && existingSSRCs[0] == recvSSRC
+                    || existingSSRCs.size() >= 2 && existingSSRCs[1] == recvSSRC)
+                && verifyMediaInfoMatch(preparedMedia, sdp.media[i]))
+            {
+              Logger::getLogger()->printDebug(DEBUG_NORMAL,
+                                              "SDPMeshConference",
+                                              "Updated media for session from new participant",
+                                              {"SessionID", "index"},
+                                              {QString::number(existingMessage.first),
+                                               QString::number(i)});
+
+              updateMediaState(preparedMedia, sdp.media[i]);
+            }
           }
         }
       }
@@ -154,59 +166,73 @@ void SDPConference::updateAllMedias(SDPMessageInfo &sdp)
 }
 
 
-void SDPConference::distributeSSRCs(uint32_t sessionID, SDPMessageInfo &sdp)
+void SDPConference::distributeSFUSSRCs(uint32_t sessionID, SDPMessageInfo &sdp)
 {
-  // store the medias for later use
-  sfuSingleSDPTemplates_[sessionID] = sdp.media;
+  // reset existing SDP template in case the medias have been modified
+  sfuSingleSDPTemplates_[sessionID].clear();
 
   std::vector<uint32_t> ssrc;
 
+  int sfuCount = 0;
   for (unsigned int i = 0; i < sdp.media.size(); ++i)
   {
-    ssrc.clear();
-    findSSRC(sdp.media.at(i), ssrc);
-
-    if (ssrc.size() == 1)
+    // make sure this media is for SFU
+    QString label = findLabel(sdp.media.at(i));
+    if (label == "SFU")
     {
-      for (auto& preparedMessage : sfuPreparedMessages_)
+      MediaInfo media = copyMedia(sdp.media.at(i));
+      removeMID(media);
+      // add the media to the template (used to form messages for new participants)
+      sfuSingleSDPTemplates_[sessionID].push_back(media);
+
+      // find sscr
+      ssrc.clear();
+      findSSRC(media, ssrc);
+
+      // there should be only one ssrc in received media
+      if (ssrc.size() == 1)
       {
-        if (preparedMessage.first != sessionID)
+        // update the SSRC to existing messages
+        for (auto& preparedMessage : sfuPreparedMessages_)
         {
-          if (preparedMessage.second.size() > i)
+          // skip this participants session as they don't need their own ssrc
+          if (preparedMessage.first != sessionID)
           {
-            // make sure the SSRC is not already in the media
-            bool exists = false;
-            for (auto& attributeList : preparedMessage.second.at(i).multiAttributes)
+            if (preparedMessage.second.size() > sfuCount)
             {
-              for (auto& attribute : attributeList)
+              // make sure the SSRC is not already in the media
+              bool exists = false;
+              for (auto& attributeList : preparedMessage.second.at(sfuCount).multiAttributes)
               {
-                if (attribute.type == A_SSRC && attribute.value == QString::number(ssrc[0]))
-                {
-                  exists = true;
-                  break;
+                for (auto& attribute : attributeList) {
+                  if (attribute.type == A_SSRC && attribute.value == QString::number(ssrc[0]))
+                  {
+                    exists = true;
+                    break;
+                  }
                 }
               }
-            }
 
-            if (!exists)
-            {
-              Logger::getLogger()->printDebug(DEBUG_NORMAL,
-                                              "SDPMeshConference",
-                                              "Added SSRC to existing session",
-                                              {"SessionID", "index"},
-                                              {QString::number(preparedMessage.first),
-                                               QString::number(i)});
+              if (!exists) {
+                Logger::getLogger()->printDebug(DEBUG_NORMAL,
+                                                "SDPMeshConference",
+                                                "Added SSRC to existing session",
+                                                {"SessionID", "index"},
+                                                {QString::number(preparedMessage.first),
+                                                 QString::number(i)});
 
-              preparedMessage.second[i].multiAttributes.push_back(
-                  sdp.media.at(i).multiAttributes.at(0));
+                preparedMessage.second[sfuCount].multiAttributes.push_back(
+                    sdp.media.at(i).multiAttributes.at(0));
+              }
             }
           }
         }
+      } else {
+        Logger::getLogger()->printError("SDPMeshConference",
+                                        "Received SFU SDP with incorrect number of SSRCs");
       }
-    }
-    else
-    {
-      Logger::getLogger()->printError("SDPMeshConference", "Received SFU SDP with incorrect number of SSRCs");
+
+      ++sfuCount;
     }
   }
 }
@@ -265,46 +291,73 @@ void SDPConference::removeSession(uint32_t sessionID)
 }
 
 
-std::shared_ptr<SDPMessageInfo> SDPConference::getConferenceSDP(uint32_t sessionID,
+std::shared_ptr<SDPMessageInfo> SDPConference::generateConferenceMedia(uint32_t sessionID,
                                                                 std::shared_ptr<SDPMessageInfo> localSDP)
 {
-  if (type_ == SDP_CONF_NONE) // TODO: We don't do anything for local MCU
+  std::shared_ptr<SDPMessageInfo> conferenceSDP = std::make_shared<SDPMessageInfo>();
+  *conferenceSDP = *localSDP; // copies local media descriptions
+  conferenceSDP->media.clear();
+
+  if (type_ == SDP_CONF_LOCAL_MESH)
   {
-    return localSDP;
-  }
-  else if( type_ == SDP_CONF_LOCAL_MESH)
-  {
-    return getMeshSDP(sessionID, localSDP);
-  }
-  else if(type_ == SDP_CONF_MESH)
-  {
-    std::shared_ptr<SDPMessageInfo> meshSDP = getMeshSDP(sessionID, localSDP);
-    if (meshSDP->media.size() > MEDIA_COUNT)
+    conferenceSDP->media = localSDP->media;
+
+    // Label local media as P2P
+    for (auto& media : conferenceSDP->media)
     {
-      // remove the first two medias as they are our own
-      meshSDP->media.erase(meshSDP->media.begin(), meshSDP->media.begin() + MEDIA_COUNT);
+      media.valueAttributes.push_back({A_LABEL, "P2P"});
     }
-    return meshSDP;
+
+    // Append media from other peers
+    getMeshMedia(sessionID, conferenceSDP->media);
   }
-  else if( type_ == SDP_CONF_LOCAL_SFU)
+  else if (type_ == SDP_CONF_MESH)
   {
-    return getSFUSDP(sessionID, localSDP);
+    getMeshMedia(sessionID, conferenceSDP->media);
   }
-  else if ( type_ == SDP_CONF_HYBRID)
+  else if (type_ == SDP_CONF_LOCAL_SFU)
   {
-    return getHybridSDP(sessionID, localSDP);
+    getSFUMedia(sessionID, localSDP->media, conferenceSDP->media);
   }
-  else
+  else if (type_ == SDP_CONF_HYBRID)
   {
-    Logger::getLogger()->printError("SDPMeshConference", "Unsupported conference type");
+    getMeshMedia(sessionID, conferenceSDP->media);
+
+    if (conferenceSDP->media.empty())
+    {
+      conferenceSDP->media += localSDP->media;
+      for (auto& media : conferenceSDP->media)
+      {
+        media.valueAttributes.push_back({A_LABEL, "P2P"});
+      }
+    }
+
+    getSFUMedia(sessionID, localSDP->media, conferenceSDP->media);
   }
 
-  return localSDP;
+  // General fallback if still no media (happens in the beginning)
+  if (conferenceSDP->media.empty())
+  {
+    conferenceSDP->media = localSDP->media;
+
+    for (auto& media : conferenceSDP->media)
+    {
+      if (type_ == SDP_CONF_LOCAL_SFU || type_ == SDP_CONF_SFU)
+      {
+        media.valueAttributes.push_back({A_LABEL, "SFU"});
+      }
+      else
+      {
+        media.valueAttributes.push_back({A_LABEL, "P2P"});
+      }
+    }
+  }
+
+  return conferenceSDP;
 }
 
 
-std::shared_ptr<SDPMessageInfo> SDPConference::getMeshSDP(uint32_t sessionID,
-                                                          std::shared_ptr<SDPMessageInfo> localSDP)
+void SDPConference::getMeshMedia(uint32_t sessionID, QList<MediaInfo>& sdpMedia)
 {
   // prepare the message for this session if we have not yet done so
   if (p2pPreparedMessages_.find(sessionID) == p2pPreparedMessages_.end())
@@ -319,9 +372,16 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getMeshSDP(uint32_t sessionID,
         for (auto& media : mediaTemplate.second)
         {
           MediaInfo newMedia = copyMedia(media);
+          removeMID(newMedia);
 
           // we need to generate an SSRC for this media
           generateSSRC(sessionID, mediaTemplate.first, newMedia);
+
+          // set p2p mesh label
+          if (findLabel(newMedia) == "")
+          {
+            newMedia.valueAttributes.push_back({A_LABEL, "P2P"});
+          }
 
           p2pPreparedMessages_[sessionID].push_back(newMedia);
         }
@@ -342,32 +402,41 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getMeshSDP(uint32_t sessionID,
                                      QString::number(p2pPreparedMessages_[sessionID].size())});
   }
 
-  // localSDP already contains host's (our) media
-  std::shared_ptr<SDPMessageInfo> meshSDP = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
-  *meshSDP = *localSDP;
-
-  meshSDP->media.append(p2pPreparedMessages_[sessionID]);
-  return meshSDP;
+  sdpMedia.append(p2pPreparedMessages_[sessionID]);
 }
 
 
-std::shared_ptr<SDPMessageInfo> SDPConference::getSFUSDP(uint32_t sessionID,
-                                                         std::shared_ptr<SDPMessageInfo> localSDP)
+void SDPConference::getSFUMedia(uint32_t sessionID, const QList<MediaInfo>& baseMedia, QList<MediaInfo>& sdpMedia)
 {
   // see if we should generate the template message for this session
   if (sfuPreparedMessages_.find(sessionID) == sfuPreparedMessages_.end())
   {
-    // use the localSDP as base
-    sfuPreparedMessages_[sessionID] = localSDP->media;
+    sfuPreparedMessages_[sessionID].clear();
+
+    for (const auto& media : baseMedia)
+    {
+      if (findLabel(media) == "SFU" || findLabel(media) == "")
+      {
+        sfuPreparedMessages_[sessionID].push_back(copyMedia(media));
+      }
+
+      if (findLabel(media) == "")
+      {
+        // set SFU label
+        sfuPreparedMessages_[sessionID].last().valueAttributes.push_back({A_LABEL, "SFU"});
+      }
+    }
 
     // add the recorded SSRC values to the medias
     for (auto& mediaTemplate : sfuSingleSDPTemplates_)
     {
-      // if not their ssrc
+      // omit their own SSRC from SSRC list
       if (mediaTemplate.first != sessionID)
       {
+        // the amount of media should stay constant as call progresses in SFU SDP
         if (sfuPreparedMessages_[sessionID].size() <= mediaTemplate.second.size())
         {
+          // go through templates and pick up SSRC's that will form the SFU media
           for (unsigned int i = 0; i < sfuPreparedMessages_[sessionID].size(); ++i)
           {
             // add SSRC for this media slot i
@@ -383,6 +452,12 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getSFUSDP(uint32_t sessionID,
                 }
               }
             }
+
+            if (findLabel(sfuPreparedMessages_[sessionID][i]) == "")
+            {
+              // set SFU label
+              sfuPreparedMessages_[sessionID][i].valueAttributes.push_back({A_LABEL, "SFU"});
+            }
           }
         }
         else
@@ -393,76 +468,50 @@ std::shared_ptr<SDPMessageInfo> SDPConference::getSFUSDP(uint32_t sessionID,
     }
   }
 
-  // localSDP already contains host's (our) media
-  std::shared_ptr<SDPMessageInfo> meshSDP = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
-  *meshSDP = *localSDP;
-
   if (type_ == SDP_CONF_LOCAL_SFU && !sfuPreparedMessages_[sessionID].empty())
   {
-    meshSDP->media = sfuPreparedMessages_[sessionID];
+    sdpMedia = sfuPreparedMessages_[sessionID];
   }
   else
   {
-    meshSDP->media.append(sfuPreparedMessages_[sessionID]);
+    sdpMedia.append(sfuPreparedMessages_[sessionID]);
   }
-
-  return meshSDP;
 }
 
 
-std::shared_ptr<SDPMessageInfo> SDPConference::getHybridSDP(uint32_t sessionID,
-                                                            std::shared_ptr<SDPMessageInfo> localSDP)
+void SDPConference::updateP2PTemplate(uint32_t sessionID, QList<MediaInfo>& medias)
 {
-  std::shared_ptr<SDPMessageInfo> hybridSDP = std::make_shared<SDPMessageInfo>();
-  *hybridSDP = *localSDP;
-
-  auto meshSDP = getMeshSDP(sessionID, localSDP);
-  auto sfuSDP = getSFUSDP(sessionID, localSDP);
-
-  // Start from local
-  hybridSDP->media = meshSDP->media;
-
-  // Append SFU media if it's not a duplicate
-  for (const auto& media : sfuSDP->media)
-  {
-    bool found = false;
-    for (const auto& existing : hybridSDP->media)
-    {
-      if (verifyMediaInfoMatch(existing, media))
-      {
-        found = true;
-        break;
-      }
-    }
-
-    if (!found)
-    {
-      hybridSDP->media.append(media);
-    }
-  }
-
-  return hybridSDP;
-}
-
-
-void SDPConference::updateTemplateMedia(uint32_t sessionID, QList<MediaInfo>& medias)
-{
+  // Clear existing template for this session
   if (p2pSingleSDPTemplates_.find(sessionID) != p2pSingleSDPTemplates_.end())
   {
     p2pSingleSDPTemplates_[sessionID].clear();
   }
 
-  for (int i = medias.size() - MEDIA_COUNT; i < medias.size(); ++i)
-  {
-    p2pSingleSDPTemplates_[sessionID].append(medias[i]);
-    p2pSingleSDPTemplates_[sessionID].last().multiAttributes.clear(); // we dont what to save ssrc
+  QList<MediaInfo> p2pMedias;
 
-    removeMID(p2pSingleSDPTemplates_[sessionID].last());
+  // Collect all medias with label "P2P"
+  for (int i = 0; i < medias.size(); ++i)
+  {
+    QString label = findLabel(medias[i]);
+    if (label == "P2P")
+    {
+      p2pMedias.append(medias[i]);
+    }
+  }
+
+  // Append last MEDIA_COUNT P2P medias
+  int startIndex = std::max(0, static_cast<int>(p2pMedias.size()) - MEDIA_COUNT);
+  for (int i = startIndex; i < p2pMedias.size(); ++i)
+  {
+    MediaInfo media = p2pMedias[i];
+    media.multiAttributes.clear();  // Don't save SSRCs
+    removeMID(media);
+
+    p2pSingleSDPTemplates_[sessionID].append(media);
   }
 }
 
-
-MediaInfo SDPConference::copyMedia(MediaInfo& media)
+MediaInfo SDPConference::copyMedia(const MediaInfo& media)
 {
   return media;
 }
@@ -472,7 +521,14 @@ void SDPConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, Me
 {
   if (nextMID_.find(sessionID) == nextMID_.end())
   {
-    nextMID_[sessionID] = 3;
+    if (type_ == SDP_CONF_LOCAL_MESH)
+    {
+      nextMID_[sessionID] = 3;
+    }
+    else
+    {
+      nextMID_[sessionID] = 1;
+    }
   }
 
   int mid = nextMID(sessionID);

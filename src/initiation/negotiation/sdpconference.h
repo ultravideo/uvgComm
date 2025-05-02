@@ -8,15 +8,15 @@
 enum ConferenceType
 {
   SDP_CONF_NONE,
-  SDP_CONF_LOCAL_MESH,
-  SDP_CONF_MESH,
-  SDP_CONF_LOCAL_SFU,
-  SDP_CONF_SFU,
-  SDP_CONF_LOCAL_MCU,
-  SDP_CONF_MCU,
-  SDP_CONF_LOCAL_RELAY,
-  SDP_CONF_RELAY,
-  SDP_CONF_HYBRID
+  SDP_CONF_LOCAL_MESH, // we participate in the mesh
+  SDP_CONF_MESH,       // we do not participate in the mesh, just host it
+  SDP_CONF_LOCAL_SFU,  // we are the SFU
+  SDP_CONF_SFU,        // not implemented
+  SDP_CONF_LOCAL_MCU,  // not implemented
+  SDP_CONF_MCU,        // not implemented
+  SDP_CONF_LOCAL_RELAY, // not implemented
+  SDP_CONF_RELAY,       // not implemented
+  SDP_CONF_HYBRID       // hybrid between SFU and Mesh, we are the SFU
 };
 
 /* This class handles the generation of P2P Mesh conference via SDP Messages.
@@ -37,30 +37,23 @@ public:
 
   void setConferenceMode(ConferenceType type);
 
-  void addRemoteSDP(uint32_t sessionID, SDPMessageInfo& sdp);
+  // records the details from received message so they
+  // can be used to generate new SDP messages
+  void recordReceivedSDP(uint32_t sessionID, SDPMessageInfo& sdp);
   void removeSession(uint32_t sessionID);
 
-  std::shared_ptr<SDPMessageInfo> getConferenceSDP(uint32_t sessionID,
+  std::shared_ptr<SDPMessageInfo> generateConferenceMedia(uint32_t sessionID,
                                              std::shared_ptr<SDPMessageInfo> localSDP);
 
 private:
 
-  std::shared_ptr<SDPMessageInfo> getMeshSDP(uint32_t sessionID,
-                                       std::shared_ptr<SDPMessageInfo> localSDP);
+  // get the SDP media information for specific sessionID in each conference type
+  void getMeshMedia(uint32_t sessionID,   QList<MediaInfo>& sdpMedia);
+  void getSFUMedia(uint32_t sessionID, const QList<MediaInfo> &baseMedia,    QList<MediaInfo>& sdpMedia);
 
-  std::shared_ptr<SDPMessageInfo> getSFUSDP(uint32_t sessionID,
-                                            std::shared_ptr<SDPMessageInfo> localSDP);
+  MediaInfo copyMedia(const MediaInfo &media);
 
-
-  std::shared_ptr<SDPMessageInfo> getHybridSDP(uint32_t sessionID,
-                                               std::shared_ptr<SDPMessageInfo> localSDP);
-
-  std::shared_ptr<SDPMessageInfo> getTemplateSDP(SDPMessageInfo& sdp);
-  void updateGeneratedSDPs(SDPMessageInfo& sdp);
-
-  MediaInfo copyMedia(MediaInfo& media);
-
-  void updateTemplateMedia(uint32_t sessionID, QList<MediaInfo>& medias);
+  void updateP2PTemplate(uint32_t sessionID, QList<MediaInfo>& medias);
 
   // returns whether the SSRC was found and set
   bool setCorrespondingSSRC(uint32_t sessionID, uint32_t mediaSessionID,
@@ -78,11 +71,11 @@ private:
   void handleSSRCUpdate(QList<QList<SDPAttribute>>& currentAttributes,
                         const QList<QList<SDPAttribute>>& newAttributes);
 
-  void distributeMediaToSessions(uint32_t sessionID, SDPMessageInfo &sdp);
+  void distributeGeneratedMedia(uint32_t sessionID, SDPMessageInfo &sdp);
 
-  void updateAllMedias(SDPMessageInfo &sdp);
+  void updateP2PMedias(SDPMessageInfo &sdp);
 
-  void distributeSSRCs(uint32_t sessionID, SDPMessageInfo &sdp);
+  void distributeSFUSSRCs(uint32_t sessionID, SDPMessageInfo &sdp);
 
   ConferenceType type_;
 
@@ -95,13 +88,15 @@ private:
    * that is added to the call.
    */
 
+  // templates are used to construct an SDP message when a new participant joins
   std::map<uint32_t, QList<MediaInfo>> p2pSingleSDPTemplates_;
-  std::map<uint32_t, QList<MediaInfo>> p2pPreparedMessages_;
-
   std::map<uint32_t, QList<MediaInfo>> sfuSingleSDPTemplates_;
+
+  // prepared messages correspond to what should be sent to existing participants
+  std::map<uint32_t, QList<MediaInfo>> p2pPreparedMessages_;
   std::map<uint32_t, QList<MediaInfo>> sfuPreparedMessages_;
 
-
+  // sometimes we need to beforehand generate an SSRC so we need to keep track of it
   struct GeneratedSSRC
   {
     uint32_t ssrc;
