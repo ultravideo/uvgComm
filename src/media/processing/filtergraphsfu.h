@@ -9,16 +9,16 @@ public:
 
   virtual void uninit();
 
-  virtual void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
+  virtual void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sender,
                            uint32_t localSSRC);
 
-  virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
+  virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
                                 VideoInterface *view,
                                 uint32_t remoteSSRC);
 
-  virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource,
+  virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
                            uint32_t localSSRC);
-  virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
+  virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
                                 uint32_t remoteSSRC);
 
 protected:

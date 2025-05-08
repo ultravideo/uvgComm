@@ -29,17 +29,17 @@ public:
   virtual void uninit() = 0;
 
   // These functions are used to manipulate filter graphs regarding a peer
-  virtual void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
+  virtual void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sender,
                            uint32_t localSSRC) = 0;
 
-  virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
+  virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
                         VideoInterface *view,
                         uint32_t remoteSSRC) = 0;
 
-  virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource,
+  virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
                    uint32_t localSSRC) = 0;
 
-  virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
+  virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
                         uint32_t remoteSSRC) = 0;
 
   // removes participant and all its associated filter from filter graph.

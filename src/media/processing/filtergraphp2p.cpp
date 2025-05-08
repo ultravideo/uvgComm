@@ -418,11 +418,11 @@ void FilterGraphP2P::initializeAudioOutput(bool opus)
   audioOutputInitialized_ = true;
 }
 
-void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
+void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sender,
                                  uint32_t localSSRC)
 {
   Q_ASSERT(sessionID);
-  Q_ASSERT(videoFramedSource);
+  Q_ASSERT(sender);
 
   Logger::getLogger()->printNormal(this, "Adding send video", {"SessionID"},
                                    QString::number(sessionID));
@@ -438,10 +438,10 @@ void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> vid
 
   if (peers_[sessionID]->videoSenders.find(localSSRC) == peers_[sessionID]->videoSenders.end())
   {
-    peers_[sessionID]->videoSenders[localSSRC] = videoFramedSource;
+    peers_[sessionID]->videoSenders[localSSRC] = sender;
 
-    cameraGraph_.back()->addOutConnection(videoFramedSource);
-    videoFramedSource->start();
+    cameraGraph_.back()->addOutConnection(sender);
+    sender->start();
   }
   else
   {
@@ -450,14 +450,13 @@ void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> vid
   }
 }
 
-
 void FilterGraphP2P::receiveVideoFrom(uint32_t sessionID,
-                                      std::shared_ptr<Filter> videoSink,
+                                      std::shared_ptr<Filter> receiver,
                                       VideoInterface* view,
                                       uint32_t remoteSSRC)
 {
   Q_ASSERT(sessionID);
-  Q_ASSERT(videoSink);
+  Q_ASSERT(receiver);
 
   checkParticipant(sessionID);
 
@@ -466,7 +465,7 @@ void FilterGraphP2P::receiveVideoFrom(uint32_t sessionID,
     std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
     peers_[sessionID]->videoReceivers[remoteSSRC] = graph;
 
-    addToGraph(videoSink, *graph);
+    addToGraph(receiver, *graph);
     addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, stats_, hwResources_)), *graph, 0);
 
     std::shared_ptr<DisplayFilter> displayFilter =
@@ -483,15 +482,15 @@ void FilterGraphP2P::receiveVideoFrom(uint32_t sessionID,
 }
 
 
-void FilterGraphP2P::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource,
+void FilterGraphP2P::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
                                  uint32_t localSSRC)
 {
   Q_ASSERT(sessionID);
-  Q_ASSERT(audioFramedSource);
+  Q_ASSERT(sender);
 
   if (!audioInputInitialized_)
   {
-    initializeAudioInput(audioFramedSource->inputType() == DT_OPUSAUDIO);
+    initializeAudioInput(sender->inputType() == DT_OPUSAUDIO);
   }
 
   // add participant if necessary
@@ -499,10 +498,10 @@ void FilterGraphP2P::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> aud
 
   if ((peers_[sessionID]->audioSenders.find(localSSRC) == peers_[sessionID]->audioSenders.end()))
   {
-    peers_[sessionID]->audioSenders[localSSRC] = audioFramedSource;
+    peers_[sessionID]->audioSenders[localSSRC] = sender;
 
-    audioInputGraph_.back()->addOutConnection(audioFramedSource);
-    audioFramedSource->start();
+    audioInputGraph_.back()->addOutConnection(sender);
+    sender->start();
   }
   else
   {
@@ -512,16 +511,15 @@ void FilterGraphP2P::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> aud
   mic(settingEnabled(SettingsKey::micStatus));
 }
 
-
-void FilterGraphP2P::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
-                                      uint32_t remoteSSRC)
+void FilterGraphP2P::
+    receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver, uint32_t remoteSSRC)
 {
   Q_ASSERT(sessionID);
-  Q_ASSERT(audioSink);
+  Q_ASSERT(receiver);
 
   if (!audioOutputInitialized_)
   {
-    initializeAudioOutput(audioSink->outputType() == DT_OPUSAUDIO);
+    initializeAudioOutput(receiver->outputType() == DT_OPUSAUDIO);
   }
 
   // add participant if necessary
@@ -532,9 +530,9 @@ void FilterGraphP2P::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter
     std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
     peers_[sessionID]->audioReceivers[remoteSSRC] = graph;
 
-    addToGraph(audioSink, *graph);
+    addToGraph(receiver, *graph);
 
-    if (audioSink->outputType() == DT_OPUSAUDIO)
+    if (receiver->outputType() == DT_OPUSAUDIO)
     {
       std::shared_ptr<OpusDecoderFilter> decoder =
           std::shared_ptr<OpusDecoderFilter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_));
