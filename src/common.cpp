@@ -416,6 +416,25 @@ bool findSSRCs(const MediaInfo &media, std::vector<uint32_t> &ssrc)
 }
 
 
+bool findCNAMEs(const MediaInfo &media, std::vector<QString> &cnames)
+{
+  QSet<QString> uniqueCnames;
+
+  for (const auto &attributeList : media.multiAttributes)
+  {
+    for (const auto &attribute : attributeList)
+    {
+      if (attribute.type == A_CNAME)
+      {
+        uniqueCnames.insert(attribute.value);
+      }
+    }
+  }
+
+  cnames.assign(uniqueCnames.begin(), uniqueCnames.end());
+  return !cnames.empty();
+}
+
 
 uint32_t findMID(const MediaInfo &media)
 {

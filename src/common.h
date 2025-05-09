@@ -66,5 +66,6 @@ quint16 getLocalPort(std::shared_ptr<ICEInfo> info);
 uint32_t findSSRC(const MediaInfo &media);
 
 bool findSSRCs(const MediaInfo& media, std::vector<uint32_t>& ssrc);
+bool findCNAMEs(const MediaInfo &media, std::vector<QString> &cnames);
 
 uint32_t findMID(const MediaInfo &media);
