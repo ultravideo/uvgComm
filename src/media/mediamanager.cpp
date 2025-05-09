@@ -348,15 +348,14 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
       std::vector<QString> cnames;
       findCNAMEs(remoteMedia, cnames);
 
-      if(cnames.size() == 1)
+      for (QString& cname : cnames)
       {
-        p2pFg_->sendVideoto(sessionID, senderFilter, localSSRC, remoteSSRC,
-                            cnames.at(0), false);
-      }
-      else
-      {
-        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                        "Could not find CNAME for video stream");
+        if (cname != CName::cname())
+        {
+          p2pFg_->sendVideoto(sessionID, senderFilter, localSSRC, remoteSSRC,
+                              cnames.at(0), false);
+          break;
+        }
       }
     }
     else
