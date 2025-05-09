@@ -564,24 +564,28 @@ void uvgCommController::createCall(uint32_t sessionID)
 
   userInterface_.callStarted(viewFactory_, sessionID, names, audioVideoIDs);
 
-  if (!states_[sessionID].sessionRunning)
+  // no need to do anything with media if none of it goes through us
+  if (!localSDP->media.empty() && !remoteSDP->media.empty())
   {
-    if (stats_)
+    if (!states_[sessionID].sessionRunning)
     {
-      stats_->addSession(sessionID);
+      if (stats_)
+      {
+        stats_->addSession(sessionID);
+      }
+
+      media_.newParticipant(sessionID, remoteSDP, localSDP,
+                            states_[sessionID].iceController,
+                            states_[sessionID].followOurSDP);
+
+      states_[sessionID].sessionRunning = true;
+     }
+    else
+    {
+      media_.modifyParticipant(sessionID, remoteSDP, localSDP,
+                               states_[sessionID].iceController,
+                               states_[sessionID].followOurSDP);
     }
-
-    media_.newParticipant(sessionID, remoteSDP, localSDP,
-                          states_[sessionID].iceController,
-                          states_[sessionID].followOurSDP);
-
-    states_[sessionID].sessionRunning = true;
-   }
-  else
-  {
-    media_.modifyParticipant(sessionID, remoteSDP, localSDP,
-                             states_[sessionID].iceController,
-                             states_[sessionID].followOurSDP);
   }
 
   // lastly we delete our saved SDP messages when they are no longer needed
