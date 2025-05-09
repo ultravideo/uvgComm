@@ -29,8 +29,12 @@ public:
   virtual void uninit() = 0;
 
   // These functions are used to manipulate filter graphs regarding a peer
-  virtual void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sender,
-                           uint32_t localSSRC) = 0;
+  virtual void sendVideoto(uint32_t sessionID,
+                           std::shared_ptr<Filter> sender,
+                           uint32_t localSSRC,
+                           uint32_t remoteSSRC,
+                           const QString& remoteCNAME,
+                           bool isP2P) = 0;
 
   virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
                         VideoInterface *view,

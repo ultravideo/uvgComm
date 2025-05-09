@@ -20,6 +20,8 @@
 #include "media/processing/audiomixerfilter.h"
 #include "media/processing/audiooutputfilter.h"
 
+#include "media/delivery/uvgrtpsender.h"
+
 #ifdef uvgComm_HAVE_ONNX_RUNTIME
 #include "media/processing/roiyolofilter.h"
 #endif
@@ -419,7 +421,8 @@ void FilterGraphP2P::initializeAudioOutput(bool opus)
 }
 
 void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sender,
-                                 uint32_t localSSRC)
+                                 uint32_t localSSRC, uint32_t remoteSSRC,
+                                 const QString& remoteCNAME, bool isP2P)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(sender);
@@ -438,6 +441,7 @@ void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sen
 
   if (peers_[sessionID]->videoSenders.find(localSSRC) == peers_[sessionID]->videoSenders.end())
   {
+    std::shared_ptr<UvgRTPSender> rtpSender = std::dynamic_pointer_cast<UvgRTPSender>(sender);
     peers_[sessionID]->videoSenders[localSSRC] = sender;
 
     cameraGraph_.back()->addOutConnection(sender);

@@ -14,8 +14,9 @@ void FilterGraphSFU::uninit()
   removeAllParticipants();
 }
 
-void FilterGraphSFU::
-    sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sender, uint32_t localSSRC)
+void FilterGraphSFU::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sender,
+                                 uint32_t localSSRC, uint32_t remoteSSRC,
+                                 const QString& remoteCNAME, bool isP2P)
 {
   checkParticipant(sessionID);
 
