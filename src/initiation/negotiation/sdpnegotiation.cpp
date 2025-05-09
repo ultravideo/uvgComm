@@ -11,19 +11,23 @@
 
 #include <QVariant>
 
-SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress, QString cname,
+SDPNegotiation::SDPNegotiation(uint32_t sessionID,
+                               QString localAddress,
+                               QString cname,
                                std::shared_ptr<SDPMessageInfo> localSDP,
-                               std::shared_ptr<SDPConference> sdpConf):
-  sessionID_(sessionID),
-  localbaseSDP_(nullptr),
-  localSDP_(nullptr),
-  remoteSDP_(nullptr),
-  negotiationState_(NEG_NO_STATE),
-  peerAcceptsSDP_(false),
-  localAddress_(""),
-  sdpConf_(sdpConf),
-  cname_(cname),
-  setSSRC_(true)
+                               std::shared_ptr<SDPConference> sdpConf,
+                               bool ishost)
+    : sessionID_(sessionID)
+    , localbaseSDP_(nullptr)
+    , localSDP_(nullptr)
+    , remoteSDP_(nullptr)
+    , negotiationState_(NEG_NO_STATE)
+    , peerAcceptsSDP_(false)
+    , localAddress_("")
+    , sdpConf_(sdpConf)
+    , cname_(cname)
+    , setSSRC_(true),
+    isHost_(ishost)
 {
   localAddress_ = localAddress;
 
@@ -179,14 +183,19 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
   {
     ourSDP = localSDP_;
     negotiationState_ = NEG_FINISHED;
-
-    ourSDP = sdpConf_->generateConferenceMedia(sessionID_, ourSDP);
+    if (isHost_)
+    {
+      ourSDP = sdpConf_->generateConferenceMedia(sessionID_, ourSDP);
+    }
   }
   else if (negotiationState_ == NEG_NO_STATE)
   {
     negotiationState_ = NEG_OFFER_SENT;
 
-    ourSDP = sdpConf_->generateConferenceMedia(sessionID_, ourSDP);
+    if (isHost_)
+    {
+      ourSDP = sdpConf_->generateConferenceMedia(sessionID_, ourSDP);
+    }
 
     if (setSSRC_)
     {

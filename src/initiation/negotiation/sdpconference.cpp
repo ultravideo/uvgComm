@@ -346,7 +346,7 @@ std::shared_ptr<SDPMessageInfo> SDPConference::generateConferenceMedia(uint32_t 
       {
         media.valueAttributes.push_back({A_LABEL, "SFU"});
       }
-      else
+      else if (type_ == SDP_CONF_LOCAL_MESH || type_ == SDP_CONF_MESH)
       {
         media.valueAttributes.push_back({A_LABEL, "P2P"});
       }

@@ -37,7 +37,7 @@ class SDPNegotiation : public SIPMessageProcessor
 public:
   SDPNegotiation(uint32_t sessionID, QString localAddress, QString cname,
                  std::shared_ptr<SDPMessageInfo> localSDP,
-                 std::shared_ptr<SDPConference> sdpConf);
+                 std::shared_ptr<SDPConference> sdpConf, bool ishost);
 
   void setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP);
 
@@ -115,4 +115,6 @@ private:
   std::unordered_map<unsigned int, uint32_t> mediaSSRCs_;
 
   bool setSSRC_;
+
+  bool isHost_;
 };
