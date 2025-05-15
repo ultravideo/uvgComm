@@ -520,8 +520,12 @@ MediaInfo SDPConference::copyMedia(const MediaInfo& media)
 
 void SDPConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, MediaInfo& media)
 {
-  QString mid = nextMID(sessionID);
-  media.valueAttributes.push_back({A_MID, mid});
+  QString mid = findMID(media);
+  if (mid == "")
+  {
+    mid = nextMID(sessionID);
+    media.valueAttributes.push_back({A_MID, mid});
+  }
 
   QString cname = cnames_[mediaSessionID];
   uint32_t ssrc = SSRCGenerator::generateSSRC();
@@ -556,7 +560,6 @@ QString SDPConference::nextMID(uint32_t sessionID)
 
 void SDPConference::removeMID(MediaInfo& media)
 {
-  // remove mid
   for (int i = 0;  i < media.valueAttributes.size(); ++i)
   {
     if (media.valueAttributes[i].type == A_MID)
