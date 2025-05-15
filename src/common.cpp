@@ -436,15 +436,15 @@ bool findCNAMEs(const MediaInfo &media, std::vector<QString> &cnames)
 }
 
 
-uint32_t findMID(const MediaInfo &media)
+QString findMID(const MediaInfo &media)
 {
   for (auto& attribute : media.valueAttributes)
   {
     if (attribute.type == A_MID)
     {
-      return attribute.value.toULong();
+      return attribute.value;
     }
   }
 
-  return 0;
+  return "";
 }

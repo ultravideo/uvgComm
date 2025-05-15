@@ -84,13 +84,13 @@ QString findLabel(const MediaInfo &media)
 }
 
 
-bool findMID(const MediaInfo &media, int& mid)
+bool findMID(const MediaInfo &media, QString& mid)
 {
   for (auto& attribute : media.valueAttributes)
   {
     if (attribute.type == A_MID)
     {
-      mid = attribute.value.toInt();
+      mid = attribute.value;
       return true;
     }
   }

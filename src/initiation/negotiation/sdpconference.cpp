@@ -80,7 +80,7 @@ void SDPConference::distributeGeneratedMedia(uint32_t sessionID,SDPMessageInfo &
   // go through received medias for updating
   for (auto& media : sdp.media)
   {
-    int mid = 0;
+    QString mid = "";
     uint32_t ssrc = 0;
     QString cname = "";
 
@@ -96,7 +96,7 @@ void SDPConference::distributeGeneratedMedia(uint32_t sessionID,SDPMessageInfo &
         {
           Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
                                           "Distributing media to existing session from new participant",
-                                          {"Target SessionID", "MID"}, {QString::number(details.sessionID), QString::number(mid)});
+                                          {"Target SessionID", "MID"}, {QString::number(details.sessionID), mid});
 
           // copy the media and remove the mid
           MediaInfo newMedia = copyMedia(media);
@@ -523,16 +523,16 @@ void SDPConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, Me
   {
     if (type_ == SDP_CONF_LOCAL_MESH)
     {
-      nextMID_[sessionID] = 3;
+      nextMID_[sessionID] = QString::number(3);
     }
     else
     {
-      nextMID_[sessionID] = 1;
+      nextMID_[sessionID] = QString::number(1);
     }
   }
 
-  int mid = nextMID(sessionID);
-  media.valueAttributes.push_back({A_MID, QString::number(mid)});
+  QString mid = nextMID(sessionID);
+  media.valueAttributes.push_back({A_MID, mid});
 
   QString cname = cnames_[mediaSessionID];
   uint32_t ssrc = SSRCGenerator::generateSSRC();
@@ -545,15 +545,15 @@ void SDPConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, Me
 }
 
 
-int SDPConference::nextMID(uint32_t sessionID)
+QString SDPConference::nextMID(uint32_t sessionID)
 {
   if (nextMID_.find(sessionID) == nextMID_.end())
   {
-    nextMID_[sessionID] = 3;
+    nextMID_[sessionID] = QString::number(3);
   }
 
-  int mid = nextMID_[sessionID];
-  nextMID_[sessionID]++;
+  QString mid = nextMID_[sessionID];
+  nextMID_[sessionID] = QString::number(mid.toInt() + 1);
   return mid;
 }
 

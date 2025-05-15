@@ -62,7 +62,7 @@ private:
   // generates the SSRC and sets it to media
   void generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, MediaInfo& media);
 
-  int nextMID(uint32_t sessionID);
+  QString nextMID(uint32_t sessionID);
   void removeMID(MediaInfo& media);
 
   void updateMediaState(MediaInfo& currentState, const MediaInfo &newState);
@@ -106,8 +106,8 @@ private:
 
   // first key is sessionID who this SSRC was sent to
   // the second key is mid
-  std::unordered_map<uint32_t, std::unordered_map<int, GeneratedSSRC>> generatedSSRCs_;
+  std::unordered_map<uint32_t, std::unordered_map<QString, GeneratedSSRC>> generatedSSRCs_;
 
   std::unordered_map<uint32_t, QString> cnames_;
-  std::unordered_map<uint32_t, int> nextMID_;
+  std::unordered_map<uint32_t, QString> nextMID_;
 };
