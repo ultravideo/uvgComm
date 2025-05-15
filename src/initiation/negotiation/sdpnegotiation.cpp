@@ -199,12 +199,14 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
 
     if (setSSRC_)
     {
-      for (unsigned int i = 0; i < ourSDP->media.size(); ++i) {
-        setSSRC(i, ourSDP->media[i]);
+      for (unsigned int i = 0; i < ourSDP->media.size(); ++i)
+      {
+        setSSRC(ourSDP->media[i]);
       }
     }
 
-    for (unsigned int i = 0; i < ourSDP->media.size(); ++i) {
+    for (unsigned int i = 0; i < ourSDP->media.size(); ++i)
+    {
       setMID(i, ourSDP->media[i]);
     }
   }
@@ -511,7 +513,7 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
 
   for (unsigned int i = 0; i < newInfo->media.size(); ++i)
   {
-    setSSRC(i, newInfo->media[i]);
+    setSSRC(newInfo->media[i]);
   }
 
   return newInfo;
@@ -638,7 +640,8 @@ SDPAttributeType SDPNegotiation::findStatusAttribute(const QList<SDPAttributeTyp
   return A_NO_ATTRIBUTE;
 }
 
-void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
+
+void SDPNegotiation::setSSRC(MediaInfo& media)
 {
   uint32_t ssrc = 0;
   if (findSSRC(media, ssrc))
@@ -648,15 +651,17 @@ void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
     return;
   }
 
-  if (mediaSSRCs_.find(mediaIndex) == mediaSSRCs_.end())
+  QString mid = findMID(media);
+
+  if (mediaSSRCs_.find(mid) == mediaSSRCs_.end())
   {
-    mediaSSRCs_[mediaIndex] = SSRCGenerator::generateSSRC();
+    mediaSSRCs_[mid] = SSRCGenerator::generateSSRC();
     Logger::getLogger()->printNormal(this, "Generated a new SSRC for media",
-                                     "SSRC", QString::number(mediaSSRCs_[mediaIndex]));
+                                     "SSRC", QString::number(mediaSSRCs_[mid]));
   }
 
   media.multiAttributes.push_back({});
-  media.multiAttributes.back().push_back({A_SSRC, QString::number(mediaSSRCs_[mediaIndex])});
+  media.multiAttributes.back().push_back({A_SSRC, QString::number(mediaSSRCs_[mid])});
 
   if (cname_ != "")
   {

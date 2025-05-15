@@ -89,7 +89,7 @@ private:
 
   SDPAttributeType findStatusAttribute(const QList<SDPAttributeType>& attributes) const;
 
-  void setSSRC(unsigned int mediaIndex, MediaInfo& media);
+  void setSSRC(MediaInfo& media);
   void setMID(unsigned int mediaIndex, MediaInfo& media);
 
   void copyMID(MediaInfo& target, const MediaInfo &source);
@@ -112,7 +112,7 @@ private:
 
   QString cname_;
 
-  std::unordered_map<unsigned int, uint32_t> mediaSSRCs_;
+  std::unordered_map<QString, uint32_t> mediaSSRCs_;
 
   bool setSSRC_;
 
