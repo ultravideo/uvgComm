@@ -511,6 +511,7 @@ void SDPConference::updateP2PTemplate(uint32_t sessionID, QList<MediaInfo>& medi
   }
 }
 
+
 MediaInfo SDPConference::copyMedia(const MediaInfo& media)
 {
   return media;
@@ -519,18 +520,6 @@ MediaInfo SDPConference::copyMedia(const MediaInfo& media)
 
 void SDPConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, MediaInfo& media)
 {
-  if (nextMID_.find(sessionID) == nextMID_.end())
-  {
-    if (type_ == SDP_CONF_LOCAL_MESH)
-    {
-      nextMID_[sessionID] = QString::number(3);
-    }
-    else
-    {
-      nextMID_[sessionID] = QString::number(1);
-    }
-  }
-
   QString mid = nextMID(sessionID);
   media.valueAttributes.push_back({A_MID, mid});
 
@@ -549,7 +538,14 @@ QString SDPConference::nextMID(uint32_t sessionID)
 {
   if (nextMID_.find(sessionID) == nextMID_.end())
   {
-    nextMID_[sessionID] = QString::number(3);
+    if (type_ == SDP_CONF_LOCAL_MESH)
+    {
+      nextMID_[sessionID] = QString::number(3);
+    }
+    else
+    {
+      nextMID_[sessionID] = QString::number(1);
+    }
   }
 
   QString mid = nextMID_[sessionID];
