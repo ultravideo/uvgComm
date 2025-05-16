@@ -20,4 +20,5 @@ protected:
 
 private:
 
+  int count_;
 };

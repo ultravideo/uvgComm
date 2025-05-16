@@ -227,6 +227,11 @@ protected:
     }
   }
 
+  int sizeOfOutputConnections() const
+  {
+    return outConnections_.size();
+  }
+
   void printDataBytes(QString type, const uint8_t *payload, size_t size,
                       int bytes, int shift);
 
