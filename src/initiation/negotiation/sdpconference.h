@@ -19,7 +19,7 @@ enum ConferenceType
   SDP_CONF_HYBRID       // hybrid between SFU and Mesh, we are the SFU
 };
 
-/* This class handles the generation of P2P Mesh conference via SDP Messages.
+/* This class handles the generation of the conference via SDP Messages.
  *
  * addSDPPair() handles the recording of the local and remote SDP media information
  * as well as SSRC relations. The getMeshSDP() function is used to generate each
@@ -62,7 +62,11 @@ private:
   // generates the SSRC and sets it to media
   void generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, MediaInfo& media);
 
-  QString nextMID(uint32_t sessionID);
+  QString generateMID(const QString& type, uint32_t mediaSessionID, const MediaInfo& media);
+
+  QString generateP2PMID(uint32_t mediaSessionID, const MediaInfo& media);
+  QString generateSFUMID(const MediaInfo& media);
+
   void removeMID(MediaInfo& media);
 
   void updateMediaState(MediaInfo& currentState, const MediaInfo &newState);
@@ -109,5 +113,5 @@ private:
   std::unordered_map<uint32_t, std::unordered_map<QString, GeneratedSSRC>> generatedSSRCs_;
 
   std::unordered_map<uint32_t, QString> cnames_;
-  std::unordered_map<uint32_t, QString> nextMID_;
+  //std::unordered_map<uint32_t, QString> nextMID_;
 };

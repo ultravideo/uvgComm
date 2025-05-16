@@ -101,6 +101,11 @@ void SDPConference::distributeGeneratedMedia(uint32_t sessionID,SDPMessageInfo &
           // copy the media and remove the mid
           MediaInfo newMedia = copyMedia(media);
           removeMID(newMedia);
+
+          // in this case, the sessionID is the mediasession
+          QString mid = generateP2PMID(sessionID, newMedia);
+          newMedia.valueAttributes.push_back({A_MID, mid});
+
           p2pPreparedMessages_[details.sessionID].push_back(newMedia);
           // the ssrc we generated for them
           p2pPreparedMessages_[details.sessionID].last().multiAttributes.push_back({{A_SSRC, QString::number(details.ssrc)},
@@ -251,7 +256,6 @@ void SDPConference::removeSession(uint32_t sessionID)
   sfuPreparedMessages_.erase(sessionID);
 
   generatedSSRCs_.erase(sessionID);
-  nextMID_.erase(sessionID);
 
   // remove session media from prepared messages
   for (auto& message : p2pPreparedMessages_)
@@ -417,13 +421,19 @@ void SDPConference::getSFUMedia(uint32_t sessionID, const QList<MediaInfo>& base
     {
       if (findLabel(media) == "SFU" || findLabel(media) == "")
       {
-        sfuPreparedMessages_[sessionID].push_back(copyMedia(media));
-      }
+        MediaInfo copied = copyMedia(media);
 
-      if (findLabel(media) == "")
-      {
-        // set SFU label
-        sfuPreparedMessages_[sessionID].last().valueAttributes.push_back({A_LABEL, "SFU"});
+        // Apply SFU label if needed
+        if (findLabel(copied) == "")
+        {
+          copied.valueAttributes.push_back({A_LABEL, "SFU"});
+        }
+
+        // Add MID
+        QString mid = generateSFUMID(copied);
+        copied.valueAttributes.push_back({A_MID, mid});
+
+        sfuPreparedMessages_[sessionID].push_back(std::move(copied));
       }
     }
 
@@ -505,7 +515,7 @@ void SDPConference::updateP2PTemplate(uint32_t sessionID, QList<MediaInfo>& medi
   {
     MediaInfo media = p2pMedias[i];
     media.multiAttributes.clear();  // Don't save SSRCs
-    removeMID(media);
+    //removeMID(media);
 
     p2pSingleSDPTemplates_[sessionID].append(media);
   }
@@ -523,7 +533,7 @@ void SDPConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, Me
   QString mid = findMID(media);
   if (mid == "")
   {
-    mid = nextMID(sessionID);
+    mid = generateP2PMID(mediaSessionID, media);
     media.valueAttributes.push_back({A_MID, mid});
   }
 
@@ -538,23 +548,15 @@ void SDPConference::generateSSRC(uint32_t sessionID, uint32_t mediaSessionID, Me
 }
 
 
-QString SDPConference::nextMID(uint32_t sessionID)
+QString SDPConference::generateP2PMID(uint32_t mediaSessionID, const MediaInfo& media)
 {
-  if (nextMID_.find(sessionID) == nextMID_.end())
-  {
-    if (type_ == SDP_CONF_LOCAL_MESH)
-    {
-      nextMID_[sessionID] = QString::number(3);
-    }
-    else
-    {
-      nextMID_[sessionID] = QString::number(1);
-    }
-  }
+  return "p2p-" + media.type + "-" + QString::number(mediaSessionID);
+}
 
-  QString mid = nextMID_[sessionID];
-  nextMID_[sessionID] = QString::number(mid.toInt() + 1);
-  return mid;
+
+QString SDPConference::generateSFUMID(const MediaInfo& media)
+{
+  return "sfu-" + media.type;
 }
 
 

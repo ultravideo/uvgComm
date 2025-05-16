@@ -11,7 +11,7 @@
 #include <memory>
 
 /* This class generates the SDP messages and is capable of checking if proposed
- * SDP is suitable.
+ * SDP is suitable. Only responsible for local SDP.
 
  * SDP in SIP is based on offer/answer model where one side sends an offer to
  * which the other side responds with an answer.
