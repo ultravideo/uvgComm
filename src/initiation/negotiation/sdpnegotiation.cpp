@@ -197,6 +197,11 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
       ourSDP = sdpConf_->generateConferenceMedia(sessionID_, ourSDP);
     }
 
+    for (unsigned int i = 0; i < ourSDP->media.size(); ++i)
+    {
+      setMID(i, ourSDP->media[i]);
+    }
+
     if (setSSRC_)
     {
       for (unsigned int i = 0; i < ourSDP->media.size(); ++i)
@@ -205,10 +210,6 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
       }
     }
 
-    for (unsigned int i = 0; i < ourSDP->media.size(); ++i)
-    {
-      setMID(i, ourSDP->media[i]);
-    }
   }
   else
   {
@@ -681,5 +682,3 @@ void SDPNegotiation::setMID(unsigned int mediaIndex, MediaInfo& media)
   }
   media.valueAttributes.push_back({A_MID, QString::number(mediaIndex + 1)});
 }
-
-
