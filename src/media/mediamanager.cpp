@@ -350,7 +350,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
 
       for (QString& cname : cnames)
       {
-        if (cname != CName::cname())
+        if (cname != CName::cname() || cnames.size() == 1)
         {
           p2pFg_->sendVideoto(sessionID, senderFilter, localSSRC, remoteSSRC,
                               cnames.at(0), false);
