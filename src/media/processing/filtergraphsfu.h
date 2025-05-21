@@ -18,12 +18,13 @@ public:
 
   virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
                                 VideoInterface *view,
-                                uint32_t remoteSSRC);
+                                uint32_t remoteSSRC,
+                                QString cname);
 
   virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
                            uint32_t localSSRC);
   virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
-                                uint32_t remoteSSRC);
+                                uint32_t remoteSSRC, QString cname);
 
 protected:
 

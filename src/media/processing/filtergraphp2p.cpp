@@ -339,6 +339,8 @@ void FilterGraphP2P::initVideoSend()
   addToGraph(roi, cameraGraph_, cameraGraph_.size() - 1);
 #endif
 
+
+  // TODO: the init fails if we add same filter twice
   kvazaar_ = std::shared_ptr<KvazaarFilter>(new KvazaarFilter("", stats_, hwResources_));
 
   addToGraph(kvazaar_, cameraGraph_, cameraGraph_.size() - 1);
@@ -454,10 +456,12 @@ void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sen
   }
 }
 
+
 void FilterGraphP2P::receiveVideoFrom(uint32_t sessionID,
                                       std::shared_ptr<Filter> receiver,
                                       VideoInterface* view,
-                                      uint32_t remoteSSRC)
+                                      uint32_t remoteSSRC,
+                                      QString cname)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(receiver);
@@ -466,17 +470,26 @@ void FilterGraphP2P::receiveVideoFrom(uint32_t sessionID,
 
   if (peers_[sessionID]->videoReceivers.find(remoteSSRC) == peers_[sessionID]->videoReceivers.end())
   {
-    std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
-    peers_[sessionID]->videoReceivers[remoteSSRC] = graph;
+    // create the decoder and view if we don't have them yet
+    if (peers_[sessionID]->videoViewFlow.find(cname) == peers_[sessionID]->videoViewFlow.end())
+    {
+      std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
+      peers_[sessionID]->videoViewFlow[cname] = graph;
 
-    addToGraph(receiver, *graph);
-    addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, stats_, hwResources_)), *graph, 0);
+      addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, stats_, hwResources_)), *graph, 0);
 
-    std::shared_ptr<DisplayFilter> displayFilter =
-        std::shared_ptr<DisplayFilter>(new DisplayFilter(QString::number(sessionID),
+      std::shared_ptr<DisplayFilter> displayFilter =
+      std::shared_ptr<DisplayFilter>(new DisplayFilter(QString::number(sessionID),
                                                          stats_, hwResources_, {view}, sessionID));
 
-    addToGraph(displayFilter, *graph, 1);
+      addToGraph(displayFilter, *graph, 0);
+    }
+
+    peers_[sessionID]->videoReceivers[remoteSSRC] = receiver;
+
+    // connect the receiver to the decoder and view
+    peers_[sessionID]->videoReceivers[remoteSSRC]->addOutConnection(peers_[sessionID]->videoViewFlow.at(cname)->front());
+
   }
   else
   {
@@ -500,7 +513,7 @@ void FilterGraphP2P::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sen
   // add participant if necessary
   checkParticipant(sessionID);
 
-  if ((peers_[sessionID]->audioSenders.find(localSSRC) == peers_[sessionID]->audioSenders.end()))
+  if (peers_[sessionID]->audioSenders.find(localSSRC) == peers_[sessionID]->audioSenders.end())
   {
     peers_[sessionID]->audioSenders[localSSRC] = sender;
 
@@ -515,8 +528,9 @@ void FilterGraphP2P::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sen
   mic(settingEnabled(SettingsKey::micStatus));
 }
 
-void FilterGraphP2P::
-    receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver, uint32_t remoteSSRC)
+
+void FilterGraphP2P::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                      uint32_t remoteSSRC, QString cname)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(receiver);
@@ -531,39 +545,45 @@ void FilterGraphP2P::
 
   if (peers_[sessionID]->audioReceivers.find(remoteSSRC) == peers_[sessionID]->audioReceivers.end())
   {
-    std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
-    peers_[sessionID]->audioReceivers[remoteSSRC] = graph;
-
-    addToGraph(receiver, *graph);
-
-    if (receiver->outputType() == DT_OPUSAUDIO)
+    if (peers_[sessionID]->audioViewFlow.find(cname) == peers_[sessionID]->audioViewFlow.end())
     {
-      std::shared_ptr<OpusDecoderFilter> decoder =
-          std::shared_ptr<OpusDecoderFilter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_));
-      addToGraph(decoder, *graph, (unsigned int)graph->size() - 1);
+      std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
+      peers_[sessionID]->audioViewFlow[cname] = graph;
+
+      if (receiver->outputType() == DT_OPUSAUDIO)
+      {
+        std::shared_ptr<OpusDecoderFilter> decoder =
+            std::shared_ptr<OpusDecoderFilter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_));
+        addToGraph(decoder, *graph, (unsigned int)graph->size() - 1);
+      }
+
+      // mixer helps mix the incoming audio streams into one output stream
+      if (mixer_ == nullptr)
+      {
+        mixer_ = std::make_shared<AudioMixer>();
+      }
+
+      std::shared_ptr<AudioMixerFilter> audioMixer =
+          std::make_shared<AudioMixerFilter>(QString::number(sessionID), stats_, hwResources_, sessionID, mixer_);
+
+      addToGraph(audioMixer, *graph, (unsigned int)graph->size() - 1);
+
+      if (!audioOutputGraph_.empty())
+      {
+        // connects audio reception to audio output
+        connectFilters(graph->back(), audioOutputGraph_.front());
+      }
+      else
+      {
+        Logger::getLogger()->printProgramError(this, "Audio output not initialized "
+                                                     "when adding audio reception");
+      }
     }
 
-    // mixer helps mix the incoming audio streams into one output stream
-    if (mixer_ == nullptr)
-    {
-      mixer_ = std::make_shared<AudioMixer>();
-    }
+    peers_[sessionID]->audioReceivers[remoteSSRC] = receiver;
 
-    std::shared_ptr<AudioMixerFilter> audioMixer =
-        std::make_shared<AudioMixerFilter>(QString::number(sessionID), stats_, hwResources_, sessionID, mixer_);
-
-    addToGraph(audioMixer, *graph, (unsigned int)graph->size() - 1);
-
-    if (!audioOutputGraph_.empty())
-    {
-      // connects audio reception to audio output
-      connectFilters(graph->back(), audioOutputGraph_.front());
-    }
-    else
-    {
-      Logger::getLogger()->printProgramError(this, "Audio output not initialized "
-                                                   "when adding audio reception");
-    }
+    // connect the receiver to the decoder and mixer
+    peers_[sessionID]->audioReceivers[remoteSSRC]->addOutConnection(peers_[sessionID]->audioViewFlow.at(cname)->front());
   }
   else
   {

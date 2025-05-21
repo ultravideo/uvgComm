@@ -49,7 +49,23 @@ void FilterGraph::running(bool state)
         }
       }
 
-      for (auto& graph : peer.second->audioReceivers)
+      for (auto& senderFilter : peer.second->audioReceivers)
+      {
+        if(senderFilter.second)
+        {
+          changeState(senderFilter.second, state);
+        }
+      }
+
+      for (auto& senderFilter : peer.second->videoReceivers)
+      {
+        if(senderFilter.second)
+        {
+          changeState(senderFilter.second, state);
+        }
+      }
+
+      for (auto& graph : peer.second->videoViewFlow)
       {
         for(std::shared_ptr<Filter>& f : *graph.second)
         {
@@ -57,7 +73,7 @@ void FilterGraph::running(bool state)
         }
       }
 
-      for (auto& graph : peer.second->videoReceivers)
+      for (auto& graph : peer.second->audioViewFlow)
       {
         for(std::shared_ptr<Filter>& f : *graph.second)
         {
@@ -80,8 +96,13 @@ void FilterGraph::updateVideoSettings()
         senderFilter.second->updateSettings();
       }
 
+      for (auto& senderFilter : peer.second->videoReceivers)
+      {
+        senderFilter.second->updateSettings();
+      }
+
       // decode and display settings
-      for(auto& videoReceivers : peer.second->videoReceivers)
+      for(auto& videoReceivers : peer.second->videoViewFlow)
       {
         for (auto& filter : *videoReceivers.second)
         {
@@ -104,7 +125,12 @@ void FilterGraph::updateAudioSettings()
         senderFilter.second->updateSettings();
       }
 
-      for (auto& audioReceivers : peer.second->audioReceivers)
+      for (auto& senderFilter : peer.second->audioReceivers)
+      {
+        senderFilter.second->updateSettings();
+      }
+
+      for (auto& audioReceivers : peer.second->audioViewFlow)
       {
         for (auto& filter : *audioReceivers.second)
         {
@@ -310,12 +336,24 @@ void FilterGraph::destroyPeer(Peer* peer)
     changeState(videoSender.second, false);
     videoSender.second = nullptr;
   }
-  for (auto& graph : peer->audioReceivers)
+
+  for (auto& audioSender : peer->audioReceivers)
+  {
+    changeState(audioSender.second, false);
+    audioSender.second = nullptr;
+  }
+  for (auto& videoSender : peer->videoReceivers)
+  {
+    changeState(videoSender.second, false);
+    videoSender.second = nullptr;
+  }
+
+  for (auto& graph : peer->videoViewFlow)
   {
     destroyFilters(*graph.second);
   }
 
-  for (auto& graph : peer->videoReceivers)
+  for (auto& graph : peer->audioViewFlow)
   {
     destroyFilters(*graph.second);
   }

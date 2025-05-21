@@ -298,7 +298,7 @@ void MediaManager::clientMedia(uint32_t sessionID,
       {
         // as a client we should only have one SSRC and the each remote SSRC will have its own attributeList
         clientReceiveMedia(sessionID, localMedia, remoteMedia, receive, codec,
-                           localSSRCs.at(0), attributeList.at(0).value.toULong());
+                           localSSRCs.at(0), attributeList.at(0).value.toULong(), attributeList.at(1).value);
       }
     }
   }
@@ -373,10 +373,14 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
   }
 }
 
-
-void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                                      const MediaInfo& remoteMedia, bool enabled, QString codec,
-                                      uint32_t localSSRC, uint32_t remoteSSRC)
+void MediaManager::clientReceiveMedia(uint32_t sessionID,
+                                      const MediaInfo& localMedia,
+                                      const MediaInfo& remoteMedia,
+                                      bool enabled,
+                                      QString codec,
+                                      uint32_t localSSRC,
+                                      uint32_t remoteSSRC,
+                                      QString remoteCNAME)
 {
   std::shared_ptr<Filter> receiverFilter = streamer_->addRTPReceiveStream(sessionID,
                                                                           localMedia.connection_address,
@@ -401,14 +405,14 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID, const MediaInfo& local
     Q_ASSERT(receiverFilter != nullptr);
     if (localMedia.type == "audio")
     {
-      p2pFg_->receiveAudioFrom(sessionID, receiverFilter, remoteSSRC);
+      p2pFg_->receiveAudioFrom(sessionID, receiverFilter, remoteSSRC, remoteCNAME);
     }
     else if (localMedia.type == "video")
     {
       VideoInterface* videoView = viewFactory_->getVideo(remoteSSRC);
       if (videoView != nullptr)
       {
-        p2pFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, remoteSSRC);
+        p2pFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, remoteSSRC, remoteCNAME);
       }
       else
       {
@@ -483,7 +487,7 @@ void MediaManager::sfuMedia(uint32_t sessionID,
       sfuSendMedia(sessionID, localMedia, remoteMedia, send, localSSRC, remoteSSRCs.at(0));
     }
 
-    sfuReceiveMedia(sessionID, localMedia, remoteMedia, receive, remoteSSRCs.at(0));
+    sfuReceiveMedia(sessionID, localMedia, remoteMedia, receive, remoteSSRCs.at(0), "sfu");
   }
   else
   {
@@ -539,10 +543,11 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
 }
 
 void MediaManager::sfuReceiveMedia(uint32_t sessionID,
-                                  const MediaInfo& localMedia,
-                                  const MediaInfo& remoteMedia,
-                                  bool enabled,
-                                  uint32_t remoteSSRC)
+                                   const MediaInfo& localMedia,
+                                   const MediaInfo& remoteMedia,
+                                   bool enabled,
+                                   uint32_t remoteSSRC,
+                                   QString remoteCNAME)
 {
   std::shared_ptr<Filter> receive = streamer_->addUDPReceiveStream(sessionID,
        localMedia.connection_address,
@@ -553,12 +558,12 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
   {
     if (localMedia.type == "audio")
     {
-      sfuFg_->receiveAudioFrom(sessionID, receive, remoteSSRC);
+      sfuFg_->receiveAudioFrom(sessionID, receive, remoteSSRC, remoteCNAME);
     }
     else if (localMedia.type == "video")
     {
       VideoInterface* videoView = viewFactory_->getVideo(remoteSSRC);
-      sfuFg_->receiveVideoFrom(sessionID, receive, videoView, remoteSSRC);
+      sfuFg_->receiveVideoFrom(sessionID, receive, videoView, remoteSSRC, remoteCNAME);
     }
     else
     {

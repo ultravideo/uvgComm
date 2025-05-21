@@ -136,7 +136,8 @@ private:
                           bool enabled,
                           QString codec,
                           uint32_t localSSRC,
-                          uint32_t remoteSSRC);
+                          uint32_t remoteSSRC,
+                          QString remoteCNAME);
 
   void sfuMedia(uint32_t sessionID,
                 const MediaInfo& localMedia,
@@ -155,7 +156,8 @@ private:
                        const MediaInfo& localMedia,
                        const MediaInfo& remoteMedia,
                        bool enabled,
-                       uint32_t remoteSSRC);
+                       uint32_t remoteSSRC,
+                       QString remoteCNAME);
 
   QString rtpNumberToCodec(const MediaInfo& info);
 

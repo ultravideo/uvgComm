@@ -38,13 +38,14 @@ public:
 
   virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
                         VideoInterface *view,
-                        uint32_t remoteSSRC) = 0;
+                        uint32_t remoteSSRC,
+                        QString cname) = 0;
 
   virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
                    uint32_t localSSRC) = 0;
 
   virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
-                        uint32_t remoteSSRC) = 0;
+                        uint32_t remoteSSRC, QString cname) = 0;
 
   // removes participant and all its associated filter from filter graph.
   void removeParticipant(uint32_t sessionID);
@@ -66,8 +67,12 @@ protected:
     std::map<uint32_t, std::shared_ptr<Filter>> videoSenders; // sends video
 
     // key is remote SSRC
-    std::map<uint32_t, std::shared_ptr<GraphSegment>> videoReceivers;
-    std::map<uint32_t, std::shared_ptr<GraphSegment>> audioReceivers;
+    std::map<uint32_t, std::shared_ptr<Filter>> audioReceivers; // receives audio
+    std::map<uint32_t, std::shared_ptr<Filter>> videoReceivers; // receives video
+
+    // key is remote CName
+    std::map<QString, std::shared_ptr<GraphSegment>> videoViewFlow;
+    std::map<QString, std::shared_ptr<GraphSegment>> audioViewFlow;
   };
 
   // destroy all filters associated with this peer.

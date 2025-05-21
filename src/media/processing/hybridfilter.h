@@ -7,6 +7,12 @@
 class StatisticsInterface;
 class ResourceAllocator;
 
+enum LinkType
+{
+  LINK_SFU,
+  LINK_P2P
+};
+
 class HybridFilter : public Filter
 {
 public:
@@ -14,6 +20,8 @@ public:
                std::shared_ptr<ResourceAllocator> hwResources);
 
   ~HybridFilter() override;
+
+  void addLink(LinkType type);
 
 protected:
   virtual void process() override;
