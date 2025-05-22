@@ -265,8 +265,6 @@ void MediaManager::clientMedia(uint32_t sessionID,
     std::vector<uint32_t> localSSRCs;
     findSSRCs(localMedia, localSSRCs);
 
-
-
     QString codec = rtpNumberToCodec(remoteMedia);
 
     if (localSSRCs.size() != 1)
@@ -274,8 +272,6 @@ void MediaManager::clientMedia(uint32_t sessionID,
       Logger::getLogger()->printProgramError(this, "Our media has incorrect amount of SSRCs");
       return;
     }
-
-
 
     clientSendMedia(sessionID, localMedia, remoteMedia, send, codec,
                     localSSRCs.at(0));
@@ -315,10 +311,26 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
   std::vector<uint32_t> remoteSSRCs;
   findSSRCs(remoteMedia, remoteSSRCs);
 
-  if (remoteSSRCs.empty())
-  {
-    Logger::getLogger()->printWarning(this, "No SSRCs included in remote media, stream not activated");
+  std::vector<QString> remoteCNAMEs;
+  findCNAMEs(remoteMedia, remoteCNAMEs);
+
+  if (remoteSSRCs.empty() || remoteCNAMEs.size() != remoteSSRCs.size()) {
+    Logger::getLogger()->printWarning(this, "Invalid or missing SSRCs/CNAMEs in remote media, stream not activated");
     return;
+  }
+
+  std::vector<uint32_t> filteredSSRCs;
+  std::vector<QString> filteredCnames;
+
+  QString ourCname = CName::cname();
+
+  for (size_t i = 0; i < remoteSSRCs.size(); ++i)
+  {
+    if (remoteCNAMEs.at(i) != ourCname || remoteSSRCs.size() == 1)
+    {
+      filteredSSRCs.push_back(remoteSSRCs.at(i));
+      filteredCnames.push_back(remoteCNAMEs.at(i));
+    }
   }
 
   // the remote SSRC does not matter for the outgoing media
@@ -328,7 +340,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
                                                                      localMedia.receivePort,
                                                                      remoteMedia.receivePort,
                                                                      codec, remoteMedia.rtpNums.at(0),
-                                                                     localSSRC, remoteSSRCs.at(0));
+                                                                     localSSRC, filteredSSRCs.at(0));
 
   // if we want to send
   if(enabled && remoteMedia.receivePort != 0)
@@ -348,19 +360,8 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
     }
     else if(remoteMedia.type == "video")
     {
-      std::vector<QString> cnames;
-      findCNAMEs(remoteMedia, cnames);
-
-      for (QString& cname : cnames)
-      {
-        if (cname != CName::cname() || cnames.size() == 1)
-        {
-          // TODO: is P2P?
-          clientFg_->sendVideoto(sessionID, senderFilter, localSSRC, remoteSSRCs,
-                                 cnames, false);
-          break;
-        }
-      }
+      // TODO: is P2P?
+      clientFg_->sendVideoto(sessionID, senderFilter, localSSRC, filteredSSRCs, filteredCnames, false);
     }
     else
     {
