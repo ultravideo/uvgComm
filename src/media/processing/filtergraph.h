@@ -32,8 +32,8 @@ public:
   virtual void sendVideoto(uint32_t sessionID,
                            std::shared_ptr<Filter> sender,
                            uint32_t localSSRC,
-                           uint32_t remoteSSRC,
-                           const QString& remoteCNAME,
+                           const std::vector<uint32_t>& remoteSSRCs,
+                           const std::vector<QString>& remoteCNAMEs,
                            bool isP2P) = 0;
 
   virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,

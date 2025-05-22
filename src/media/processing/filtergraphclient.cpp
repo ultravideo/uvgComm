@@ -434,9 +434,12 @@ void FilterGraphClient::initializeAudioOutput(bool opus)
 }
 
 
-void FilterGraphClient::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sender,
-                                 uint32_t localSSRC, uint32_t remoteSSRC,
-                                 const QString& remoteCNAME, bool isP2P)
+void FilterGraphClient::sendVideoto(uint32_t sessionID,
+                                    std::shared_ptr<Filter> sender,
+                                    uint32_t localSSRC,
+                                    const std::vector<uint32_t>& remoteSSRCs,
+                                    const std::vector<QString>& remoteCNAMEs,
+                                    bool isP2P)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(sender);

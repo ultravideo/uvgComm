@@ -127,8 +127,7 @@ private:
                        const MediaInfo& remoteMedia,
                        bool enabled,
                        QString codec,
-                       uint32_t localSSRC,
-                       uint32_t remoteSSRC);
+                       uint32_t localSSRC);
 
   void clientReceiveMedia(uint32_t sessionID,
                           const MediaInfo& localMedia,
@@ -149,14 +148,12 @@ private:
                     const MediaInfo& localMedia,
                     const MediaInfo& remoteMedia,
                     bool enabled,
-                    uint32_t localSSRC,
-                    uint32_t remoteSSRC);
+                    uint32_t localSSRC);
 
   void sfuReceiveMedia(uint32_t sessionID,
                        const MediaInfo& localMedia,
                        const MediaInfo& remoteMedia,
                        bool enabled,
-                       uint32_t remoteSSRC,
                        QString remoteCNAME);
 
   QString rtpNumberToCodec(const MediaInfo& info);

@@ -265,8 +265,7 @@ void MediaManager::clientMedia(uint32_t sessionID,
     std::vector<uint32_t> localSSRCs;
     findSSRCs(localMedia, localSSRCs);
 
-    std::vector<uint32_t> remoteSSRCs;
-    findSSRCs(remoteMedia, remoteSSRCs);
+
 
     QString codec = rtpNumberToCodec(remoteMedia);
 
@@ -276,14 +275,10 @@ void MediaManager::clientMedia(uint32_t sessionID,
       return;
     }
 
-    if (remoteSSRCs.empty())
-    {
-      Logger::getLogger()->printWarning(this, "No SSRCs included in remote media, stream not activated");
-      return;
-    }
+
 
     clientSendMedia(sessionID, localMedia, remoteMedia, send, codec,
-                    localSSRCs.at(0), remoteSSRCs.at(0));
+                    localSSRCs.at(0));
 
     // go through all SSRCs and try to receive them
     for (auto& attributeList : remoteMedia.multiAttributes)
@@ -315,9 +310,17 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
                                    const MediaInfo& remoteMedia,
                                    bool enabled,
                                    QString codec,
-                                   uint32_t localSSRC,
-                                   uint32_t remoteSSRC)
+                                   uint32_t localSSRC)
 {
+  std::vector<uint32_t> remoteSSRCs;
+  findSSRCs(remoteMedia, remoteSSRCs);
+
+  if (remoteSSRCs.empty())
+  {
+    Logger::getLogger()->printWarning(this, "No SSRCs included in remote media, stream not activated");
+    return;
+  }
+
   // the remote SSRC does not matter for the outgoing media
   std::shared_ptr<Filter> senderFilter = streamer_->addRTPSendStream(sessionID,
                                                                      localMedia.connection_address,
@@ -325,7 +328,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
                                                                      localMedia.receivePort,
                                                                      remoteMedia.receivePort,
                                                                      codec, remoteMedia.rtpNums.at(0),
-                                                                     localSSRC, remoteSSRC);
+                                                                     localSSRC, remoteSSRCs.at(0));
 
   // if we want to send
   if(enabled && remoteMedia.receivePort != 0)
@@ -353,8 +356,8 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
         if (cname != CName::cname() || cnames.size() == 1)
         {
           // TODO: is P2P?
-          clientFg_->sendVideoto(sessionID, senderFilter, localSSRC, remoteSSRC,
-                              cnames.at(0), false);
+          clientFg_->sendVideoto(sessionID, senderFilter, localSSRC, remoteSSRCs,
+                                 cnames, false);
           break;
         }
       }
@@ -469,8 +472,6 @@ void MediaManager::sfuMedia(uint32_t sessionID,
 
     std::vector<uint32_t> localSSRCs;
     findSSRCs(localMedia, localSSRCs);
-    std::vector<uint32_t> remoteSSRCs;
-    findSSRCs(remoteMedia, remoteSSRCs);
 
     if (localSSRCs.empty())
     {
@@ -478,18 +479,12 @@ void MediaManager::sfuMedia(uint32_t sessionID,
       return;
     }
 
-    if (remoteSSRCs.empty())
-    {
-      Logger::getLogger()->printError(this, "No SSRCs included in client media, stream not activated");
-      return;
-    }
-
     for (auto& localSSRC : localSSRCs)
     {
-      sfuSendMedia(sessionID, localMedia, remoteMedia, send, localSSRC, remoteSSRCs.at(0));
+      sfuSendMedia(sessionID, localMedia, remoteMedia, send, localSSRC);
     }
 
-    sfuReceiveMedia(sessionID, localMedia, remoteMedia, receive, remoteSSRCs.at(0), "sfu");
+    sfuReceiveMedia(sessionID, localMedia, remoteMedia, receive, "sfu");
   }
   else
   {
@@ -503,14 +498,16 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
                                 const MediaInfo& localMedia,
                                 const MediaInfo& remoteMedia,
                                 bool enabled,
-                                uint32_t localSSRC,
-                                uint32_t remoteSSRC)
+                                uint32_t localSSRC)
 {
+  std::vector<uint32_t> remoteSSRCs;
+  findSSRCs(remoteMedia, remoteSSRCs);
+
   std::shared_ptr<Filter> send = streamer_->addUDPSendStream(sessionID,
                                                              localMedia.connection_address,
                                                              remoteMedia.connection_address,
                                                              localMedia.receivePort,
-                                                             remoteMedia.receivePort, remoteSSRC);
+                                                             remoteMedia.receivePort, remoteSSRCs.at(0));
 
   if (enabled)
   {
@@ -529,7 +526,7 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
     }
     else if(localMedia.type == "video")
     {
-      sfuFg_->sendVideoto(sessionID, send, localSSRC, remoteSSRC, "", false);
+      sfuFg_->sendVideoto(sessionID, send, localSSRC, remoteSSRCs, {}, false);
     }
     else
     {
@@ -544,28 +541,39 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
   }
 }
 
+
 void MediaManager::sfuReceiveMedia(uint32_t sessionID,
                                    const MediaInfo& localMedia,
                                    const MediaInfo& remoteMedia,
                                    bool enabled,
-                                   uint32_t remoteSSRC,
                                    QString remoteCNAME)
 {
+  // the SFU receives one media which it distributes to multiple participants
+
+  std::vector<uint32_t> remoteSSRCs;
+  findSSRCs(remoteMedia, remoteSSRCs);
+
+  if (remoteSSRCs.size() != 1)
+  {
+    Logger::getLogger()->printError(this, "Incorrect amount of SSRCs for SFU receive");
+    return;
+  }
+
   std::shared_ptr<Filter> receive = streamer_->addUDPReceiveStream(sessionID,
-       localMedia.connection_address,
-       localMedia.receivePort,
-       remoteSSRC);
+                                                                   localMedia.connection_address,
+                                                                   localMedia.receivePort,
+                                                                   remoteSSRCs.at(0));
 
   if (enabled)
   {
     if (localMedia.type == "audio")
     {
-      sfuFg_->receiveAudioFrom(sessionID, receive, remoteSSRC, remoteCNAME);
+      sfuFg_->receiveAudioFrom(sessionID, receive, remoteSSRCs.at(0), remoteCNAME);
     }
     else if (localMedia.type == "video")
     {
-      VideoInterface* videoView = viewFactory_->getVideo(remoteSSRC);
-      sfuFg_->receiveVideoFrom(sessionID, receive, videoView, remoteSSRC, remoteCNAME);
+      VideoInterface* videoView = viewFactory_->getVideo(remoteSSRCs.at(0));
+      sfuFg_->receiveVideoFrom(sessionID, receive, videoView, remoteSSRCs.at(0), remoteCNAME);
     }
     else
     {
