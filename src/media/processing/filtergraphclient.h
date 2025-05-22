@@ -15,11 +15,11 @@ class HybridFilter;
 class HybridSlaveFilter;
 
 
-class FilterGraphP2P : public FilterGraph
+class FilterGraphClient : public FilterGraph
 {
 public:
-  FilterGraphP2P();
-  ~FilterGraphP2P();
+  FilterGraphClient();
+  ~FilterGraphClient();
 
   void setSelfViews(QList<VideoInterface*> selfViews);
 

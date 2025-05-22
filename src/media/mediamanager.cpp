@@ -3,7 +3,7 @@
 #include "initiation/negotiation/sdptypes.h"
 #include "media/delivery/delivery.h"
 #include "media/processing/filter.h"
-#include "media/processing/filtergraphp2p.h"
+#include "media/processing/filtergraphclient.h"
 #include "media/processing/filtergraphsfu.h"
 #include "statisticsinterface.h"
 #include "videoviewfactory.h"
@@ -22,7 +22,7 @@
 
 MediaManager::MediaManager():
   stats_(nullptr),
-  p2pFg_(new FilterGraphP2P()),
+  clientFg_(new FilterGraphClient()),
   sfuFg_(new FilterGraphSFU()),
   streamer_(nullptr)
 {}
@@ -30,8 +30,8 @@ MediaManager::MediaManager():
 
 MediaManager::~MediaManager()
 {
-  p2pFg_->running(false);
-  p2pFg_->uninit();
+  clientFg_->running(false);
+  clientFg_->uninit();
 }
 
 
@@ -58,21 +58,21 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewFactory,
   std::shared_ptr<ResourceAllocator> hwResources =
       std::shared_ptr<ResourceAllocator>(new ResourceAllocator());
 
-  p2pFg_->init(stats, hwResources);
-  p2pFg_->setSelfViews(viewFactory_->getSelfVideos());
+  clientFg_->init(stats, hwResources);
+  clientFg_->setSelfViews(viewFactory_->getSelfVideos());
 
   sfuFg_->init(stats, hwResources);
 
   streamer_->init(stats_, hwResources);
 
   QObject::connect(this, &MediaManager::updateVideoSettings,
-                   p2pFg_.get(), &FilterGraph::updateVideoSettings);
+                   clientFg_.get(), &FilterGraph::updateVideoSettings);
 
   QObject::connect(this, &MediaManager::updateAudioSettings,
-                   p2pFg_.get(), &FilterGraph::updateAudioSettings);
+                   clientFg_.get(), &FilterGraph::updateAudioSettings);
 
   QObject::connect(this, &MediaManager::updateAutomaticSettings,
-                   p2pFg_.get(), &FilterGraph::updateAutomaticSettings);
+                   clientFg_.get(), &FilterGraph::updateAutomaticSettings);
 }
 
 
@@ -81,8 +81,8 @@ void MediaManager::uninit()
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Closing");
 
   // first filter graph, then streamer because of the rtpfilters
-  p2pFg_->running(false);
-  p2pFg_->uninit();
+  clientFg_->running(false);
+  clientFg_->uninit();
 
   sfuFg_->running(false);
   sfuFg_->uninit();
@@ -227,7 +227,7 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     if (settingString(SettingsKey::sipRole) != "Server")
     {
       // TODO: This does not work if video is not enabled
-      p2pFg_->updateConferenceSize();
+      clientFg_->updateConferenceSize();
     }
   }
 }
@@ -341,7 +341,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
 
     if(remoteMedia.type == "audio")
     {
-      p2pFg_->sendAudioTo(sessionID, senderFilter, localSSRC);
+      clientFg_->sendAudioTo(sessionID, senderFilter, localSSRC);
     }
     else if(remoteMedia.type == "video")
     {
@@ -353,7 +353,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
         if (cname != CName::cname() || cnames.size() == 1)
         {
           // TODO: is P2P?
-          p2pFg_->sendVideoto(sessionID, senderFilter, localSSRC, remoteSSRC,
+          clientFg_->sendVideoto(sessionID, senderFilter, localSSRC, remoteSSRC,
                               cnames.at(0), false);
           break;
         }
@@ -373,6 +373,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
     // TODO: Spec says we should still send RTCP if the port is not 0
   }
 }
+
 
 void MediaManager::clientReceiveMedia(uint32_t sessionID,
                                       const MediaInfo& localMedia,
@@ -406,14 +407,14 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID,
     Q_ASSERT(receiverFilter != nullptr);
     if (localMedia.type == "audio")
     {
-      p2pFg_->receiveAudioFrom(sessionID, receiverFilter, remoteSSRC, remoteCNAME);
+      clientFg_->receiveAudioFrom(sessionID, receiverFilter, remoteSSRC, remoteCNAME);
     }
     else if (localMedia.type == "video")
     {
       VideoInterface* videoView = viewFactory_->getVideo(remoteSSRC);
       if (videoView != nullptr)
       {
-        p2pFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, remoteSSRC, remoteCNAME);
+        clientFg_->receiveVideoFrom(sessionID, receiverFilter, videoView, remoteSSRC, remoteCNAME);
       }
       else
       {
@@ -585,7 +586,7 @@ void MediaManager::removeParticipant(uint32_t sessionID)
 
   if (settingString(SettingsKey::sipRole) != "Server")
   {
-    p2pFg_->removeParticipant(sessionID);
+    clientFg_->removeParticipant(sessionID);
   }
 
   if (settingString(SettingsKey::sipRole) != "Client")

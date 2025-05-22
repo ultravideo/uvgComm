@@ -167,7 +167,7 @@ qt_add_executable(uvgComm WIN32 MACOSX_BUNDLE
     src/main.cpp
     version.cpp
     src/cameraformats.h src/cameraformats.cpp
-    src/media/processing/filtergraphp2p.h src/media/processing/filtergraphp2p.cpp
+    src/media/processing/filtergraphclient.h src/media/processing/filtergraphclient.cpp
     src/media/processing/filtergraphsfu.h src/media/processing/filtergraphsfu.cpp
     src/media/delivery/udprelay.h src/media/delivery/udprelay.cpp
     src/media/delivery/udpreceiver.h src/media/delivery/udpreceiver.cpp

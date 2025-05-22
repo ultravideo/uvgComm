@@ -1,4 +1,4 @@
-#include "filtergraphp2p.h"
+#include "filtergraphclient.h"
 
 #include "media/processing/camerafilter.h"
 #include "media/processing/screensharefilter.h"
@@ -60,7 +60,7 @@ const int AUDIO_INPUT_GAIN = 10; // dB
 const int32_t AUDIO_OUTPUT_VOLUME = INT32_MAX - INT32_MAX/4;
 const int AUDIO_OUTPUT_GAIN = 20; // dB
 
-FilterGraphP2P::FilterGraphP2P()
+FilterGraphClient::FilterGraphClient()
   : FilterGraph(),
 
     cameraGraph_(),
@@ -85,11 +85,11 @@ FilterGraphP2P::FilterGraphP2P()
 }
 
 
-FilterGraphP2P::~FilterGraphP2P()
+FilterGraphClient::~FilterGraphClient()
 {}
 
 
-void FilterGraphP2P::setSelfViews(QList<VideoInterface*> selfViews)
+void FilterGraphClient::setSelfViews(QList<VideoInterface*> selfViews)
 {
   if (selfViews.size() > 1)
   {
@@ -107,7 +107,7 @@ void FilterGraphP2P::setSelfViews(QList<VideoInterface*> selfViews)
 }
 
 
-void FilterGraphP2P::setConferenceSize(uint32_t otherParticipants)
+void FilterGraphClient::setConferenceSize(uint32_t otherParticipants)
 {
   if (kvazaar_)
   {
@@ -121,7 +121,7 @@ void FilterGraphP2P::setConferenceSize(uint32_t otherParticipants)
 }
 
 
-void FilterGraphP2P::updateConferenceSize()
+void FilterGraphClient::updateConferenceSize()
 {
   uint32_t otherParticipants = 0;
 
@@ -137,7 +137,7 @@ void FilterGraphP2P::updateConferenceSize()
 }
 
 
-void FilterGraphP2P::uninit()
+void FilterGraphClient::uninit()
 {
   quitting_ = true;
 
@@ -155,7 +155,7 @@ void FilterGraphP2P::uninit()
 }
 
 
-void FilterGraphP2P::updateVideoSettings()
+void FilterGraphClient::updateVideoSettings()
 {
   QSettings settings(settingsFile, settingsFileFormat);
   // if the video format has changed so that we need different conversions
@@ -216,7 +216,7 @@ void FilterGraphP2P::updateVideoSettings()
 }
 
 
-void FilterGraphP2P::updateAudioSettings()
+void FilterGraphClient::updateAudioSettings()
 {
   for (auto& filter : audioInputGraph_)
   {
@@ -239,7 +239,7 @@ void FilterGraphP2P::updateAudioSettings()
 }
 
 
-void FilterGraphP2P::initCameraSelfView()
+void FilterGraphClient::initCameraSelfView()
 {
   Logger::getLogger()->printNormal(this, "Iniating camera");
 
@@ -321,7 +321,7 @@ void FilterGraphP2P::initCameraSelfView()
 }
 
 
-void FilterGraphP2P::initVideoSend()
+void FilterGraphClient::initVideoSend()
 {
   Logger::getLogger()->printNormal(this, "Iniating video send");
 
@@ -358,7 +358,7 @@ void FilterGraphP2P::initVideoSend()
 }
 
 
-void FilterGraphP2P::initializeAudioInput(bool opus)
+void FilterGraphClient::initializeAudioInput(bool opus)
 {
   audioCapture_ = std::shared_ptr<AudioCaptureFilter>(new AudioCaptureFilter("", format_, stats_, hwResources_));
 
@@ -403,7 +403,7 @@ void FilterGraphP2P::initializeAudioInput(bool opus)
 }
 
 
-void FilterGraphP2P::initializeAudioOutput(bool opus)
+void FilterGraphClient::initializeAudioOutput(bool opus)
 {
   Logger::getLogger()->printNormal(this, "Initializing audio output");
 
@@ -434,7 +434,7 @@ void FilterGraphP2P::initializeAudioOutput(bool opus)
 }
 
 
-void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sender,
+void FilterGraphClient::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sender,
                                  uint32_t localSSRC, uint32_t remoteSSRC,
                                  const QString& remoteCNAME, bool isP2P)
 {
@@ -479,7 +479,7 @@ void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sen
 }
 
 
-void FilterGraphP2P::receiveVideoFrom(uint32_t sessionID,
+void FilterGraphClient::receiveVideoFrom(uint32_t sessionID,
                                       std::shared_ptr<Filter> receiver,
                                       VideoInterface* view,
                                       uint32_t remoteSSRC,
@@ -520,7 +520,7 @@ void FilterGraphP2P::receiveVideoFrom(uint32_t sessionID,
 }
 
 
-void FilterGraphP2P::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
+void FilterGraphClient::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
                                  uint32_t localSSRC)
 {
   Q_ASSERT(sessionID);
@@ -550,7 +550,7 @@ void FilterGraphP2P::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sen
 }
 
 
-void FilterGraphP2P::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+void FilterGraphClient::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
                                       uint32_t remoteSSRC, QString cname)
 {
   Q_ASSERT(sessionID);
@@ -613,7 +613,7 @@ void FilterGraphP2P::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter
 }
 
 
-void FilterGraphP2P::mic(bool state)
+void FilterGraphClient::mic(bool state)
 {
   if(audioInputGraph_.size() > 0)
   {
@@ -631,7 +631,7 @@ void FilterGraphP2P::mic(bool state)
 }
 
 
-void FilterGraphP2P::camera(bool state)
+void FilterGraphClient::camera(bool state)
 {
   if(cameraGraph_.size() > 0)
   {
@@ -651,7 +651,7 @@ void FilterGraphP2P::camera(bool state)
 }
 
 
-void FilterGraphP2P::screenShare(bool shareState)
+void FilterGraphClient::screenShare(bool shareState)
 {
   if(screenShareGraph_.size() > 0)
   {
@@ -678,7 +678,7 @@ void FilterGraphP2P::screenShare(bool shareState)
 }
 
 
-void FilterGraphP2P::selectVideoSource()
+void FilterGraphClient::selectVideoSource()
 {
   if (settingEnabled(SettingsKey::screenShareStatus))
   {
@@ -704,7 +704,7 @@ void FilterGraphP2P::selectVideoSource()
 }
 
 
-void FilterGraphP2P::running(bool state)
+void FilterGraphClient::running(bool state)
 {
   for(std::shared_ptr<Filter>& f : cameraGraph_)
   {
@@ -730,7 +730,7 @@ void FilterGraphP2P::running(bool state)
 }
 
 
-void FilterGraphP2P::destroyPeer(Peer* peer)
+void FilterGraphClient::destroyPeer(Peer* peer)
 {
   Logger::getLogger()->printNormal(this, "Destroying peer from P2P Filter Graph");
 
@@ -747,7 +747,7 @@ void FilterGraphP2P::destroyPeer(Peer* peer)
 }
 
 
-void FilterGraphP2P::lastPeerRemoved()
+void FilterGraphClient::lastPeerRemoved()
 {
   destroyFilters(cameraGraph_);
   destroyFilters(screenShareGraph_);
@@ -773,7 +773,7 @@ void FilterGraphP2P::lastPeerRemoved()
 }
 
 
-void FilterGraphP2P::addHybridFilter(std::shared_ptr<HybridFilter> hybrid, GraphSegment &segment)
+void FilterGraphClient::addHybridFilter(std::shared_ptr<HybridFilter> hybrid, GraphSegment &segment)
 {
   if (hybrid_)
   {
@@ -792,7 +792,7 @@ void FilterGraphP2P::addHybridFilter(std::shared_ptr<HybridFilter> hybrid, Graph
 }
 
 
-void FilterGraphP2P::addHybridSlave(std::shared_ptr<HybridSlaveFilter> slave, GraphSegment& segment)
+void FilterGraphClient::addHybridSlave(std::shared_ptr<HybridSlaveFilter> slave, GraphSegment& segment)
 {
   addToGraph(slave, segment, segment.size() - 1);
 
@@ -804,7 +804,7 @@ void FilterGraphP2P::addHybridSlave(std::shared_ptr<HybridSlaveFilter> slave, Gr
 }
 
 
-QAudioFormat FilterGraphP2P::createAudioFormat(uint8_t channels, uint32_t sampleRate)
+QAudioFormat FilterGraphClient::createAudioFormat(uint8_t channels, uint32_t sampleRate)
 {
   QAudioFormat format;
 

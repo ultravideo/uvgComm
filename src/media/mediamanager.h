@@ -27,7 +27,7 @@ class VideoviewFactory;
 class StatisticsInterface;
 class Delivery;
 
-class FilterGraphP2P;
+class FilterGraphClient;
 class FilterGraphSFU;
 class MediaSession;
 struct MediaInfo;
@@ -174,7 +174,7 @@ private:
 
   StatisticsInterface* stats_;
 
-  std::unique_ptr<FilterGraphP2P> p2pFg_;
+  std::unique_ptr<FilterGraphClient> clientFg_;
   std::unique_ptr<FilterGraphSFU> sfuFg_;
 
   std::unique_ptr<Delivery> streamer_;
