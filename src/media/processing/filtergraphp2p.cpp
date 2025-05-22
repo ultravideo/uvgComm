@@ -5,6 +5,7 @@
 #include "media/processing/kvazaarfilter.h"
 #include "media/processing/roimanualfilter.h"
 #include "media/processing/hybridfilter.h"
+#include "media/processing/hybridslavefilter.h"
 
 #include "media/processing/openhevcfilter.h"
 
@@ -346,8 +347,11 @@ void FilterGraphP2P::initVideoSend()
   addToGraph(kvazaar_, cameraGraph_, cameraGraph_.size() - 1);
   addToGraph(kvazaar_, screenShareGraph_, 0);
 
-  hybrid_ = std::shared_ptr<HybridFilter>(new HybridFilter("", stats_, hwResources_));
-  addToGraph(hybrid_, cameraGraph_, cameraGraph_.size() - 1);
+  addHybridFilter(std::shared_ptr<HybridFilter>(new HybridFilter("", stats_, hwResources_)),
+                  cameraGraph_);
+
+
+  // TODO: What to do for screen sharing.
   //addToGraph(hybrid_, screenShareGraph_, screenShareGraph_.size() - 1);
 
   videoSendIniated_ = true;
@@ -386,6 +390,13 @@ void FilterGraphP2P::initializeAudioInput(bool opus)
   {
     addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_, hwResources_)),
                audioInputGraph_, (unsigned int)audioInputGraph_.size() - 1);
+    addHybridSlave(std::shared_ptr<HybridSlaveFilter>(new HybridSlaveFilter("", stats_, hwResources_, DT_OPUSAUDIO)),
+                   audioOutputGraph_);
+  }
+  else
+  {
+    addHybridSlave(std::shared_ptr<HybridSlaveFilter>(new HybridSlaveFilter("", stats_, hwResources_, DT_RAWAUDIO)),
+                   audioOutputGraph_);
   }
 
   audioInputInitialized_ = true;
@@ -758,6 +769,37 @@ void FilterGraphP2P::lastPeerRemoved()
     // since destruction removes even the inputs, we must restore them
     initCameraSelfView();
     mic(settingEnabled(SettingsKey::micStatus));
+  }
+}
+
+
+void FilterGraphP2P::addHybridFilter(std::shared_ptr<HybridFilter> hybrid, GraphSegment &segment)
+{
+  if (hybrid_)
+  {
+    Logger::getLogger()->printProgramError(this, "Hybrid filter already exists");
+    return;
+  }
+
+  hybrid_ = hybrid;
+
+  addToGraph(hybrid_, segment, segment.size() - 1);
+
+  for (auto& slave : slaves_)
+  {
+    hybrid_->addSlave(slave);
+  }
+}
+
+
+void FilterGraphP2P::addHybridSlave(std::shared_ptr<HybridSlaveFilter> slave, GraphSegment& segment)
+{
+  addToGraph(slave, segment, segment.size() - 1);
+
+  slaves_.push_back(slave);
+  if (hybrid_)
+  {
+    hybrid_->addSlave(slave);
   }
 }
 

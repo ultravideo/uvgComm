@@ -12,6 +12,7 @@ class AudioMixer;
 class KvazaarFilter;
 class LibYUVConverter;
 class HybridFilter;
+class HybridSlaveFilter;
 
 
 class FilterGraphP2P : public FilterGraph
@@ -76,6 +77,9 @@ private:
   void initializeAudioInput(bool opus);
   void initializeAudioOutput(bool opus);
 
+  void addHybridFilter(std::shared_ptr<HybridFilter> hybrid, GraphSegment &segment);
+  void addHybridSlave(std::shared_ptr<HybridSlaveFilter> slave, GraphSegment &segment);
+
   QAudioFormat createAudioFormat(uint8_t channels, uint32_t sampleRate);
 
   // --------------- Video stuff   --------------------
@@ -85,6 +89,7 @@ private:
   std::shared_ptr<LibYUVConverter> libyuv_;
   std::shared_ptr<KvazaarFilter> kvazaar_;
   std::shared_ptr<HybridFilter> hybrid_;
+  std::vector<std::shared_ptr<HybridSlaveFilter>> slaves_;
 
   std::shared_ptr<DisplayFilter> selfviewFilter_;
   VideoInterface* roiInterface_; // this is the roi surface from settings

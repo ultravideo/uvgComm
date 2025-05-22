@@ -6,6 +6,7 @@
 
 class StatisticsInterface;
 class ResourceAllocator;
+class HybridSlaveFilter;
 
 enum LinkType
 {
@@ -21,12 +22,19 @@ public:
 
   ~HybridFilter() override;
 
+  void addSlave(std::shared_ptr<HybridSlaveFilter> slave);
+
   void addLink(LinkType type);
 
 protected:
   virtual void process() override;
 
 private:
+
+  void setConnection(int index, bool status);
+
+  QMutex slaveMutex_;
+  std::vector<std::shared_ptr<HybridSlaveFilter>> slaves_;
 
   std::vector<unsigned int> p2pLinks_;
   unsigned int sfuLink_;

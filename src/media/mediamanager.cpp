@@ -352,6 +352,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
       {
         if (cname != CName::cname() || cnames.size() == 1)
         {
+          // TODO: is P2P?
           p2pFg_->sendVideoto(sessionID, senderFilter, localSSRC, remoteSSRC,
                               cnames.at(0), false);
           break;

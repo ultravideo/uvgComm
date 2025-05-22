@@ -1,5 +1,7 @@
 #include "hybridfilter.h"
 
+#include "hybridslavefilter.h"
+
 #include "logger.h"
 
 HybridFilter::HybridFilter(QString id, StatisticsInterface *stats,
@@ -39,6 +41,14 @@ void HybridFilter::addLink(LinkType type)
 }
 
 
+void HybridFilter::addSlave(std::shared_ptr<HybridSlaveFilter> slave)
+{
+  slaveMutex_.lock();
+  slaves_.push_back(slave);
+  slaveMutex_.unlock();
+}
+
+
 void HybridFilter::process()
 {
   std::unique_ptr<Data> input = getInput();
@@ -57,14 +67,27 @@ void HybridFilter::process()
       // switch state of p2p links
       for (auto& link : p2pLinks_)
       {
-        setOutputStatus(link, phase == 0);
+        setConnection(link, phase == 0);
       }
 
       // switch state of sfu link
-      setOutputStatus(sfuLink_, phase == 1);
+      setConnection(sfuLink_, phase == 1);
     }
 
     sendOutput(std::move(input));
     input = getInput();
   }
+}
+
+
+void HybridFilter::setConnection(int index, bool status)
+{
+  setOutputStatus(index, status);
+
+  slaveMutex_.lock();
+  for (auto& slave : slaves_)
+  {
+    slave->setConnection(index, status);
+  }
+  slaveMutex_.unlock();
 }
