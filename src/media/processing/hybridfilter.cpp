@@ -16,6 +16,29 @@ HybridFilter::~HybridFilter()
 }
 
 
+void HybridFilter::addLink(LinkType type)
+{
+  if (sizeOfOutputConnections() == 0)
+  {
+    Logger::getLogger()->printError("Hybrid", "No output connections available for link");
+    return;
+  }
+
+  if (type == LINK_P2P)
+  {
+    p2pLinks_.push_back(sizeOfOutputConnections() - 1);
+  }
+  else if (type == LINK_SFU)
+  {
+    sfuLink_ = sizeOfOutputConnections() - 1;
+  }
+  else
+  {
+    Logger::getLogger()->printError("Hybrid", "Unknown link type");
+  }
+}
+
+
 void HybridFilter::process()
 {
   std::unique_ptr<Data> input = getInput();
@@ -30,11 +53,15 @@ void HybridFilter::process()
     {
       int phase = (count_ / 320) % 2;
       Logger::getLogger()->printNormal("Hybrid", "Switching mode at count: " + QString::number(count_));
-      for (int i = 0; i < sizeOfOutputConnections(); i += 2)
+
+      // switch state of p2p links
+      for (auto& link : p2pLinks_)
       {
-        setOutputStatus(i, phase == 0);
-        setOutputStatus(i + 1, phase == 1);
+        setOutputStatus(link, phase == 0);
       }
+
+      // switch state of sfu link
+      setOutputStatus(sfuLink_, phase == 1);
     }
 
     sendOutput(std::move(input));

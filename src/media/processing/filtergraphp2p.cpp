@@ -422,6 +422,7 @@ void FilterGraphP2P::initializeAudioOutput(bool opus)
   audioOutputInitialized_ = true;
 }
 
+
 void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sender,
                                  uint32_t localSSRC, uint32_t remoteSSRC,
                                  const QString& remoteCNAME, bool isP2P)
@@ -448,6 +449,16 @@ void FilterGraphP2P::sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> sen
 
     cameraGraph_.back()->addOutConnection(sender);
     sender->start();
+
+    // inform the type to hybrid
+    if (isP2P)
+    {
+      hybrid_->addLink(LINK_P2P);
+    }
+    else
+    {
+      hybrid_->addLink(LINK_SFU);
+    }
   }
   else
   {
@@ -489,7 +500,6 @@ void FilterGraphP2P::receiveVideoFrom(uint32_t sessionID,
 
     // connect the receiver to the decoder and view
     peers_[sessionID]->videoReceivers[remoteSSRC]->addOutConnection(peers_[sessionID]->videoViewFlow.at(cname)->front());
-
   }
   else
   {

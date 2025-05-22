@@ -28,5 +28,8 @@ protected:
 
 private:
 
+  std::vector<unsigned int> p2pLinks_;
+  unsigned int sfuLink_;
+
   int count_;
 };
