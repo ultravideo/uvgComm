@@ -464,14 +464,17 @@ void FilterGraphClient::sendVideoto(uint32_t sessionID,
     cameraGraph_.back()->addOutConnection(sender);
     sender->start();
 
-    // inform the type to hybrid
-    if (isP2P)
+    for (unsigned int i = 0; i < remoteSSRCs.size(); ++i)
     {
-      hybrid_->addLink(LINK_P2P);
-    }
-    else
-    {
-      hybrid_->addLink(LINK_SFU);
+      // inform the type to hybrid
+      if (isP2P)
+      {
+        hybrid_->addLink(LINK_P2P, remoteSSRCs.at(i), remoteCNAMEs.at(i), rtpSender);
+      }
+      else
+      {
+        hybrid_->addLink(LINK_SFU, remoteSSRCs.at(i), remoteCNAMEs.at(i), rtpSender);
+      }
     }
   }
   else

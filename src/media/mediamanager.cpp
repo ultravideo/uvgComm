@@ -232,6 +232,7 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
   }
 }
 
+
 void MediaManager::clientMedia(uint32_t sessionID,
                                const MediaInfo& localMedia,
                                const MediaInfo& remoteMedia,
@@ -360,8 +361,8 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
     }
     else if(remoteMedia.type == "video")
     {
-      // TODO: is P2P?
-      clientFg_->sendVideoto(sessionID, senderFilter, localSSRC, filteredSSRCs, filteredCnames, false);
+      clientFg_->sendVideoto(sessionID, senderFilter, localSSRC, filteredSSRCs, filteredCnames,
+                             isP2P(localMedia, remoteMedia));
     }
     else
     {
@@ -779,4 +780,46 @@ uint32_t MediaManager::countParticipants(const std::shared_ptr<SDPMessageInfo> p
   }
 
   return participants;
+}
+
+
+bool MediaManager::isP2P(const MediaInfo& localMedia, const MediaInfo& remoteMedia) const
+{
+  // Heuristic 1: Check 'mid' attribute prefix
+  for (const SDPAttribute& attr : remoteMedia.valueAttributes)
+  {
+    if (attr.type == A_MID)
+    {
+      if (attr.value.startsWith("sfu", Qt::CaseInsensitive))
+        return false;
+      if (attr.value.startsWith("p2p", Qt::CaseInsensitive))
+        return true;
+    }
+  }
+
+  // Heuristic 2: Check 'label' attribute
+  for (const SDPAttribute& attr : remoteMedia.valueAttributes)
+  {
+    if (attr.type == A_LABEL)
+    {
+      if (attr.value.contains("sfu", Qt::CaseInsensitive))
+        return false;
+      if (attr.value.contains("p2p", Qt::CaseInsensitive))
+        return true;
+    }
+  }
+
+  // Heuristic 3: Check number of SSRCs
+  int ssrcCount = 0;
+  for (const SDPAttribute& attr : remoteMedia.valueAttributes)
+  {
+    if (attr.type == A_SSRC)
+      ++ssrcCount;
+  }
+
+  if (ssrcCount > 1)
+    return false; // SFU generally aggregates streams from multiple users
+
+  // Fallback: Default to P2P
+  return true;
 }

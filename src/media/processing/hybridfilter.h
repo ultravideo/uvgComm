@@ -7,11 +7,21 @@
 class StatisticsInterface;
 class ResourceAllocator;
 class HybridSlaveFilter;
+class UvgRTPSender;
 
 enum LinkType
 {
   LINK_SFU,
   LINK_P2P
+};
+
+struct LinkInfo
+{
+  LinkType type;
+  bool active;
+  uint32_t ssrc;
+  unsigned int outIndex;
+  std::shared_ptr<UvgRTPSender> rtpSender;
 };
 
 class HybridFilter : public Filter
@@ -24,7 +34,10 @@ public:
 
   void addSlave(std::shared_ptr<HybridSlaveFilter> slave);
 
-  void addLink(LinkType type);
+  void addLink(LinkType type,
+               uint32_t ssrc,
+               const QString& cname,
+               std::shared_ptr<UvgRTPSender> rtpSender);
 
 protected:
   virtual void process() override;
@@ -36,8 +49,13 @@ private:
   QMutex slaveMutex_;
   std::vector<std::shared_ptr<HybridSlaveFilter>> slaves_;
 
-  std::vector<unsigned int> p2pLinks_;
-  unsigned int sfuLink_;
+  struct LinkPair
+  {
+    std::shared_ptr<LinkInfo> p2p = nullptr;
+    std::shared_ptr<LinkInfo> sfu = nullptr;
+  };
 
-  int count_;
+  std::unordered_map<QString, LinkPair> cnameToLinks_;
+
+  bool triggerReEvaluation_;
 };

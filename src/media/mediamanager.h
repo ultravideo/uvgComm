@@ -169,6 +169,8 @@ private:
 
   uint32_t countParticipants(const std::shared_ptr<SDPMessageInfo> peerInfo);
 
+  bool isP2P(const MediaInfo& localMedia, const MediaInfo& remoteMedia) const;
+
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraphClient> clientFg_;

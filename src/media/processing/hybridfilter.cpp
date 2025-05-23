@@ -6,19 +6,21 @@
 
 HybridFilter::HybridFilter(QString id, StatisticsInterface *stats,
       std::shared_ptr<ResourceAllocator> hwResources):
-Filter(id, "Hybrid", stats, hwResources, DT_HEVCVIDEO, DT_HEVCVIDEO)
-{
-  count_ = 0;
-}
+Filter(id, "Hybrid", stats, hwResources, DT_HEVCVIDEO, DT_HEVCVIDEO),
+    triggerReEvaluation_(false)
+{}
 
 
 HybridFilter::~HybridFilter()
 {
-  // Destructor implementation
+  cnameToLinks_.clear();
 }
 
 
-void HybridFilter::addLink(LinkType type)
+void HybridFilter::addLink(LinkType type,
+                           uint32_t ssrc,
+                           const QString& cname,
+                           std::shared_ptr<UvgRTPSender> rtpSender)
 {
   if (sizeOfOutputConnections() == 0)
   {
@@ -26,18 +28,36 @@ void HybridFilter::addLink(LinkType type)
     return;
   }
 
+  unsigned int outIdx = sizeOfOutputConnections() - 1;
+
+  auto link = std::make_shared<LinkInfo>();
+  link->type = type;
+  link->active = false;
+  link->ssrc = ssrc;
+  link->outIndex = outIdx;
+  link->rtpSender = rtpSender;
+
+  // Register in cnameToLinks_
+  LinkPair& pair = cnameToLinks_[cname];
+
   if (type == LINK_P2P)
   {
-    p2pLinks_.push_back(sizeOfOutputConnections() - 1);
+    pair.p2p = link;
+    setOutputStatus(outIdx, false);
   }
   else if (type == LINK_SFU)
   {
-    sfuLink_ = sizeOfOutputConnections() - 1;
+    pair.sfu = link;
+    link->active = true;
+    setOutputStatus(outIdx, true);
   }
   else
   {
     Logger::getLogger()->printError("Hybrid", "Unknown link type");
+    return;
   }
+
+  triggerReEvaluation_ = true;
 }
 
 
@@ -55,25 +75,6 @@ void HybridFilter::process()
 
   while(input)
   {
-    ++count_;
-    Logger::getLogger()->printNormal("Hybrid", "process");
-
-    // TODO: Not correct as P2P connections get added one after another in conference call
-    if (count_ % 320 == 0)
-    {
-      int phase = (count_ / 320) % 2;
-      Logger::getLogger()->printNormal("Hybrid", "Switching mode at count: " + QString::number(count_));
-
-      // switch state of p2p links
-      for (auto& link : p2pLinks_)
-      {
-        setConnection(link, phase == 0);
-      }
-
-      // switch state of sfu link
-      setConnection(sfuLink_, phase == 1);
-    }
-
     sendOutput(std::move(input));
     input = getInput();
   }
