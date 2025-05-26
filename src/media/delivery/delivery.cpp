@@ -589,10 +589,9 @@ void Delivery::removePeer(uint32_t sessionID)
 
 
       // delete session
-      if (session.session)
+      if (rtp_ctx_ && session.session)
       {
-        // TODO: uvgRTP free_session
-        delete session.session;
+        rtp_ctx_->destroy_session(session.session);
         session.session = nullptr;
       }
     }
