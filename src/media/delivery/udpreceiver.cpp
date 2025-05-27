@@ -2,7 +2,7 @@
 
 UDPReceiver::UDPReceiver(QString id, StatisticsInterface *stats,
                          std::shared_ptr<ResourceAllocator> hwResources):
-    Filter("UDPReceiver", "UDPReceiver", stats, hwResources, DT_NONE, DT_RTP)
+    Filter(id, "UDPReceiver", stats, hwResources, DT_NONE, DT_RTP)
 {
   maxBufferSize_ = 1000;
 }

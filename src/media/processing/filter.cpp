@@ -369,7 +369,7 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
   {
     Logger::getLogger()->printDebug(DEBUG_WARNING, this,
                                     "Trying to send output data without outconnections.",
-                                    {"Name"}, {name_});
+                                    {"Name/id"}, {name_ + " " + id_});
     return;
   }
 
