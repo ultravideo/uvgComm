@@ -20,8 +20,11 @@ struct LinkInfo
   LinkType type;
   bool active;
   uint32_t ssrc;
-  unsigned int outIndex;
+  unsigned int outIndex; // same for all sfu, different for p2p
   std::shared_ptr<UvgRTPSender> rtpSender;
+
+  std::deque<double> rttSamples;
+  double latestsRtt = 0.0;
 };
 
 class HybridFilter : public Filter
@@ -39,12 +42,20 @@ public:
                const QString& cname,
                std::shared_ptr<UvgRTPSender> rtpSender);
 
+public slots:
+
+  void recordRTT(uint32_t ssrc, double rtt);
+
 protected:
   virtual void process() override;
 
 private:
 
   void setConnection(int index, bool status);
+
+  double averageRTT(const std::shared_ptr<LinkInfo>& link) const;
+
+  void reEvaluateConnections();
 
   QMutex slaveMutex_;
   std::vector<std::shared_ptr<HybridSlaveFilter>> slaves_;
@@ -58,4 +69,8 @@ private:
   std::unordered_map<QString, LinkPair> cnameToLinks_;
 
   bool triggerReEvaluation_;
+
+  unsigned int sfuIndex_;
+
+  uint64_t count_;
 };
