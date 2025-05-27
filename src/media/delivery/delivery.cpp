@@ -428,6 +428,9 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
     flags |= RCE_PACE_FRAGMENT_SENDING;
   }
 
+  flags |= RCE_RTCP;
+  flags |= RCE_RTCP_MUX;
+
   bool runZRTP = false;
 
   // enable encryption if it works
@@ -461,7 +464,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
     Logger::getLogger()->printWarning(this, "No media encryption");
   }
 
-  uvg_rtp::media_stream* stream = session.session->create_stream(localPort, peerPort, fmt, flags);
+  uvg_rtp::media_stream* stream = session.session->create_stream(localPort, peerPort, fmt, flags, localSSRC);
 
   if (!runZRTP && ctx.crypto_enabled() && settingEnabled(SettingsKey::sipSRTP))
   {
