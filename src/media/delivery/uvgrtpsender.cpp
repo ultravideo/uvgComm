@@ -35,20 +35,31 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
 
   UvgRTPSender::updateSettings();
 
+  std::function<void(uint32_t, uint32_t, double)> f = std::bind(&UvgRTPSender::rtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
+  stream_->get_rtcp()->install_roundtrip_time_hook(f);
+
   if (runZRTP)
   {
     futureRes_ =
         QtConcurrent::run([=](uvgrtp::media_stream *ms)
                           {
                             return ms->start_zrtp();
-                          },
-                          stream_);
+                          }, stream_);
   }
 }
 
 
 UvgRTPSender::~UvgRTPSender()
 {}
+
+
+void UvgRTPSender::rtt(uint32_t localSSRC, uint32_t remoteSSRC, double time)
+{
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "RTT received",
+                                  {"Time (ms)", "SSRC"}, {QString::number(time, 'f', 2), QString::number(remoteSSRC)});
+  emit rttReceived(remoteSSRC, time);
+}
 
 
 void UvgRTPSender::updateSettings()

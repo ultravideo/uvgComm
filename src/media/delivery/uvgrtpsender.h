@@ -21,11 +21,14 @@ public:
 
   void updateSettings();
 
-protected:
-  void process();
+  void rtt(uint32_t localSSRC, uint32_t remoteSSRC, double time);
 
 signals:
+  void rttReceived(uint32_t ssrc, double time);
   void zrtpFailure(uint32_t sessionID);
+
+protected:
+  void process();
 
 private:
 
