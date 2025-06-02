@@ -14,11 +14,11 @@ class StunMessage;
 
 class QCheckBox;
 
-class SIPSettings : public QDialog
+class CallSettings : public QDialog
 {
   Q_OBJECT
 public:
-  SIPSettings(QWidget* parent);
+  CallSettings(QWidget* parent);
 
   // initializes the custom view with values from settings.
   void init();

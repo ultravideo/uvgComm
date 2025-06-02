@@ -93,9 +93,9 @@ void Settings::init()
                    this,                            &Settings::openAudioSettings);
 
   // call settings
-  QObject::connect(&sipSettings_, &SIPSettings::updateCallSettings,
+  QObject::connect(&sipSettings_, &CallSettings::updateCallSettings,
                    this,          &Settings::updateCallSettings);
-  QObject::connect(&sipSettings_, &SIPSettings::hidden,
+  QObject::connect(&sipSettings_, &CallSettings::hidden,
                    this,          &Settings::show);
   QObject::connect(basicUI_->sip_settings_button, &QCheckBox::clicked,
                    this,                          &Settings::openCallSettings);

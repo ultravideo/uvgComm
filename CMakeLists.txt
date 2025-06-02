@@ -147,7 +147,7 @@ set(uvgComm_SOURCES
     src/ui/settings/screeninfo.cpp                  src/ui/settings/screeninfo.h
     src/ui/settings/settings.cpp                    src/ui/settings/settings.h          src/ui/settings/settings.ui
     src/ui/settings/settingshelper.cpp              src/ui/settings/settingshelper.h
-    src/ui/settings/sipsettings.cpp                 src/ui/settings/sipsettings.h       src/ui/settings/sipsettings.ui
+    src/ui/settings/callsettings.cpp                 src/ui/settings/callsettings.h       src/ui/settings/callsettings.ui
     src/ui/settings/stunmessage.ui
     src/ui/settings/videosettings.cpp               src/ui/settings/videosettings.h     src/ui/settings/videosettings.ui
     src/ui/uimanager.cpp                            src/ui/uimanager.h

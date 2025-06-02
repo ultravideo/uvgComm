@@ -1,6 +1,6 @@
-#include "sipsettings.h"
+#include "callsettings.h"
 
-#include "ui_sipsettings.h"
+#include "ui_callsettings.h"
 
 
 #include "settingshelper.h"
@@ -24,7 +24,7 @@ const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipSTUNPort,
                                     SettingsKey::sipSRTP};
 
-SIPSettings::SIPSettings(QWidget* parent):
+CallSettings::CallSettings(QWidget* parent):
   QDialog (parent),
   advancedUI_(new Ui::AdvancedSettings),
   settings_(settingsFile, settingsFileFormat)
@@ -35,7 +35,7 @@ SIPSettings::SIPSettings(QWidget* parent):
 }
 
 
-void SIPSettings::init()
+void CallSettings::init()
 {
   advancedUI_->blockedUsers->setColumnCount(2);
   advancedUI_->blockedUsers->setColumnWidth(0, 240);
@@ -50,18 +50,18 @@ void SIPSettings::init()
 
   advancedUI_->blockedUsers->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(advancedUI_->blockedUsers, &QWidget::customContextMenuRequested,
-          this, &SIPSettings::showBlocklistContextMenu);
+          this, &CallSettings::showBlocklistContextMenu);
 
   restoreAdvancedSettings();
 }
 
-void SIPSettings::showSTUNQuestion()
+void CallSettings::showSTUNQuestion()
 {
   connect(stunQuestion_.yes_button,  &QPushButton::pressed,
-          this,                      &SIPSettings::acceptSTUN);
+          this,                      &CallSettings::acceptSTUN);
 
   connect(stunQuestion_.no_button,  &QPushButton::pressed,
-          this,                      &SIPSettings::declineSTUN);
+          this,                      &CallSettings::declineSTUN);
 
   // stun_.setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
   stun_.show();
@@ -69,14 +69,14 @@ void SIPSettings::showSTUNQuestion()
 }
 
 
-void SIPSettings::closeEvent(QCloseEvent *event)
+void CallSettings::closeEvent(QCloseEvent *event)
 {
   on_advanced_close_clicked();
   QDialog::closeEvent(event);
 }
 
 
-void SIPSettings::acceptSTUN()
+void CallSettings::acceptSTUN()
 {
   Logger::getLogger()->printNormal(this, "User accepted STUN usage");
 
@@ -88,7 +88,7 @@ void SIPSettings::acceptSTUN()
   stun_.hide();
 }
 
-void SIPSettings::declineSTUN()
+void CallSettings::declineSTUN()
 {
   Logger::getLogger()->printNormal(this, "User declined STUN usage");
   advancedUI_->stun_enabled->setChecked(false);
@@ -98,7 +98,7 @@ void SIPSettings::declineSTUN()
 }
 
 
-void SIPSettings::resetSettings()
+void CallSettings::resetSettings()
 {
   Logger::getLogger()->printWarning(this, "Resetting default SIP settings from UI");
   // TODO: should we do something to blocked list in settings?
@@ -107,7 +107,7 @@ void SIPSettings::resetSettings()
 }
 
 
-void SIPSettings::showBlocklistContextMenu(const QPoint& pos)
+void CallSettings::showBlocklistContextMenu(const QPoint& pos)
 {
   if (advancedUI_->blockedUsers->rowCount() != 0)
   {
@@ -118,7 +118,7 @@ void SIPSettings::showBlocklistContextMenu(const QPoint& pos)
 }
 
 
-void SIPSettings::deleteBlocklistItem()
+void CallSettings::deleteBlocklistItem()
 {
   Logger::getLogger()->printNormal(this, "Deleting blocklist row", "Row index",
                                    QString::number(advancedUI_->blockedUsers->currentRow()));
@@ -127,7 +127,7 @@ void SIPSettings::deleteBlocklistItem()
 }
 
 
-void SIPSettings::on_advanced_ok_clicked()
+void CallSettings::on_advanced_ok_clicked()
 {
   Logger::getLogger()->printNormal(this, "Saving SIP settings");
 
@@ -136,7 +136,7 @@ void SIPSettings::on_advanced_ok_clicked()
 }
 
 
-void SIPSettings::on_advanced_close_clicked()
+void CallSettings::on_advanced_close_clicked()
 {
   Logger::getLogger()->printNormal(this, "Cancelled modifyin SIP settings. Restoring settings from file");
 
@@ -146,7 +146,7 @@ void SIPSettings::on_advanced_close_clicked()
 }
 
 
-void SIPSettings::on_addUserBlock_clicked()
+void CallSettings::on_addUserBlock_clicked()
 {
   if(advancedUI_->blockUser->text() != "")
   {
@@ -176,7 +176,7 @@ void SIPSettings::on_addUserBlock_clicked()
 }
 
 
-void SIPSettings::saveAdvancedSettings()
+void CallSettings::saveAdvancedSettings()
 {
   listGUIToSettings(blocklistFile, SettingsKey::blocklist,
                     QStringList() << "userName" << "date", advancedUI_->blockedUsers);
@@ -200,7 +200,7 @@ void SIPSettings::saveAdvancedSettings()
 }
 
 
-void SIPSettings::restoreAdvancedSettings()
+void CallSettings::restoreAdvancedSettings()
 {
   listSettingsToGUI(blocklistFile, SettingsKey::blocklist, QStringList()
                     << "userName" << "date", advancedUI_->blockedUsers);
@@ -237,7 +237,7 @@ void SIPSettings::restoreAdvancedSettings()
 }
 
 
-void SIPSettings::showOkButton()
+void CallSettings::showOkButton()
 {
   if (advancedUI_->role_combo->currentText() == "Client" &&
       (advancedUI_->topology_combo->currentText() == "SFU" ||

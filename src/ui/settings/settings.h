@@ -2,7 +2,7 @@
 
 #include "ui/settings/audiosettings.h"
 #include "ui/settings/videosettings.h"
-#include "ui/settings/sipsettings.h"
+#include "ui/settings/callsettings.h"
 #include "ui/settings/automaticsettings.h"
 
 #include "deviceinfointerface.h"
@@ -134,7 +134,7 @@ private:
   std::shared_ptr<MicrophoneInfo> mic_;
   std::shared_ptr<ScreenInfo> screen_;
 
-  SIPSettings sipSettings_;
+  CallSettings sipSettings_;
   VideoSettings videoSettings_;
   AudioSettings audioSettings_;
   AutomaticSettings autoSettings_;
