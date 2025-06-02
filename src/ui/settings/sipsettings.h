@@ -49,8 +49,6 @@ public slots:
   void acceptSTUN();
   void declineSTUN();
 
-  void showServerAddress(QString text);
-
   void showOkButton();
 
 private:

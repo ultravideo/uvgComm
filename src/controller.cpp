@@ -238,7 +238,7 @@ void uvgCommController::createSIPDialog(QString name, QString username, QString 
   // first we must renegotiates this call, so we get all their media parameters
   renegotiateCall(sessionID);
 
-  if (settingString(SettingsKey::sipTopology) != "P2P")
+  if (settingString(SettingsKey::sipTopology) != "No Conference")
   {
     // then we renegotiates rest of the calls with the previous calls parameters included
     for (auto& state : states_)

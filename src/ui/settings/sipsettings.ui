@@ -21,26 +21,119 @@
      </property>
     </widget>
    </item>
+   <item row="3" column="1">
+    <widget class="QPushButton" name="advanced_ok">
+     <property name="text">
+      <string>Save</string>
+     </property>
+    </widget>
+   </item>
    <item row="0" column="0" colspan="3">
     <widget class="QTabWidget" name="Advanced">
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="call">
+     <widget class="QWidget" name="host">
       <attribute name="title">
-       <string>Call</string>
+       <string>Host</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_4">
-       <item row="5" column="0">
-        <widget class="QLabel" name="server_address_label">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
+       <item row="5" column="0" colspan="2">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Expanding</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="bitrate_label">
          <property name="text">
-          <string>Server Address</string>
+          <string>Conference Bitrate</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="1">
+        <widget class="QComboBox" name="topology_combo">
+         <property name="currentIndex">
+          <number>0</number>
+         </property>
+         <item>
+          <property name="text">
+           <string>No Conference</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>P2P Mesh</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>SFU</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Hybrid</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QComboBox" name="resolution_combo">
+         <property name="currentIndex">
+          <number>3</number>
+         </property>
+         <item>
+          <property name="text">
+           <string>360p</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>480p</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>720p</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>1080p</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>1440p</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>4K</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Custom</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="topology_label">
+         <property name="text">
+          <string>Topology</string>
          </property>
         </widget>
        </item>
@@ -59,31 +152,40 @@
           </font>
          </property>
          <property name="text">
-          <string>Call Settings</string>
+          <string>Host Settings</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
-       <item row="6" column="1">
-        <widget class="QLineEdit" name="server_port"/>
+       <item row="2" column="0">
+        <widget class="QLabel" name="resolution_label">
+         <property name="text">
+          <string>Conference Resolution</string>
+         </property>
+        </widget>
        </item>
-       <item row="7" column="0" colspan="2">
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
+       <item row="3" column="1">
+        <widget class="QLabel" name="bitrate_value">
+         <property name="text">
+          <string>3000 kb/s (video: 2976, Audio: 24)</string>
          </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Expanding</enum>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="local">
+      <attribute name="title">
+       <string>Local</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="5" column="1">
+        <widget class="QLabel" name="up_value">
+         <property name="text">
+          <string>10.0 mb/s</string>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
+        </widget>
        </item>
        <item row="2" column="0">
         <widget class="QCheckBox" name="srtp_enabled">
@@ -95,21 +197,86 @@
          </property>
         </widget>
        </item>
-       <item row="5" column="1">
-        <widget class="QLabel" name="server_port_label">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
+       <item row="7" column="1">
+        <widget class="QLabel" name="down_value">
          <property name="text">
-          <string>Port</string>
+          <string>10.0 mb/s</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="up_label">
+         <property name="text">
+          <string>Up Bandwidth</string>
          </property>
         </widget>
        </item>
        <item row="6" column="0">
-        <widget class="QLineEdit" name="server_address"/>
+        <widget class="QLabel" name="down_label">
+         <property name="text">
+          <string>Down Bandwidth</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QSlider" name="down_slider">
+         <property name="minimum">
+          <number>0</number>
+         </property>
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="tickPosition">
+          <enum>QSlider::TicksBelow</enum>
+         </property>
+         <property name="tickInterval">
+          <number>10</number>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QSlider" name="up_slider">
+         <property name="minimum">
+          <number>0</number>
+         </property>
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="tickPosition">
+          <enum>QSlider::TicksBelow</enum>
+         </property>
+         <property name="tickInterval">
+          <number>10</number>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="label">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Local Settings</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
        </item>
        <item row="1" column="0">
         <widget class="QCheckBox" name="auto_accept">
@@ -139,39 +306,18 @@
          </item>
         </widget>
        </item>
-       <item row="4" column="1">
-        <widget class="QComboBox" name="topology_combo">
-         <property name="currentIndex">
-          <number>0</number>
+       <item row="8" column="0" colspan="2">
+        <spacer name="verticalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
-         <item>
-          <property name="text">
-           <string>P2P</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>P2P Mesh</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>SFU</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Hybrid</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>Topology</string>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
          </property>
-        </widget>
+        </spacer>
        </item>
       </layout>
      </widget>
@@ -476,13 +622,6 @@
      </widget>
     </widget>
    </item>
-   <item row="3" column="1">
-    <widget class="QPushButton" name="advanced_ok">
-     <property name="text">
-      <string>Save</string>
-     </property>
-    </widget>
-   </item>
    <item row="3" column="0">
     <spacer name="horizontalSpacer">
      <property name="orientation">
@@ -500,7 +639,6 @@
  </widget>
  <tabstops>
   <tabstop>Advanced</tabstop>
-  <tabstop>auto_accept</tabstop>
   <tabstop>media_port</tabstop>
   <tabstop>stun_enabled</tabstop>
   <tabstop>stun_address</tabstop>
