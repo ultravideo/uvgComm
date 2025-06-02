@@ -13,7 +13,7 @@ HybridFilter::HybridFilter(QString id, StatisticsInterface *stats,
       std::shared_ptr<ResourceAllocator> hwResources):
 Filter(id, "Hybrid", stats, hwResources, DT_HEVCVIDEO, DT_HEVCVIDEO),
     triggerReEvaluation_(false),
-    sfuIndex_(0),
+    sfuIndex_(-1),
     count_(0)
 {}
 
@@ -42,7 +42,6 @@ void HybridFilter::addLink(LinkType type,
 
   auto link = std::make_shared<LinkInfo>();
   link->type = type;
-  link->active = false;
   link->ssrc = ssrc;
   link->outIndex = outIdx;
   link->rtpSender = rtpSender;
@@ -58,7 +57,7 @@ void HybridFilter::addLink(LinkType type,
     }
 
     pair.p2p = link;
-    setOutputStatus(outIdx, true);
+    setOutputStatus(outIdx, false);
   }
   else if (type == LINK_SFU)
   {
@@ -67,7 +66,6 @@ void HybridFilter::addLink(LinkType type,
       Logger::getLogger()->printNormal("Hybrid", "SFU link already exists for cname: " + cname);
     }
     pair.sfu = link;
-    link->active = true;
     setOutputStatus(outIdx, true);
     sfuIndex_ = outIdx;
   }
@@ -140,7 +138,7 @@ void HybridFilter::process()
     //                                 {QString::number(input->data_size)});
 
     ++count_;
-    if (count_ % 640 == 0)
+    if (count_ % 64 == 0)
     {
       triggerReEvaluation_ = true;
     }
@@ -149,11 +147,34 @@ void HybridFilter::process()
     {
       reEvaluateConnections();
       triggerReEvaluation_ = false;
+      sendDummies(); // send dummies to get latency measurements for inactive connections
     }
 
     sendOutput(std::move(input));
     input = getInput();
   }
+}
+
+
+void HybridFilter::sendDummies()
+{
+  // the point of dummy is to send a harmless packet via all inactive media paths so they send RTCP SR
+  uint8_t dummy_packet[] = {
+      0x00, 0x00, 0x00, 0x01, // 4-byte start code
+      0x27,                   // NAL unit type 39 (SEI, non-IDR)
+      0x80                    // Dummy SEI payload (incomplete, harmless)
+  };
+
+  std::unique_ptr<Data> newDummy = initializeData(output_, DS_LOCAL);
+  auto now = std::chrono::system_clock::now();
+  newDummy->creationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  newDummy->presentationTimestamp = newDummy->creationTimestamp;
+
+  newDummy->type = output_;
+  newDummy->data_size = sizeof(dummy_packet);
+  newDummy->data = std::unique_ptr<uchar[]>(new uchar[sizeof(dummy_packet)]);
+  memcpy(newDummy->data.get(), dummy_packet, sizeof(dummy_packet));
+  sendOutput(std::move(newDummy), true); // inverse = true to send data to inactive paths
 }
 
 
@@ -193,6 +214,8 @@ void HybridFilter::reEvaluateConnections()
   const int connectionBandwidth = getHWManager()->getBitrate(output_)/cnameToLinks_.size();
   const int maxP2PConnections = networkBandwidth / connectionBandwidth;
 
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Re-evaluating active links",
+                                  {"maxP2PConnections"}, {QString::number(maxP2PConnections)});
 
   // calculate the average RTT for each link
   for (auto& pair : cnameToLinks_)
@@ -213,7 +236,18 @@ void HybridFilter::reEvaluateConnections()
     bool needSFU = false;
     for (auto& pair : cnameToLinks_)
     {
-      if (pair.second.p2p && pair.second.sfu)
+      if (pair.second.p2p && !pair.second.sfu)
+      {
+        // P2P only, use it
+        setConnection(pair.second.p2p->outIndex, true);
+      }
+      else if (!pair.second.p2p && pair.second.sfu)
+      {
+        // SFU only, use it
+        setConnection(pair.second.sfu->outIndex, true);
+        needSFU = true;
+      }
+      else if (pair.second.p2p && pair.second.sfu)
       {
         if (pair.second.p2p->latestsRtt < pair.second.sfu->latestsRtt) // use p2p
         {
@@ -229,8 +263,11 @@ void HybridFilter::reEvaluateConnections()
       }
     }
 
-    // disables the sfu connection if we don't need it
-    setConnection(sfuIndex_, needSFU);
+    if (sfuIndex_ > -1)
+    {
+      // disables the sfu connection if we don't need it
+      setConnection(sfuIndex_, needSFU);
+    }
 
     return;
   }
@@ -252,6 +289,20 @@ void HybridFilter::reEvaluateConnections()
       RankedConnection ranked;
       ranked.link = pair.second.p2p;
       ranked.rttBenefit = pair.second.sfu->latestsRtt - pair.second.p2p->latestsRtt;
+      rankedConnections.push_back(ranked);
+    }
+    else if (pair.second.p2p && !pair.second.sfu)
+    {
+      RankedConnection ranked;
+      ranked.link = pair.second.p2p;
+      ranked.rttBenefit = pair.second.p2p->latestsRtt; // no SFU, use P2P RTT
+      rankedConnections.push_back(ranked);
+    }
+    else if (!pair.second.p2p && pair.second.sfu)
+    {
+      RankedConnection ranked;
+      ranked.link = pair.second.sfu;
+      ranked.rttBenefit = pair.second.sfu->latestsRtt; // no P2P, use SFU RTT
       rankedConnections.push_back(ranked);
     }
   }

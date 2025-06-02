@@ -18,7 +18,6 @@ enum LinkType
 struct LinkInfo
 {
   LinkType type;
-  bool active;
   uint32_t ssrc;
   unsigned int outIndex; // same for all sfu, different for p2p
   std::shared_ptr<UvgRTPSender> rtpSender;
@@ -57,6 +56,8 @@ private:
 
   void reEvaluateConnections();
 
+  void sendDummies();
+
   QMutex slaveMutex_;
   std::vector<std::shared_ptr<HybridSlaveFilter>> slaves_;
 
@@ -70,7 +71,7 @@ private:
 
   bool triggerReEvaluation_;
 
-  unsigned int sfuIndex_;
+  int sfuIndex_;
 
   uint64_t count_;
 };

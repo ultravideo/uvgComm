@@ -361,7 +361,7 @@ void Filter::resetSynchronizationPoint(int32_t framerateNumerator,
 }
 
 
-void Filter::sendOutput(std::unique_ptr<Data> output)
+void Filter::sendOutput(std::unique_ptr<Data> output, bool inverse)
 {
   Q_ASSERT(output);
 
@@ -407,7 +407,7 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
     for (unsigned int i = 0; i < outConnections_.size() - 1; ++i)
     {
       // Only send to enabled connections
-      if (outConnections_[i].enabled)
+      if ((outConnections_[i].enabled && !inverse) || (!outConnections_[i].enabled && inverse))
       {
         Data* copy = deepDataCopy(output.get());
         std::unique_ptr<Data> u_copy(copy);
@@ -416,7 +416,7 @@ void Filter::sendOutput(std::unique_ptr<Data> output)
     }
 
     // Always move the last connection
-    if (outConnections_.back().enabled)
+    if ((outConnections_.back().enabled && !inverse) || (!outConnections_.back().enabled && inverse))
     {
       outConnections_.back().filter->putInput(std::move(output));
     }
