@@ -139,7 +139,7 @@ set(uvgComm_SOURCES
     src/ui/gui/videointerface.h
     src/ui/gui/videowidget.cpp                      src/ui/gui/videowidget.h
     src/ui/settings/audiosettings.cpp               src/ui/settings/audiosettings.h     src/ui/settings/audiosettings.ui
-    src/ui/settings/automaticsettings.cpp           src/ui/settings/automaticsettings.h src/ui/settings/automaticsettings.ui
+    src/ui/settings/demos.cpp           src/ui/settings/demos.h src/ui/settings/demos.ui
     src/ui/settings/camerainfo.cpp                  src/ui/settings/camerainfo.h
     src/ui/settings/defaultsettings.cpp             src/ui/settings/defaultsettings.h
     src/ui/settings/deviceinfointerface.h

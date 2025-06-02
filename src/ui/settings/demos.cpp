@@ -1,5 +1,5 @@
-#include "automaticsettings.h"
-#include "ui_automaticsettings.h"
+#include "demos.h"
+#include "ui_demos.h"
 
 #include "settingskeys.h"
 #include "logger.h"
@@ -23,7 +23,7 @@ const std::vector<std::pair<QString, uint16_t>> OBJECT_TYPES =
     {"Toothbrush", 79}
 };
 
-AutomaticSettings::AutomaticSettings(QWidget *parent):
+Demos::Demos(QWidget *parent):
   QDialog(parent),
   ui_(new Ui::AutomaticSettings),
   settings_(settingsFile, settingsFileFormat),
@@ -32,33 +32,33 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
 {
   ui_->setupUi(this);
   QObject::connect(ui_->close_button, &QPushButton::clicked,
-                   this,             &AutomaticSettings::finished);
+                   this,             &Demos::finished);
 
   QObject::connect(ui_->reset_button, &QPushButton::clicked,
-                   this,             &AutomaticSettings::reset);
+                   this,             &Demos::reset);
 
   QObject::connect(ui_->tabs, &QTabWidget::currentChanged,
-                   this,      &AutomaticSettings::tabChanged);
+                   this,      &Demos::tabChanged);
 
   // the signal in Qt is overloaded (because of deprication) so we need different syntax
   QObject::connect(ui_->roi_qp, QOverload<int>::of(&QSpinBox::valueChanged),
-                   this,         &AutomaticSettings::updateConfigAndReset);
+                   this,         &Demos::updateConfigAndReset);
 
   QObject::connect(ui_->background_qp, QOverload<int>::of(&QSpinBox::valueChanged),
-                   this,         &AutomaticSettings::updateConfigAndReset);
+                   this,         &Demos::updateConfigAndReset);
 
   QObject::connect(ui_->brush_size, QOverload<int>::of(&QSpinBox::valueChanged),
-                   this,         &AutomaticSettings::updateConfig);
+                   this,         &Demos::updateConfig);
 
   QObject::connect(ui_->show_grid, &QCheckBox::stateChanged,
-                   this,         &AutomaticSettings::updateConfig);
+                   this,         &Demos::updateConfig);
 
   QObject::connect(ui_->ctu_based, &QCheckBox::stateChanged,
-                   this,           &AutomaticSettings::updateConfigAndReset);
+                   this,           &Demos::updateConfigAndReset);
   
 
   QObject::connect(ui_->buttonGroup, &QButtonGroup ::buttonClicked,
-                   this,             &AutomaticSettings::radioButton);
+                   this,             &Demos::radioButton);
 
 
   settings_.setValue(SettingsKey::manualROIStatus,          "0");
@@ -78,7 +78,7 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
   settings_.setValue(SettingsKey::roiObject,   "0");
 
   QObject::connect(ui_->objectSelection, QOverload<int>::of(&QComboBox::activated),
-                   this, &AutomaticSettings::selectObject);
+                   this, &Demos::selectObject);
 
   ui_->objectSelection->hide();
   ui_->ctu_based->hide();
@@ -92,20 +92,20 @@ AutomaticSettings::AutomaticSettings(QWidget *parent):
 }
 
 
-void AutomaticSettings::selectObject(int index)
+void Demos::selectObject(int index)
 {
   settings_.setValue(SettingsKey::roiObject, OBJECT_TYPES.at(index).second);
   emit updateAutomaticSettings();
 }
 
 
-AutomaticSettings::~AutomaticSettings()
+Demos::~Demos()
 {
   delete ui_;
 }
 
 
-void AutomaticSettings::updateVideoConfig()
+void Demos::updateVideoConfig()
 {
   updateConfig(0);
 
@@ -119,13 +119,13 @@ void AutomaticSettings::updateVideoConfig()
 }
 
 
-void AutomaticSettings::updateConfigAndReset(int i)
+void Demos::updateConfigAndReset(int i)
 {
   updateVideoConfig();
 }
 
 
-void AutomaticSettings::radioButton(QAbstractButton * button)
+void Demos::radioButton(QAbstractButton * button)
 {
     QString roiMode = "off";
   switch (ui_->buttonGroup->id(button))
@@ -179,7 +179,7 @@ void AutomaticSettings::radioButton(QAbstractButton * button)
 }
 
 
-void AutomaticSettings::updateConfig(int i)
+void Demos::updateConfig(int i)
 {
   ui_->roi_surface->enableOverlay(ui_->roi_qp->value(),
                                   ui_->background_qp->value(),
@@ -190,7 +190,7 @@ void AutomaticSettings::updateConfig(int i)
 }
 
 
-void AutomaticSettings::show()
+void Demos::show()
 {
   Logger::getLogger()->printNormal(this, "Showing media settings");
 
@@ -203,7 +203,7 @@ void AutomaticSettings::show()
 }
 
 
-void AutomaticSettings::closeEvent(QCloseEvent *event)
+void Demos::closeEvent(QCloseEvent *event)
 {
   Logger::getLogger()->printNormal(this, "Closing media settings");
 
@@ -212,7 +212,7 @@ void AutomaticSettings::closeEvent(QCloseEvent *event)
 }
 
 
-void AutomaticSettings::finished()
+void Demos::finished()
 {
   if (ui_->tabs->currentIndex() == ROI_TAB)
   {
@@ -224,7 +224,7 @@ void AutomaticSettings::finished()
 }
 
 
-void AutomaticSettings::reset()
+void Demos::reset()
 {
   if (ui_->tabs->currentIndex() == ROI_TAB)
   {
@@ -233,7 +233,7 @@ void AutomaticSettings::reset()
 }
 
 
-void AutomaticSettings::tabChanged(int index)
+void Demos::tabChanged(int index)
 {
   // disable the last tab
   if (lastTabIndex_ == ROI_TAB)
@@ -251,7 +251,7 @@ void AutomaticSettings::tabChanged(int index)
 }
 
 
-void AutomaticSettings::activateROI()
+void Demos::activateROI()
 {
   Logger::getLogger()->printNormal(this, "Manual ROI window opened. "
                                          "Enabling manual ROI");
@@ -270,7 +270,7 @@ void AutomaticSettings::activateROI()
 }
 
 
-void AutomaticSettings::disableROI()
+void Demos::disableROI()
 {
   Logger::getLogger()->printNormal(this, "Manual ROI window closed. "
                                          "Disabling manual ROI");
@@ -287,13 +287,13 @@ void AutomaticSettings::disableROI()
 }
 
 
-VideoWidget* AutomaticSettings::getRoiSelfView()
+VideoWidget* Demos::getRoiSelfView()
 {
   return ui_->roi_surface;
 }
 
 
-QSize AutomaticSettings::getSettingsResolution()
+QSize Demos::getSettingsResolution()
 {
   QSize resolution;
   resolution.setWidth(settings_.value(SettingsKey::videoResolutionWidth).toInt());

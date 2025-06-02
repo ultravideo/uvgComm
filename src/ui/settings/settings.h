@@ -3,7 +3,7 @@
 #include "ui/settings/audiosettings.h"
 #include "ui/settings/videosettings.h"
 #include "ui/settings/callsettings.h"
-#include "ui/settings/automaticsettings.h"
+#include "ui/settings/demos.h"
 
 #include "deviceinfointerface.h"
 #include "defaultsettings.h"
@@ -137,7 +137,7 @@ private:
   CallSettings sipSettings_;
   VideoSettings videoSettings_;
   AudioSettings audioSettings_;
-  AutomaticSettings autoSettings_;
+  Demos autoSettings_;
 
   QSettings settings_;
 

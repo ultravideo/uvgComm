@@ -77,7 +77,7 @@ void Settings::init()
 
   // video settings
   QObject::connect(&videoSettings_, &VideoSettings::updateVideoSettings,
-                   &autoSettings_,  &AutomaticSettings::updateVideoConfig);
+                   &autoSettings_,  &Demos::updateVideoConfig);
   QObject::connect(&videoSettings_, &VideoSettings::updateVideoSettings,
                    this, &Settings::updateVideoSettings);
   QObject::connect(&videoSettings_, &VideoSettings::hidden, this, &Settings::show);
@@ -101,13 +101,13 @@ void Settings::init()
                    this,                          &Settings::openCallSettings);
 
   // automatic settings
-  QObject::connect(&autoSettings_, &AutomaticSettings::updateAutomaticSettings,
+  QObject::connect(&autoSettings_, &Demos::updateAutomaticSettings,
                    this,          &Settings::updateAutomaticSettings);
   QObject::connect(basicUI_->media_settings_button, &QCheckBox::clicked,
                    this,                            &Settings::openAutomaticSettings);
-  QObject::connect(&autoSettings_, &AutomaticSettings::hidden,
+  QObject::connect(&autoSettings_, &Demos::hidden,
                    this,           &Settings::show);
-  QObject::connect(&autoSettings_, &AutomaticSettings::updateVideoSettings,
+  QObject::connect(&autoSettings_, &Demos::updateVideoSettings,
                    this,           &Settings::updateVideoSettings);
 
 
