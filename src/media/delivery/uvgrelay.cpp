@@ -168,14 +168,7 @@ void UVGRelay::run()
         uint8_t rtcp_pt = buffer[1];
         uint8_t rtp_pt = rtcp_pt & 0x7F;
 
-        if (rtcp_pt == 200 || rtcp_pt == 201 || rtcp_pt == 202)
-        {
-          // RTCP
-          Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received an RTCP packet, not doing anything",
-                                          {"Payload type"},
-                                          {QString::number(rtcp_pt)});
-        }
-        else if (rtp_pt <= 34 || 96 <= rtp_pt)
+        if (rtp_pt <= 34 || 96 <= rtp_pt)
         {
           // RTP
           uint32_t ssrc = *reinterpret_cast<uint32_t*>(buffer + 8);
@@ -198,6 +191,32 @@ void UVGRelay::run()
           else
           {
             Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received an RTP packet for which we have no receiver",
+                                            {"SSRC"}, {QString::number(ssrc)});
+          }
+        }
+        else if (rtcp_pt == 200 || rtcp_pt == 201 || rtcp_pt == 202)
+        {
+          // RTCP
+          uint32_t ssrc = *reinterpret_cast<uint32_t*>(buffer + 4);
+          ssrc = htonl(ssrc);
+
+          if (receivers_.find(ssrc) != receivers_.end())
+          {
+            std::shared_ptr<Filter> filter = receivers_[ssrc];
+
+            std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
+            receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+            receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
+
+            receivedRTPFrame->data = std::unique_ptr<uchar[]>(new uchar[read]);
+            memcpy(receivedRTPFrame->data.get(), buffer, read);
+            receivedRTPFrame->data_size = read;
+
+            filter->putInput(std::move(receivedRTPFrame));
+          }
+          else
+          {
+            Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received an RTCP packet for which we have no receiver",
                                             {"SSRC"}, {QString::number(ssrc)});
           }
         }
