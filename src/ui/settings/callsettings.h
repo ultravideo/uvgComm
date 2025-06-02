@@ -53,6 +53,9 @@ public slots:
 
   void resolutionComboChanged(const QString& text);
 
+  void updateBitrateUp(int value);
+  void updateBitrateDown(int value);
+
 private:
 
   // QSettings -> GUI

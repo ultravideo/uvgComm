@@ -73,7 +73,9 @@ const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipSTUNEnabled,
                                     SettingsKey::sipSTUNAddress,
                                     SettingsKey::sipSTUNPort,
-                                    SettingsKey::sipSRTP};
+                                    SettingsKey::sipSRTP,
+                                    SettingsKey::sipUpBandwidth,
+                                    SettingsKey::sipDownBandwidth};
 
 CallSettings::CallSettings(QWidget* parent):
   QDialog (parent),
@@ -83,8 +85,13 @@ CallSettings::CallSettings(QWidget* parent):
   advancedUI_->setupUi(this);
   stunQuestion_.setupUi(&stun_);
   stun_.setWindowFlags(Qt::WindowStaysOnTopHint);
+
   connect(advancedUI_->resolution_combo, &QComboBox::currentTextChanged,
           this, &CallSettings::resolutionComboChanged);
+  connect(advancedUI_->up_slider, &QSlider::valueChanged,
+          this, &CallSettings::updateBitrateUp);
+  connect(advancedUI_->down_slider, &QSlider::valueChanged,
+          this, &CallSettings::updateBitrateDown);
 }
 
 
@@ -267,6 +274,9 @@ void CallSettings::saveAdvancedSettings()
   }
 
   QString resolution = advancedUI_->resolution_combo->currentText();
+
+  settings_.setValue(SettingsKey::sipUpBandwidth,  QString::number(advancedUI_->up_slider->value()));
+  settings_.setValue(SettingsKey::sipDownBandwidth, QString::number(advancedUI_->down_slider->value()));
 }
 
 
@@ -274,6 +284,31 @@ void CallSettings::restoreAdvancedSettings()
 {
   listSettingsToGUI(blocklistFile, SettingsKey::blocklist, QStringList()
                     << "userName" << "date", advancedUI_->blockedUsers);
+
+  int videoBitrate = settings_.value(SettingsKey::videoBitrate).toInt();
+  int audioBitrate = settings_.value(SettingsKey::audioBitrate).toInt();
+  int resolutionWidth = settings_.value(SettingsKey::videoResolutionWidth).toInt();
+  int resolutionHeight = settings_.value(SettingsKey::videoResolutionHeight).toInt();
+
+  QString resolution = "Custom";
+
+  for (const auto& res : RESOLUTIONS)
+  {
+    if (res.second.width == resolutionWidth &&
+        res.second.height == resolutionHeight &&
+        getVideoBitrate(res.second.totalBitrate) == videoBitrate &&
+        getAudioBitrate(res.second.totalBitrate) == audioBitrate)
+    {
+      resolution = res.first;
+      break;
+    }
+  }
+
+  int totalBitrate = getTotalBitrate(audioBitrate, videoBitrate);
+  QString bitrateLabel = bitrateString(totalBitrate, audioBitrate, videoBitrate);
+
+  advancedUI_->bitrate_value->setText(bitrateLabel);
+  advancedUI_->resolution_combo->setCurrentText(resolution);
 
   if(checkSettingsList(settings_, neededSettings))
   {
@@ -300,30 +335,8 @@ void CallSettings::restoreAdvancedSettings()
     advancedUI_->stun_port->setValue  (settings_.value(SettingsKey::sipSTUNPort).toInt());
     advancedUI_->media_port->setValue (settings_.value(SettingsKey::sipMediaPort).toInt());
 
-    int videoBitrate = settings_.value(SettingsKey::videoBitrate).toInt();
-    int audioBitrate = settings_.value(SettingsKey::audioBitrate).toInt();
-    int resolutionWidth = settings_.value(SettingsKey::videoResolutionWidth).toInt();
-    int resolutionHeight = settings_.value(SettingsKey::videoResolutionHeight).toInt();
-
-    QString resolution = "Custom";
-
-    for (const auto& res : RESOLUTIONS)
-    {
-      if (res.second.width == resolutionWidth &&
-          res.second.height == resolutionHeight &&
-          getVideoBitrate(res.second.totalBitrate) == videoBitrate &&
-          getAudioBitrate(res.second.totalBitrate) == audioBitrate)
-      {
-        resolution = res.first;
-        break;
-      }
-    }
-
-    int totalBitrate = getTotalBitrate(audioBitrate, videoBitrate);
-    QString bitrateLabel = bitrateString(totalBitrate, audioBitrate, videoBitrate);
-
-    advancedUI_->bitrate_value->setText(bitrateLabel);
-    advancedUI_->resolution_combo->setCurrentText(resolution);
+    advancedUI_->up_slider->setValue(settings_.value(SettingsKey::sipUpBandwidth).toInt());
+    advancedUI_->down_slider->setValue(settings_.value(SettingsKey::sipDownBandwidth).toInt());
   }
   else
   {
@@ -361,5 +374,39 @@ void CallSettings::resolutionComboChanged(const QString& text)
       advancedUI_->bitrate_value->setText(bitrateLabel);
       break;
     }
+  }
+}
+
+
+void CallSettings::updateBitrateUp(int value)
+{
+  if (value < 300000)
+  {
+    advancedUI_->up_value->setText(getBitrateString(300000));
+    advancedUI_->up_slider->setValue(300000);
+  }
+  else
+  {
+    value = roundToNumber(value, 100000);
+
+    advancedUI_->up_value->setText(getBitrateString(value));
+    advancedUI_->up_slider->setValue(value);
+  }
+}
+
+
+void CallSettings::updateBitrateDown(int value)
+{
+  if (value < 300000)
+  {
+    advancedUI_->down_value->setText(getBitrateString(300000));
+    advancedUI_->down_slider->setValue(300000);
+  }
+  else
+  {
+    value = roundToNumber(value, 100000);
+
+    advancedUI_->down_value->setText(getBitrateString(value));
+    advancedUI_->down_slider->setValue(value);
   }
 }

@@ -125,6 +125,9 @@ const QString sipSRTP = "sip/srtpEnabled";
 
 const QString sipUUID = "sip/UUID";
 
+const QString sipUpBandwidth = "sip/upBandwidth";
+const QString sipDownBandwidth = "sip/downBandwidth";
+
 // blocklist setting key
 const QString blocklist = "blocklist";
 

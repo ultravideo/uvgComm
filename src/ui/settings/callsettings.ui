@@ -91,10 +91,10 @@
        <item row="2" column="1">
         <widget class="QComboBox" name="resolution_combo">
          <property name="currentText">
-          <string>QVGA (240p)</string>
+          <string>Full HD (1080p)</string>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>3</number>
          </property>
          <item>
           <property name="text">
@@ -227,10 +227,10 @@
           <number>0</number>
          </property>
          <property name="maximum">
-          <number>100</number>
+          <number>10000000</number>
          </property>
          <property name="value">
-          <number>100</number>
+          <number>10000000</number>
          </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -239,7 +239,7 @@
           <enum>QSlider::TicksBelow</enum>
          </property>
          <property name="tickInterval">
-          <number>10</number>
+          <number>1000000</number>
          </property>
         </widget>
        </item>
@@ -249,10 +249,10 @@
           <number>0</number>
          </property>
          <property name="maximum">
-          <number>100</number>
+          <number>10000000</number>
          </property>
          <property name="value">
-          <number>100</number>
+          <number>10000000</number>
          </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -261,7 +261,7 @@
           <enum>QSlider::TicksBelow</enum>
          </property>
          <property name="tickInterval">
-          <number>10</number>
+          <number>1000000</number>
          </property>
         </widget>
        </item>
