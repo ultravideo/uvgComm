@@ -51,6 +51,8 @@ public slots:
 
   void showOkButton();
 
+  void resolutionComboChanged(const QString& text);
+
 private:
 
   // QSettings -> GUI
@@ -60,6 +62,15 @@ private:
   void saveAdvancedSettings();
 
   void addUsernameToList(QString username, QString date);
+
+  int getAudioBitrate(int totalBitrate) const;
+  int getVideoBitrate(int totalBitrate) const;
+
+  int getTotalBitrate(int audioBitrate, int videoBitrate) const;
+
+  QString bitrateString(int totalBitrate, int audioBitrate, int videoBitrate) const;
+
+
 
   Ui::AdvancedSettings *advancedUI_;
   Ui::StunMessage stunQuestion_;

@@ -682,3 +682,10 @@ void VideoSettings::closeEvent(QCloseEvent *event)
   on_video_close_clicked();
   QDialog::closeEvent(event);
 }
+
+
+void VideoSettings::showEvent(QShowEvent *event)
+{
+  restoreSettings();
+  QDialog::showEvent(event);
+}

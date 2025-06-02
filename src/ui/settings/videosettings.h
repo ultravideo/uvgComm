@@ -70,7 +70,9 @@ public slots:
 protected:
 
   // if user closes the window
-  void closeEvent(QCloseEvent *event);
+  void closeEvent(QCloseEvent *event) override;
+
+  void showEvent(QShowEvent *event) override;
 
 private:
   void initializeResolutions();

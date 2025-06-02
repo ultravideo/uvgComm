@@ -10,6 +10,57 @@
 #include <QDateTime>
 
 
+struct ResolutionBitrate
+{
+  int width;
+  int height;
+  int totalBitrate; // in bits per second
+};
+
+const std::map<QString, ResolutionBitrate> RESOLUTIONS =
+{
+  {"QVGA (240p)",     {320, 240,    300000}},
+  {"VGA (480p)",      {640, 480,    500000}},
+  {"HD (720p)",       {1280, 720,  1500000}},
+  {"Full HD (1080p)", {1920, 1080, 3000000}},
+  {"QHD (1440p)",     {2560, 1440, 5000000}},
+  {"4K UHD (2160p)",  {3840, 2160, 10000000}}
+};
+
+const float TRANSMISSION_OVERHEAD = 0.05f; // 5% overhead for transmission
+
+int CallSettings::getAudioBitrate(int totalBitrate) const
+{
+  return 24000; // Reserve 24 kbit/s for audio
+}
+
+
+int CallSettings::getVideoBitrate(int totalBitrate) const
+{
+  // Calculate video bitrate based on total bitrate and overhead
+  int usableBitrate = static_cast<int>(totalBitrate * (1.0f - TRANSMISSION_OVERHEAD));
+
+  int videoBitrate = static_cast<int>(usableBitrate - getAudioBitrate(totalBitrate));
+  return videoBitrate;
+}
+
+
+int CallSettings::getTotalBitrate(int audioBitrate, int videoBitrate) const
+{
+  // Calculate total bitrate by summing audio and video bitrates
+  return static_cast<int>((audioBitrate + videoBitrate) /(1.0f - TRANSMISSION_OVERHEAD));
+}
+
+
+QString CallSettings::bitrateString(int totalBitrate, int audioBitrate, int videoBitrate) const
+{
+  // Format bitrate string with total, video, and audio bitrates
+  return QString("%1 kbit/s (Video: %2 kbit/s, Audio: %3 kbit/s)")
+      .arg(totalBitrate / 1000)
+      .arg(videoBitrate / 1000)
+      .arg(audioBitrate / 1000);
+}
+
 
 const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipRole,
@@ -32,6 +83,8 @@ CallSettings::CallSettings(QWidget* parent):
   advancedUI_->setupUi(this);
   stunQuestion_.setupUi(&stun_);
   stun_.setWindowFlags(Qt::WindowStaysOnTopHint);
+  connect(advancedUI_->resolution_combo, &QComboBox::currentTextChanged,
+          this, &CallSettings::resolutionComboChanged);
 }
 
 
@@ -197,6 +250,23 @@ void CallSettings::saveAdvancedSettings()
 
   settings_.setValue(SettingsKey::sipSTUNPort,  QString::number(advancedUI_->stun_port->value()));
   settings_.setValue(SettingsKey::sipMediaPort,  QString::number(advancedUI_->media_port->value()));
+
+  if (advancedUI_->resolution_combo->currentText() != "Custom")
+  {
+    if (RESOLUTIONS.find(advancedUI_->resolution_combo->currentText()) == RESOLUTIONS.end())
+    {
+      Logger::getLogger()->printError(this, "Invalid resolution found: " + advancedUI_->resolution_combo->currentText());
+      return;
+    }
+
+    ResolutionBitrate bitrates = RESOLUTIONS.at(advancedUI_->resolution_combo->currentText());
+    settings_.setValue(SettingsKey::videoResolutionWidth,  QString::number(bitrates.width));
+    settings_.setValue(SettingsKey::videoResolutionHeight, QString::number(bitrates.height));
+    settings_.setValue(SettingsKey::videoBitrate, QString::number(getVideoBitrate(bitrates.totalBitrate)));
+    settings_.setValue(SettingsKey::audioBitrate, QString::number(getAudioBitrate(bitrates.totalBitrate)));
+  }
+
+  QString resolution = advancedUI_->resolution_combo->currentText();
 }
 
 
@@ -229,6 +299,31 @@ void CallSettings::restoreAdvancedSettings()
     advancedUI_->stun_address->setText(settings_.value(SettingsKey::sipSTUNAddress).toString());
     advancedUI_->stun_port->setValue  (settings_.value(SettingsKey::sipSTUNPort).toInt());
     advancedUI_->media_port->setValue (settings_.value(SettingsKey::sipMediaPort).toInt());
+
+    int videoBitrate = settings_.value(SettingsKey::videoBitrate).toInt();
+    int audioBitrate = settings_.value(SettingsKey::audioBitrate).toInt();
+    int resolutionWidth = settings_.value(SettingsKey::videoResolutionWidth).toInt();
+    int resolutionHeight = settings_.value(SettingsKey::videoResolutionHeight).toInt();
+
+    QString resolution = "Custom";
+
+    for (const auto& res : RESOLUTIONS)
+    {
+      if (res.second.width == resolutionWidth &&
+          res.second.height == resolutionHeight &&
+          getVideoBitrate(res.second.totalBitrate) == videoBitrate &&
+          getAudioBitrate(res.second.totalBitrate) == audioBitrate)
+      {
+        resolution = res.first;
+        break;
+      }
+    }
+
+    int totalBitrate = getTotalBitrate(audioBitrate, videoBitrate);
+    QString bitrateLabel = bitrateString(totalBitrate, audioBitrate, videoBitrate);
+
+    advancedUI_->bitrate_value->setText(bitrateLabel);
+    advancedUI_->resolution_combo->setCurrentText(resolution);
   }
   else
   {
@@ -249,5 +344,22 @@ void CallSettings::showOkButton()
   else
   {
     advancedUI_->advanced_ok->setEnabled(true);
+  }
+}
+
+
+void CallSettings::resolutionComboChanged(const QString& text)
+{
+  for (const auto& res : RESOLUTIONS)
+  {
+    if (text == res.first)
+    {
+      int audioBitrate = getAudioBitrate(res.second.totalBitrate);
+      int videoBitrate = getVideoBitrate(res.second.totalBitrate);
+      QString bitrateLabel = bitrateString(res.second.totalBitrate,
+                                           audioBitrate, videoBitrate);
+      advancedUI_->bitrate_value->setText(bitrateLabel);
+      break;
+    }
   }
 }

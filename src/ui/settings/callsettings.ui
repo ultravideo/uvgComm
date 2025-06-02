@@ -90,37 +90,40 @@
        </item>
        <item row="2" column="1">
         <widget class="QComboBox" name="resolution_combo">
+         <property name="currentText">
+          <string>QVGA (240p)</string>
+         </property>
          <property name="currentIndex">
-          <number>3</number>
+          <number>0</number>
          </property>
          <item>
           <property name="text">
-           <string>360p</string>
+           <string>QVGA (240p)</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>480p</string>
+           <string>VGA (480p)</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>720p</string>
+           <string>HD (720p)</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>1080p</string>
+           <string>Full HD (1080p)</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>1440p</string>
+           <string>QHD (1440p)</string>
           </property>
          </item>
          <item>
           <property name="text">
-           <string>4K</string>
+           <string>4K UHD (2160p)</string>
           </property>
          </item>
          <item>
