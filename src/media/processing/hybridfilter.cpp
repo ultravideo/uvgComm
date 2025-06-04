@@ -6,6 +6,9 @@
 
 #include "logger.h"
 
+#include "settingskeys.h"
+#include "common.h"
+
 const uint8_t MAX_RTT_MEASUREMENTS = 64; // Maximum number of RTT samples to keep
 
 
@@ -210,12 +213,26 @@ double HybridFilter::averageRTT(const std::shared_ptr<LinkInfo>& link) const
 
 void HybridFilter::reEvaluateConnections()
 {
-  const int networkBandwidth = 50000000; // TODO: get from somewhere
-  const int connectionBandwidth = getHWManager()->getBitrate(output_)/cnameToLinks_.size();
+  const int networkBandwidth = settingValue(SettingsKey::sipUpBandwidth);
+  int connectionBandwidth = settingValue(SettingsKey::videoBitrate)/cnameToLinks_.size();
+
+  for (auto& slave : slaves_)
+  {
+    connectionBandwidth += slave->getBitrate();;
+  }
+
+  connectionBandwidth = connectionBandwidth/0.95; // reserve 5% for overhead
+
+  if (connectionBandwidth <= 0)
+  {
+    Logger::getLogger()->printError(this, "Connection bandwidth is zero or negative, cannot re-evaluate connections");
+    return;
+  }
   const int maxP2PConnections = networkBandwidth / connectionBandwidth;
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Re-evaluating active links",
-                                  {"maxP2PConnections"}, {QString::number(maxP2PConnections)});
+                                  {"Connection bandwidth", "maxP2PConnections"},
+                                  {QString::number(connectionBandwidth), QString::number(maxP2PConnections)});
 
   // calculate the average RTT for each link
   for (auto& pair : cnameToLinks_)
