@@ -247,46 +247,10 @@ void HybridFilter::reEvaluateConnections()
     }
   }
 
-  // just choose the best connection if we have the bandwidth, usually P2P
-  if (maxP2PConnections >= cnameToLinks_.size() + 1)
+  // we can do all connections however we like
+  if (maxP2PConnections >= cnameToLinks_.size())
   {
-    bool needSFU = false;
-    for (auto& pair : cnameToLinks_)
-    {
-      if (pair.second.p2p && !pair.second.sfu)
-      {
-        // P2P only, use it
-        setConnection(pair.second.p2p->outIndex, true);
-      }
-      else if (!pair.second.p2p && pair.second.sfu)
-      {
-        // SFU only, use it
-        setConnection(pair.second.sfu->outIndex, true);
-        needSFU = true;
-      }
-      else if (pair.second.p2p && pair.second.sfu)
-      {
-        if (pair.second.p2p->latestsRtt < pair.second.sfu->latestsRtt) // use p2p
-        {
-          setConnection(pair.second.p2p->outIndex, true);
-        }
-        else // use SFU because it is faster for some reason
-        {
-          // this can happen only if P2P connection takes a worse route than the route via SFU would be which is rare
-          Logger::getLogger()->printWarning(this, "SFU connection is faster for some reason that P2P");
-          setConnection(pair.second.p2p->outIndex, false);
-          needSFU = true;
-        }
-      }
-    }
-
-    if (sfuIndex_ > -1)
-    {
-      // disables the sfu connection if we don't need it
-      setConnection(sfuIndex_, needSFU);
-    }
-
-    return;
+    return fullBandwidthEvaluation();
   }
 
   // Otherwise, use P2P where RTT benefit is biggest
@@ -308,20 +272,6 @@ void HybridFilter::reEvaluateConnections()
       ranked.rttBenefit = pair.second.sfu->latestsRtt - pair.second.p2p->latestsRtt;
       rankedConnections.push_back(ranked);
     }
-    else if (pair.second.p2p && !pair.second.sfu)
-    {
-      RankedConnection ranked;
-      ranked.link = pair.second.p2p;
-      ranked.rttBenefit = pair.second.p2p->latestsRtt; // no SFU, use P2P RTT
-      rankedConnections.push_back(ranked);
-    }
-    else if (!pair.second.p2p && pair.second.sfu)
-    {
-      RankedConnection ranked;
-      ranked.link = pair.second.sfu;
-      ranked.rttBenefit = pair.second.sfu->latestsRtt; // no P2P, use SFU RTT
-      rankedConnections.push_back(ranked);
-    }
   }
 
   // Sort connections by RTT benefit
@@ -329,7 +279,6 @@ void HybridFilter::reEvaluateConnections()
             [](const RankedConnection& a, const RankedConnection& b) {
               return a.rttBenefit < b.rttBenefit;
             });
-
 
   // Enable P2P connections until we reach the limit
   for (size_t i = 0; i < rankedConnections.size(); ++i)
@@ -342,5 +291,45 @@ void HybridFilter::reEvaluateConnections()
     {
       setConnection(rankedConnections[i].link->outIndex, false);
     }
+  }
+}
+
+
+void HybridFilter::fullBandwidthEvaluation()
+{
+  bool needSFU = false;
+  for (auto& pair : cnameToLinks_)
+  {
+    if (pair.second.p2p && !pair.second.sfu)
+    {
+      // P2P only, use it
+      setConnection(pair.second.p2p->outIndex, true);
+    }
+    else if (!pair.second.p2p && pair.second.sfu)
+    {
+      // SFU only, use it
+      setConnection(pair.second.sfu->outIndex, true);
+      needSFU = true;
+    }
+    else if (pair.second.p2p && pair.second.sfu)
+    {
+      if (pair.second.p2p->latestsRtt < pair.second.sfu->latestsRtt) // use p2p
+      {
+        setConnection(pair.second.p2p->outIndex, true);
+      }
+      else // use SFU because it is faster for some reason
+      {
+        // this can happen only if P2P connection takes a worse route than the route via SFU would be which is rare
+        Logger::getLogger()->printWarning(this, "SFU connection is faster for some reason that P2P");
+        setConnection(pair.second.p2p->outIndex, false);
+        needSFU = true;
+      }
+    }
+  }
+
+  if (sfuIndex_ > -1)
+  {
+    // disables the sfu connection if we don't need it
+    setConnection(sfuIndex_, needSFU);
   }
 }

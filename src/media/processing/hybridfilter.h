@@ -58,6 +58,8 @@ private:
 
   void sendDummies();
 
+  void fullBandwidthEvaluation();
+
   QMutex slaveMutex_;
   std::vector<std::shared_ptr<HybridSlaveFilter>> slaves_;
 
