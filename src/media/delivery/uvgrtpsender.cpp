@@ -11,6 +11,9 @@
 #include <QtConcurrent>
 #include <QFuture>
 
+const int VIDEO_RTP_TIMESTAMP_RATE = 90000; // RTP timestamp rate in Hz
+const int OPUS_RTP_TIMESTAMP_RATE = 48000; // RTP timestamp rate in Hz
+
 
 UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
                            StatisticsInterface *stats,
@@ -23,7 +26,8 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
   sessionID_(sessionID),
   rtpFlags_(RTP_NO_FLAGS),
   framerateNumerator_(0),
-  framerateDenominator_(0)
+  framerateDenominator_(0),
+  previousTimestamp_(static_cast<uint32_t>(QRandomGenerator::global()->generate()))
 {
   Q_ASSERT(stream_);
 
@@ -54,10 +58,52 @@ UvgRTPSender::~UvgRTPSender()
 {}
 
 
+void UvgRTPSender::startForwarding(uint32_t remoteSSRC, int afterFrames)
+{
+  sendAPP(remoteSSRC, afterFrames, "STRT", 0);
+}
+
+
+void UvgRTPSender::stopForwarding(uint32_t remoteSSRC, int afterFrames)
+{
+  sendAPP(remoteSSRC, afterFrames, "STOP", 1);
+}
+
+
+void UvgRTPSender::sendAPP(uint32_t remoteSSRC, int afterFrames, const char* name, uint8_t subtype)
+{
+  if (futureRes_.isRunning())
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Waiting for ZRTP to finish");
+    sleep(100);
+  }
+
+  // Calculate the future RTP timestamp based on frame interval
+  uint32_t rtpTimestamp = previousTimestamp_ + (VIDEO_RTP_TIMESTAMP_RATE / 30) * afterFrames;
+
+  // Allocate and populate 8-byte payload: [SSRC (4 bytes)] [Timestamp (4 bytes)]
+  uint32_t netSSRC = htonl(remoteSSRC);
+  uint32_t netTimestamp = htonl(rtpTimestamp);
+
+  uint8_t payload[8];
+  memcpy(payload, &netSSRC, 4);
+  memcpy(payload + 4, &netTimestamp, 4);
+
+  if (stream_ && stream_->get_rtcp())
+  {
+    rtp_error_t result = stream_->get_rtcp()->send_app_packet(name, subtype, sizeof(payload), payload);
+    if (result != RTP_OK)
+    {
+      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Failed to send RTCP APP STOP packet");
+    }
+  }
+}
+
+
 void UvgRTPSender::rtt(uint32_t localSSRC, uint32_t remoteSSRC, double time)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "RTT received",
-                                  {"Time (ms)", "SSRC"}, {QString::number(time, 'f', 2), QString::number(remoteSSRC)});
+  //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "RTT received",
+  //                                {"Time (ms)", "SSRC"}, {QString::number(time, 'f', 2), QString::number(remoteSSRC)});
   emit rttReceived(remoteSSRC, time);
 }
 
@@ -107,7 +153,20 @@ void UvgRTPSender::process()
   // TODO: For HEVC, make sure that the first frame we send is intra
   while (input)
   {
-    ret = stream_->push_frame(std::move(input->data), input->data_size, rtpFlags_);
+    if (input_ == DT_HEVCVIDEO)
+    {
+      previousTimestamp_ += (VIDEO_RTP_TIMESTAMP_RATE / framerateDenominator_) * framerateNumerator_;
+    }
+    else if (input_ == DT_OPUSAUDIO)
+    {
+      previousTimestamp_ += (OPUS_RTP_TIMESTAMP_RATE / 1000) * input->presentationTimestamp;
+    }
+    else
+    {
+      previousTimestamp_ += 90; // Default increment for other formats
+    }
+
+    ret = stream_->push_frame(std::move(input->data), input->data_size, previousTimestamp_, rtpFlags_);
 
     if (ret != RTP_OK)
     {

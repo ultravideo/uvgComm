@@ -19,6 +19,7 @@ struct LinkInfo
 {
   LinkType type;
   uint32_t ssrc;
+  bool active;
   unsigned int outIndex; // same for all sfu, different for p2p
   std::shared_ptr<UvgRTPSender> rtpSender;
 
@@ -60,6 +61,9 @@ private:
 
   void fullBandwidthEvaluation();
 
+  void delayedSwitchToP2P(std::shared_ptr<LinkInfo> p2p, std::shared_ptr<LinkInfo> sfu);
+  void delayedSwitchToSFU(std::shared_ptr<LinkInfo> p2p, std::shared_ptr<LinkInfo> sfu);
+
   QMutex slaveMutex_;
   std::vector<std::shared_ptr<HybridSlaveFilter>> slaves_;
 
@@ -76,4 +80,7 @@ private:
   int sfuIndex_;
 
   uint64_t count_;
+
+  int nextSwitch_ = -1;
+  std::vector<LinkPair> linksToSwitch_;
 };

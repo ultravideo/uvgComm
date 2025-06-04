@@ -21,6 +21,9 @@ public:
 
   void updateSettings();
 
+  void startForwarding(uint32_t remoteSSRC, int afterFrames);
+  void stopForwarding(uint32_t remoteSSRC, int afterFrames);
+
   void rtt(uint32_t localSSRC, uint32_t remoteSSRC, double time);
 
 signals:
@@ -34,6 +37,8 @@ private:
 
   void processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr);
 
+  void sendAPP(uint32_t remoteSSRC, int afterFrames, const char *name, uint8_t subtype);
+
   uvgrtp::media_stream* stream_;
 
   QFutureWatcher<uvg_rtp::media_stream *> watcher_;
@@ -45,4 +50,8 @@ private:
   int32_t framerateDenominator_;
 
   QFuture<rtp_error_t> futureRes_;
+
+  uint32_t previousTimestamp_;
+
+
 };
