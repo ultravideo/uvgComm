@@ -953,8 +953,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   std::shared_ptr<SDPMessageInfo> sdp = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   *sdp = *ourSDP_;
 
-  dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sessionID, localAddress, cname_, sdp, sdpConf_,
-                                                                   config_.role == MEDIA_SERVER));
+  dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sessionID, localAddress, cname_, sdp, sdpConf_, ourDialog));
   dialog->sdp->includeSSRC(config_.role != MEDIA_SERVER);
 
 
