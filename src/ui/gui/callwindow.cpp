@@ -267,36 +267,35 @@ void CallWindow::closeEvent(QCloseEvent *event)
   QMainWindow::closeEvent(event);
 }
 
+
 void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
                              uint32_t sessionID,
                              QStringList names,
-                             const QList<std::pair<uint32_t, uint32_t> >& audioVideoIDs)
+                             const std::map<QString, MediaSource>& sources)
 {
-  // Allow user to end the call
+  // Enable ending the call for active call
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
 
-  // if the number of required layouts has reduced
-  if (layoutIDs_[sessionID].size() > audioVideoIDs.size())
+  // We use only one SSRC per CNAME/media source to avoid duplicate views when not necessary.
+  std::vector<uint32_t> currentSSRCs;
+  for (const auto& [cname, source] : sources)
   {
-    // find out which ones have disappeared
+    if (!source.videoSSRCs.empty())
+    {
+      currentSSRCs.push_back(*source.videoSSRCs.begin()); // pick one SSRC to represent the video source
+    }
+  }
+
+  // Remove expired layout views that no longer have matching SSRCs ---
+  if (layoutIDs_[sessionID].size() > currentSSRCs.size())
+  {
     std::vector<LayoutID> expiredIDs;
 
-    // remove expired layout slots
-    for (auto& layout : layoutIDs_[sessionID])
+    // Detect layouts that reference SSRCs no longer active
+    for (const auto& layout : layoutIDs_[sessionID])
     {
-      bool expiredLayout = true; // assume the layout is not needed unless proven otherwise
-
-      for (auto& mid : audioVideoIDs)
-      {
-        // this layout is still needed
-        if (layout.remoteSSRC == mid.second)
-        {
-          expiredLayout = false;
-        }
-      }
-
-      if (expiredLayout)
+      if (std::find(currentSSRCs.begin(), currentSSRCs.end(), layout.remoteSSRC) == currentSSRCs.end())
       {
         expiredIDs.push_back(layout.layoutID);
       }
@@ -304,86 +303,78 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
 
     Logger::getLogger()->printNormal(this, "Removing " + QString::number(expiredIDs.size()) + " medias from layout");
 
-    for (auto& expired : expiredIDs)
+    // Remove layouts and clean up from internal list
+    for (const auto& expired : expiredIDs)
     {
       conference_.removeWidget(expired);
-      for (unsigned int i = 0; i < layoutIDs_[sessionID].size(); ++i)
-      {
-        if (expired == layoutIDs_[sessionID][i].layoutID)
-        {
-          layoutIDs_[sessionID].erase(layoutIDs_[sessionID].begin() + i);
-          break;
-        }
-      }
+
+      layoutIDs_[sessionID].erase(
+          std::remove_if(layoutIDs_[sessionID].begin(), layoutIDs_[sessionID].end(),
+                         [&](const LayoutMedia& l) { return l.layoutID == expired; }),
+          layoutIDs_[sessionID].end());
     }
   }
-  else // add more medias if necessary and update current ones status
+
+  // Add new layouts for any SSRCs that don't have a widget
+  for (const auto& [cname, source] : sources)
   {
-    // add new medias
-    for (auto& mid : audioVideoIDs)
+    if (source.videoSSRCs.empty()) continue;
+
+    uint32_t videoSSRC = *source.videoSSRCs.begin();
+
+    // Check if this SSRC already has a layout
+    bool alreadyExists = std::any_of(layoutIDs_[sessionID].begin(), layoutIDs_[sessionID].end(),
+                                     [&](const LayoutMedia& layout) {
+                                       return layout.remoteSSRC == videoSSRC;
+                                     });
+
+    // If it's new, allocate a layout slot for it
+    if (!alreadyExists)
     {
-      bool newMedia = true; // assume this media is new one unless proven otherwise
+      LayoutID id;
 
-      for (auto& layout : layoutIDs_[sessionID])
+      // Try to reuse a temporary layout, if any (used during call setup, e.g. waiting room)
+      if (getTempLayoutID(id, sessionID))
       {
-        if (layout.remoteSSRC == mid.second)
-        {
-          // we already have a layout location for this media
-           newMedia = false;
-        }
-      }
-
-      // if new, allocate a layout location for it
-      if (newMedia)
-      {
-        LayoutID id;
-        // can we use the temporary layout use for call messages previously
-        if (getTempLayoutID(id, sessionID))
-        {
-           Logger::getLogger()->printNormal(this, "Using existing layout position to show media");
-
-           // move layout from temporary to media layouts
-           temporaryLayoutIDs_.erase(sessionID);
-        }
-        else // no temporary layout available, so we create a new one
-        {
-           Logger::getLogger()->printNormal(this, "Using a new layout position for media");
-           id = conference_.createLayoutID();
-        }
-
-        layoutIDs_[sessionID].push_back({id, mid.second});
-        viewFactory->createWidget(sessionID, id, mid.second);
-      }
-    }
-
-    unsigned int layoutsUsed = audioVideoIDs.size();
-
-    if (layoutIDs_[sessionID].size() < layoutsUsed)
-    {
-      Logger::getLogger()->printWarning(this, "Duplicate medias detected!");
-      layoutsUsed = layoutIDs_[sessionID].size();
-    }
-
-    // change the contents of layouts to medias
-    for (unsigned int i = 0; i < layoutsUsed; ++i) {
-      uint32_t layoutID = layoutIDs_[sessionID].at(i).layoutID;
-
-      if (true) // video or avatar
-      {
-         conference_.attachVideoWidget(
-           layoutID, viewFactory->getView(layoutIDs_[sessionID].at(i).remoteSSRC));
+        temporaryLayoutIDs_.erase(sessionID); // Transfer ownership
       }
       else
       {
-         conference_.attachAvatarWidget(layoutID, names.at(i));
+        // Otherwise, create a brand new layout slot
+        id = conference_.createLayoutID();
       }
 
-      // update audio icon status
-      VideoInterface* video = viewFactory->getVideo(layoutIDs_[sessionID].at(i).remoteSSRC);
-      if (video)
-      {
-        video->drawMicOffIcon(false);
-      }
+      // Register this layout and create the actual video widget
+      layoutIDs_[sessionID].push_back({id, videoSSRC});
+      viewFactory->createWidget(sessionID, id, videoSSRC);
+    }
+  }
+
+  // Attach views to layouts, ensuring the UI reflects active media
+  unsigned int layoutsUsed = layoutIDs_[sessionID].size();
+  for (unsigned int i = 0; i < layoutsUsed; ++i)
+  {
+    uint32_t layoutID = layoutIDs_[sessionID][i].layoutID;
+    uint32_t ssrc     = layoutIDs_[sessionID][i].remoteSSRC;
+
+    // Try to fetch the QWidget for the video stream
+    QWidget* view = viewFactory->getView(ssrc);
+
+    if (view)
+    {
+      // Bind the video view to the layout slot
+      conference_.attachVideoWidget(layoutID, view);
+    }
+    else
+    {
+      // Show avatar using participant name if no video is available
+      conference_.attachAvatarWidget(layoutID, names.value(i));
+    }
+
+    // Make sure the microphone icon is updated to not show "muted" by default
+    if (VideoInterface* video = viewFactory->getVideo(ssrc))
+    {
+      video->drawMicOffIcon(false);
     }
   }
 }

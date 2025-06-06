@@ -43,7 +43,7 @@ public:
   // adds video stream to view
   void callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
                    uint32_t sessionID, QStringList names,
-                   const QList<std::pair<uint32_t, uint32_t> > &audioVideoIDs);
+                   const std::map<QString, MediaSource>& sources);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);

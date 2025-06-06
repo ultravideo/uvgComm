@@ -18,7 +18,7 @@
 struct SDPMessageInfo;
 class StatisticsInterface;
 
-class uvgCommController : public QObject, public ParticipantInterface
+class uvgCommController : public ParticipantInterface
 {
   Q_OBJECT
 public:
@@ -104,8 +104,7 @@ private:
 
   void createSIPDialog(QString name, QString username, QString ip, uint32_t sessionID);
 
-  void getRemoteSSRCs(QList<MediaInfo>& remoteMedia, QList<std::pair<uint32_t, uint32_t> > &ssrcs);
-
+  void groupSSRCsByCNAME(const QList<MediaInfo>& remoteMedia, std::map<QString, MediaSource> &cnameToSource);
 
   // the stun addresses are our outward network addresses which our peer uses to send data to us
   // we cannot however bind to those so we must translate the addresses to our local addresses

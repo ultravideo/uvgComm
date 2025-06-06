@@ -119,6 +119,7 @@ void uvgCommController::init()
   userInterface_.showMainWindow();
 
   // test all resolutions
+  /*
   for (int i = 1; i < 200; i++)
   {
     QSize baseResolution = QSize(1280, 720);
@@ -132,7 +133,7 @@ void uvgCommController::init()
                                      QString::number(resolution.height()),
                                      QString::number(bitrate)});
   }
-
+*/
   Logger::getLogger()->printImportant(this, "uvgComm initiation finished");
 }
 
@@ -550,8 +551,8 @@ void uvgCommController::createCall(uint32_t sessionID)
     remoteSDP->media.erase(remoteSDP->media.begin() + index);
   }
 
-  QList<std::pair<uint32_t, uint32_t>> audioVideoIDs;
-  getRemoteSSRCs(remoteSDP->media, audioVideoIDs);
+  std::map<QString, MediaSource> cnameToSource;
+  groupSSRCsByCNAME(remoteSDP->media, cnameToSource);
 
   QStringList names;
 
@@ -562,7 +563,7 @@ void uvgCommController::createCall(uint32_t sessionID)
     names.push_back(states_[sessionID].name);
   }
 
-  userInterface_.callStarted(viewFactory_, sessionID, names, audioVideoIDs);
+  userInterface_.callStarted(viewFactory_, sessionID, names, cnameToSource);
 
   // no need to do anything with media if none of it goes through us
   if (!localSDP->media.empty() && !remoteSDP->media.empty())
@@ -594,50 +595,34 @@ void uvgCommController::createCall(uint32_t sessionID)
 }
 
 
-void uvgCommController::getRemoteSSRCs(QList<MediaInfo>& remoteMedia,
-                                       QList<std::pair<uint32_t, uint32_t>>& ssrcs)
+void uvgCommController::groupSSRCsByCNAME(
+    const QList<MediaInfo>& remoteMedia,
+    std::map<QString, MediaSource>& cnameToSource)
 {
-  int audioIndex = 0;
-  int videoIndex = 0;
-
-  /* we go through all medias. This function should support
-   * both more than two medias and more than one ssrc per media */
-  for (auto& media : remoteMedia)
+  for (const auto& media : remoteMedia)
   {
-    QList<uint32_t> ssrcList;
-    // typically multiAttributes contains one SSRC and CNAME
-    for (auto& attribute : media.multiAttributes)
+    for (const auto& attributeGroup : media.multiAttributes)
     {
-      bool possibleLocalcall = media.multiAttributes.size() == 1;
-      // record all cnames from this media unless it has been generated for us
-      if (attribute.size() == 2 && attribute.at(0).type == A_SSRC &&
-          attribute.at(1).type == A_CNAME && (attribute.at(1).value != CName::cname() || possibleLocalcall))
+      if (attributeGroup.size() == 2 &&
+          attributeGroup.at(0).type == A_SSRC &&
+          attributeGroup.at(1).type == A_CNAME)
       {
-        ssrcList.push_back(attribute.at(0).value.toUInt());
-      }
-    }
+        uint32_t ssrc = attributeGroup.at(0).value.toUInt();
+        QString cname = attributeGroup.at(1).value;
 
-    // go through all found SSRCs from this media and add them to remote SSRCs
-    for (auto& ssrc : ssrcList)
-    {
-      if (media.type == "audio")
-      {
-        if (audioIndex >= ssrcs.size())
+        if (cname != CName::cname() || media.multiAttributes.size() == 1)
         {
-          ssrcs.push_back(std::make_pair(0,0));
-        }
+          MediaSource& source = cnameToSource[cname];
 
-        ssrcs[audioIndex].first = ssrc;
-        ++audioIndex;
-      }
-      else if (media.type == "video")
-      {
-        if (videoIndex >= ssrcs.size())
-        {
-          ssrcs.push_back(std::make_pair(0,0));
+          if (media.type == "audio")
+          {
+            source.audioSSRCs.insert(ssrc);
+          }
+          else if (media.type == "video")
+          {
+            source.videoSSRCs.insert(ssrc);
+          }
         }
-        ssrcs[videoIndex].second = ssrc;
-        ++videoIndex;
       }
     }
   }

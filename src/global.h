@@ -6,6 +6,8 @@
 
 #include <QString>
 
+#include <set>
+
 const QString APPLICATIONNAME = "uvgComm";
 
 const QString LOG_FILE_NAME = "uvgComm.log";
@@ -56,4 +58,10 @@ struct RoiMap {
   int width;
   int height;
   std::unique_ptr<int8_t[]> data;
+};
+
+
+struct MediaSource {
+  std::set<uint32_t> audioSSRCs;
+  std::set<uint32_t> videoSSRCs;
 };

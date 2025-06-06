@@ -153,9 +153,9 @@ void UIManager::displayIncomingCall(uint32_t sessionID, QString caller)
 void UIManager::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
                             uint32_t sessionID,
                             QStringList names,
-                            const QList<std::pair<uint32_t, uint32_t> > &audioVideoIDs)
+                            const std::map<QString, MediaSource> &sources)
 {
-  return window_.callStarted(viewFactory, sessionID, names, audioVideoIDs);
+  return window_.callStarted(viewFactory, sessionID, names, sources);
 }
 
 
