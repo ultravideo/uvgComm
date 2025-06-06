@@ -289,8 +289,8 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
 
       for (auto& mid : audioVideoIDs)
       {
-          // this layout is still needed
-          if (layout.remoteSSRC == mid.second)
+        // this layout is still needed
+        if (layout.remoteSSRC == mid.second)
         {
           expiredLayout = false;
         }
@@ -379,7 +379,11 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
       }
 
       // update audio icon status
-      viewFactory->getVideo(layoutIDs_[sessionID].at(i).remoteSSRC)->drawMicOffIcon(false);
+      VideoInterface* video = viewFactory->getVideo(layoutIDs_[sessionID].at(i).remoteSSRC);
+      if (video)
+      {
+        video->drawMicOffIcon(false);
+      }
     }
   }
 }
