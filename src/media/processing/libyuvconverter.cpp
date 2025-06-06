@@ -73,6 +73,15 @@ void LibYUVConverter::process()
       continue;
     }
 
+    if (resolution_.width() == 0 ||
+        resolution_.height() == 0)
+    {
+      Logger::getLogger()->printError(this, "Invalid internal state");
+      sendOutput(std::move(input));
+      input = getInput();
+      continue;
+    }
+
     uint32_t fourcc = getFourCC(inputType());
 
     if (fourcc == 0 || fourcc == libyuv::FOURCC_I420)
