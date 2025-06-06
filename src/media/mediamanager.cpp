@@ -505,6 +505,12 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
   std::vector<uint32_t> remoteSSRCs;
   findSSRCs(remoteMedia, remoteSSRCs);
 
+  if (remoteSSRCs.empty())
+  {
+    Logger::getLogger()->printWarning(this, "Invalid or missing SSRCs in remote media, stream not activated");
+    return;
+  }
+
   std::shared_ptr<Filter> send = streamer_->addUDPSendStream(sessionID,
                                                              localMedia.connection_address,
                                                              remoteMedia.connection_address,
