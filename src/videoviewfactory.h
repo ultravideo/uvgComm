@@ -40,11 +40,15 @@ public:
 
 private:
 
-  std::map<uint32_t, QWidget*>        ssrcToWidgetlist_;
-  std::map<uint32_t, VideoInterface*> ssrcToVideolist_;
+  std::map<uint32_t, uint32_t> ssrcToViewID_;
+
+  std::map<uint32_t, QWidget*>        viewIDToWidgetlist_;
+  std::map<uint32_t, VideoInterface*> viewIDToVideolist_;
 
   QList<VideoWidget*> selfViews_;
 
   bool opengl_;
+
+  uint32_t nextViewID_;
 };
 
