@@ -43,7 +43,8 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_ZRTP_HASH,   // RFC 6189
                       A_SSRC,        // RFC 5576
                       A_CNAME,       // RFC 5576
-                      A_SSRC_GROUP   // RFC 5576
+                      A_SSRC_GROUP,  // RFC 5576
+                      A_IMAGEATTR    // RFC 6236
                      };
 
 enum class BandwidthType {
@@ -87,6 +88,22 @@ struct Bandwidth
   uint32_t value;
 };
 
+struct ImageResolution
+{
+  uint32_t x;
+  uint32_t y;
+
+  //TODO: par
+  //TODO: sar
+  //TODO: q
+};
+
+struct ImageAttribute {
+   // TODO: There can be multiple of these
+  std::optional<ImageResolution> sendResolution;
+  std::optional<ImageResolution> recvResolution;
+};
+
 // SDP media info
 struct MediaInfo
 {
@@ -113,6 +130,7 @@ struct MediaInfo
   QList<SDPAttribute> valueAttributes; // optional
   QList<QList<SDPAttribute>> multiAttributes;
 
+  std::unordered_map<uint8_t, ImageAttribute> imgAttributes;                // optional
   std::unordered_map<uint8_t, std::vector<FormatParameter>> fmtpAttributes; // optional
   QList<std::shared_ptr<ICEInfo>> candidates;
   QList<ZRTPHash> zrtp;

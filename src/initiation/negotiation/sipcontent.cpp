@@ -41,12 +41,13 @@ bool parseMediaAttributes(QStringListIterator &lineIterator, char &type, QString
                          QList<SDPAttributeType> &flags, QList<SDPAttribute> &parsedValues,
                          QList<QList<SDPAttribute>>& parsedMultis, QList<RTPMap> &parsedCodecs,
                          std::unordered_map<uint8_t, std::vector<FormatParameter> > &parsedParameters,
-                         QList<std::shared_ptr<ICEInfo> > &candidates, QList<ZRTPHash> &zrtp);
+                         QList<std::shared_ptr<ICEInfo> > &candidates, QList<ZRTPHash> &zrtp, std::unordered_map<uint8_t, ImageAttribute> &imgs);
 bool parseSessionAtributes(QStringListIterator &lineIterator, char &type, QStringList& words,
                            QList<SDPAttributeType> &flags, QList<SDPAttribute> &parsedValues,
                            QList<MediaGroup> &groupings);
 
 void parseRTPMap(QString value, QString secondWord, QList<RTPMap>& codecs);
+bool parseImgAttr(QStringList& words, QString value, std::unordered_map<uint8_t, ImageAttribute>& attributes);
 void parseGroup(QString value, QStringList& words, QList<MediaGroup>& groups);
 bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& candidates);
 bool parseZRTPHash(QStringList& words, QString& value, QList<ZRTPHash>& zrtp);
@@ -60,6 +61,7 @@ bool parseAttributeTypeValue(QString word, SDPAttributeType& type, QString &valu
 void composeFlagAttributes(QString& sdp, const QList<SDPAttributeType>& flags);
 void composeValueAttributes(QString& sdp, const QList<SDPAttribute>& values);
 void composeMultiAttributes(QString& sdp, const QList<QList<SDPAttribute>>& multis);
+void composeImgAttributes(QString& sdp, const std::unordered_map<uint8_t, ImageAttribute>& imgs);
 
 // CONVERSION HELPER FUNCTIONS
 SDPAttributeType stringToAttributeType(QString attribute);
@@ -70,7 +72,9 @@ QString          groupTypeToString(GroupType type);
 QString          attributeTypeToString(SDPAttributeType type);
 QString          bandwidthTypeToString(BandwidthType type);
 
+// OTHER
 
+bool matchImageAttr(const QString& word, std::optional<ImageResolution> &resolution);
 
 const QString LINE_END = "\r\n";
 
@@ -224,6 +228,8 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
           + rtpmap.codec + "/" + QString::number(rtpmap.clockFrequency) + LINE_END;
     }
 
+    composeImgAttributes(sdp, mediaStream.imgAttributes);
+
     for (auto& info : mediaStream.candidates)
     {
       sdp += "a=candidate:"
@@ -290,6 +296,48 @@ void composeMultiAttributes(QString& sdp, const QList<QList<SDPAttribute> > &mul
 
       space = " ";
     }
+    sdp += LINE_END;
+  }
+}
+
+
+void composeImgAttributes(QString& sdp, const std::unordered_map<uint8_t, ImageAttribute>& imgs)
+{
+  for (auto& imageattr : imgs)
+  {
+    sdp += "a=imageattr:" + QString::number(imageattr.first);
+    sdp += " send";
+
+    if (imageattr.second.sendResolution.has_value())
+    {
+      sdp += "[";
+
+      sdp += "x=" + QString::number(imageattr.second.sendResolution->x);
+      sdp += ",y=" + QString::number(imageattr.second.sendResolution->y);
+
+      sdp += "]";
+    }
+    else
+    {
+      sdp += " *";
+    }
+
+    sdp += " recv";
+
+    if (imageattr.second.recvResolution.has_value())
+    {
+      sdp += "[";
+
+      sdp += "x=" + QString::number(imageattr.second.recvResolution->x);
+      sdp += ",y=" + QString::number(imageattr.second.recvResolution->y);
+
+      sdp += "]";
+    }
+    else
+    {
+      sdp += "* ";
+    }
+
     sdp += LINE_END;
   }
 }
@@ -639,7 +687,8 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
                                sdp.media.back().rtpMaps,
                                sdp.media.back().fmtpAttributes,
                                sdp.media.back().candidates,
-                               sdp.media.back().zrtp))
+                               sdp.media.back().zrtp,
+                               sdp.media.back().imgAttributes))
     {
       Logger::getLogger()->printError("SipContent", "Failed to parse some media fields");
       return false;
@@ -670,7 +719,8 @@ bool parseMediaAttributes(QStringListIterator &lineIterator, char &type, QString
                           QList<RTPMap>& parsedCodecs,
                           std::unordered_map<uint8_t, std::vector<FormatParameter>>& parsedParameters,
                           QList<std::shared_ptr<ICEInfo>>& candidates,
-                          QList<ZRTPHash>& zrtp)
+                          QList<ZRTPHash>& zrtp,
+                          std::unordered_map<uint8_t, ImageAttribute>& imgs)
 {
   bool rValue = true;
 
@@ -739,6 +789,11 @@ bool parseMediaAttributes(QStringListIterator &lineIterator, char &type, QString
       case A_ZRTP_HASH:
       {
         rValue = parseZRTPHash(words, value, zrtp);
+        break;
+      }
+      case A_IMAGEATTR:
+      {
+        rValue = parseImgAttr(words, value, imgs);
         break;
       }
       default:
@@ -992,6 +1047,7 @@ bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringLi
   return true;
 }
 
+
 bool parseICECandidate(QStringList& words, QList<std::shared_ptr<ICEInfo>>& candidates)
 {
   if (words.size() < 8 || words.at(6) != "typ")
@@ -1032,6 +1088,83 @@ bool parseZRTPHash(QStringList& words, QString &value, QList<ZRTPHash>& zrtp)
   zrtp.push_back({value, words.at(1)});
 
   return true;
+}
+
+
+
+bool parseImgAttr(QStringList& words, QString value, std::unordered_map<uint8_t, ImageAttribute>& attributes)
+{
+  if (words.size() < 5)
+  {
+    //imageattr:PT send attrlist recv attrlist
+    Logger::getLogger()->printWarning("SipContent", "Not enough words in imageattr");
+    return false;
+  }
+
+  uint32_t valueInt = value.toULong();
+  if (attributes.find(valueInt) != attributes.end())
+  {
+    Logger::getLogger()->printWarning("SipContent", "Overwriting imageattr already present");
+  }
+
+  ImageAttribute& attribute = attributes[valueInt];
+  bool send = false;
+  bool recv = false;
+
+  for (unsigned int i = 1; i < words.size(); ++i)
+  {
+    if (words.at(i) == "send")
+    {
+      send = true;
+      ++i;
+
+      if (words.at(i) != "*")
+      {
+        continue;
+      }
+
+      // TODO: We can have more than one set of attributes
+      matchImageAttr(words.at(i), attribute.sendResolution);
+    }
+    else if (words.at(i) == "recv")
+    {
+      recv = true;
+      ++i;
+
+      if (words.at(i) != "*")
+      {
+        continue;
+      }
+
+      // TODO: We can have more than one set of attributes
+      matchImageAttr(words.at(i), attribute.recvResolution);
+    }
+  }
+
+  if (!send || !recv)
+  {
+    Logger::getLogger()->printWarning("SipContent", "Send or recv missing from imageattr");
+    return false;
+  }
+
+  return true;
+}
+
+
+bool matchImageAttr(const QString& word, std::optional<ImageResolution>& resolution)
+{
+  // TODO: This does not take par, sar or q into account
+  QRegularExpression re_attribute("\[x=(\\d+),y=(\\d+)]");
+  QRegularExpressionMatch match = re_attribute.match(word);
+
+  if (match.hasMatch() && match.lastCapturedIndex() >= 2)
+  {
+    resolution->x = match.captured(1).toULong();
+    resolution->x = match.captured(2).toULong();
+    return true;
+  }
+
+  return false;
 }
 
 
@@ -1124,8 +1257,9 @@ SDPAttributeType stringToAttributeType(QString attribute)
     {"group",      A_GROUP}, // see RFC 5888
     {"label",      A_LABEL},
     {"zrtp-hash",  A_ZRTP_HASH},
+    {"imageattr",  A_IMAGEATTR},
     {"ssrc",       A_SSRC},
-      {"cname",      A_CNAME},
+    {"cname",      A_CNAME},
     {"ssrc-group", A_SSRC_GROUP}
   };
 
@@ -1168,8 +1302,9 @@ QString attributeTypeToString(SDPAttributeType type)
     {A_CANDIDATE,  "candidate"},
     {A_LABEL,      "label"},
     {A_ZRTP_HASH,  "zrtp-hash"},
+    {A_IMAGEATTR,  "imageattr"},
     {A_SSRC,       "ssrc"},
-      {A_CNAME, "cname"},
+    {A_CNAME, "cname"},
     {A_SSRC_GROUP, "ssrc-group"}
   };
 
