@@ -336,7 +336,7 @@ void ICE::updateMedia(MediaInfo& oldMedia, const MediaInfo &newMedia)
 
   oldMedia.rtpNums = newMedia.rtpNums;
   oldMedia.title = newMedia.title;
-  oldMedia.bitrate = newMedia.bitrate;
+  oldMedia.bandwidth = newMedia.bandwidth;
   oldMedia.encryptionKey = newMedia.encryptionKey;
 
   oldMedia.rtpMaps = newMedia.rtpMaps;

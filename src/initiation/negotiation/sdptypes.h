@@ -44,8 +44,15 @@ enum SDPAttributeType{A_NO_ATTRIBUTE,
                       A_SSRC,        // RFC 5576
                       A_CNAME,       // RFC 5576
                       A_SSRC_GROUP   // RFC 5576
-
                      };
+
+enum class BandwidthType {
+    CT,
+    AS,
+    TIAS,
+    UNKNOWN
+};
+
 
 struct SDPAttribute
 {
@@ -74,6 +81,12 @@ struct ZRTPHash
   QString hash;
 };
 
+struct Bandwidth
+{
+  BandwidthType type;
+  uint32_t value;
+};
+
 // SDP media info
 struct MediaInfo
 {
@@ -89,7 +102,7 @@ struct MediaInfo
 
   QString title;
 
-  QList<QString> bitrate;       // b=, optional
+  QList<Bandwidth> bandwidth;       // b=, optional
 
   // see RFC 4567 and RFC 4568 for more details.
   QString encryptionKey;        // k=, optional
@@ -157,7 +170,7 @@ struct SDPMessageInfo
   QString connection_addrtype;
   QString connection_address;
 
-  QList<QString> bitrate;            // b=, optional
+  QList<Bandwidth> bandwidth;            // b=, optional
 
   QList<TimeInfo> timeDescriptions; // t=, one or more
 

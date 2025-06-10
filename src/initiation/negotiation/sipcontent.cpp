@@ -27,7 +27,7 @@ bool parseConnection(QStringListIterator& lineIterator, char& type, QStringList&
 
 // b=
 bool parseBitrate(QStringListIterator& lineIterator, char& type, QStringList& words,
-                  QList<QString>& bitrates);
+                  QList<Bandwidth> &bitrates);
 
 // k=
 bool parseEncryptionKey(QStringListIterator& lineIterator, char& type, QStringList& words,
@@ -64,9 +64,12 @@ void composeMultiAttributes(QString& sdp, const QList<QList<SDPAttribute>>& mult
 // CONVERSION HELPER FUNCTIONS
 SDPAttributeType stringToAttributeType(QString attribute);
 GroupType        stringToGroupType(QString group);
+BandwidthType    stringToBandwidthType(QString string);
 
 QString          groupTypeToString(GroupType type);
 QString          attributeTypeToString(SDPAttributeType type);
+QString          bandwidthTypeToString(BandwidthType type);
+
 
 
 const QString LINE_END = "\r\n";
@@ -201,9 +204,9 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
           + mediaStream.connection_address + LINE_END;
     }
 
-    for (auto& bitrate: mediaStream.bitrate)
+    for (auto& bitrate: mediaStream.bandwidth)
     {
-      sdp += "b=" + bitrate + LINE_END;
+      sdp += "b=" + bandwidthTypeToString(bitrate.type) + ":" + QString::number(bitrate.value) + LINE_END;
     }
 
     if (!mediaStream.encryptionKey.isEmpty())
@@ -493,7 +496,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
   // the connection field must be present in either global stage or one in each media.
   globalConnection = sdp.connection_address != "";
 
-  if(!parseBitrate(lineIterator, type, words, sdp.bitrate) || !lineIterator.hasNext())
+  if(!parseBitrate(lineIterator, type, words, sdp.bandwidth) || !lineIterator.hasNext())
   {
     return false;
   }
@@ -627,7 +630,7 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     // parse c=, b=, k= and a= fields
     if(!parseConnection(lineIterator, type, words, sdp.media.back().connection_nettype,
                         sdp.media.back().connection_addrtype, sdp.media.back().connection_address)
-       || !parseBitrate(lineIterator, type, words, sdp.media.back().bitrate)
+        || !parseBitrate(lineIterator, type, words, sdp.media.back().bandwidth)
        || !parseEncryptionKey(lineIterator, type, words, sdp.encryptionKey)
        || !parseMediaAttributes(lineIterator, type, words,
                                sdp.media.back().flagAttributes,
@@ -941,7 +944,7 @@ bool parseConnection(QStringListIterator& lineIterator, char& type, QStringList&
 
 
 bool parseBitrate(QStringListIterator& lineIterator, char& type, QStringList& words,
-                  QList<QString>& bitrates)
+                  QList<Bandwidth>& bitrates)
 {
   while(type == 'b')
   {
@@ -951,7 +954,10 @@ bool parseBitrate(QStringListIterator& lineIterator, char& type, QStringList& wo
       return false;
     }
 
-    bitrates.push_back(words.at(0));
+    BandwidthType bwType = stringToBandwidthType(words.at(0).split(":").at(0));
+    uint32_t value = words.at(0).split(":").at(1).toULong();
+
+    bitrates.push_back({bwType, value});
 
     // t= if global
     // k=, a=, m= or nothing if media.
@@ -1213,4 +1219,55 @@ QString groupTypeToString(GroupType type)
 
 
   return string;
+}
+
+
+QString bandwidthTypeToString(BandwidthType type)
+{
+  QString string = "Unknown";
+
+  switch(type)
+  {
+  case BandwidthType::AS:
+  {
+    string = "AS";
+    break;
+  }
+  case BandwidthType::CT:
+  {
+    string = "CT";
+    break;
+  }
+  case BandwidthType::TIAS:
+  {
+    string = "TIAS";
+    break;
+  }
+  default:
+    break;
+  }
+
+
+  return string;
+}
+
+
+BandwidthType stringToBandwidthType(QString string)
+{
+  BandwidthType type = BandwidthType::UNKNOWN;
+
+  if (string == "AS")
+  {
+    type = BandwidthType::AS;
+  }
+  if (string == "CT")
+  {
+    type = BandwidthType::CT;
+  }
+  if (string == "TIAS")
+  {
+    type = BandwidthType::TIAS;
+  }
+
+  return type;
 }

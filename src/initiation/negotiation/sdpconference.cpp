@@ -581,10 +581,24 @@ void SDPConference::updateMediaState(MediaInfo& currentState, const MediaInfo& n
     currentState.title = newState.title;
   }
 
-  if (currentState.bitrate != newState.bitrate)
+
+  if (currentState.bandwidth.size() != newState.bandwidth.size())
   {
-    Logger::getLogger()->printNormal("SDPMeshConference", "Bitrate changed");
-    currentState.bitrate = newState.bitrate;
+    Logger::getLogger()->printNormal("SDPMeshConference", "New bitrates found");
+    currentState.bandwidth = newState.bandwidth;
+  }
+  else
+  {
+    for (unsigned int i = 0; i < currentState.bandwidth.size(); ++i)
+    {
+      if (currentState.bandwidth.at(i).type != newState.bandwidth.at(i).type ||
+          currentState.bandwidth.at(i).value != newState.bandwidth.at(i).value)
+      {
+        Logger::getLogger()->printNormal("SDPMeshConference", "Bandwidth changed");
+        currentState.bandwidth[i].type = newState.bandwidth.at(i).type;
+        currentState.bandwidth[i].value = newState.bandwidth.at(i).value;
+      }
+    }
   }
 
   if (currentState.encryptionKey != newState.encryptionKey)
