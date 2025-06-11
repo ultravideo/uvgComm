@@ -67,6 +67,7 @@ uint16_t ResourceAllocator::getRoiObject() const
 void ResourceAllocator::addRTCPReport(uint32_t sessionID, DataType type,
                                       int32_t lost, uint32_t jitter)
 {
+  /*
   std::shared_ptr<StreamInfo> info = getStreamInfo(sessionID, type);
 
   if (jitter > info->previousJitter || lost > info->previousLost)
@@ -85,7 +86,6 @@ void ResourceAllocator::addRTCPReport(uint32_t sessionID, DataType type,
     info->bitrate *= 1.1;
   }
 
-
   limitBitrate(info->bitrate, type);
 
   info->previousJitter = jitter;
@@ -101,6 +101,7 @@ void ResourceAllocator::addRTCPReport(uint32_t sessionID, DataType type,
     updateGlobalBitrate(videoBitrate_, videoStreams_);
   }
   bitrateMutex_.unlock();
+*/
 }
 
 
@@ -126,6 +127,25 @@ void ResourceAllocator::updateGlobalBitrate(int& bitrate,
       bitrate = stream.second->bitrate;
     }
   }
+}
+
+
+void ResourceAllocator::setBitrate(DataType type, int bitrate)
+{
+  bitrateMutex_.lock();
+  if (type == DT_OPUSAUDIO)
+  {
+    audioBitrate_ = bitrate;
+  }
+  else if (type == DT_HEVCVIDEO)
+  {
+    videoBitrate_ = bitrate;
+  }
+  else
+  {
+    Logger::getLogger()->printUnimplemented(this, "Resource allocator tries to adjust unimplemented bit rate");
+  }
+  bitrateMutex_.unlock();
 }
 
 

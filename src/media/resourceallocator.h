@@ -34,8 +34,8 @@ public:
   void addRTCPReport(uint32_t sessionID, DataType type,
                      int32_t lost, uint32_t jitter);
 
+  void setBitrate(DataType type, int bitrate);
   int getBitrate(DataType type);
-
 
   uint8_t getRoiQp() const;
   uint8_t getBackgroundQp() const;

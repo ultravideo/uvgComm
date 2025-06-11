@@ -1,6 +1,7 @@
 #include "kvazaarfilter.h"
 
 #include "statisticsinterface.h"
+#include "src/media/resourceallocator.h"
 
 #include "settingskeys.h"
 #include "logger.h"
@@ -224,8 +225,9 @@ bool KvazaarFilter::init()
 
     //config_->target_bitrate = settings.value(SettingsKey::videoBitrate).toInt();
 
-    config_->target_bitrate = participantsToBitrate(cameraResolution_, settings.value(SettingsKey::videoBitrate).toInt(),
-                                                    otherParticipants_);
+    int bitrate = getHWManager()->getBitrate(DT_HEVCVIDEO);
+
+    config_->target_bitrate = participantsToBitrate(cameraResolution_, bitrate, otherParticipants_);
 
     QSize partResolution = participantsToResolution(cameraResolution_, otherParticipants_);
     currentResolution_ = std::make_pair(partResolution.width(), partResolution.height());

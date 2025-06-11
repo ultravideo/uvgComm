@@ -55,15 +55,14 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewFactory,
     this,
     &MediaManager::handleNoEncryption);
 
-  std::shared_ptr<ResourceAllocator> hwResources =
-      std::shared_ptr<ResourceAllocator>(new ResourceAllocator());
+  hwResources_ = std::shared_ptr<ResourceAllocator>(new ResourceAllocator());
 
-  clientFg_->init(stats, hwResources);
+  clientFg_->init(stats, hwResources_);
   clientFg_->setSelfViews(viewFactory_->getSelfVideos());
 
-  sfuFg_->init(stats, hwResources);
+  sfuFg_->init(stats, hwResources_);
 
-  streamer_->init(stats_, hwResources);
+  streamer_->init(stats_, hwResources_);
 
   QObject::connect(this, &MediaManager::updateVideoSettings,
                    clientFg_.get(), &FilterGraph::updateVideoSettings);
@@ -357,10 +356,18 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
 
     if(remoteMedia.type == "audio")
     {
+      if (localMedia.bandwidth.size() > 0)
+      {
+        hwResources_->setBitrate(DT_OPUSAUDIO, localMedia.bandwidth.at(0).value*1000);
+      }
       clientFg_->sendAudioTo(sessionID, senderFilter, localSSRC);
     }
     else if(remoteMedia.type == "video")
     {
+      if (localMedia.bandwidth.size() > 0)
+      {
+        hwResources_->setBitrate(DT_HEVCVIDEO, localMedia.bandwidth.at(0).value*1000);
+      }
       clientFg_->sendVideoto(sessionID, senderFilter, localSSRC, filteredSSRCs, filteredCnames,
                              isP2P(localMedia, remoteMedia));
     }

@@ -33,6 +33,8 @@ class MediaSession;
 struct MediaInfo;
 class VideoInterface;
 
+class ResourceAllocator;
+
 class Filter;
 
 typedef int16_t PeerID;
@@ -181,4 +183,6 @@ private:
   std::map<uint32_t, ParticipantMedia> participants_;
 
   std::shared_ptr<VideoviewFactory> viewFactory_;
+
+  std::shared_ptr<ResourceAllocator> hwResources_;
 };
