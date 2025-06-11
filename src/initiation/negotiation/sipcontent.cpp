@@ -1118,7 +1118,7 @@ bool parseImgAttr(QStringList& words, QString value, std::unordered_map<uint8_t,
       send = true;
       ++i;
 
-      if (words.at(i) != "*")
+      if (words.at(i) == "*")
       {
         continue;
       }
@@ -1131,7 +1131,7 @@ bool parseImgAttr(QStringList& words, QString value, std::unordered_map<uint8_t,
       recv = true;
       ++i;
 
-      if (words.at(i) != "*")
+      if (words.at(i) == "*")
       {
         continue;
       }
@@ -1154,13 +1154,24 @@ bool parseImgAttr(QStringList& words, QString value, std::unordered_map<uint8_t,
 bool matchImageAttr(const QString& word, std::optional<ImageResolution>& resolution)
 {
   // TODO: This does not take par, sar or q into account
-  QRegularExpression re_attribute("\[x=(\\d+),y=(\\d+)]");
+  QRegularExpression re_attribute("\\[x=(\\d+),y=(\\d+)\\]");
   QRegularExpressionMatch match = re_attribute.match(word);
 
   if (match.hasMatch() && match.lastCapturedIndex() >= 2)
   {
-    resolution->x = match.captured(1).toULong();
-    resolution->x = match.captured(2).toULong();
+    if (match.captured(1).isEmpty() || match.captured(2).isEmpty())
+    {
+      Logger::getLogger()->printError("SipContent", "Image resolution x or y is empty");
+      return false;
+    }
+
+    if (!resolution.has_value())
+    {
+      resolution = ImageResolution();
+    }
+
+    resolution->x = match.captured(1).toUInt();
+    resolution->y = match.captured(2).toUInt();
     return true;
   }
 
