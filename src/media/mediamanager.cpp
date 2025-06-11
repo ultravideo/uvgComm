@@ -368,8 +368,9 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
       {
         hwResources_->setBitrate(DT_HEVCVIDEO, localMedia.bandwidth.at(0).value*1000);
       }
+
       clientFg_->sendVideoto(sessionID, senderFilter, localSSRC, filteredSSRCs, filteredCnames,
-                             isP2P(localMedia, remoteMedia));
+                             isP2P(localMedia, remoteMedia), getResolution(localMedia));
     }
     else
     {
@@ -541,7 +542,7 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
     }
     else if(localMedia.type == "video")
     {
-      sfuFg_->sendVideoto(sessionID, send, localSSRC, remoteSSRCs, {}, false);
+      sfuFg_->sendVideoto(sessionID, send, localSSRC, remoteSSRCs, {}, false, getResolution(localMedia));
     }
     else
     {
@@ -835,4 +836,21 @@ bool MediaManager::isP2P(const MediaInfo& localMedia, const MediaInfo& remoteMed
 
   // Fallback: Default to P2P
   return true;
+}
+
+
+std::pair<uint16_t, uint16_t> MediaManager::getResolution(const MediaInfo& localMedia)
+{
+  for (const auto& [rtpnum, attr] : localMedia.imgAttributes)
+  {
+    if (attr.sendResolution.has_value())
+    {
+      return {attr.sendResolution->x, attr.sendResolution->y};
+    }
+  }
+
+  return {
+      settingValue(SettingsKey::videoResolutionWidth),
+      settingValue(SettingsKey::videoResolutionHeight)
+  };
 }

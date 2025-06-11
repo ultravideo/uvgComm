@@ -13,6 +13,7 @@ class KvazaarFilter;
 class LibYUVConverter;
 class HybridFilter;
 class HybridSlaveFilter;
+class CameraFilter;
 
 
 class FilterGraphClient : public FilterGraph
@@ -30,7 +31,7 @@ public:
                            uint32_t localSSRC,
                            const std::vector<uint32_t>& remoteSSRCs,
                            const std::vector<QString>& remoteCNAMEs,
-                           bool isP2P);
+                           bool isP2P, std::pair<uint16_t, uint16_t> resolution);
 
   virtual void receiveVideoFrom(uint32_t sessionID,
                                 std::shared_ptr<Filter> receiver,
@@ -71,7 +72,7 @@ private:
   void initCameraSelfView();
 
   // iniates encoder and attaches it
-  void initVideoSend();
+  void initVideoSend(std::pair<uint16_t, uint16_t> resolution);
 
   // iniates encoder and attaches it
   void initializeAudioInput(bool opus);
@@ -86,6 +87,7 @@ private:
   GraphSegment cameraGraph_;
   GraphSegment screenShareGraph_;
 
+  std::shared_ptr<CameraFilter> camera_;
   std::shared_ptr<LibYUVConverter> libyuv_;
   std::shared_ptr<KvazaarFilter> kvazaar_;
   std::shared_ptr<HybridFilter> hybrid_;
@@ -113,4 +115,6 @@ private:
 
   // audio configs
   QAudioFormat format_;
+
+  std::pair<uint16_t, uint16_t> resolution_;
 };

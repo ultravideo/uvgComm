@@ -14,7 +14,8 @@ class KvazaarFilter : public Filter
 {
 public:
   KvazaarFilter(QString id, StatisticsInterface* stats,
-                std::shared_ptr<ResourceAllocator> hwResources);
+                std::shared_ptr<ResourceAllocator> hwResources,
+                std::pair<uint16_t, uint16_t> resolution);
 
   void setConferenceSize(uint32_t otherParticipants);
 

@@ -15,6 +15,8 @@ public:
                std::shared_ptr<ResourceAllocator> hwResources);
   ~CameraFilter();
 
+  void setResolution(std::pair<uint16_t, uint16_t> resolution);
+
   // setup camera device
   virtual bool init();
 

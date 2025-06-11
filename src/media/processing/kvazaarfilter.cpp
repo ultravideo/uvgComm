@@ -31,7 +31,8 @@ unsigned get_padding(unsigned width_or_height)
 
 
 KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
-                             std::shared_ptr<ResourceAllocator> hwResources):
+                             std::shared_ptr<ResourceAllocator> hwResources,
+                             std::pair<uint16_t, uint16_t> resolution):
   Filter(id, "Kvazaar", stats, hwResources, DT_YUV420VIDEO, DT_HEVCVIDEO),
   api_(nullptr),
   config_(nullptr),
@@ -46,8 +47,7 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
   maxBufferSize_ = 30;
 
   QSettings settings(settingsFile, settingsFileFormat);
-  cameraResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
-                            settings.value(SettingsKey::videoResolutionHeight).toInt());
+  cameraResolution_ = QSize(resolution.first, resolution.second);
 }
 
 

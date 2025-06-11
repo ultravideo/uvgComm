@@ -175,7 +175,7 @@ void FilterGraphClient::updateVideoSettings()
     // if we are in a call, initiate kvazaar and connect peers. Otherwise add it late.
     if(peers_.size() != 0)
     {
-      initVideoSend();
+      initVideoSend(resolution_);
 
       // reconnect all videosends to streamers
       for(auto& peer : peers_)
@@ -251,8 +251,9 @@ void FilterGraphClient::initCameraSelfView()
     destroyFilters(cameraGraph_);
   }
 
+  camera_ = std::shared_ptr<CameraFilter>(new CameraFilter("", stats_, hwResources_));
   // Sending video graph
-  if (!addToGraph(std::shared_ptr<Filter>(new CameraFilter("", stats_, hwResources_)), cameraGraph_))
+  if (!addToGraph(camera_, cameraGraph_))
   {
     // camera failed
     Logger::getLogger()->printError(this, "Failed to add camera. Does it have supported formats?");
@@ -321,7 +322,7 @@ void FilterGraphClient::initCameraSelfView()
 }
 
 
-void FilterGraphClient::initVideoSend()
+void FilterGraphClient::initVideoSend(std::pair<uint16_t, uint16_t> resolution)
 {
   Logger::getLogger()->printNormal(this, "Iniating video send");
 
@@ -330,6 +331,8 @@ void FilterGraphClient::initVideoSend()
     Logger::getLogger()->printProgramWarning(this, "Camera was not iniated for video send");
     initCameraSelfView();
   }
+
+  camera_->setResolution(resolution);
 
   // we connect mroi to libyuv conversion filter which makes sure the format is correct
   std::shared_ptr<Filter> mRoi =
@@ -340,9 +343,8 @@ void FilterGraphClient::initVideoSend()
   addToGraph(roi, cameraGraph_, cameraGraph_.size() - 1);
 #endif
 
-
   // TODO: the init fails if we add same filter twice
-  kvazaar_ = std::shared_ptr<KvazaarFilter>(new KvazaarFilter("", stats_, hwResources_));
+  kvazaar_ = std::shared_ptr<KvazaarFilter>(new KvazaarFilter("", stats_, hwResources_, resolution));
 
   addToGraph(kvazaar_, cameraGraph_, cameraGraph_.size() - 1);
   addToGraph(kvazaar_, screenShareGraph_, 0);
@@ -433,13 +435,13 @@ void FilterGraphClient::initializeAudioOutput(bool opus)
   audioOutputInitialized_ = true;
 }
 
-
 void FilterGraphClient::sendVideoto(uint32_t sessionID,
                                     std::shared_ptr<Filter> sender,
                                     uint32_t localSSRC,
                                     const std::vector<uint32_t>& remoteSSRCs,
                                     const std::vector<QString>& remoteCNAMEs,
-                                    bool isP2P)
+                                    bool isP2P,
+                                    std::pair<uint16_t, uint16_t> resolution)
 {
   Q_ASSERT(sessionID);
   Q_ASSERT(sender);
@@ -450,7 +452,8 @@ void FilterGraphClient::sendVideoto(uint32_t sessionID,
   // make sure we are generating video
   if(!videoSendIniated_)
   {
-    initVideoSend();
+    resolution_ = resolution;
+    initVideoSend(resolution_);
   }
 
   // add participant if necessary

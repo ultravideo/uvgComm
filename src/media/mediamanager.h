@@ -173,6 +173,8 @@ private:
 
   bool isP2P(const MediaInfo& localMedia, const MediaInfo& remoteMedia) const;
 
+  std::pair<uint16_t, uint16_t> getResolution(const MediaInfo& localMedia);
+
   StatisticsInterface* stats_;
 
   std::unique_ptr<FilterGraphClient> clientFg_;

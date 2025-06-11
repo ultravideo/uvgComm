@@ -5,6 +5,7 @@
 
 #include "settingskeys.h"
 #include "logger.h"
+#include "common.h"
 
 #include <QSettings>
 #include <QTime>
@@ -26,7 +27,10 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
   currentDeviceName_(""),
   currentDeviceID_(-1),
   currentInputFormat_("")
-{}
+{
+  resolutionWidth_ = settingValue(SettingsKey::videoResolutionWidth);
+  resolutionHeight_ = settingValue(SettingsKey::videoResolutionHeight);
+}
 
 
 CameraFilter::~CameraFilter()
@@ -62,6 +66,9 @@ void CameraFilter::updateSettings()
   {
     Logger::getLogger()->printNormal(this, "Updating camera settings since they have changed");
 
+    resolutionWidth_ = resolutionWidth;
+    resolutionHeight_ = resolutionHeight;
+
     // TODO: Just set the viewfinder settings instead for restarting camera.
     // Settings the viewfinder does not always restart camera.
 
@@ -73,6 +80,29 @@ void CameraFilter::updateSettings()
 
   Filter::updateSettings();
 }
+
+
+void CameraFilter::setResolution(std::pair<uint16_t, uint16_t> resolution)
+{
+  if (resolution.first != resolutionWidth_ ||
+      resolution.second != resolutionHeight_)
+  {
+    Logger::getLogger()->printNormal(this, "Updating camera resolution to " +
+                                     QString::number(resolution.first) + "x" +
+                                     QString::number(resolution.second));
+
+    resolutionWidth_ = resolution.first;
+    resolutionHeight_ = resolution.second;
+
+    // TODO: Just set the viewfinder settings instead for restarting camera.
+    // Settings the viewfinder does not always restart camera.
+    stop();
+    uninit();
+    init();
+    start();
+  }
+}
+
 
 
 void CameraFilter::uninit()
@@ -191,8 +221,10 @@ bool CameraFilter::cameraSetup()
     capture_->setCamera(camera_);
 
     currentInputFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
-    resolutionWidth_ = settings.value(SettingsKey::videoResolutionWidth).toInt();
-    resolutionHeight_ = settings.value(SettingsKey::videoResolutionHeight).toInt();
+
+    // these are set earlier
+    //resolutionWidth_ = settings.value(SettingsKey::videoResolutionWidth).toInt();
+    //resolutionHeight_ = settings.value(SettingsKey::videoResolutionHeight).toInt();
     framerateNumerator_ = settings.value(SettingsKey::videoFramerateNumerator).toInt();
     framerateDenominator_ = settings.value(SettingsKey::videoFramerateDenominator).toInt();
     output_ = stringToDataType(currentInputFormat_);

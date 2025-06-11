@@ -19,7 +19,8 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
                                  uint32_t localSSRC,
                                  const std::vector<uint32_t>& remoteSSRCs,
                                  const std::vector<QString>& remoteCNAMEs,
-                                 bool isP2P)
+                                 bool isP2P,
+                                 std::pair<uint16_t, uint16_t> resolution)
 {
   checkParticipant(sessionID);
 
