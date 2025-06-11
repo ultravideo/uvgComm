@@ -16,3 +16,4 @@ blocklist.local
 contacts.local
 libs
 build
+build*
