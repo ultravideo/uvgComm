@@ -505,6 +505,24 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
           }
         }
       }
+
+      // copy bandwidth (TODO: User should set limits of bandwidth they accept)
+      for (unsigned int j = 0; j < comparedSDP.media.at(i).bandwidth.size(); ++j)
+      {
+        if (comparedSDP.media.at(i).bandwidth.at(j).type == BandwidthType::CT ||
+            comparedSDP.media.at(i).bandwidth.at(j).type == BandwidthType::AS)
+        {
+          resultMedia.bandwidth.push_back(comparedSDP.media.at(i).bandwidth.at(j));
+        }
+      }
+
+      if (resultMedia.type == "video")
+      {
+        for (auto& imgAttr : comparedSDP.media.at(i).imgAttributes)
+        {
+          resultMedia.imgAttributes[imgAttr.first] = imgAttr.second;
+        }
+      }
     }
 
     copyMID(resultMedia, comparedSDP.media.at(i));
