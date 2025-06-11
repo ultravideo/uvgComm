@@ -306,7 +306,7 @@ void composeImgAttributes(QString& sdp, const std::unordered_map<uint8_t, ImageA
   for (auto& imageattr : imgs)
   {
     sdp += "a=imageattr:" + QString::number(imageattr.first);
-    sdp += " send";
+    sdp += " send ";
 
     if (imageattr.second.sendResolution.has_value())
     {
@@ -319,10 +319,10 @@ void composeImgAttributes(QString& sdp, const std::unordered_map<uint8_t, ImageA
     }
     else
     {
-      sdp += " *";
+      sdp += "*";
     }
 
-    sdp += " recv";
+    sdp += " recv ";
 
     if (imageattr.second.recvResolution.has_value())
     {
@@ -335,7 +335,7 @@ void composeImgAttributes(QString& sdp, const std::unordered_map<uint8_t, ImageA
     }
     else
     {
-      sdp += "* ";
+      sdp += "*";
     }
 
     sdp += LINE_END;
