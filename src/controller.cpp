@@ -67,6 +67,8 @@ void uvgCommController::init()
                                             std::placeholders::_2,
                                             std::placeholders::_3));
 
+  sip_.init(createSIPConfig(), stats_);
+
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
 
@@ -75,7 +77,7 @@ void uvgCommController::init()
 
   sip_.setSDP(sdp);
 
-  sip_.init(createSIPConfig(), stats_);
+
   sip_.listenToAny(SIP_TCP, 5060);
 
   updateCallSettings();
@@ -179,7 +181,11 @@ SIPConfig uvgCommController::createSIPConfig()
           settingEnabled(SettingsKey::privateAddresses),
           settingEnabled(SettingsKey::sipSTUNEnabled),
           settingString(SettingsKey::sipSTUNAddress),
-          (uint16_t)settingValue(SettingsKey::sipSTUNPort)};
+          (uint16_t)settingValue(SettingsKey::sipSTUNPort),
+          (uint16_t)settingValue(SettingsKey::videoResolutionWidth),
+          (uint16_t)settingValue(SettingsKey::videoResolutionHeight),
+          (uint32_t)settingValue(SettingsKey::videoBitrate)/1000,
+          (uint32_t)settingValue(SettingsKey::audioBitrate)/1000};
 }
 
 
@@ -310,6 +316,9 @@ void uvgCommController::delayedAutoAccept()
 
 void uvgCommController::updateAudioSettings()
 {
+  SIPConfig config = createSIPConfig();
+  sip_.setConfig(config);
+
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
   updateSDPVideoStatus(sdp);
@@ -328,6 +337,9 @@ void uvgCommController::updateAudioSettings()
 
 void uvgCommController::updateVideoSettings()
 {
+  SIPConfig config = createSIPConfig();
+  sip_.setConfig(config);
+
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
 

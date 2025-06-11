@@ -78,7 +78,8 @@ std::shared_ptr<SDPMessageInfo> SIPManager::generateSDP(QString username,
 
   return generateDefaultSDP(username, "", audioStreams, videoStreams,
                             dynamicAudioSubtypes, dynamicVideoSubtypes,
-                            staticAudioPayloadTypes, staticVideoPayloadTypes);
+                            staticAudioPayloadTypes, staticVideoPayloadTypes,
+                            config_.videoWidth, config_.videoHeight, config_.videoKbps, config_.audioKbps);
 }
 
 

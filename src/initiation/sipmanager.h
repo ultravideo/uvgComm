@@ -106,6 +106,12 @@ struct SIPConfig
   bool stun;
   QString stunServerAddress;
   uint16_t stunServerPort;
+
+  uint16_t videoWidth;
+  uint16_t videoHeight;
+
+  uint32_t videoKbps;
+  uint32_t audioKbps;
 };
 
 
