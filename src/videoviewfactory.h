@@ -38,6 +38,11 @@ public:
   // Does not clear selfview
   void clearWidgets(uint32_t remoteSSRC);
 
+  int getConferenceSize() const
+  {
+    return viewIDToWidgetlist_.size();
+  }
+
 private:
 
   std::map<uint32_t, uint32_t> ssrcToViewID_;

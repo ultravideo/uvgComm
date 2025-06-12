@@ -187,4 +187,6 @@ private:
   std::shared_ptr<VideoviewFactory> viewFactory_;
 
   std::shared_ptr<ResourceAllocator> hwResources_;
+
+  int localInitialIndex_;
 };

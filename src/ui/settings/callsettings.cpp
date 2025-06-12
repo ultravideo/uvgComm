@@ -77,7 +77,8 @@ const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipUpBandwidth,
                                     SettingsKey::sipDownBandwidth,
                                     SettingsKey::sipConferenceMode,
-                                    SettingsKey::sipSpeakerMode};
+                                    SettingsKey::sipSpeakerMode,
+                                    SettingsKey::sipVisibleParticipants};
 
 CallSettings::CallSettings(QWidget* parent):
   QDialog (parent),
@@ -282,6 +283,8 @@ void CallSettings::saveAdvancedSettings()
 
   settings_.setValue(SettingsKey::sipConferenceMode, advancedUI_->layout_box->currentText());
   settings_.setValue(SettingsKey::sipSpeakerMode, advancedUI_->speaker_checkbox->isChecked());
+
+  settings_.setValue(SettingsKey::sipVisibleParticipants, advancedUI_->visible_box->value());
 }
 
 
@@ -345,6 +348,8 @@ void CallSettings::restoreAdvancedSettings()
 
     advancedUI_->layout_box->setCurrentText(settings_.value(SettingsKey::sipConferenceMode).toString());
     advancedUI_->speaker_checkbox->setChecked(settings_.value(SettingsKey::sipSpeakerMode).toBool());
+
+    advancedUI_->visible_box->setValue(settings_.value(SettingsKey::sipVisibleParticipants).toInt());
   }
   else
   {

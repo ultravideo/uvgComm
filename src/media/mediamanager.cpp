@@ -24,7 +24,8 @@ MediaManager::MediaManager():
   stats_(nullptr),
   clientFg_(new FilterGraphClient()),
   sfuFg_(new FilterGraphSFU()),
-  streamer_(nullptr)
+  streamer_(nullptr),
+  localInitialIndex_(-1)
 {}
 
 
@@ -92,6 +93,8 @@ void MediaManager::uninit()
     streamer_->uninit();
     streamer_ = nullptr;
   }
+
+  localInitialIndex_ = -1;
 }
 
 void MediaManager::newParticipant(uint32_t sessionID,
@@ -100,6 +103,11 @@ void MediaManager::newParticipant(uint32_t sessionID,
                                   bool iceController,
                                   bool followOurSDP)
 {
+  if (localInitialIndex_ < 0)
+  {
+    localInitialIndex_ = viewFactory_->getConferenceSize();
+  }
+
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
   if (!sessionChecks(peerInfo, localInfo))
   {
@@ -273,8 +281,12 @@ void MediaManager::clientMedia(uint32_t sessionID,
       return;
     }
 
-    clientSendMedia(sessionID, localMedia, remoteMedia, send, codec,
-                    localSSRCs.at(0));
+    // This is a hack. Only send video if we are within sensible amount of participants.
+    if (localInitialIndex_ < settingValue(SettingsKey::sipVisibleParticipants) || localMedia.type != "video")
+    {
+      clientSendMedia(sessionID, localMedia, remoteMedia, send, codec,
+                      localSSRCs.at(0));
+    }
 
     // go through all SSRCs and try to receive them
     for (auto& attributeList : remoteMedia.multiAttributes)
