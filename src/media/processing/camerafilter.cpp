@@ -104,7 +104,6 @@ void CameraFilter::setResolution(std::pair<uint16_t, uint16_t> resolution)
 }
 
 
-
 void CameraFilter::uninit()
 {
   stop();

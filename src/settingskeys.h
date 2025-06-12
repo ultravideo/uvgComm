@@ -128,6 +128,9 @@ const QString sipUUID = "sip/UUID";
 const QString sipUpBandwidth = "sip/upBandwidth";
 const QString sipDownBandwidth = "sip/downBandwidth";
 
+const QString sipConferenceMode = "sip/conferenceMode";
+const QString sipSpeakerMode = "sip/speakerMode";
+
 // blocklist setting key
 const QString blocklist = "blocklist";
 

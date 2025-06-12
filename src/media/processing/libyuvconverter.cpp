@@ -42,7 +42,19 @@ void LibYUVConverter::setConferenceSize(uint32_t otherParticipants)
 
   participants_ = otherParticipants;
   resolutionMutex_.lock();
-  resolution_ = participantsToResolution(resolution, participants_);
+  resolution_ = galleryResolution(resolution, participants_);
+
+  if (settings.value(SettingsKey::sipConferenceMode) == "Speaker-first")
+  {
+    if (settings.value(SettingsKey::sipSpeakerMode).toBool())
+    {
+      resolution_ = speakerResolution(resolution);
+    }
+    else
+    {
+      resolution_ = listenerResolution(resolution, participants_);
+    }
+  }
   resolutionMutex_.unlock();
 }
 
@@ -82,6 +94,7 @@ void LibYUVConverter::process()
       continue;
     }
 
+    // needed by libyuv
     uint32_t fourcc = getFourCC(inputType());
 
     if (fourcc == 0 || fourcc == libyuv::FOURCC_I420)
@@ -96,19 +109,26 @@ void LibYUVConverter::process()
     float widthScaling = float(resolution_.width())/float(input->vInfo->width);
 
     size_t width_crop = 0;
+    size_t height_crop = 0;
 
     if (widthScaling < heightScaling)
     {
       // we reverse the coming scaling for the desired resolution to get how much we need to crop
       width_crop = input->vInfo->width - resolution_.width()/heightScaling;
     }
+    else if (heightScaling < widthScaling)
+    {
+      // we reverse the coming scaling for the desired resolution to get how much we need to crop
+      height_crop = input->vInfo->height - resolution_.height()/widthScaling;
+    }
     resolutionMutex_.unlock();
 
     size_t newWidth = input->vInfo->width - width_crop;
+    size_t newHeight = input->vInfo->height - height_crop;
 
     // how much each region of UUV takes space
-    size_t y_size = (newWidth)*input->vInfo->height;
-    size_t uv_size = ((newWidth + 1)/2)*((input->vInfo->height + 1)/2);
+    size_t y_size = newWidth*newHeight;
+    size_t uv_size = ((newWidth + 1)/2)*((newHeight + 1)/2);
 
     // reserve memory for converted YUV
     size_t finalDataSize = y_size + 2*uv_size;
@@ -128,17 +148,20 @@ void LibYUVConverter::process()
                           dst_y, dst_y_stride,
                           dst_u, dst_u_stride,
                           dst_v, dst_v_stride,
-                          width_crop/2, 0,
+                          width_crop/2, height_crop/2,
                           input->vInfo->width, input->vInfo->height,
-                          newWidth, input->vInfo->height,
+                          newWidth, newHeight,
                           libyuv::kRotate0,
                           fourcc);
 
+    bool needScaling = input->vInfo->width > resolution_.width() && input->vInfo->height > resolution_.height();
+
     // update the possible cropping to width
     input->vInfo->width = newWidth;
+    input->vInfo->height = newHeight;
 
     // downscale the YUV if needed
-    if (heightScaling < 1)
+    if (needScaling)
     {
       // scaled resolution
       int scaledWidth = std::round(input->vInfo->width*heightScaling);
@@ -195,7 +218,7 @@ void LibYUVConverter::process()
     if(input->vInfo->width != resolution_.width() || input->vInfo->height != resolution_.height())
     {
       Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Incorrect resolution conversion",
-                                      {"Excepted resolutions", "Converted resolution"},
+                                      {"Expected resolutions", "Converted resolution"},
                                        {QString::number(resolution_.width()) + "x" + QString::number(resolution_.height()),
                                         QString::number(input->vInfo->width) + "x" + QString::number(input->vInfo->height)});
     }

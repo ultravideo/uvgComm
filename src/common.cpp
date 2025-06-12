@@ -24,6 +24,8 @@ const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "abcdefghijklmnopqrstuvwxyz"
                          "0123456789";
 
+constexpr float SPEAKER_PORTION = 0.80f;
+
 
 QString generateRandomString(uint32_t length)
 {
@@ -304,7 +306,7 @@ int64_t NTPToMsec(uint64_t ntp)
 }
 
 
-QSize participantsToResolution(QSize baseResolution, uint32_t otherParticipants)
+QSize galleryResolution(QSize baseResolution, uint32_t otherParticipants)
 {
   if (otherParticipants == 0)
   {
@@ -346,9 +348,83 @@ QSize participantsToResolution(QSize baseResolution, uint32_t otherParticipants)
 }
 
 
-int32_t participantsToBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants)
+QSize speakerResolution(QSize baseResolution)
 {
-  QSize resolution = participantsToResolution(baseResolution, otherParticipants);
+  return QSize(baseResolution.width(), baseResolution.height()* SPEAKER_PORTION);
+}
+
+
+QSize listenerResolution(QSize baseResolution, uint32_t otherParticipants)
+{
+  if (otherParticipants == 0)
+  {
+    Logger::getLogger()->printError("Common", "Zero participants is not legal");
+    return QSize(0, 0);
+  }
+  if (otherParticipants == 1)
+  {
+    // no listeners, only speaker
+    return speakerResolution(baseResolution);
+  }
+
+  uint32_t otherListeners = otherParticipants - 1; // exclude speaker
+
+  constexpr float LISTENER_PORTION = 1.0f - SPEAKER_PORTION;
+  constexpr float TARGET_ASPECT_RATIO = 16.0f / 9.0f;
+
+  int listenerRowHeight = baseResolution.height() * LISTENER_PORTION;
+  int maxTileWidth = listenerRowHeight * TARGET_ASPECT_RATIO;
+
+  // Total required width to fit all listeners side by side
+  int listenerWidth = baseResolution.width()/otherListeners;
+
+  if (listenerWidth > maxTileWidth)
+  {
+    // No cropping needed
+    listenerWidth = maxTileWidth;
+  }
+
+  // Align to encoder constraints (multiples of 8/2)
+  listenerWidth -= listenerWidth % 8;
+  listenerRowHeight -= listenerRowHeight % 2;
+
+  // Avoid too-small tiles as encoder cannot handle these
+  if (listenerWidth < 64)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Listener resolution too small",
+                                    {"Width"}, {QString::number(listenerWidth)});
+    listenerWidth = 64;
+  }
+  if (listenerRowHeight < 64)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Listener resolution too small",
+                                    {"Height"}, {QString::number(listenerRowHeight)});
+    listenerRowHeight = 64;
+  }
+
+  return QSize(listenerWidth, listenerRowHeight);
+}
+
+
+int32_t galleryBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants)
+{
+  QSize resolution = galleryResolution(baseResolution, otherParticipants);
+
+  double bitsPerPixel = (double)baseBitrate/(baseResolution.width()*baseResolution.height());
+  return resolution.width()*resolution.height()*bitsPerPixel;
+}
+
+int32_t speakerBitrate(QSize baseResolution, int baseBitrate)
+{
+  QSize resolution = speakerResolution(baseResolution);
+
+  double bitsPerPixel = (double)baseBitrate/(baseResolution.width()*baseResolution.height());
+  return resolution.width()*resolution.height()*bitsPerPixel;
+}
+
+int32_t listenerBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants)
+{
+  QSize resolution = listenerResolution(baseResolution, otherParticipants);
 
   double bitsPerPixel = (double)baseBitrate/(baseResolution.width()*baseResolution.height());
   return resolution.width()*resolution.height()*bitsPerPixel;

@@ -183,41 +183,17 @@
        <string>Local</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="5" column="1">
-        <widget class="QLabel" name="up_value">
-         <property name="text">
-          <string>10.0 mb/s</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QCheckBox" name="srtp_enabled">
-         <property name="text">
-          <string>Encrypt media using SRTP</string>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="7" column="1">
-        <widget class="QLabel" name="down_value">
-         <property name="text">
-          <string>10.0 mb/s</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="up_label">
-         <property name="text">
-          <string>Up Bandwidth</string>
-         </property>
-        </widget>
-       </item>
        <item row="6" column="0">
         <widget class="QLabel" name="down_label">
          <property name="text">
           <string>Down Bandwidth</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="role_label">
+         <property name="text">
+          <string>Role</string>
          </property>
         </widget>
        </item>
@@ -243,6 +219,45 @@
          </property>
         </widget>
        </item>
+       <item row="2" column="0">
+        <widget class="QCheckBox" name="srtp_enabled">
+         <property name="text">
+          <string>Encrypt media using SRTP</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="10" column="0" colspan="2">
+        <spacer name="verticalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="label">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Local Settings</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
        <item row="4" column="1">
         <widget class="QSlider" name="up_slider">
          <property name="minimum">
@@ -265,36 +280,6 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="0" colspan="2">
-        <widget class="QLabel" name="label">
-         <property name="font">
-          <font>
-           <pointsize>16</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Local Settings</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QCheckBox" name="auto_accept">
-         <property name="text">
-          <string>Auto-Accept calls</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="role_label">
-         <property name="text">
-          <string>Role</string>
-         </property>
-        </widget>
-       </item>
        <item row="3" column="1">
         <widget class="QComboBox" name="role_combo">
          <item>
@@ -309,18 +294,61 @@
          </item>
         </widget>
        </item>
-       <item row="8" column="0" colspan="2">
-        <spacer name="verticalSpacer_4">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="auto_accept">
+         <property name="text">
+          <string>Auto-Accept calls</string>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLabel" name="up_value">
+         <property name="text">
+          <string>10.0 mb/s</string>
          </property>
-        </spacer>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="up_label">
+         <property name="text">
+          <string>Up Bandwidth</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="QLabel" name="down_value">
+         <property name="text">
+          <string>10.0 mb/s</string>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="QComboBox" name="layout_box">
+         <item>
+          <property name="text">
+           <string>Gallery</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Speaker-first</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QLabel" name="layout_label">
+         <property name="text">
+          <string>Conference Layout Mode</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="1">
+        <widget class="QCheckBox" name="speaker_checkbox">
+         <property name="text">
+          <string>Speaker</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

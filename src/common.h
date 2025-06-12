@@ -54,9 +54,13 @@ void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates
 uint64_t msecToNTP(int64_t msec);
 int64_t NTPToMsec(uint64_t ntp);
 
-QSize participantsToResolution(QSize baseResolution, uint32_t otherParticipants);
+QSize galleryResolution(QSize baseResolution, uint32_t otherParticipants);
+QSize speakerResolution(QSize baseResolution);
+QSize listenerResolution(QSize baseResolution, uint32_t otherParticipants);
 
-int32_t participantsToBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants);
+int32_t galleryBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants);
+int32_t speakerBitrate(QSize baseResolution, int baseBitrate);
+int32_t listenerBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants);
 
 // helper functions that get either actual address/port or
 // relay address/port if needed

@@ -61,7 +61,7 @@ QString CallSettings::bitrateString(int totalBitrate, int audioBitrate, int vide
       .arg(audioBitrate / 1000);
 }
 
-
+// if one of these is missing, we load the default setting for all of them (I was too lazy to do it individually)
 const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipRole,
                                     SettingsKey::sipTopology,
@@ -75,7 +75,9 @@ const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipSTUNPort,
                                     SettingsKey::sipSRTP,
                                     SettingsKey::sipUpBandwidth,
-                                    SettingsKey::sipDownBandwidth};
+                                    SettingsKey::sipDownBandwidth,
+                                    SettingsKey::sipConferenceMode,
+                                    SettingsKey::sipSpeakerMode};
 
 CallSettings::CallSettings(QWidget* parent):
   QDialog (parent),
@@ -277,6 +279,9 @@ void CallSettings::saveAdvancedSettings()
 
   settings_.setValue(SettingsKey::sipUpBandwidth,  QString::number(advancedUI_->up_slider->value()));
   settings_.setValue(SettingsKey::sipDownBandwidth, QString::number(advancedUI_->down_slider->value()));
+
+  settings_.setValue(SettingsKey::sipConferenceMode, advancedUI_->layout_box->currentText());
+  settings_.setValue(SettingsKey::sipSpeakerMode, advancedUI_->speaker_checkbox->isChecked());
 }
 
 
@@ -337,6 +342,9 @@ void CallSettings::restoreAdvancedSettings()
 
     advancedUI_->up_slider->setValue(settings_.value(SettingsKey::sipUpBandwidth).toInt());
     advancedUI_->down_slider->setValue(settings_.value(SettingsKey::sipDownBandwidth).toInt());
+
+    advancedUI_->layout_box->setCurrentText(settings_.value(SettingsKey::sipConferenceMode).toString());
+    advancedUI_->speaker_checkbox->setChecked(settings_.value(SettingsKey::sipSpeakerMode).toBool());
   }
   else
   {

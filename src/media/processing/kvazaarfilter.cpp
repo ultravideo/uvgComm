@@ -227,9 +227,23 @@ bool KvazaarFilter::init()
 
     int bitrate = getHWManager()->getBitrate(DT_HEVCVIDEO);
 
-    config_->target_bitrate = participantsToBitrate(cameraResolution_, bitrate, otherParticipants_);
+    config_->target_bitrate = galleryBitrate(cameraResolution_, bitrate, otherParticipants_);
+    QSize partResolution = galleryResolution(cameraResolution_, otherParticipants_);
 
-    QSize partResolution = participantsToResolution(cameraResolution_, otherParticipants_);
+    if (settings.value(SettingsKey::sipConferenceMode) == "Speaker-first")
+    {
+      if (settings.value(SettingsKey::sipSpeakerMode).toBool())
+      {
+        partResolution = speakerResolution(cameraResolution_);
+        config_->target_bitrate = speakerBitrate(cameraResolution_, bitrate);
+      }
+      else
+      {
+        partResolution = listenerResolution(cameraResolution_, otherParticipants_);
+        config_->target_bitrate = listenerBitrate(cameraResolution_, bitrate, otherParticipants_);
+      }
+    }
+
     currentResolution_ = std::make_pair(partResolution.width(), partResolution.height());
     QString resolutionStr = QString::number(partResolution.width()) + "x" + QString::number(partResolution.height());
 
