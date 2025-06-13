@@ -11,23 +11,32 @@ LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
                                  std::shared_ptr<ResourceAllocator> hwResources,
                                  DataType input):
  Filter(id, "libyuv", stats, hwResources, input, DT_YUV420VIDEO),
-  resolution_(0, 0),
+  targetResolution_(0, 0),
+  baseResolution_(0, 0),
   participants_(1)
 {
-  // also sets resolution
+  QSettings settings(settingsFile, settingsFileFormat);
+  baseResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
+                         settings.value(SettingsKey::videoResolutionHeight).toInt());
+
+  // also sets target resolution
   setConferenceSize(participants_);
 
-  QSettings settings(settingsFile, settingsFileFormat);
-  QSize resolution = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
-                           settings.value(SettingsKey::videoResolutionHeight).toInt());
 /*
   for(unsigned int i = 1; i < 200; ++i)
   {
-    QSize res = participantsToResolution(resolution, i);
+    QSize res = participantsToResolution(baseResolution_, i);
     Logger::getLogger()->printNormal(this, "Resolution", "Res",
         QString::number(i) + ":" + QString::number(res.width()) + "x" + QString::number(res.height()));
   }
 */
+}
+
+
+void LibYUVConverter::setBaseResolution(QSize resolution)
+{
+  baseResolution_ = resolution;
+  setConferenceSize(participants_);
 }
 
 
@@ -37,22 +46,20 @@ void LibYUVConverter::setConferenceSize(uint32_t otherParticipants)
                                   {"New size"}, {QString::number(otherParticipants)});
 
   QSettings settings(settingsFile, settingsFileFormat);
-  QSize resolution = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
-                           settings.value(SettingsKey::videoResolutionHeight).toInt());
 
   participants_ = otherParticipants;
   resolutionMutex_.lock();
-  resolution_ = galleryResolution(resolution, participants_);
+  targetResolution_ = galleryResolution(baseResolution_, participants_);
 
   if (settings.value(SettingsKey::sipConferenceMode) == "Speaker-first")
   {
     if (settings.value(SettingsKey::sipSpeakerMode).toBool())
     {
-      resolution_ = speakerResolution(resolution);
+      targetResolution_ = speakerResolution(baseResolution_);
     }
     else
     {
-      resolution_ = listenerResolution(resolution, participants_);
+      targetResolution_ = listenerResolution(baseResolution_, participants_);
     }
   }
   resolutionMutex_.unlock();
@@ -61,6 +68,10 @@ void LibYUVConverter::setConferenceSize(uint32_t otherParticipants)
 
 void LibYUVConverter::updateSettings()
 {
+  QSettings settings(settingsFile, settingsFileFormat);
+  baseResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
+                          settings.value(SettingsKey::videoResolutionHeight).toInt());
+
   setConferenceSize(participants_);
   Filter::updateSettings();
 }
@@ -85,8 +96,8 @@ void LibYUVConverter::process()
       continue;
     }
 
-    if (resolution_.width() == 0 ||
-        resolution_.height() == 0)
+    if (targetResolution_.width() == 0 ||
+        targetResolution_.height() == 0)
     {
       Logger::getLogger()->printError(this, "Invalid internal state");
       sendOutput(std::move(input));
@@ -105,8 +116,8 @@ void LibYUVConverter::process()
     }
 
     resolutionMutex_.lock();
-    float heightScaling = float(resolution_.height())/float(input->vInfo->height);
-    float widthScaling = float(resolution_.width())/float(input->vInfo->width);
+    float heightScaling = float(targetResolution_.height())/float(input->vInfo->height);
+    float widthScaling = float(targetResolution_.width())/float(input->vInfo->width);
 
     size_t width_crop = 0;
     size_t height_crop = 0;
@@ -114,12 +125,12 @@ void LibYUVConverter::process()
     if (widthScaling < heightScaling)
     {
       // we reverse the coming scaling for the desired resolution to get how much we need to crop
-      width_crop = input->vInfo->width - resolution_.width()/heightScaling;
+      width_crop = input->vInfo->width - targetResolution_.width()/heightScaling;
     }
     else if (heightScaling < widthScaling)
     {
       // we reverse the coming scaling for the desired resolution to get how much we need to crop
-      height_crop = input->vInfo->height - resolution_.height()/widthScaling;
+      height_crop = input->vInfo->height - targetResolution_.height()/widthScaling;
     }
     resolutionMutex_.unlock();
 
@@ -154,7 +165,7 @@ void LibYUVConverter::process()
                           libyuv::kRotate0,
                           fourcc);
 
-    bool needScaling = input->vInfo->width > resolution_.width() && input->vInfo->height > resolution_.height();
+    bool needScaling = input->vInfo->width > targetResolution_.width() && input->vInfo->height > targetResolution_.height();
 
     // update the possible cropping to width
     input->vInfo->width = newWidth;
@@ -215,11 +226,11 @@ void LibYUVConverter::process()
       input->vInfo->height = scaledHeight;
     }
 
-    if(input->vInfo->width != resolution_.width() || input->vInfo->height != resolution_.height())
+    if(input->vInfo->width != targetResolution_.width() || input->vInfo->height != targetResolution_.height())
     {
       Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Incorrect resolution conversion",
                                       {"Expected resolutions", "Converted resolution"},
-                                       {QString::number(resolution_.width()) + "x" + QString::number(resolution_.height()),
+                                       {QString::number(targetResolution_.width()) + "x" + QString::number(targetResolution_.height()),
                                         QString::number(input->vInfo->width) + "x" + QString::number(input->vInfo->height)});
     }
 

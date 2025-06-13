@@ -333,6 +333,7 @@ void FilterGraphClient::initVideoSend(std::pair<uint16_t, uint16_t> resolution)
   }
 
   camera_->setResolution(resolution);
+  libyuv_->setBaseResolution(QSize(resolution.first, resolution.second));
 
   // we connect mroi to libyuv conversion filter which makes sure the format is correct
   std::shared_ptr<Filter> mRoi =

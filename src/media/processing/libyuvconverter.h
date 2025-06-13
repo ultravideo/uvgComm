@@ -10,6 +10,8 @@ public:
   LibYUVConverter(QString id, StatisticsInterface* stats,
                   std::shared_ptr<ResourceAllocator> hwResources, DataType input);
 
+  void setBaseResolution(QSize resolution);
+
   void setConferenceSize(uint32_t otherParticipants);
 
   virtual void updateSettings();
@@ -22,7 +24,8 @@ private:
 
   uint32_t getFourCC(DataType type) const;
 
-  QSize resolution_;
+  QSize targetResolution_;
+  QSize baseResolution_;
 
   uint32_t participants_;
 
