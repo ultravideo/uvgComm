@@ -362,6 +362,14 @@ void uvgCommController::updateVideoSettings()
 void uvgCommController::updateCallSettings()
 {
   SIPConfig config = createSIPConfig();
+  sip_.setConfig(config);
+
+  std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
+                                                         {"opus"}, {"H265"}, {0}, {});
+
+  updateSDPVideoStatus(sdp);
+  updateSDPAudioStatus(sdp);
+  sip_.setSDP(sdp);
 
   bool autoConnect = config.sendRegister;
   if(autoConnect)
@@ -375,8 +383,6 @@ void uvgCommController::updateCallSettings()
       sip_.bindingAtRegistrar(serverAddress);
     }
   }
-
-  sip_.setConfig(config);
 }
 
 
