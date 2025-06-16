@@ -131,6 +131,7 @@ const QString sipDownBandwidth = "sip/downBandwidth";
 const QString sipConferenceMode = "sip/conferenceMode";
 const QString sipSpeakerMode = "sip/speakerMode";
 const QString sipVisibleParticipants = "sip/visibleParticipants";
+const QString sipTimestampInterval = "sip/timestampInterval";
 
 // blocklist setting key
 const QString blocklist = "blocklist";

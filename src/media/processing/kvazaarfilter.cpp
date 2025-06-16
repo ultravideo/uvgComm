@@ -42,12 +42,15 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
   pts_(0),
   encodingFrames_(),
   inputPics_(),
-  nextInputPic_(-1)
+  nextInputPic_(-1),
+  timestampInterval_(0),
+  currentFrame_(0)
 {
   maxBufferSize_ = 30;
 
   QSettings settings(settingsFile, settingsFileFormat);
   cameraResolution_ = QSize(resolution.first, resolution.second);
+  timestampInterval_ = settings.value(SettingsKey::sipTimestampInterval).toInt();
 }
 
 
@@ -143,6 +146,8 @@ void KvazaarFilter::updateSettings()
                            settings.value(SettingsKey::videoResolutionHeight).toInt());
 
   cameraResolution_ = resolution;
+
+  timestampInterval_ = settings.value(SettingsKey::sipTimestampInterval).toInt();
   reInitializeKvazaar();
 
   Filter::updateSettings();
@@ -549,8 +554,11 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
     info.roi_array = nullptr;
   }
 
+  ++currentFrame_;
+
   // disabled for now, should be sent less often and needs better handling of start codes
-  bool addTimestamp = false;
+  bool addTimestamp = (timestampInterval_ > 0 &&
+                          (currentFrame_ % timestampInterval_) == 0);
   uint32_t timestampSize = 0;
 
   if (addTimestamp)

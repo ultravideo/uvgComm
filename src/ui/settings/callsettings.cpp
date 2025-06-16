@@ -78,7 +78,8 @@ const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipDownBandwidth,
                                     SettingsKey::sipConferenceMode,
                                     SettingsKey::sipSpeakerMode,
-                                    SettingsKey::sipVisibleParticipants};
+                                    SettingsKey::sipVisibleParticipants,
+                                    SettingsKey::sipTimestampInterval};
 
 CallSettings::CallSettings(QWidget* parent):
   QDialog (parent),
@@ -285,6 +286,8 @@ void CallSettings::saveAdvancedSettings()
   settings_.setValue(SettingsKey::sipSpeakerMode, advancedUI_->speaker_checkbox->isChecked());
 
   settings_.setValue(SettingsKey::sipVisibleParticipants, advancedUI_->visible_box->value());
+
+  settings_.setValue(SettingsKey::sipTimestampInterval, advancedUI_->timestamp_spinbox->value());
 }
 
 
@@ -350,6 +353,8 @@ void CallSettings::restoreAdvancedSettings()
     advancedUI_->speaker_checkbox->setChecked(settings_.value(SettingsKey::sipSpeakerMode).toBool());
 
     advancedUI_->visible_box->setValue(settings_.value(SettingsKey::sipVisibleParticipants).toInt());
+
+    advancedUI_->timestamp_spinbox->setValue(settings_.value(SettingsKey::sipTimestampInterval).toInt());
   }
   else
   {

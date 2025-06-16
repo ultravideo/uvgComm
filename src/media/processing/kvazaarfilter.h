@@ -76,4 +76,8 @@ private:
 
   // temporarily store frame data during encoding
   std::deque<FrameInfo> encodingFrames_;
+
+  int timestampInterval_;
+
+  uint64_t currentFrame_;
 };

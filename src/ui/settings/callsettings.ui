@@ -382,6 +382,20 @@
          </property>
         </widget>
        </item>
+       <item row="12" column="0">
+        <widget class="QLabel" name="timestamp_label">
+         <property name="text">
+          <string>Video Timestamp Interval</string>
+         </property>
+        </widget>
+       </item>
+       <item row="12" column="1">
+        <widget class="QSpinBox" name="timestamp_spinbox">
+         <property name="maximum">
+          <number>1000</number>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="ice">
