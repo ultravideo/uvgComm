@@ -1,6 +1,8 @@
 #include "videodrawhelper.h"
 
 #include "logger.h"
+#include "common.h"
+#include "settingskeys.h"
 
 #include <QWidget>
 #include <QKeyEvent>
@@ -38,14 +40,24 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, LayoutID layoutID, uint8_t 
   fullscreen_(false),
   bufferFullWarnings_(0),
   showLatency_(false),
-  lastLatency_(0)
+  lastLatency_(0),
+    recordLatencies_(false)
 {
   micIcon_.setAspectRatioMode(Qt::KeepAspectRatio);
+  if (sessionID_ != 0)
+  {
+    recordLatencies_ = settingValue(SettingsKey::sipRecordLatencies) == 0;
+  }
 }
 
 
 VideoDrawHelper::~VideoDrawHelper()
 {
+  if (recordLatencies_)
+  {
+    recordLatencies();
+  }
+
   frameBuffer_.clear();
 }
 
@@ -285,6 +297,11 @@ bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& latency)
       lastFrame_ = std::move(frameBuffer_.back());
       frameBuffer_.pop_back();
       lastShownTimestamp_ = now;
+
+      if (recordLatencies_)
+      {
+        latencies_.push_back(lastLatency_);
+      }
     }
     else
     {
@@ -862,4 +879,33 @@ QColor VideoDrawHelper::qpToColor(int qp)
 
   color.setHsv(h, s, v, alpha);
   return color;
+}
+
+
+void VideoDrawHelper::recordLatencies()
+{
+  // 1. Build a timestamp like 20250616_142255
+  const QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+
+  // 2. Combine layoutID_ + timestamp → “latencies_<layoutID>_<ts>.txt”
+  const QString fileName = QStringLiteral("latencies_%1_%2.txt")
+          .arg(layoutID_)        // uint32 → decimal text
+          .arg(timestamp);
+
+  QFile file(fileName);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    qWarning() << "Failed to open" << fileName << "for writing";
+    return;
+  }
+
+  QTextStream out(&file);
+  for (int64_t latency : latencies_)  // each latency, one line
+  {
+    out << latency << '\n';
+  }
+
+
+  file.close();
+
+  qDebug() << "Latencies written to" << fileName;
 }

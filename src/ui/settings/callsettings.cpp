@@ -288,6 +288,7 @@ void CallSettings::saveAdvancedSettings()
   settings_.setValue(SettingsKey::sipVisibleParticipants, advancedUI_->visible_box->value());
 
   settings_.setValue(SettingsKey::sipTimestampInterval, advancedUI_->timestamp_spinbox->value());
+  settings_.setValue(SettingsKey::sipRecordLatencies, advancedUI_->record_latencies_box->isChecked());
 }
 
 
@@ -355,6 +356,7 @@ void CallSettings::restoreAdvancedSettings()
     advancedUI_->visible_box->setValue(settings_.value(SettingsKey::sipVisibleParticipants).toInt());
 
     advancedUI_->timestamp_spinbox->setValue(settings_.value(SettingsKey::sipTimestampInterval).toInt());
+    advancedUI_->record_latencies_box->setChecked(settings_.value(SettingsKey::sipRecordLatencies).toBool());
   }
   else
   {

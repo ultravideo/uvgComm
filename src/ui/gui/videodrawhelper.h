@@ -106,6 +106,8 @@ private:
 
   QSizeF getSizeMultipliers(int width, int height);
 
+  void recordLatencies();
+
   uint32_t sessionID_;
   LayoutID layoutID_;
 
@@ -164,7 +166,11 @@ private:
 
   double framerate_ = 30;
 
-  bool showLatency_;
+  bool showLatency_ = false;
 
-  int64_t lastLatency_;
+  int64_t lastLatency_ = 0;
+
+  bool recordLatencies_ = false;
+
+  std::vector<int64_t> latencies_;
 };

@@ -132,6 +132,7 @@ const QString sipConferenceMode = "sip/conferenceMode";
 const QString sipSpeakerMode = "sip/speakerMode";
 const QString sipVisibleParticipants = "sip/visibleParticipants";
 const QString sipTimestampInterval = "sip/timestampInterval";
+const QString sipRecordLatencies = "sip/recordLatencies";
 
 // blocklist setting key
 const QString blocklist = "blocklist";
