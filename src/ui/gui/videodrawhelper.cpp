@@ -272,9 +272,14 @@ bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& latency)
 
     if (showNewFrame)
     {
-      auto nowtp = std::chrono::system_clock::now(); // system clock is NTP synchronized
-      lastLatency_ = std::chrono::duration_cast<std::chrono::milliseconds>(nowtp.time_since_epoch()).count()
-                     - frameBuffer_.back().timestamp;
+      if (frameBuffer_.back().timestamp != 0)
+      {
+        auto nowtp = std::chrono::system_clock::now();
+        lastLatency_ = std::chrono::
+                           duration_cast<std::chrono::milliseconds>(nowtp.time_since_epoch())
+                               .count()
+                       - frameBuffer_.back().timestamp;
+      }
 
       image = frameBuffer_.back().image;
       lastFrame_ = std::move(frameBuffer_.back());

@@ -120,15 +120,15 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     }
   }
 
-
-
   if(lastSEITime_ != 0)
   {
     received_picture->creationTimestamp = lastSEITime_;
+    lastSEITime_ = 0;
   }
   else
   {
-    received_picture->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+    //received_picture->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+    received_picture->creationTimestamp = 0;
   }
 
   received_picture->presentationTimestamp = received_picture->creationTimestamp;
