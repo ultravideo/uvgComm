@@ -277,105 +277,100 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
   ui_->EndCallButton->setEnabled(true);
   ui_->EndCallButton->show();
 
-  // We use only one SSRC per CNAME/media source to avoid duplicate views when not necessary.
-  std::vector<uint32_t> currentSSRCs;
-  for (const auto& [cname, source] : sources)
-  {
-    if (!source.videoSSRCs.empty())
-    {
-      currentSSRCs.push_back(*source.videoSSRCs.begin()); // pick one SSRC to represent the video source
-    }
-  }
-
-  // Remove expired layout views that no longer have matching SSRCs ---
-  if (layoutIDs_[sessionID].size() > currentSSRCs.size())
+  // Remove expired layout views that no longer have matching CNAMEs ---
+  if (layoutIDs_[sessionID].size() > sources.size())
   {
     std::vector<LayoutID> expiredIDs;
 
-    // Detect layouts that reference SSRCs no longer active
-    for (const auto& layout : layoutIDs_[sessionID])
+    // Detect which cnames no longer exist in the current sources
+    for (auto it = sessionCnameToLayoutID_[sessionID].begin(); it != sessionCnameToLayoutID_[sessionID].end(); )
     {
-      if (std::find(currentSSRCs.begin(), currentSSRCs.end(), layout.remoteSSRC) == currentSSRCs.end())
+      const QString& cname = it->first;
+      LayoutID layoutID = it->second;
+
+      if (sources.find(cname) == sources.end())
       {
-        expiredIDs.push_back(layout.layoutID);
+        expiredIDs.push_back(layoutID);
+        it = sessionCnameToLayoutID_[sessionID].erase(it);  // erase cname→layoutID mapping
+      }
+      else
+      {
+        ++it;
       }
     }
 
     Logger::getLogger()->printNormal(this, "Removing " + QString::number(expiredIDs.size()) + " medias from layout");
 
-    // Remove layouts and clean up from internal list
-    for (const auto& expired : expiredIDs)
+    // Remove the expired layouts from the session's layout list and from the conference view
+    auto& layouts = layoutIDs_[sessionID];
+    for (LayoutID expired : expiredIDs)
     {
       conference_.removeWidget(expired);
 
-      layoutIDs_[sessionID].erase(
-          std::remove_if(layoutIDs_[sessionID].begin(), layoutIDs_[sessionID].end(),
-                         [&](const LayoutMedia& l) { return l.layoutID == expired; }),
-          layoutIDs_[sessionID].end());
+      layouts.erase(std::remove(layouts.begin(), layouts.end(), expired), layouts.end());
     }
   }
 
-  // Add new layouts for any SSRCs that don't have a widget
+  // Add new layouts for any CNAMEs that don't yet have a layout
   for (const auto& [cname, source] : sources)
   {
     if (source.videoSSRCs.empty()) continue;
 
-    uint32_t videoSSRC = *source.videoSSRCs.begin();
-
-    // Check if this SSRC already has a layout
-    bool alreadyExists = std::any_of(layoutIDs_[sessionID].begin(), layoutIDs_[sessionID].end(),
-                                     [&](const LayoutMedia& layout) {
-                                       return layout.remoteSSRC == videoSSRC;
-                                     });
-
-    // If it's new, allocate a layout slot for it
-    if (!alreadyExists)
+    // Check if this CNAME already has a layout assigned
+    if (sessionCnameToLayoutID_[sessionID].find(cname) == sessionCnameToLayoutID_[sessionID].end())
     {
       LayoutID id;
 
-      // Try to reuse a temporary layout, if any (used during call setup, e.g. waiting room)
+      // Try to reuse a temporary layout, if available
       if (getTempLayoutID(id, sessionID))
       {
         temporaryLayoutIDs_.erase(sessionID); // Transfer ownership
       }
       else
       {
-        // Otherwise, create a brand new layout slot
+        // Create a new layout slot
         id = conference_.createLayoutID();
       }
 
-      // Register this layout and create the actual video widget
-      layoutIDs_[sessionID].push_back({id, videoSSRC});
+      // Register layout for this session
+      layoutIDs_[sessionID].push_back(id);
+
+      // Associate layout with CNAME
+      sessionCnameToLayoutID_[sessionID][cname] = id;
+
+      // Create the view for all SSRCs in this media source
       viewFactory->createWidget(sessionID, id, source.videoSSRCs);
     }
   }
 
   // Attach views to layouts, ensuring the UI reflects active media
-  unsigned int layoutsUsed = layoutIDs_[sessionID].size();
-  for (unsigned int i = 0; i < layoutsUsed; ++i)
+  int index = 0;
+  for (const auto& [cname, layoutID] : sessionCnameToLayoutID_[sessionID])
   {
-    uint32_t layoutID = layoutIDs_[sessionID][i].layoutID;
-    uint32_t ssrc     = layoutIDs_[sessionID][i].remoteSSRC;
+    const MediaSource& source = sources.at(cname);  // We assume cname is still valid
+    if (source.videoSSRCs.empty()) continue;
 
-    // Try to fetch the QWidget for the video stream
+    // Use the first SSRC to fetch the view (same view handles all SSRCs in the source)
+    uint32_t ssrc = *source.videoSSRCs.begin();
+
     QWidget* view = viewFactory->getView(ssrc);
 
     if (view)
     {
-      // Bind the video view to the layout slot
       conference_.attachVideoWidget(layoutID, view);
     }
     else
     {
-      // Show avatar using participant name if no video is available
-      conference_.attachAvatarWidget(layoutID, names.value(i));
+      // Use cname index to fetch display name for fallback avatar
+      conference_.attachAvatarWidget(layoutID, names.value(index));
     }
 
-    // Make sure the microphone icon is updated to not show "muted" by default
     if (VideoInterface* video = viewFactory->getVideo(ssrc))
     {
       video->drawMicOffIcon(false);
     }
+
+    ++index;
   }
 }
 
@@ -437,7 +432,7 @@ void CallWindow::removeParticipant(uint32_t sessionID)
   checkID(sessionID);
   for (auto& layoutID : layoutIDs_.at(sessionID))
   {
-    conference_.removeWidget(layoutID.layoutID);
+    conference_.removeWidget(layoutID);
   }
 
   layoutIDs_.erase(sessionID);
@@ -461,11 +456,11 @@ void CallWindow::removeWithMessage(uint32_t sessionID, QString message,
   {
     for (auto& layoutID : layoutIDs_.at(sessionID))
     {
-      conference_.attachMessageWidget(layoutID.layoutID, message, !temporaryMessage);
+      conference_.attachMessageWidget(layoutID, message, !temporaryMessage);
 
       if (temporaryMessage)
       {
-        expiringLayouts_.push_back(layoutID.layoutID);
+        expiringLayouts_.push_back(layoutID);
       }
     }
   }
@@ -595,7 +590,7 @@ void CallWindow::removeLayout(LayoutID layoutID)
   {
     for (unsigned int i = 0; i < sessionID.second.size(); ++i)
     {
-      if (sessionID.second.at(i).layoutID == layoutID)
+      if (sessionID.second.at(i) == layoutID)
       {
         sessionID.second.erase(sessionID.second.begin() + i);
         break;
@@ -624,7 +619,7 @@ uint32_t CallWindow::layoutIDToSessionID(LayoutID layoutID)
   {
     for (auto& ownedLayoutID : sessionID.second)
     {
-      if (ownedLayoutID.layoutID == layoutID)
+      if (ownedLayoutID == layoutID)
       {
         return sessionID.first;
       }

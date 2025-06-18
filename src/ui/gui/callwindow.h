@@ -113,9 +113,9 @@ private:
 
   void cleanUp();
 
-  std::vector<uint32_t> sessionLayouts(uint32_t sessionID);
-
   bool getTempLayoutID(LayoutID& id, uint32_t sessionID);
+
+  void removeExpiredLayouts();
 
   Ui::CallWindow *ui_;
 
@@ -125,16 +125,14 @@ private:
   ParticipantInterface* partInt_;
 
   QTimer removeLayoutTimer_;
-  QList<uint32_t> expiringLayouts_;
+  QList<LayoutID> expiringLayouts_;
 
-  struct LayoutMedia
-  {
-    LayoutID layoutID;
-    uint32_t remoteSSRC;
-  };
-
+  // key is sessionID, used to track incoming/outgoing call view in the session
   std::map<uint32_t, LayoutID> temporaryLayoutIDs_;
 
-  // key is sessionID, used to store layoutID/ssrc combinations
-  std::map<uint32_t, std::vector<LayoutMedia>> layoutIDs_;
+  // key is sessionID, used to store layoutIDs for convenient deletion
+  std::map<uint32_t, std::vector<LayoutID>> layoutIDs_;
+
+  // stores the video layoutID for each cname
+  std::map<uint32_t, std::map<QString, LayoutID>> sessionCnameToLayoutID_;
 };
