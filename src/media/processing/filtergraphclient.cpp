@@ -129,7 +129,7 @@ void FilterGraphClient::updateConferenceSize()
   {
     if (peer.second != nullptr)
     {
-      otherParticipants += peer.second->videoReceivers.size();
+      otherParticipants += peer.second->videoViewFlow.size();
     }
   }
 
