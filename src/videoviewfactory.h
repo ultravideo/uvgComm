@@ -26,7 +26,7 @@ public:
   // set self view
   void addSelfview(VideoWidget* view);
 
-  void createWidget(uint32_t sessionID, LayoutID layoutID, const uint32_t remoteSSRC);
+  void createWidget(uint32_t sessionID, LayoutID layoutID, const std::set<uint32_t>& remoteSSRCs);
 
   // id is the index of that view or video
   QWidget*        getView  (uint32_t remoteSSRC);

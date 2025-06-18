@@ -346,7 +346,7 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
 
       // Register this layout and create the actual video widget
       layoutIDs_[sessionID].push_back({id, videoSSRC});
-      viewFactory->createWidget(sessionID, id, videoSSRC);
+      viewFactory->createWidget(sessionID, id, source.videoSSRCs);
     }
   }
 

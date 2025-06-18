@@ -132,13 +132,8 @@ void VideoviewFactory::clearWidgets(uint32_t remoteSSRC)
 }
 
 
-void VideoviewFactory::createWidget(uint32_t sessionID, LayoutID layoutID, const uint32_t remoteSSRC)
+void VideoviewFactory::createWidget(uint32_t sessionID, LayoutID layoutID, const std::set<uint32_t>& remoteSSRCs)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "View Factory",
-                                  "Creating videoWidget", {"Remote SSRC"}, {QString::number(remoteSSRC)});
-
-  bool openGLEnabled = settingEnabled(SettingsKey::videoOpenGL);
-
   QWidget* vw = nullptr;
   VideoInterface* video = nullptr;
 
@@ -153,15 +148,20 @@ void VideoviewFactory::createWidget(uint32_t sessionID, LayoutID layoutID, const
 
   if (vw != nullptr && video != nullptr)
   {
-    ssrcToViewID_[remoteSSRC] = nextViewID_;
+    uint32_t viewID = nextViewID_;
     nextViewID_++;
 
-    viewIDToWidgetlist_[ssrcToViewID_[remoteSSRC]] = vw;
-    viewIDToVideolist_[ssrcToViewID_[remoteSSRC]]  = video;
+    viewIDToWidgetlist_[viewID] = vw;
+    viewIDToVideolist_[viewID]  = video;
+
+    for (const auto& remoteSSRC : remoteSSRCs)
+    {
+      ssrcToViewID_[remoteSSRC] = viewID;
+    }
 
     Logger::getLogger()->printDebug(DEBUG_NORMAL, "VideoviewFactory",
-                                    "Created video widget.", {"Remote SSRC"},
-                                    {QString::number(remoteSSRC)});
+                                    "Created video widget.", {"Remote SSRCs", "ViewID"},
+                                    {QString::number(remoteSSRCs.size()), QString::number(viewID)});
   }
   else
   {
