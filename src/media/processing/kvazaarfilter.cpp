@@ -239,8 +239,8 @@ bool KvazaarFilter::init()
     {
       if (settings.value(SettingsKey::sipSpeakerMode).toBool())
       {
-        partResolution = speakerResolution(cameraResolution_);
-        config_->target_bitrate = speakerBitrate(cameraResolution_, bitrate);
+        partResolution = speakerResolution(cameraResolution_, otherParticipants_);
+        config_->target_bitrate = speakerBitrate(cameraResolution_, bitrate, otherParticipants_);
       }
       else
       {

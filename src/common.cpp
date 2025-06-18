@@ -348,8 +348,14 @@ QSize galleryResolution(QSize baseResolution, uint32_t otherParticipants)
 }
 
 
-QSize speakerResolution(QSize baseResolution)
+QSize speakerResolution(QSize baseResolution, uint32_t otherParticipants)
 {
+  if (otherParticipants == 1)
+  {
+    // no listeners, only speaker
+    return baseResolution;
+  }
+
   return QSize(baseResolution.width(), baseResolution.height()* SPEAKER_PORTION);
 }
 
@@ -364,7 +370,7 @@ QSize listenerResolution(QSize baseResolution, uint32_t otherParticipants)
   if (otherParticipants == 1)
   {
     // no listeners, only speaker
-    return speakerResolution(baseResolution);
+    return speakerResolution(baseResolution, otherParticipants);
   }
 
   uint32_t otherListeners = otherParticipants - 1; // exclude speaker
@@ -414,9 +420,9 @@ int32_t galleryBitrate(QSize baseResolution, int baseBitrate, uint32_t otherPart
   return resolution.width()*resolution.height()*bitsPerPixel;
 }
 
-int32_t speakerBitrate(QSize baseResolution, int baseBitrate)
+int32_t speakerBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants)
 {
-  QSize resolution = speakerResolution(baseResolution);
+  QSize resolution = speakerResolution(baseResolution, otherParticipants);
 
   double bitsPerPixel = (double)baseBitrate/(baseResolution.width()*baseResolution.height());
   return resolution.width()*resolution.height()*bitsPerPixel;

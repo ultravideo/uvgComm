@@ -55,11 +55,11 @@ uint64_t msecToNTP(int64_t msec);
 int64_t NTPToMsec(uint64_t ntp);
 
 QSize galleryResolution(QSize baseResolution, uint32_t otherParticipants);
-QSize speakerResolution(QSize baseResolution);
+QSize speakerResolution(QSize baseResolution, uint32_t otherParticipants);
 QSize listenerResolution(QSize baseResolution, uint32_t otherParticipants);
 
 int32_t galleryBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants);
-int32_t speakerBitrate(QSize baseResolution, int baseBitrate);
+int32_t speakerBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants);
 int32_t listenerBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants);
 
 // helper functions that get either actual address/port or

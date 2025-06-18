@@ -55,7 +55,7 @@ void LibYUVConverter::setConferenceSize(uint32_t otherParticipants)
   {
     if (settings.value(SettingsKey::sipSpeakerMode).toBool())
     {
-      targetResolution_ = speakerResolution(baseResolution_);
+      targetResolution_ = speakerResolution(baseResolution_, participants_);
     }
     else
     {
