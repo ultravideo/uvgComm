@@ -330,3 +330,18 @@ endif()
 install(FILES LICENSE
     DESTINATION ${CMAKE_INSTALL_DATADIR}/uvgComm
 )
+
+#docker
+if(UNIX AND NOT APPLE)
+  find_program(DOCKER_EXECUTABLE docker)
+
+  if(DOCKER_EXECUTABLE)
+    add_custom_target(docker
+      COMMAND ${DOCKER_EXECUTABLE} build -t uvgcomm-docker -f docker/Dockerfile .
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+      COMMENT "Building Docker container for uvgComm"
+    )
+  else()
+    message(STATUS "Docker not found – skipping Docker target.")
+  endif()
+endif()
