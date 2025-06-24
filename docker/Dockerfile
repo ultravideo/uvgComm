@@ -3,7 +3,7 @@ FROM ubuntu:22.04
 # Set non-interactive frontend for automation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install required build/runtime dependencies
+# Install required build/runtime dependencies plus OpenGL libs and Qt OpenGL plugin
 RUN apt-get update && apt-get install -y \
   cmake \
   qt6-base-dev \
@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
   libspeexdsp-dev \
   libomp-dev \
   libgl1 \
+  libgl1-mesa-dev \
   libopengl0 \
   libcrypto++-dev \
   libopus-dev \
