@@ -8,7 +8,7 @@ if (NOT UVGRTP_FOUND)
     # uvgRTP
     FetchContent_Declare(
             uvgrtp
-            GIT_REPOSITORY https://gitlab.tuni.fi/cs/ultravideo/uvgrtp.git
+            GIT_REPOSITORY https://github.com/jrsnen/uvgRTP.git
             GIT_TAG        840bffd29095d696bca5a1fc5416b0da58f56561 # uvgRTP private version
     )
 
