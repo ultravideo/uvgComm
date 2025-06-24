@@ -20,10 +20,8 @@
 #include <netinet/in.h>
 #include <sys/types.h>
 #include <netdb.h>
+#include <arpa/inet.h>
 #endif
-
-#include <iostream>
-#include <chrono>
 
 
 UDPSender::UDPSender(QString id,

@@ -1,12 +1,14 @@
 #include "filtergraph.h"
 
 #include "logger.h"
-#include "Filter.h"
+#include "filter.h"
 
 #include "media/processing/libyuvconverter.h"
 #include "media/processing/yuvtorgb32.h"
 
 #include "media/resourceallocator.h"
+
+#include <thread>
 
 FilterGraph::FilterGraph():
   quitting_(false),
