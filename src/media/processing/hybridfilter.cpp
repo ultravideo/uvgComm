@@ -164,6 +164,9 @@ void HybridFilter::process()
       --nextSwitch_;
       if (nextSwitch_ == 0)
       {
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Switching connections",
+                                        {"Next switch"}, {QString::number(nextSwitch_)});
+
         // Switch connections
         for (const auto& linkPair : linksToSwitch_)
         {
@@ -264,10 +267,6 @@ void HybridFilter::reEvaluateConnections()
   }
   const int maxP2PConnections = networkBandwidth / connectionBandwidth;
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Re-evaluating active links",
-                                  {"Connection bandwidth", "maxP2PConnections"},
-                                  {QString::number(connectionBandwidth), QString::number(maxP2PConnections)});
-
   // calculate the average RTT for each link
   for (auto& pair : cnameToLinks_)
   {
@@ -293,7 +292,7 @@ void HybridFilter::reEvaluateConnections()
   {
     std::shared_ptr<LinkInfo> p2plink;
     std::shared_ptr<LinkInfo> sfulink;
-    double rttBenefit; // lower is better
+    double rttBenefit; // higher is better
   };
 
   std::vector<RankedConnection> rankedConnections;
@@ -316,19 +315,30 @@ void HybridFilter::reEvaluateConnections()
               return a.rttBenefit < b.rttBenefit;
             });
 
+  int p2pLinks = 0;
   // Enable P2P connections until we reach the limit
   for (size_t i = 0; i < rankedConnections.size(); ++i)
   {
-    if (i < maxP2PConnections && !rankedConnections[i].p2plink->active)
+    if (i < maxP2PConnections && !rankedConnections[i].p2plink->active && rankedConnections[i].rttBenefit > 0)
     {
       // this connection we can afford and most benefits from the P2P connection
       delayedSwitchToP2P(rankedConnections[i].p2plink, rankedConnections[i].sfulink);
+      ++p2pLinks;
     }
     else if (rankedConnections[i].p2plink->active)
     {
       delayedSwitchToSFU(rankedConnections[i].p2plink, rankedConnections[i].sfulink);
     }
+    else
+    {
+      ++p2pLinks;
+    }
   }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Partial-bandwidth evaluation",
+                                  {"Connection bandwidth", "maxP2PConnections", "P2P Links"},
+                                  {QString::number(connectionBandwidth), QString::number(maxP2PConnections),
+                                  QString::number(p2pLinks) + "/" + QString::number(cnameToLinks_.size())});
 }
 
 
@@ -368,12 +378,14 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> p2p, std::shared
 void HybridFilter::fullBandwidthEvaluation()
 {
   bool needSFU = false;
+  int p2pLinks = 0;
   for (auto& pair : cnameToLinks_)
   {
     if (pair.second.p2p && !pair.second.sfu)
     {
       // P2P only, use it
       setConnection(pair.second.p2p->outIndex, true);
+      ++p2pLinks;
     }
     else if (!pair.second.p2p && pair.second.sfu)
     {
@@ -385,6 +397,7 @@ void HybridFilter::fullBandwidthEvaluation()
     {
       if (pair.second.p2p->latestsRtt < pair.second.sfu->latestsRtt)
       {
+        ++p2pLinks;
         if (!pair.second.p2p->active)
         {
           delayedSwitchToP2P(pair.second.p2p, pair.second.sfu);
@@ -403,9 +416,19 @@ void HybridFilter::fullBandwidthEvaluation()
     }
   }
 
+  QString sfuStatus = needSFU ? "enabled" : "disabled";
   if (sfuIndex_ > -1)
   {
     // disables the sfu connection if we don't need it
     setConnection(sfuIndex_, needSFU);
   }
+  else
+  {
+    sfuStatus = "not available";
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Full-bandwidth evaluation",
+                                  {"P2P Links", "SFU Status"},
+                                  {QString::number(p2pLinks) + "/" + QString::number(cnameToLinks_.size()),
+                                   sfuStatus});
 }
