@@ -61,6 +61,8 @@ private:
 
   void fullBandwidthEvaluation();
 
+  void rankedBandwidthEvaluation(const int maxP2PConnections, int connectionBandwidth);
+
   void delayedSwitchToP2P(std::shared_ptr<LinkInfo> p2p, std::shared_ptr<LinkInfo> sfu);
   void delayedSwitchToSFU(std::shared_ptr<LinkInfo> p2p, std::shared_ptr<LinkInfo> sfu);
 

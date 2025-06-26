@@ -288,58 +288,7 @@ void HybridFilter::reEvaluateConnections()
   }
 
   // Otherwise, use P2P where RTT benefit is biggest
-
-  struct RankedConnection
-  {
-    std::shared_ptr<LinkInfo> p2plink;
-    std::shared_ptr<LinkInfo> sfulink;
-    double rttBenefit; // higher is better
-  };
-
-  std::vector<RankedConnection> rankedConnections;
-
-  for (auto& pair : cnameToLinks_)
-  {
-    if (pair.second.p2p && pair.second.sfu)
-    {
-      RankedConnection ranked;
-      ranked.p2plink = pair.second.p2p;
-      ranked.sfulink = pair.second.sfu;
-      ranked.rttBenefit = pair.second.sfu->latestsRtt - pair.second.p2p->latestsRtt;
-      rankedConnections.push_back(ranked);
-    }
-  }
-
-  // Sort connections by RTT benefit
-  std::sort(rankedConnections.begin(), rankedConnections.end(),
-            [](const RankedConnection& a, const RankedConnection& b) {
-              return a.rttBenefit < b.rttBenefit;
-            });
-
-  int p2pLinks = 0;
-  // Enable P2P connections until we reach the limit
-  for (size_t i = 0; i < rankedConnections.size(); ++i)
-  {
-    if (i < maxP2PConnections && !rankedConnections[i].p2plink->active && rankedConnections[i].rttBenefit > 0)
-    {
-      // this connection we can afford and most benefits from the P2P connection
-      delayedSwitchToP2P(rankedConnections[i].p2plink, rankedConnections[i].sfulink);
-      ++p2pLinks;
-    }
-    else if (rankedConnections[i].p2plink->active)
-    {
-      delayedSwitchToSFU(rankedConnections[i].p2plink, rankedConnections[i].sfulink);
-    }
-    else
-    {
-      ++p2pLinks;
-    }
-  }
-
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Partial-bandwidth evaluation",
-                                  {"Connection bandwidth", "maxP2PConnections", "P2P Links"},
-                                  {QString::number(connectionBandwidth), QString::number(maxP2PConnections),
-                                  QString::number(p2pLinks) + "/" + QString::number(cnameToLinks_.size())});
+  rankedBandwidthEvaluation(maxP2PConnections, connectionBandwidth);
 }
 
 
@@ -409,6 +358,9 @@ void HybridFilter::fullBandwidthEvaluation()
         ++p2pLinks;
         if (!pair.second.p2p->active)
         {
+          Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Switching to P2P connection",
+                                          {"CNAME", "Expected latency reduction"},
+                                          {pair.first, QString::number(pair.second.sfu->latestsRtt - pair.second.p2p->latestsRtt)});
           delayedSwitchToP2P(pair.second.p2p, pair.second.sfu);
         }
       }
@@ -440,4 +392,60 @@ void HybridFilter::fullBandwidthEvaluation()
                                   {"P2P Links", "SFU Status"},
                                   {QString::number(p2pLinks) + "/" + QString::number(cnameToLinks_.size()),
                                    sfuStatus});
+}
+
+
+void HybridFilter::rankedBandwidthEvaluation(const int maxP2PConnections, int connectionBandwidth)
+{
+  struct RankedConnection
+  {
+    std::shared_ptr<LinkInfo> p2plink;
+    std::shared_ptr<LinkInfo> sfulink;
+    double rttBenefit; // higher is better
+  };
+
+  std::vector<RankedConnection> rankedConnections;
+
+  for (auto& pair : cnameToLinks_)
+  {
+    if (pair.second.p2p && pair.second.sfu)
+    {
+      RankedConnection ranked;
+      ranked.p2plink = pair.second.p2p;
+      ranked.sfulink = pair.second.sfu;
+      ranked.rttBenefit = pair.second.sfu->latestsRtt - pair.second.p2p->latestsRtt;
+      rankedConnections.push_back(ranked);
+    }
+  }
+
+  // Sort connections by RTT benefit
+  std::sort(rankedConnections.begin(), rankedConnections.end(),
+            [](const RankedConnection& a, const RankedConnection& b) {
+              return a.rttBenefit < b.rttBenefit;
+            });
+
+  int p2pLinks = 0;
+  // Enable P2P connections until we reach the limit
+  for (size_t i = 0; i < rankedConnections.size(); ++i)
+  {
+    if (i < maxP2PConnections && !rankedConnections[i].p2plink->active && rankedConnections[i].rttBenefit > 0)
+    {
+      // this connection we can afford and most benefits from the P2P connection
+      delayedSwitchToP2P(rankedConnections[i].p2plink, rankedConnections[i].sfulink);
+      ++p2pLinks;
+    }
+    else if (rankedConnections[i].p2plink->active)
+    {
+      delayedSwitchToSFU(rankedConnections[i].p2plink, rankedConnections[i].sfulink);
+    }
+    else
+    {
+      ++p2pLinks;
+    }
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Partial-bandwidth evaluation",
+                                  {"Connection bandwidth", "maxP2PConnections", "P2P Links"},
+                                  {QString::number(connectionBandwidth), QString::number(maxP2PConnections),
+                                   QString::number(p2pLinks) + "/" + QString::number(cnameToLinks_.size())});
 }
