@@ -10,6 +10,7 @@
 #include "common.h"
 
 const uint8_t MAX_RTT_MEASUREMENTS = 64; // Maximum number of RTT samples to keep
+const int EVALUATION_INTERVAL = 640; // Number of frames between evaluations
 
 
 HybridFilter::HybridFilter(QString id, StatisticsInterface *stats,
@@ -144,7 +145,7 @@ void HybridFilter::process()
 
 
     ++count_;
-    if (count_ % 640 == 0)
+    if (count_ % EVALUATION_INTERVAL == 0)
     {
       triggerReEvaluation_ = true;
     }
@@ -344,34 +345,43 @@ void HybridFilter::reEvaluateConnections()
 
 void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> p2p, std::shared_ptr<LinkInfo> sfu)
 {
-  if (sfu->active)
+  if (cnameToLinks_.size() == 1 || (!sfu->active && !p2p->active))
   {
-    nextSwitch_ = 320; // wait for 320 frames until we switch to P2P
+    // we only have one connection so it can be switched immediately
+    // or none of the links are active
+    p2p->active = true;
+    setConnection(p2p->outIndex, true);
+  }
+  else if (sfu->active)
+  {
+    // delayed switch to P2P link
+    nextSwitch_ = EVALUATION_INTERVAL/2; // wait frames until we switch to P2P
     sfu->rtpSender->stopForwarding(sfu->ssrc, nextSwitch_);
     linksToSwitch_.push_back({p2p, sfu});
   }
-  else if (!p2p->active) // this should never happen
+  else
   {
-    Logger::getLogger()->printWarning(this, "SFU was already off when switching to P2P");
-    p2p->active = true;
-    setConnection(p2p->outIndex, true);
+    Logger::getLogger()->printWarning(this, "P2P connection is already active, no need to switch");
   }
 }
 
 
 void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> p2p, std::shared_ptr<LinkInfo> sfu)
 {
-  if (!sfu->active)
+  if (cnameToLinks_.size() == 1 || (!sfu->active && !p2p->active))
   {
-    nextSwitch_ = 320; // wait for 320 frames until we switch to SFU
+    p2p->active = false;
+    setConnection(p2p->outIndex, false);
+  }
+  else if (!sfu->active)
+  {
+    nextSwitch_ = EVALUATION_INTERVAL/2; // wait frames until we switch to SFU
     sfu->rtpSender->startForwarding(sfu->ssrc, nextSwitch_);
     linksToSwitch_.push_back({p2p, sfu});
   }
-  else if (p2p->active) // this should never happen
+  else
   {
-    Logger::getLogger()->printWarning(this, "SFU was already on when switching to SFU");
-    p2p->active = false;
-    setConnection(p2p->outIndex, false);
+    Logger::getLogger()->printWarning(this, "SFU connection is already active, no need to switch");
   }
 }
 
@@ -381,20 +391,19 @@ void HybridFilter::fullBandwidthEvaluation()
   int p2pLinks = 0;
   for (auto& pair : cnameToLinks_)
   {
-    if (pair.second.p2p && !pair.second.sfu)
+    if (pair.second.p2p && !pair.second.sfu) // only P2P link
     {
-      // P2P only, use it
       setConnection(pair.second.p2p->outIndex, true);
       ++p2pLinks;
     }
-    else if (!pair.second.p2p && pair.second.sfu)
+    else if (!pair.second.p2p && pair.second.sfu) // only SFU link
     {
-      // SFU only, use it
       setConnection(pair.second.sfu->outIndex, true);
       needSFU = true;
     }
-    else if (pair.second.p2p && pair.second.sfu)
+    else if (pair.second.p2p && pair.second.sfu) // both available
     {
+      // only switch if p2p link actually reduces latency
       if (pair.second.p2p->latestsRtt < pair.second.sfu->latestsRtt)
       {
         ++p2pLinks;
