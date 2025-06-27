@@ -75,6 +75,21 @@ QString settingString(QString key)
 }
 
 
+bool settingBool(QString key)
+{
+  QSettings settings(settingsFile, settingsFileFormat);
+
+  if (!settings.value(key).isValid())
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Found faulty setting",
+                                    {"Key"}, {key});
+    return "";
+  }
+
+  return settings.value(key).toBool();
+}
+
+
 QString getLocalUsername()
 {
   QSettings settings(settingsFile, settingsFileFormat);

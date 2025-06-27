@@ -1,8 +1,8 @@
 #include "libyuvconverter.h"
 
 #include "logger.h"
-#include "common.h"
 #include "settingskeys.h"
+#include "src/media/resourceallocator.h"
 
 
 #include <libyuv.h>
@@ -12,56 +12,34 @@ LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
                                  DataType input):
  Filter(id, "libyuv", stats, hwResources, input, DT_YUV420VIDEO),
   targetResolution_(0, 0),
-  baseResolution_(0, 0),
-  participants_(1)
+  baseResolution_(0, 0)
 {
   QSettings settings(settingsFile, settingsFileFormat);
   baseResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
                          settings.value(SettingsKey::videoResolutionHeight).toInt());
 
   // also sets target resolution
-  setConferenceSize(participants_);
-
-/*
-  for(unsigned int i = 1; i < 200; ++i)
-  {
-    QSize res = participantsToResolution(baseResolution_, i);
-    Logger::getLogger()->printNormal(this, "Resolution", "Res",
-        QString::number(i) + ":" + QString::number(res.width()) + "x" + QString::number(res.height()));
-  }
-*/
+  changeResolution();
 }
 
 
-void LibYUVConverter::setBaseResolution(QSize resolution)
-{
-  baseResolution_ = resolution;
-  setConferenceSize(participants_);
-}
 
-
-void LibYUVConverter::setConferenceSize(uint32_t otherParticipants)
+void LibYUVConverter::changeResolution()
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Setting conference size",
-                                  {"New size"}, {QString::number(otherParticipants)});
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Changing resolution for libyuv filter");
 
   QSettings settings(settingsFile, settingsFileFormat);
 
-  participants_ = otherParticipants;
   resolutionMutex_.lock();
-  targetResolution_ = galleryResolution(baseResolution_, participants_);
 
-  if (settings.value(SettingsKey::sipConferenceMode) == "Speaker-first")
+  targetResolution_ = getHWManager()->getVideoResolution();
+
+  if (targetResolution_.width() == 0 ||
+      targetResolution_.height() == 0)
   {
-    if (settings.value(SettingsKey::sipSpeakerMode).toBool())
-    {
-      targetResolution_ = speakerResolution(baseResolution_, participants_);
-    }
-    else
-    {
-      targetResolution_ = listenerResolution(baseResolution_, participants_);
-    }
+    Logger::getLogger()->printError(this, "Invalid libyuv filter resolution");
   }
+
   resolutionMutex_.unlock();
 }
 
@@ -72,7 +50,7 @@ void LibYUVConverter::updateSettings()
   baseResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
                           settings.value(SettingsKey::videoResolutionHeight).toInt());
 
-  setConferenceSize(participants_);
+  changeResolution();
   Filter::updateSettings();
 }
 
@@ -96,10 +74,10 @@ void LibYUVConverter::process()
       continue;
     }
 
-    if (targetResolution_.width() == 0 ||
-        targetResolution_.height() == 0)
+    if (targetResolution_.width() <= 0 ||
+        targetResolution_.height() <= 0)
     {
-      Logger::getLogger()->printError(this, "Invalid internal state");
+      Logger::getLogger()->printError(this, "Invalid target resolution for libyuv filter");
       sendOutput(std::move(input));
       input = getInput();
       continue;

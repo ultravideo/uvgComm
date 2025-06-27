@@ -17,7 +17,7 @@ public:
                 std::shared_ptr<ResourceAllocator> hwResources,
                 std::pair<uint16_t, uint16_t> resolution);
 
-  void setConferenceSize(uint32_t otherParticipants);
+  void restartEncoder();
 
   virtual void updateSettings();
 
@@ -55,9 +55,6 @@ private:
   const kvz_api *api_;
   kvz_config *config_;
 
-  uint32_t otherParticipants_;
-
-  QSize cameraResolution_;
   std::pair<int, int> currentResolution_;
   std::map<std::pair<int, int>, kvz_encoder*> encoders_;
 

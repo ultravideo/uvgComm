@@ -47,7 +47,7 @@ public:
 
   virtual void running(bool state);
 
-  void setConferenceSize(uint32_t otherParticipants);
+  void refreshResolutions();
   void updateConferenceSize();
 
 public slots:

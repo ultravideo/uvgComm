@@ -35,6 +35,7 @@
 #include "settingskeys.h"
 #include "common.h"
 #include "logger.h"
+#include "src/media/resourceallocator.h"
 
 #include <QSettings>
 #include <QFile>
@@ -107,16 +108,16 @@ void FilterGraphClient::setSelfViews(QList<VideoInterface*> selfViews)
 }
 
 
-void FilterGraphClient::setConferenceSize(uint32_t otherParticipants)
+void FilterGraphClient::refreshResolutions()
 {
   if (kvazaar_)
   {
-    kvazaar_->setConferenceSize(otherParticipants);
+    kvazaar_->restartEncoder();
   }
 
   if (libyuv_)
   {
-    libyuv_->setConferenceSize(otherParticipants);
+    libyuv_->changeResolution();
   }
 }
 
@@ -133,7 +134,9 @@ void FilterGraphClient::updateConferenceSize()
     }
   }
 
-  setConferenceSize(otherParticipants);
+  hwResources_->setParticipants(otherParticipants);
+
+  refreshResolutions();
 }
 
 
@@ -167,7 +170,6 @@ void FilterGraphClient::updateVideoSettings()
                                     "Video format changed. Reconstructing video send graph.",
                                     {"Previous format", "New format"},
                                     {videoFormat_, settings.value(SettingsKey::videoInputFormat).toString()});
-
 
     // update selfview in case camera format has changed
     initCameraSelfView();
@@ -332,8 +334,16 @@ void FilterGraphClient::initVideoSend(std::pair<uint16_t, uint16_t> resolution)
     initCameraSelfView();
   }
 
+  QSize conferenceResolution(resolution.first, resolution.second);
+  hwResources_->setConferenceResolution(conferenceResolution);
+  hwResources_->setParticipants(1);
+
   camera_->setResolution(resolution);
-  libyuv_->setBaseResolution(QSize(resolution.first, resolution.second));
+
+  if (libyuv_)
+  {
+    libyuv_->changeResolution();
+  }
 
   // we connect mroi to libyuv conversion filter which makes sure the format is correct
   std::shared_ptr<Filter> mRoi =

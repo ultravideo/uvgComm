@@ -24,6 +24,7 @@ bool settingEnabled(QString key);
 int settingValue(QString key);
 
 QString settingString(QString key);
+bool settingBool(QString key);
 
 QString getLocalUsername();
 

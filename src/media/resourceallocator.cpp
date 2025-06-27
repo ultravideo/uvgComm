@@ -19,10 +19,55 @@ ResourceAllocator::ResourceAllocator():
   audioStreams_(),
   videoStreams_(),
   bitrateMutex_(),
-  videoBitrate_(MAX_HEVC_BITRATE_BITS),
-  audioBitrate_(MAX_OPUS_BITRATE_BITS),
-  roiObject_(0)
-{}
+  conferenceVideoBitrate_(MAX_HEVC_BITRATE_BITS),
+  conferenceAudioBitrate_(MAX_OPUS_BITRATE_BITS),
+  roiQp_(0),
+  backgroundQp_(0),
+  roiObject_(0),
+  otherParticipants_(1),
+  conferenceMode_(""),
+  isSpeaker_(false)
+{
+  updateSettings();
+}
+
+
+void ResourceAllocator::setParticipants(int otherParticipants)
+{
+  otherParticipants_ = otherParticipants;
+
+  if (conferenceMode_ == "Gallery")
+  {
+    videoResolution_ = galleryResolution(conferenceResolution_, otherParticipants_);
+  }
+  else if (conferenceMode_ == "Speaker")
+  {
+    if (isSpeaker_)
+    {
+      videoResolution_ = speakerResolution(conferenceResolution_, otherParticipants_);
+    }
+    else
+    {
+      videoResolution_ = listenerResolution(conferenceResolution_, otherParticipants_);
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Unknown conference mode: " + conferenceMode_);
+  }
+}
+
+
+void ResourceAllocator::setConferenceResolution(const QSize& resolution)
+{
+  conferenceResolution_ = resolution;
+}
+
+
+QSize ResourceAllocator::getVideoResolution() const
+{
+  return videoResolution_;
+}
 
 
 void ResourceAllocator::updateSettings()
@@ -33,6 +78,11 @@ void ResourceAllocator::updateSettings()
   roiQp_ = settingValue(SettingsKey::roiQp);
   backgroundQp_ = settingValue(SettingsKey::backgroundQp);
   roiObject_ = settingValue(SettingsKey::roiObject);
+  conferenceMode_ = settingString(SettingsKey::sipConferenceMode);
+  isSpeaker_ = settingBool(SettingsKey::sipSpeakerMode);
+  conferenceResolution_ = QSize(settingValue(SettingsKey::videoResolutionWidth),
+                            settingValue(SettingsKey::videoResolutionHeight));
+  videoResolution_ = conferenceResolution_;
 }
 
 
@@ -130,16 +180,16 @@ void ResourceAllocator::updateGlobalBitrate(int& bitrate,
 }
 
 
-void ResourceAllocator::setBitrate(DataType type, int bitrate)
+void ResourceAllocator::setConferenceBitrate(DataType type, int bitrate)
 {
   bitrateMutex_.lock();
   if (type == DT_OPUSAUDIO)
   {
-    audioBitrate_ = bitrate;
+    conferenceAudioBitrate_ = bitrate;
   }
   else if (type == DT_HEVCVIDEO)
   {
-    videoBitrate_ = bitrate;
+    conferenceVideoBitrate_ = bitrate;
   }
   else
   {
@@ -149,18 +199,38 @@ void ResourceAllocator::setBitrate(DataType type, int bitrate)
 }
 
 
-int ResourceAllocator::getBitrate(DataType type)
+int ResourceAllocator::getEncoderBitrate(DataType type)
 {
   int bitrate = 0;
 
   bitrateMutex_.lock();
   if (type == DT_OPUSAUDIO)
   {
-    bitrate = audioBitrate_;
+    bitrate = conferenceAudioBitrate_;
   }
   else if (type == DT_HEVCVIDEO)
   {
-    bitrate = videoBitrate_;
+    if (conferenceMode_ == "Gallery")
+    {
+      bitrate = galleryBitrate(conferenceResolution_, bitrate, otherParticipants_);
+    }
+    else if (conferenceMode_ == "Speaker")
+    {
+      if (isSpeaker_)
+      {
+        bitrate = speakerBitrate(conferenceResolution_, bitrate, otherParticipants_);
+      }
+      else
+      {
+        bitrate = listenerBitrate(conferenceResolution_, bitrate, otherParticipants_);
+      }
+    }
+    else
+    {
+      Logger::getLogger()->printProgramError(this, "Unknown conference mode: " + conferenceMode_);
+      bitrate = conferenceVideoBitrate_;
+    }
+
   }
   bitrateMutex_.unlock();
 

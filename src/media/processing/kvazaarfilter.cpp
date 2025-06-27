@@ -36,7 +36,6 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
   Filter(id, "Kvazaar", stats, hwResources, DT_YUV420VIDEO, DT_HEVCVIDEO),
   api_(nullptr),
   config_(nullptr),
-  otherParticipants_(1),
   currentResolution_(),
   encoders_(),
   pts_(0),
@@ -49,28 +48,13 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
   maxBufferSize_ = 30;
 
   QSettings settings(settingsFile, settingsFileFormat);
-  cameraResolution_ = QSize(resolution.first, resolution.second);
   timestampInterval_ = settings.value(SettingsKey::sipTimestampInterval).toInt();
 }
 
 
-void KvazaarFilter::setConferenceSize(uint32_t otherParticipants)
+void KvazaarFilter::restartEncoder()
 {
-  if (otherParticipants == 0)
-  {
-    otherParticipants = 1;
-  }
-
-  if (otherParticipants != otherParticipants_)
-  {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Changing conference size",
-                                    {"Old", "New"},
-                                    {QString::number(otherParticipants_),
-                                     QString::number(otherParticipants)});
-
-    otherParticipants_ = otherParticipants;
-    reInitializeKvazaar();
-  }
+  reInitializeKvazaar();
 }
 
 
@@ -142,11 +126,6 @@ void KvazaarFilter::updateSettings()
   Logger::getLogger()->printNormal(this, "Updating kvazaar settings");
   QSettings settings(settingsFile, settingsFileFormat);
 
-  QSize resolution = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
-                           settings.value(SettingsKey::videoResolutionHeight).toInt());
-
-  cameraResolution_ = resolution;
-
   timestampInterval_ = settings.value(SettingsKey::sipTimestampInterval).toInt();
   reInitializeKvazaar();
 
@@ -195,15 +174,6 @@ bool KvazaarFilter::init()
 
     int enumerator = settings.value(SettingsKey::videoFramerateNumerator).toInt();
     int denominator = settings.value(SettingsKey::videoFramerateDenominator).toInt();
-    
-    if (cameraResolution_.width() < 64 || cameraResolution_.height() < 64 ||
-        enumerator == 0 || denominator == 0)
-    {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Invalid values when initializing a video encoder",
-                                      {"Framerate"},
-                                      {QString::number(enumerator) + "/" + QString::number(denominator)});
-      return false;
-    }
 
     if (!api_)
     {
@@ -228,28 +198,9 @@ bool KvazaarFilter::init()
 
     QString preset = settings.value(SettingsKey::videoPreset).toString().toUtf8();
 
-    //config_->target_bitrate = settings.value(SettingsKey::videoBitrate).toInt();
+    config_->target_bitrate = getHWManager()->getEncoderBitrate(DT_HEVCVIDEO);
+    QSize partResolution = getHWManager()->getVideoResolution();
 
-    int bitrate = getHWManager()->getBitrate(DT_HEVCVIDEO);
-
-    config_->target_bitrate = galleryBitrate(cameraResolution_, bitrate, otherParticipants_);
-    QSize partResolution = galleryResolution(cameraResolution_, otherParticipants_);
-
-    if (settings.value(SettingsKey::sipConferenceMode) == "Speaker-first")
-    {
-      if (settings.value(SettingsKey::sipSpeakerMode).toBool())
-      {
-        partResolution = speakerResolution(cameraResolution_, otherParticipants_);
-        config_->target_bitrate = speakerBitrate(cameraResolution_, bitrate, otherParticipants_);
-      }
-      else
-      {
-        partResolution = listenerResolution(cameraResolution_, otherParticipants_);
-        config_->target_bitrate = listenerBitrate(cameraResolution_, bitrate, otherParticipants_);
-      }
-    }
-
-    currentResolution_ = std::make_pair(partResolution.width(), partResolution.height());
     QString resolutionStr = QString::number(partResolution.width()) + "x" + QString::number(partResolution.height());
 
     QString framerateStr = QString::number(settings.value(SettingsKey::videoFramerateNumerator).toInt()) + "/" +
@@ -373,6 +324,9 @@ bool KvazaarFilter::init()
 
     config_->hash = KVZ_HASH_NONE;
 
+    // This is partial code for a system that is not working. A system was planned that would hot swap encoders with
+    // different resolutions, but since resetting worked well enough, I gave up on that idea
+    currentResolution_ = std::make_pair(partResolution.width(), partResolution.height());
     encoders_[currentResolution_] = api_->encoder_open(config_);
 
     if(!encoders_[currentResolution_])
