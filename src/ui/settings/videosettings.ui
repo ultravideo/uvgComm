@@ -583,7 +583,7 @@
         </widget>
        </item>
        <item row="15" column="0">
-        <widget class="QLabel" name="label_14">
+        <widget class="QLabel" name="oh_parallelization_combo_label">
          <property name="text">
           <string>Parallization Mode</string>
          </property>
@@ -1433,7 +1433,7 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
         </spacer>
        </item>
        <item row="7" column="0">
-        <widget class="QLabel" name="label_14">
+        <widget class="QLabel" name="roi_threads_label">
          <property name="text">
           <string>Max Threads</string>
          </property>
@@ -1555,7 +1555,7 @@ max-merge &lt;integer&gt;  : Maximum number of merge candidates, 1..5
         </layout>
        </item>
        <item row="11" column="0">
-        <widget class="QLabel" name="label_30">
+        <widget class="QLabel" name="kernel_type_label">
          <property name="text">
           <string>Kernel type</string>
          </property>
