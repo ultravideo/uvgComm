@@ -25,7 +25,8 @@ ResourceAllocator::ResourceAllocator():
   otherParticipants_(1),
   bitrateMode_(SINGLE_UPLINK_BITRATE),
   isSpeaker_(false),
-  uploadBandwidth_(0)
+  uploadBandwidth_(0),
+  hybridPrioritization_(100)
 {
   updateSettings();
 }
@@ -89,6 +90,8 @@ void ResourceAllocator::updateSettings()
   conferenceResolution_ = QSize(settingValue(SettingsKey::videoResolutionWidth),
                             settingValue(SettingsKey::videoResolutionHeight));
   videoResolution_ = conferenceResolution_;
+
+  hybridPrioritization_ = settingValue(SettingsKey::sipHybridPriorization);
 }
 
 
@@ -299,6 +302,12 @@ void ResourceAllocator::limitBitrate(int& bitrate, DataType type)
     {
       // limit bandwidth if we cannot send the selected bit rate to all other participants
       bitrate = std::min(bitrate, maxVideoBitrate/otherParticipants_);
+    }
+    else if (bitrateMode_ == HYBRID_UPLINK_BITRATE)
+    {
+      int weightedBitrate = (maxVideoBitrate - maxVideoBitrate/otherParticipants_)*(hybridPrioritization_/100) +
+                            maxVideoBitrate/otherParticipants_;
+      bitrate = std::min(bitrate, weightedBitrate);
     }
     else
     {

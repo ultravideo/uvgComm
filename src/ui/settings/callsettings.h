@@ -56,6 +56,8 @@ public slots:
   void updateBitrateUp(int value);
   void updateBitrateDown(int value);
 
+  void updateHybridPrioritization(int value);
+
 private:
 
   // QSettings -> GUI

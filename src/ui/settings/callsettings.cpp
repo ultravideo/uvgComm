@@ -79,7 +79,8 @@ const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipConferenceMode,
                                     SettingsKey::sipSpeakerMode,
                                     SettingsKey::sipVisibleParticipants,
-                                    SettingsKey::sipTimestampInterval};
+                                    SettingsKey::sipTimestampInterval,
+                                    SettingsKey::sipHybridPriorization};
 
 CallSettings::CallSettings(QWidget* parent):
   QDialog (parent),
@@ -96,6 +97,9 @@ CallSettings::CallSettings(QWidget* parent):
           this, &CallSettings::updateBitrateUp);
   connect(advancedUI_->down_slider, &QSlider::valueChanged,
           this, &CallSettings::updateBitrateDown);
+
+  connect(advancedUI_->hybrid_slider, &QSlider::valueChanged,
+          this, &CallSettings::updateHybridPrioritization);
 }
 
 
@@ -289,6 +293,8 @@ void CallSettings::saveAdvancedSettings()
 
   settings_.setValue(SettingsKey::sipTimestampInterval, advancedUI_->timestamp_spinbox->value());
   settings_.setValue(SettingsKey::sipRecordLatencies, advancedUI_->record_latencies_box->isChecked());
+
+  settings_.setValue(SettingsKey::sipHybridPriorization, advancedUI_->hybrid_slider->value());
 }
 
 
@@ -357,6 +363,8 @@ void CallSettings::restoreAdvancedSettings()
 
     advancedUI_->timestamp_spinbox->setValue(settings_.value(SettingsKey::sipTimestampInterval).toInt());
     advancedUI_->record_latencies_box->setChecked(settings_.value(SettingsKey::sipRecordLatencies).toBool());
+
+    advancedUI_->hybrid_slider->setValue(settings_.value(SettingsKey::sipHybridPriorization).toInt());
   }
   else
   {
@@ -430,3 +438,23 @@ void CallSettings::updateBitrateDown(int value)
     advancedUI_->down_slider->setValue(value);
   }
 }
+
+
+void CallSettings::updateHybridPrioritization(int value)
+{
+  if (value == 0)
+  {
+    advancedUI_->hybrid_explainer->setText("Priorize Latency 100%");
+  }
+  else if (value == 100)
+  {
+    advancedUI_->hybrid_explainer->setText("Priorize Quality 100%");
+  }
+  else
+  {
+    advancedUI_->hybrid_explainer->setText(QString("Priorize Latency %1% - Quality %2%")
+                                                     .arg(100 - value)
+                                                     .arg(value));
+  }
+}
+

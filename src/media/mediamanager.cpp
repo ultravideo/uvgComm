@@ -212,6 +212,7 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     }
 
     bool haveSFU = false;
+    bool haveP2P = false;
 
     for (unsigned int i = 0; i < medias; ++i)
     {
@@ -223,12 +224,26 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
           haveSFU = true;
           break;
         }
+        else if (attribute.type == A_LABEL &&
+                 attribute.value == "P2P")
+        {
+          haveP2P = true;
+          break;
+        }
       }
     }
 
-    if (haveSFU)
+    if (haveSFU && haveP2P)
+    {
+      hwResources_->setArchitectureBitrate(HYBRID_UPLINK_BITRATE);
+    }
+    else if (haveSFU)
     {
       hwResources_->setArchitectureBitrate(SINGLE_UPLINK_BITRATE);
+    }
+    else if (haveP2P)
+    {
+      hwResources_->setArchitectureBitrate(MULTI_UPLINK_BITRATE);
     }
     else
     {

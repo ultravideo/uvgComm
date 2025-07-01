@@ -183,31 +183,40 @@
        <string>Local</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="15" column="0" colspan="2">
-        <spacer name="verticalSpacer_4">
+       <item row="8" column="1">
+        <widget class="QSlider" name="hybrid_slider">
+         <property name="minimum">
+          <number>0</number>
+         </property>
+         <property name="maximum">
+          <number>100</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
          <property name="orientation">
-          <enum>Qt::Vertical</enum>
+          <enum>Qt::Horizontal</enum>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
+         <property name="tickPosition">
+          <enum>QSlider::TicksBelow</enum>
          </property>
-        </spacer>
-       </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="down_label">
-         <property name="text">
-          <string>Down Bandwidth</string>
+         <property name="tickInterval">
+          <number>10</number>
          </property>
         </widget>
        </item>
-       <item row="11" column="0">
-        <widget class="QLabel" name="visible_label">
-         <property name="text">
-          <string>Visible Participants</string>
-         </property>
+       <item row="11" column="1">
+        <widget class="QComboBox" name="layout_box">
+         <item>
+          <property name="text">
+           <string>Gallery</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Speaker-first</string>
+          </property>
+         </item>
         </widget>
        </item>
        <item row="4" column="0">
@@ -217,107 +226,44 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="0">
-        <widget class="QCheckBox" name="auto_accept">
-         <property name="text">
-          <string>Auto-Accept calls</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="1">
-        <widget class="QSlider" name="down_slider">
-         <property name="minimum">
-          <number>0</number>
-         </property>
-         <property name="maximum">
-          <number>10000000</number>
-         </property>
-         <property name="value">
-          <number>10000000</number>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="tickPosition">
-          <enum>QSlider::TicksBelow</enum>
-         </property>
-         <property name="tickInterval">
-          <number>1000000</number>
-         </property>
-        </widget>
-       </item>
-       <item row="9" column="0">
-        <widget class="QLabel" name="layout_label">
-         <property name="text">
-          <string>Conference Layout Mode</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QCheckBox" name="srtp_enabled">
-         <property name="text">
-          <string>Encrypt media using SRTP</string>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0" colspan="2">
-        <widget class="QLabel" name="label">
-         <property name="font">
-          <font>
-           <pointsize>16</pointsize>
-           <bold>true</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Local Settings</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QComboBox" name="role_combo">
-         <item>
-          <property name="text">
-           <string>Client</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Server</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="10" column="1">
-        <widget class="QCheckBox" name="speaker_checkbox">
-         <property name="text">
-          <string>Speaker</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="role_label">
-         <property name="text">
-          <string>Role</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="1">
-        <widget class="QLabel" name="up_value">
-         <property name="text">
-          <string>10.0 mb/s</string>
-         </property>
-        </widget>
-       </item>
        <item row="7" column="1">
         <widget class="QLabel" name="down_value">
          <property name="text">
           <string>10.0 mb/s</string>
+         </property>
+        </widget>
+       </item>
+       <item row="15" column="1">
+        <widget class="QCheckBox" name="record_latencies_box">
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QLabel" name="hybrid_slider_label">
+         <property name="text">
+          <string>Hybrid Algorithm</string>
+         </property>
+        </widget>
+       </item>
+       <item row="13" column="1">
+        <widget class="QSpinBox" name="visible_box">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>25</number>
+         </property>
+         <property name="value">
+          <number>9</number>
+         </property>
+        </widget>
+       </item>
+       <item row="15" column="0">
+        <widget class="QLabel" name="record_latencies_label">
+         <property name="text">
+          <string>Record Latencies</string>
          </property>
         </widget>
        </item>
@@ -343,34 +289,46 @@
          </property>
         </widget>
        </item>
-       <item row="11" column="1">
-        <widget class="QSpinBox" name="visible_box">
+       <item row="12" column="1">
+        <widget class="QCheckBox" name="speaker_checkbox">
+         <property name="text">
+          <string>Speaker</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QCheckBox" name="srtp_enabled">
+         <property name="text">
+          <string>Encrypt media using SRTP</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QSlider" name="down_slider">
          <property name="minimum">
-          <number>1</number>
+          <number>0</number>
          </property>
          <property name="maximum">
-          <number>25</number>
+          <number>10000000</number>
          </property>
          <property name="value">
-          <number>9</number>
+          <number>10000000</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="tickPosition">
+          <enum>QSlider::TicksBelow</enum>
+         </property>
+         <property name="tickInterval">
+          <number>1000000</number>
          </property>
         </widget>
        </item>
-       <item row="9" column="1">
-        <widget class="QComboBox" name="layout_box">
-         <item>
-          <property name="text">
-           <string>Gallery</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Speaker-first</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="8" column="0" colspan="2">
+       <item row="10" column="0" colspan="2">
         <widget class="QLabel" name="label_5">
          <property name="font">
           <font>
@@ -382,31 +340,109 @@
          </property>
         </widget>
        </item>
-       <item row="12" column="0">
-        <widget class="QLabel" name="timestamp_label">
+       <item row="3" column="1">
+        <widget class="QComboBox" name="role_combo">
+         <item>
+          <property name="text">
+           <string>Client</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Server</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="down_label">
          <property name="text">
-          <string>Video Timestamp Interval</string>
+          <string>Down Bandwidth</string>
          </property>
         </widget>
        </item>
-       <item row="12" column="1">
+       <item row="3" column="0">
+        <widget class="QLabel" name="role_label">
+         <property name="text">
+          <string>Role</string>
+         </property>
+        </widget>
+       </item>
+       <item row="14" column="1">
         <widget class="QSpinBox" name="timestamp_spinbox">
          <property name="maximum">
           <number>1000</number>
          </property>
         </widget>
        </item>
-       <item row="13" column="1">
-        <widget class="QCheckBox" name="record_latencies_box">
+       <item row="14" column="0">
+        <widget class="QLabel" name="timestamp_label">
          <property name="text">
-          <string/>
+          <string>Video Timestamp Interval</string>
+         </property>
+        </widget>
+       </item>
+       <item row="17" column="0" colspan="2">
+        <spacer name="verticalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="label">
+         <property name="font">
+          <font>
+           <pointsize>16</pointsize>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Local Settings</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
         </widget>
        </item>
        <item row="13" column="0">
-        <widget class="QLabel" name="record_latencies_label">
+        <widget class="QLabel" name="visible_label">
          <property name="text">
-          <string>Record Latencies</string>
+          <string>Visible Participants</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLabel" name="up_value">
+         <property name="text">
+          <string>10.0 mb/s</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QCheckBox" name="auto_accept">
+         <property name="text">
+          <string>Auto-Accept calls</string>
+         </property>
+        </widget>
+       </item>
+       <item row="11" column="0">
+        <widget class="QLabel" name="layout_label">
+         <property name="text">
+          <string>Conference Layout Mode</string>
+         </property>
+        </widget>
+       </item>
+       <item row="9" column="1">
+        <widget class="QLabel" name="hybrid_explainer">
+         <property name="text">
+          <string>Prioritize Quality 100%</string>
          </property>
         </widget>
        </item>

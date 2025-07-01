@@ -20,7 +20,8 @@ struct StreamInfo
 enum ArchitectureBitrate
 {
   SINGLE_UPLINK_BITRATE,
-  MULTI_UPLINK_BITRATE
+  MULTI_UPLINK_BITRATE,
+  HYBRID_UPLINK_BITRATE
 };
 
 
@@ -95,4 +96,6 @@ private:
   QSize videoResolution_;
 
   int uploadBandwidth_;
+
+  int hybridPrioritization_;
 };
