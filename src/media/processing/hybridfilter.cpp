@@ -252,21 +252,22 @@ double HybridFilter::averageRTT(const std::shared_ptr<LinkInfo>& link) const
 void HybridFilter::reEvaluateConnections()
 {
   const int networkBandwidth = settingValue(SettingsKey::sipUpBandwidth);
-  int connectionBandwidth = settingValue(SettingsKey::videoBitrate)/cnameToLinks_.size();
+  int linkBandwidth = getHWManager()->getEncoderBitrate(output_);
 
   for (auto& slave : slaves_)
   {
-    connectionBandwidth += slave->getBitrate();;
+    linkBandwidth += slave->getBitrate();;
   }
 
-  connectionBandwidth = connectionBandwidth/0.95; // reserve 5% for overhead
+  linkBandwidth = linkBandwidth/0.95; // reserve 5% for overhead
 
-  if (connectionBandwidth <= 0)
+  if (linkBandwidth <= 0)
   {
     Logger::getLogger()->printError(this, "Connection bandwidth is zero or negative, cannot re-evaluate connections");
     return;
   }
-  const int maxP2PConnections = networkBandwidth / connectionBandwidth;
+
+  const int maxP2PConnections = networkBandwidth / linkBandwidth;
 
   // calculate the average RTT for each link
   for (auto& pair : cnameToLinks_)
@@ -288,7 +289,7 @@ void HybridFilter::reEvaluateConnections()
   }
 
   // Otherwise, use P2P where RTT benefit is biggest
-  rankedBandwidthEvaluation(maxP2PConnections, connectionBandwidth);
+  rankedBandwidthEvaluation(maxP2PConnections, linkBandwidth);
 }
 
 
