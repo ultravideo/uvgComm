@@ -6,10 +6,8 @@
 #include "logger.h"
 #include "common.h"
 
-const int MIN_OPUS_BITRATE_BITS = 16000;    // 16 kbit/s
-const int MAX_OPUS_BITRATE_BITS = 24000;    // 24 kbit/s
-const int MIN_HEVC_BITRATE_BITS = 150000;   // 150 kbit/s
-const int MAX_HEVC_BITRATE_BITS = 10000000; // 10 Mbit/s
+
+const int DEFAULT_OPUS_BITRATE_BITS = 24000; // 24 kbps
 
 
 ResourceAllocator::ResourceAllocator():
@@ -19,16 +17,23 @@ ResourceAllocator::ResourceAllocator():
   audioStreams_(),
   videoStreams_(),
   bitrateMutex_(),
-  conferenceVideoBitrate_(MAX_HEVC_BITRATE_BITS),
-  conferenceAudioBitrate_(MAX_OPUS_BITRATE_BITS),
+  conferenceVideoBitrate_(0),
+  conferenceAudioBitrate_(DEFAULT_OPUS_BITRATE_BITS),
   roiQp_(0),
   backgroundQp_(0),
   roiObject_(0),
   otherParticipants_(1),
-  conferenceMode_(""),
-  isSpeaker_(false)
+  bitrateMode_(SINGLE_UPLINK_BITRATE),
+  isSpeaker_(false),
+  uploadBandwidth_(0)
 {
   updateSettings();
+}
+
+
+void ResourceAllocator::setArchitectureBitrate(ArchitectureBitrate bitrate)
+{
+  bitrateMode_ = bitrate;
 }
 
 
@@ -36,11 +41,11 @@ void ResourceAllocator::setParticipants(int otherParticipants)
 {
   otherParticipants_ = otherParticipants;
 
-  if (conferenceMode_ == "Gallery")
+  if (conferenceViewMode_ == "Gallery")
   {
     videoResolution_ = galleryResolution(conferenceResolution_, otherParticipants_);
   }
-  else if (conferenceMode_ == "Speaker")
+  else if (conferenceViewMode_ == "Speaker")
   {
     if (isSpeaker_)
     {
@@ -53,7 +58,7 @@ void ResourceAllocator::setParticipants(int otherParticipants)
   }
   else
   {
-    Logger::getLogger()->printProgramError(this, "Unknown conference mode: " + conferenceMode_);
+    Logger::getLogger()->printProgramError(this, "Unknown conference mode: " + conferenceViewMode_);
   }
 }
 
@@ -78,8 +83,9 @@ void ResourceAllocator::updateSettings()
   roiQp_ = settingValue(SettingsKey::roiQp);
   backgroundQp_ = settingValue(SettingsKey::backgroundQp);
   roiObject_ = settingValue(SettingsKey::roiObject);
-  conferenceMode_ = settingString(SettingsKey::sipConferenceMode);
+  conferenceViewMode_ = settingString(SettingsKey::sipConferenceMode);
   isSpeaker_ = settingBool(SettingsKey::sipSpeakerMode);
+  uploadBandwidth_ = settingValue(SettingsKey::sipUpBandwidth);
   conferenceResolution_ = QSize(settingValue(SettingsKey::videoResolutionWidth),
                             settingValue(SettingsKey::videoResolutionHeight));
   videoResolution_ = conferenceResolution_;
@@ -210,11 +216,13 @@ int ResourceAllocator::getEncoderBitrate(DataType type)
   }
   else if (type == DT_HEVCVIDEO)
   {
-    if (conferenceMode_ == "Gallery")
+    bitrate = conferenceVideoBitrate_;
+
+    if (conferenceViewMode_ == "Gallery")
     {
       bitrate = galleryBitrate(conferenceResolution_, bitrate, otherParticipants_);
     }
-    else if (conferenceMode_ == "Speaker")
+    else if (conferenceViewMode_ == "Speaker")
     {
       if (isSpeaker_)
       {
@@ -227,11 +235,13 @@ int ResourceAllocator::getEncoderBitrate(DataType type)
     }
     else
     {
-      Logger::getLogger()->printProgramError(this, "Unknown conference mode: " + conferenceMode_);
+      Logger::getLogger()->printProgramError(this, "Unknown conference mode: " + conferenceViewMode_);
       bitrate = conferenceVideoBitrate_;
     }
-
   }
+
+  limitBitrate(bitrate, type);
+
   bitrateMutex_.unlock();
 
   return bitrate;
@@ -246,8 +256,7 @@ std::shared_ptr<StreamInfo> ResourceAllocator::getStreamInfo(uint32_t sessionID,
   {
     if (audioStreams_.find(sessionID) == audioStreams_.end())
     {
-      audioStreams_[sessionID] = std::shared_ptr<StreamInfo>(new StreamInfo{0, 0,
-                                                                            MAX_OPUS_BITRATE_BITS});
+      audioStreams_[sessionID] = std::shared_ptr<StreamInfo>(new StreamInfo{0, 0, 0});
     }
 
     pointer = audioStreams_[sessionID];
@@ -256,8 +265,7 @@ std::shared_ptr<StreamInfo> ResourceAllocator::getStreamInfo(uint32_t sessionID,
   {
     if (videoStreams_.find(sessionID) == videoStreams_.end())
     {
-      videoStreams_[sessionID] = std::shared_ptr<StreamInfo>(new StreamInfo{0, 0,
-                                                                            MAX_HEVC_BITRATE_BITS});
+      videoStreams_[sessionID] = std::shared_ptr<StreamInfo>(new StreamInfo{0, 0, 0});
     }
 
     pointer = videoStreams_[sessionID];
@@ -275,25 +283,32 @@ void ResourceAllocator::limitBitrate(int& bitrate, DataType type)
 {
   if (type == DT_OPUSAUDIO)
   {
-    if (bitrate < MIN_OPUS_BITRATE_BITS)
-    {
-      bitrate = MIN_OPUS_BITRATE_BITS;
-    }
-    else if (bitrate > MAX_OPUS_BITRATE_BITS)
-    {
-      bitrate = MAX_OPUS_BITRATE_BITS;
-    }
+    bitrate = DEFAULT_OPUS_BITRATE_BITS;
   }
   else if (type == DT_HEVCVIDEO)
   {
-    if (bitrate < MIN_HEVC_BITRATE_BITS)
+    int maxOverallBandwidth = uploadBandwidth_ * 0.95; // leave room for overhead
+    int maxVideoBitrate = maxOverallBandwidth - DEFAULT_OPUS_BITRATE_BITS; // reduce audio the get video
+
+    if (bitrateMode_ == SINGLE_UPLINK_BITRATE)
     {
-      bitrate = MIN_HEVC_BITRATE_BITS;
+      // limit bandwidth if we cannot send even one copy of our selected bitrate
+      bitrate = std::min(bitrate, maxVideoBitrate);
     }
-    else if (bitrate > MAX_HEVC_BITRATE_BITS)
+    else if (bitrateMode_ == MULTI_UPLINK_BITRATE)
     {
-      bitrate = MAX_HEVC_BITRATE_BITS;
+      // limit bandwidth if we cannot send the selected bit rate to all other participants
+      bitrate = std::min(bitrate, maxVideoBitrate/otherParticipants_);
     }
+    else
+    {
+      Logger::getLogger()->printProgramError(this, "Unknown bitrate mode: " + QString::number(bitrateMode_));
+      bitrate = uploadBandwidth_; // default fallback
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printUnimplemented(this, "Resource allocator tries to adjust unimplemented bit rate");
   }
 }
 

@@ -16,11 +16,22 @@ struct StreamInfo
   int bitrate;
 };
 
+
+enum ArchitectureBitrate
+{
+  SINGLE_UPLINK_BITRATE,
+  MULTI_UPLINK_BITRATE
+};
+
+
 class ResourceAllocator : public QObject
 {
   Q_OBJECT
 public:
   ResourceAllocator();
+
+  // determines how we limit the maximum bitrate
+  void setArchitectureBitrate(ArchitectureBitrate bitrate);
 
   void setParticipants(int otherParticipants);
 
@@ -76,9 +87,12 @@ private:
 
   int otherParticipants_;
 
-  QString conferenceMode_;
+  ArchitectureBitrate bitrateMode_;
+  QString conferenceViewMode_;
   bool isSpeaker_;
 
   QSize conferenceResolution_;
   QSize videoResolution_;
+
+  int uploadBandwidth_;
 };

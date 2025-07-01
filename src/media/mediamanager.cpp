@@ -145,6 +145,7 @@ void MediaManager::newParticipant(uint32_t sessionID,
   return modifyParticipant(sessionID, peerInfo, localInfo, iceController, followOurSDP);
 }
 
+
 void MediaManager::modifyParticipant(uint32_t sessionID,
                                      std::shared_ptr<SDPMessageInfo> peerInfo,
                                      const std::shared_ptr<SDPMessageInfo> localInfo,
@@ -208,6 +209,31 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
     {
       Logger::getLogger()->printProgramError(this, "Different amount of medias in local vs peer");
       medias = peerInfo->media.size();
+    }
+
+    bool haveSFU = false;
+
+    for (unsigned int i = 0; i < medias; ++i)
+    {
+      for(auto& attribute : localInfo->media.at(i).valueAttributes)
+      {
+        if (attribute.type == A_LABEL &&
+            attribute.value == "SFU")
+        {
+          haveSFU = true;
+          break;
+        }
+      }
+    }
+
+    if (haveSFU)
+    {
+      hwResources_->setArchitectureBitrate(SINGLE_UPLINK_BITRATE);
+    }
+    else
+    {
+      // no sfu available, we must send our media to all other participants
+      hwResources_->setArchitectureBitrate(MULTI_UPLINK_BITRATE);
     }
 
     for (unsigned int i = 0; i < medias; ++i)
