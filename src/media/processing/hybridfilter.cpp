@@ -335,6 +335,7 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> p2p, std::shared
   }
 }
 
+
 void HybridFilter::fullBandwidthEvaluation()
 {
   bool needSFU = false;
@@ -361,14 +362,14 @@ void HybridFilter::fullBandwidthEvaluation()
         {
           Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Switching to P2P connection",
                                           {"CNAME", "Expected latency reduction"},
-                                          {pair.first, QString::number(pair.second.sfu->latestsRtt - pair.second.p2p->latestsRtt)});
+                                          {pair.first, QString::number(pair.second.sfu->latestsRtt - pair.second.p2p->latestsRtt) + " ms"});
           delayedSwitchToP2P(pair.second.p2p, pair.second.sfu);
         }
       }
       else
       {
         Logger::getLogger()->printWarning(this, "SFU connection is faster for some reason than P2P");
-        if (!pair.second.sfu->active)
+        if (pair.second.p2p->active)
         {
           delayedSwitchToSFU(pair.second.p2p, pair.second.sfu);
         }
