@@ -476,7 +476,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
     inputPic->roi.roi_array = input->vInfo->roi.data.release();
   }
 
-  encodingFrames_.push_front({std::move(input), inputPic->roi.roi_array});
+  encodingFrames_.push_front({std::move(input), inputPic, inputPic->roi.roi_array});
 
   api_->encoder_encode(encoders_[currentResolution_], inputPic,
                        &data_out, &len_out,
@@ -501,6 +501,11 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
 {
   FrameInfo info = std::move(encodingFrames_.back());
   encodingFrames_.pop_back();
+
+  if (info.inputPic)
+  {
+    //calculate_psnr(info.inputPic, recon_pic);
+  }
 
   if (info.roi_array)
   {
@@ -593,4 +598,49 @@ void KvazaarFilter::sendEncodedFrame(std::unique_ptr<Data> input,
   input->data_size = dataWritten;
   input->data = std::move(hevc_frame);
   sendOutput(std::move(input));
+}
+
+
+double KvazaarFilter::calculate_psnr(const kvz_picture *orig, const kvz_picture *recon)
+{
+  const int max_val = 255;
+  double mse_y = 0.0, mse_u = 0.0, mse_v = 0.0;
+
+  int width = orig->width;
+  int height = orig->height;
+
+  // Luma (Y)
+  int y_size = width * height;
+  for (int i = 0; i < y_size; ++i) {
+    int diff = orig->y[i] - recon->y[i];
+    mse_y += diff * diff;
+  }
+  mse_y /= y_size;
+
+  // Chroma (U and V), subsampled (4:2:0 assumed)
+  int uv_width = width / 2;
+  int uv_height = height / 2;
+  int uv_size = uv_width * uv_height;
+
+  for (int i = 0; i < uv_size; ++i) {
+    int diff_u = orig->u[i] - recon->u[i];
+    int diff_v = orig->v[i] - recon->v[i];
+    mse_u += diff_u * diff_u;
+    mse_v += diff_v * diff_v;
+  }
+  mse_u /= uv_size;
+  mse_v /= uv_size;
+
+  double psnr_y = (mse_y == 0) ? INFINITY : 10.0 * log10((max_val * max_val) / mse_y);
+  double psnr_u = (mse_u == 0) ? INFINITY : 10.0 * log10((max_val * max_val) / mse_u);
+  double psnr_v = (mse_v == 0) ? INFINITY : 10.0 * log10((max_val * max_val) / mse_v);
+
+  //printf("PSNR Y: %.2f dB, U: %.2f dB, V: %.2f dB\n", psnr_y, psnr_u, psnr_v);
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "PSNR",
+                                   {"Y", "U", "V"},
+                                   {QString::number(psnr_y, 'f', 2),
+                                    QString::number(psnr_u, 'f', 2),
+                                    QString::number(psnr_v, 'f', 2)});
+  return psnr_y; // or return average if preferred
 }

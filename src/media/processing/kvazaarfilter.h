@@ -52,6 +52,8 @@ private:
 
   void reInitializeKvazaar();
 
+  double calculate_psnr(const kvz_picture *orig, const kvz_picture *recon);
+
   const kvz_api *api_;
   kvz_config *config_;
 
@@ -68,6 +70,7 @@ private:
   struct FrameInfo
   {
     std::unique_ptr<Data> data;
+    kvz_picture *inputPic;
     int8_t * roi_array;
   };
 
