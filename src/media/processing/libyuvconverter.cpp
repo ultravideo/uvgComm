@@ -32,12 +32,16 @@ void LibYUVConverter::changeResolution()
 
   resolutionMutex_.lock();
 
-  targetResolution_ = getHWManager()->getVideoResolution();
+  QSize resolution = getHWManager()->getVideoResolution();
 
-  if (targetResolution_.width() == 0 ||
-      targetResolution_.height() == 0)
+  if (resolution.width() == 0 ||
+      resolution.height() == 0)
   {
     Logger::getLogger()->printError(this, "Invalid libyuv filter resolution");
+  }
+  else
+  {
+    targetResolution_ = resolution;
   }
 
   resolutionMutex_.unlock();
