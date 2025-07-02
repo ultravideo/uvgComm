@@ -201,9 +201,11 @@ void HybridFilter::sendDummies()
 {
   // the point of dummy is to send a harmless packet via all inactive media paths so they send RTCP SR
   uint8_t dummy_packet[] = {
-      0x00, 0x00, 0x00, 0x01, // 4-byte start code
-      0x27,                   // NAL unit type 39 (SEI, non-IDR)
-      0x80                    // Dummy SEI payload (incomplete, harmless)
+      0x00, 0x00, 0x00, 0x01,
+      0x4E,
+      0x7B, 0x01,
+      0x00,
+      0x80
   };
 
   std::unique_ptr<Data> newDummy = initializeData(output_, DS_LOCAL);
@@ -368,7 +370,9 @@ void HybridFilter::fullBandwidthEvaluation()
       }
       else
       {
-        Logger::getLogger()->printWarning(this, "SFU connection is faster for some reason than P2P");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Switching to SFU connection",
+                                        {"CNAME", "Expected latency reduction"},
+                                        {pair.first, QString::number(pair.second.p2p->latestsRtt - pair.second.sfu->latestsRtt) + " ms"});
         if (pair.second.p2p->active)
         {
           delayedSwitchToSFU(pair.second.p2p, pair.second.sfu);
