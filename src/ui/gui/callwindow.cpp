@@ -34,6 +34,7 @@ CallWindow::~CallWindow()
   delete ui_;
 }
 
+
 VideoWidget* CallWindow::getSelfView() const
 {
   return ui_->SelfView;
@@ -347,6 +348,12 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
   int index = 0;
   for (const auto& [cname, layoutID] : sessionCnameToLayoutID_[sessionID])
   {
+    if (sources.find(cname) == sources.end())
+    {
+      Logger::getLogger()->printError(this, "CNAME not found in sources", "CNAME", cname);
+      continue;  // Skip if CNAME is not in sources
+    }
+
     const MediaSource& source = sources.at(cname);  // We assume cname is still valid
     if (source.videoSSRCs.empty()) continue;
 
@@ -445,6 +452,13 @@ void CallWindow::removeParticipant(uint32_t sessionID)
   }
 
   contacts_.setAccessible(sessionID);
+
+  if (sessionCnameToLayoutID_.find(sessionID) != sessionCnameToLayoutID_.end())
+  {
+    // remove all cname mappings for this session
+    sessionCnameToLayoutID_[sessionID].clear();
+    sessionCnameToLayoutID_.erase(sessionID);
+  }
 }
 
 
@@ -481,7 +495,13 @@ void CallWindow::removeWithMessage(uint32_t sessionID, QString message,
 
     removeLayoutTimer_.setSingleShot(true);
     removeLayoutTimer_.start(timeout);
+  }
 
+  if (sessionCnameToLayoutID_.find(sessionID) != sessionCnameToLayoutID_.end())
+  {
+    // remove all cname mappings for this session
+    sessionCnameToLayoutID_[sessionID].clear();
+    sessionCnameToLayoutID_.erase(sessionID);
   }
 }
 
@@ -660,6 +680,8 @@ void CallWindow::cleanUp()
   {
     restoreCallUI();
   }
+
+  sessionCnameToLayoutID_.clear();
 }
 
 
