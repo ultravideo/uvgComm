@@ -521,14 +521,13 @@ bool findCNAMEs(const MediaInfo &media, std::vector<QString> &cnames)
   {
     for (const auto &attribute : attributeList)
     {
-      if (attribute.type == A_CNAME)
+      if (attribute.type == A_CNAME && uniqueCnames.find(attribute.value) == uniqueCnames.end())
       {
-        uniqueCnames.insert(attribute.value);
+        cnames.push_back(attribute.value);
       }
     }
   }
 
-  cnames.assign(uniqueCnames.begin(), uniqueCnames.end());
   return !cnames.empty();
 }
 

@@ -59,6 +59,11 @@ void HybridFilter::addLink(LinkType type,
     {
       Logger::getLogger()->printNormal("Hybrid", "P2P link already exists for cname: " + cname);
     }
+    else
+    {
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, "Hybrid", "Adding P2P link", {"CNAME", "SSRC"},
+                                        {cname, QString::number(ssrc)});
+    }
 
     pair.p2p = link;
     pair.p2p->active = false; // we use SFU only at the start
@@ -363,16 +368,18 @@ void HybridFilter::fullBandwidthEvaluation()
         if (!pair.second.p2p->active)
         {
           Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Switching to P2P connection",
-                                          {"CNAME", "Expected latency reduction"},
-                                          {pair.first, QString::number(pair.second.sfu->latestsRtt - pair.second.p2p->latestsRtt) + " ms"});
+                                          {"CNAME", "Expected latency reduction", "SSRC"},
+                                          {pair.first, QString::number(pair.second.sfu->latestsRtt - pair.second.p2p->latestsRtt) + " ms",
+                                           QString::number(pair.second.p2p->ssrc)});
           delayedSwitchToP2P(pair.second.p2p, pair.second.sfu);
         }
       }
       else
       {
         Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Switching to SFU connection",
-                                        {"CNAME", "Expected latency reduction"},
-                                        {pair.first, QString::number(pair.second.p2p->latestsRtt - pair.second.sfu->latestsRtt) + " ms"});
+                                        {"CNAME", "Expected latency reduction", "SSRC"},
+                                        {pair.first, QString::number(pair.second.p2p->latestsRtt - pair.second.sfu->latestsRtt) + " ms",
+                                         QString::number(pair.second.sfu->ssrc)});
         if (pair.second.p2p->active)
         {
           delayedSwitchToSFU(pair.second.p2p, pair.second.sfu);
