@@ -104,6 +104,13 @@ void UvgRTPSender::rtt(uint32_t localSSRC, uint32_t remoteSSRC, double time)
 {
   //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "RTT received",
   //                                {"Time (ms)", "SSRC"}, {QString::number(time, 'f', 2), QString::number(remoteSSRC)});
+
+  if (time < 0 || time > 5000) // we assume max 5 seconds
+  {
+    Logger::getLogger()->printError("Hybrid", "Invalid RTT value: " + QString::number(time));
+    return;
+  }
+
   emit rttReceived(remoteSSRC, time);
 }
 
