@@ -502,11 +502,6 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   FrameInfo info = std::move(encodingFrames_.back());
   encodingFrames_.pop_back();
 
-  if (info.inputPic)
-  {
-    //calculate_psnr(info.inputPic, recon_pic);
-  }
-
   if (info.roi_array)
   {
     delete info.roi_array;
@@ -578,12 +573,20 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
     writer += chunk->len;
     dataWritten += chunk->len;
   }
+
+  float psnr  = -1.0;
+
+  if (info.inputPic && recon_pic)
+  {
+    psnr = calculate_psnr(info.inputPic, recon_pic);
+  }
+
   api_->chunk_free(data_out);
   api_->picture_free(recon_pic);
   
   uint32_t delay = QDateTime::currentMSecsSinceEpoch() - info.data->creationTimestamp;
-  getStats()->encodingDelay("video", delay);
-  getStats()->addEncodedPacket("video", len_out);
+
+  getStats()->encodedVideoFrame(len_out, delay, QSize(currentResolution_.first, currentResolution_.second), psnr);
 
   // send last packet reusing input structure
   sendEncodedFrame(std::move(info.data), std::move(hevc_frame), dataWritten);
@@ -636,11 +639,13 @@ double KvazaarFilter::calculate_psnr(const kvz_picture *orig, const kvz_picture 
   double psnr_v = (mse_v == 0) ? INFINITY : 10.0 * log10((max_val * max_val) / mse_v);
 
   //printf("PSNR Y: %.2f dB, U: %.2f dB, V: %.2f dB\n", psnr_y, psnr_u, psnr_v);
-
+/*
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "PSNR",
                                    {"Y", "U", "V"},
                                    {QString::number(psnr_y, 'f', 2),
                                     QString::number(psnr_u, 'f', 2),
                                     QString::number(psnr_v, 'f', 2)});
+*/
+
   return psnr_y; // or return average if preferred
 }

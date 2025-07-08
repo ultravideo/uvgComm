@@ -106,16 +106,6 @@ void DisplayFilter::process()
                                horizontalMirroring_);
         }
       }
-
-
-      if(sessionID_ != 1111 &&
-         input->creationTimestamp != 0 &&
-         input->presentationTimestamp != 0)
-      {
-        int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->creationTimestamp;
-        //getStats()->decodingDelay("Video", delay);
-        getStats()->totalDelay(sessionID_, "Video", delay);
-      }
     }
 
     input = getInput();

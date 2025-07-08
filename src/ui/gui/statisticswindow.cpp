@@ -141,41 +141,6 @@ void StatisticsWindow::closeEvent(QCloseEvent *event)
 }
 
 
-void StatisticsWindow::videoInfo(double framerate, QSize resolution)
-{
-  // done only once, so setting ui directly is ok.
-  ui_->value_framerate->setText( QString::number(framerate, 'g', FPSPRECISION)+" fps");
-  ui_->value_resolution->setText( QString::number(resolution.width()) + "x"
-                          + QString::number(resolution.height()));
-
-  // set max framerate as this. Set the y-line every 5 fps, 10 fps if fps is over 60
-  if (framerate <= 60)
-  {
-    ui_->v_framerate_chart->init(framerate, framerate/5, false,
-                                 CHARTVALUES, "Frame rates (fps)");
-  }
-  else
-  {
-    ui_->v_framerate_chart->init(framerate, framerate/10, false,
-                                 CHARTVALUES, "Frame rates (fps)");
-  }
-}
-
-
-void StatisticsWindow::audioInfo(uint32_t sampleRate, uint16_t channelCount)
-{
-  if(sampleRate == 0 || sampleRate == 4294967295)
-  {
-    ui_->value_channels->setText("No Audio");
-    ui_->value_samplerate->setText("No Audio");
-  }
-  else
-  {
-    ui_->value_channels->setText(QString::number(channelCount));
-    ui_->value_samplerate->setText(QString::number(sampleRate) + " Hz");
-  }
-}
-
 void StatisticsWindow::addSession(uint32_t sessionID)
 {
   if (sessions_.find(sessionID) != sessions_.end())
@@ -194,33 +159,138 @@ void StatisticsWindow::addSession(uint32_t sessionID)
                           -1, -1, -1, {}};
 }
 
-
-void StatisticsWindow::incomingMedia(uint32_t sessionID, QString name)
+void StatisticsWindow::removeSession(uint32_t sessionID)
 {
-  int delayID = ui_->v_delay_chart->addLine(name);
-  ui_->a_delay_chart->addLine(name);
+  // check that peer exists
+  if (sessions_.find(sessionID) == sessions_.end())
+  {
+    return;
+  }
 
-  int perfID= ui_->v_bitrate_chart->addLine(name);
-  ui_->a_bitrate_chart->addLine(name);
-  ui_->v_framerate_chart->addLine(name);
+  Logger::getLogger()->printNormal(this, "Removing session from statistics",
+                                   "SessionID", QString::number(sessionID));
+
+  Logger::getLogger()->printNormal(this, "Removing ICE in/out table rows for this session",
+                                   "Amount of rows", QString::number(sessions_[sessionID].iceIndexes.size()));
 
   sessionMutex_.lock();
-  sessions_[sessionID].delayGraphIndex = delayID;
-  sessions_[sessionID].performanceGraphIndex = perfID;
+  // remove rows from ICE results
+  for (auto& index : sessions_[sessionID].iceIndexes)
+  {
+    if (ui_->table_incoming->rowCount() <= index ||
+        ui_->table_outgoing->rowCount() <= index)
+    {
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, this, "Invalid ICE index in stats",
+                                      {"Index", "Table size"},
+                                      {QString::number(index),
+                                       QString::number(ui_->table_incoming->rowCount())});
+    }
+    else
+    {
+      // remove row from UI
+      ui_->table_incoming->removeRow(index);
+      ui_->table_outgoing->removeRow(index);
+      updatePerformanceIndexes(index);
+    }
+  }
+
+  sessions_[sessionID].iceIndexes.clear();
+
+  // remove line from all charts. Charts automatically adjust their lineID:s
+  // after removal
+  if (sessions_[sessionID].performanceGraphIndex >= 0)
+  {
+    ui_->v_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+    ui_->a_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+  }
+  if (sessions_[sessionID].delayGraphIndex >= 0)
+  {
+    ui_->v_delay_chart->removeLine(sessions_[sessionID].delayGraphIndex);
+    ui_->a_delay_chart->removeLine(sessions_[sessionID].delayGraphIndex);
+  }
+  if (sessions_[sessionID].performanceGraphIndex >= 0)
+  {
+    ui_->v_framerate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
+  }
+
+  // these do not have local so -1 is needed
+  if (sessions_[sessionID].deliveryGraphIndex >= 0)
+  {
+    ui_->v_jitter->removeLine(sessions_[sessionID].deliveryGraphIndex);
+    ui_->a_jitter->removeLine(sessions_[sessionID].deliveryGraphIndex);
+    ui_->a_lost->removeLine(sessions_[sessionID].deliveryGraphIndex);
+    ui_->v_lost->removeLine(sessions_[sessionID].deliveryGraphIndex);
+  }
+
+  // TODO: There is still unreleased memory in session!!
+
+  sessions_.erase(sessionID);
+
   sessionMutex_.unlock();
 }
 
 
-void StatisticsWindow::outgoingMedia(uint32_t sessionID, QString name)
+void StatisticsWindow::addParticipant(uint32_t sessionID, const QString& cname)
 {
-  int lineID = ui_->v_jitter->addLine(name);
-  ui_->a_jitter->addLine(name);
-  ui_->v_lost->addLine(name);
-  ui_->a_lost->addLine(name);
+  int delayID = ui_->v_delay_chart->addLine(cname);
+  ui_->a_delay_chart->addLine(cname);
+
+  int perfID= ui_->v_bitrate_chart->addLine(cname);
+  ui_->a_bitrate_chart->addLine(cname);
+  ui_->v_framerate_chart->addLine(cname);
+
+  int lineID = ui_->v_jitter->addLine(cname);
+  ui_->a_jitter->addLine(cname);
+  ui_->v_lost->addLine(cname);
+  ui_->a_lost->addLine(cname);
 
   sessionMutex_.lock();
+  sessions_[sessionID].delayGraphIndex = delayID;
+  sessions_[sessionID].performanceGraphIndex = perfID;
   sessions_[sessionID].deliveryGraphIndex = lineID;
   sessionMutex_.unlock();
+}
+
+
+void  StatisticsWindow::removeParticipant(uint32_t sessionID, const QString& cname)
+{
+  // TODO
+}
+
+
+void StatisticsWindow::audioInfo(uint32_t sessionID, uint32_t bitrate, uint32_t sampleRate, uint16_t channelCount)
+{
+  if(sampleRate == 0 || sampleRate == 4294967295)
+  {
+    ui_->value_channels->setText("No Audio");
+    ui_->value_samplerate->setText("No Audio");
+  }
+  else
+  {
+    ui_->value_channels->setText(QString::number(channelCount));
+    ui_->value_samplerate->setText(QString::number(sampleRate) + " Hz");
+  }
+}
+
+
+void StatisticsWindow::videoInfo(uint32_t sessionID, uint32_t bitrate, double framerate, QSize resolution)
+{
+  // done only once, so setting ui directly is ok.
+  ui_->value_framerate->setText( QString::number(framerate, 'g', FPSPRECISION)+" fps");
+  ui_->value_resolution->setText( QString::number(resolution.width()) + "x"
+                          + QString::number(resolution.height()));
+
+  // set max framerate as this. Set the y-line every 5 fps, 10 fps if fps is over 60
+  if (framerate <= 60)
+  {
+    ui_->v_framerate_chart->init(framerate, framerate/5, false,
+                                 CHARTVALUES, "Frame rates (fps)");
+  }
+  else
+  {
+    ui_->v_framerate_chart->init(framerate, framerate/10, false,
+                                 CHARTVALUES, "Frame rates (fps)");
+  }
 }
 
 
@@ -253,27 +323,59 @@ void StatisticsWindow::selectedICECandidate(uint32_t sessionID, QTableWidget* ta
   }
 }
 
-
-QString StatisticsWindow::combineList(QStringList &list)
+void StatisticsWindow::encodedAudioFrame(uint32_t size, uint32_t encodingTime)
 {
-  QString listed = "";
+  updateValueBuffer(audioEncDelay_,
+                    audioEncDelayIndex_, encodingTime);
 
-  for (int i = list.size() - 1; i >= 0; --i)
-  {
-    // don't record anything if we have to of the same strings
-    if (i > 0 && list[i] != list[i - 1])
-    {
-      listed += list[i];
-      listed += ", ";
-    }
-    else if (i == 0)
-    {
-      listed += list[i];
-    }
-  }
-
-  return listed;
+  updateValueBuffer(audioPackets_, audioIndex_, size);
 }
+
+
+void StatisticsWindow::encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution, float psnr)
+{
+  updateValueBuffer(videoEncDelay_,
+                    videoEncDelayIndex_, encodingTime);
+
+  updateValueBuffer(videoPackets_, videoIndex_, size);
+}
+
+
+void StatisticsWindow::decodedAudioFrame(QString cname, uint32_t size, uint32_t decodingTime)
+{
+  updateValueBuffer(audioDecDelay_,
+                    audioDecDelayIndex_, decodingTime);
+}
+
+
+void StatisticsWindow::decodedVideoFrame(QString cname, uint32_t size, uint32_t decodingTime, QSize resolution)
+{
+  updateValueBuffer(videoDecDelay_,
+                    videoDecDelayIndex_, decodingTime);
+}
+
+
+void StatisticsWindow::audioLatency(uint32_t sessionID, QString cname, int64_t latency)
+{
+  Q_ASSERT(sessions_.find(sessionID) != sessions_.end());
+  updateValueBuffer(sessions_.at(sessionID).audioDelay,
+                    sessions_.at(sessionID).audioDelayIndex, latency);
+
+  updateValueBuffer(sessions_.at(sessionID).pAudioPackets,
+                    sessions_.at(sessionID).pAudioIndex, 0);
+}
+
+
+void StatisticsWindow::videoLatency(uint32_t sessionID, QString cname, int64_t latency)
+{
+  Q_ASSERT(sessions_.find(sessionID) != sessions_.end());
+  updateValueBuffer(sessions_.at(sessionID).videoDelay,
+                    sessions_.at(sessionID).videoDelayIndex, latency);
+
+  updateValueBuffer(sessions_.at(sessionID).pVideoPackets,
+                    sessions_.at(sessionID).pVideoIndex, 0);
+}
+
 
 uint32_t StatisticsWindow::addFilter(QString type, QString identifier, uint64_t TID)
 {
@@ -334,75 +436,6 @@ void StatisticsWindow::removeFilter(uint32_t id)
 }
 
 
-void StatisticsWindow::removeSession(uint32_t sessionID)
-{
-  // check that peer exists
-  if (sessions_.find(sessionID) == sessions_.end())
-  {
-    return;
-  }
-
-  Logger::getLogger()->printNormal(this, "Removing session from statistics",
-                                   "SessionID", QString::number(sessionID));
-
-  Logger::getLogger()->printNormal(this, "Removing ICE in/out table rows for this session",
-                                   "Amount of rows", QString::number(sessions_[sessionID].iceIndexes.size()));
-
-  sessionMutex_.lock();
-  // remove rows from ICE results
-  for (auto& index : sessions_[sessionID].iceIndexes)
-  {
-    if (ui_->table_incoming->rowCount() <= index ||
-        ui_->table_outgoing->rowCount() <= index)
-    {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, this, "Invalid ICE index in stats",
-                                               {"Index", "Table size"},
-                                      {QString::number(index),
-                                       QString::number(ui_->table_incoming->rowCount())});
-    }
-    else
-    {
-      // remove row from UI
-      ui_->table_incoming->removeRow(index);
-      ui_->table_outgoing->removeRow(index);
-      updatePerformanceIndexes(index);
-    }
-  }
-
-  sessions_[sessionID].iceIndexes.clear();
-
-  // remove line from all charts. Charts automatically adjust their lineID:s
-  // after removal
-  if (sessions_[sessionID].performanceGraphIndex >= 0)
-  {
-    ui_->v_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
-    ui_->a_bitrate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
-  }
-  if (sessions_[sessionID].delayGraphIndex >= 0)
-  {
-    ui_->v_delay_chart->removeLine(sessions_[sessionID].delayGraphIndex);
-    ui_->a_delay_chart->removeLine(sessions_[sessionID].delayGraphIndex);
-  }
-  if (sessions_[sessionID].performanceGraphIndex >= 0)
-  {
-    ui_->v_framerate_chart->removeLine(sessions_[sessionID].performanceGraphIndex);
-  }
-
-  // these do not have local so -1 is needed
-  if (sessions_[sessionID].deliveryGraphIndex >= 0)
-  {
-    ui_->v_jitter->removeLine(sessions_[sessionID].deliveryGraphIndex);
-    ui_->a_jitter->removeLine(sessions_[sessionID].deliveryGraphIndex);
-    ui_->a_lost->removeLine(sessions_[sessionID].deliveryGraphIndex);
-    ui_->v_lost->removeLine(sessions_[sessionID].deliveryGraphIndex);
-  }
-
-  // TODO: There is still unreleased memory in session!!
-
-  sessions_.erase(sessionID);
-
-  sessionMutex_.unlock();
-}
 
 
 void StatisticsWindow::updatePerformanceIndexes(int removedIndex)
@@ -417,86 +450,6 @@ void StatisticsWindow::updatePerformanceIndexes(int removedIndex)
         --index;
       }
     }
-  }
-}
-
-
-void StatisticsWindow::encodingDelay(QString type, uint32_t delay)
-{
-  if(type == "video" || type == "Video")
-  {
-    updateValueBuffer(videoEncDelay_,
-                      videoEncDelayIndex_, delay);
-  }
-  else if(type == "audio" || type == "Audio")
-  {
-    updateValueBuffer(audioEncDelay_,
-                      audioEncDelayIndex_, delay);
-  }
-}
-
-
-void StatisticsWindow::decodingDelay(QString type, uint32_t delay)
-{
-  if(type == "video" || type == "Video")
-  {
-    updateValueBuffer(videoDecDelay_,
-                      videoDecDelayIndex_, delay);
-  }
-  else if(type == "audio" || type == "Audio")
-  {
-    updateValueBuffer(audioDecDelay_,
-                      audioDecDelayIndex_, delay);
-  }
-}
-
-
-void StatisticsWindow::totalDelay(uint32_t sessionID, QString type, int32_t delay)
-{
-  if(sessions_.find(sessionID) != sessions_.end())
-  {
-    if(type == "video" || type == "Video")
-    {
-      updateValueBuffer(sessions_.at(sessionID).videoDelay,
-                        sessions_.at(sessionID).videoDelayIndex, delay);
-    }
-    else if(type == "audio" || type == "Audio")
-    {
-      updateValueBuffer(sessions_.at(sessionID).audioDelay,
-                        sessions_.at(sessionID).audioDelayIndex, delay);
-    }
-  }
-}
-
-
-void StatisticsWindow::presentPackage(uint32_t sessionID, QString type)
-{
-  Q_ASSERT(sessions_.find(sessionID) != sessions_.end());
-  if(sessions_.find(sessionID) != sessions_.end())
-  {
-    if(type == "video" || type == "Video")
-    {
-      updateValueBuffer(sessions_.at(sessionID).pVideoPackets,
-                            sessions_.at(sessionID).pVideoIndex, 0);
-    }
-    else if (type == "audio" || type == "Audio")
-    {
-      updateValueBuffer(sessions_.at(sessionID).pAudioPackets,
-                            sessions_.at(sessionID).pAudioIndex, 0);
-    }
-  }
-}
-
-
-void StatisticsWindow::addEncodedPacket(QString type, uint32_t size)
-{
-  if(type == "video" || type == "Video")
-  {
-    updateValueBuffer(videoPackets_, videoIndex_, size);
-  }
-  else if(type == "audio" || type == "Audio")
-  {
-    updateValueBuffer(audioPackets_, audioIndex_, size);
   }
 }
 
@@ -1090,6 +1043,28 @@ void StatisticsWindow::on_clear_button_clicked()
   sipMutex_.lock();
   ui_->sip_list->setRowCount(0);
   sipMutex_.unlock();
+}
+
+
+QString StatisticsWindow::combineList(QStringList &list)
+{
+  QString listed = "";
+
+  for (int i = list.size() - 1; i >= 0; --i)
+  {
+    // don't record anything if we have to of the same strings
+    if (i > 0 && list[i] != list[i - 1])
+    {
+      listed += list[i];
+      listed += ", ";
+    }
+    else if (i == 0)
+    {
+      listed += list[i];
+    }
+  }
+
+  return listed;
 }
 
 

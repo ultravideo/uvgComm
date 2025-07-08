@@ -107,9 +107,9 @@ bool AudioCaptureFilter::init()
   }
 
   if(format_.sampleRate() != -1)
-    getStats()->audioInfo(format_.sampleRate(), format_.channelCount());
+    getStats()->audioInfo(0, 0, format_.sampleRate(), format_.channelCount());
   else
-    getStats()->audioInfo(0, 0);
+    getStats()->audioInfo(0, 0, 0, 0);
 
   createAudioInput();
   Logger::getLogger()->printNormal(this, "Audio initializing completed.");

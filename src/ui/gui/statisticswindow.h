@@ -32,23 +32,29 @@ public:
   // use these for inputting data. Some of these record fields to be later
   // set to UI and some of these modify UI directly.
 
-  // session
+  // MEDIA SESSION
+  // add/remove session information or log the start/end of session.
   virtual void addSession(uint32_t sessionID);
   virtual void removeSession(uint32_t sessionID);
 
-  // media
-  virtual void videoInfo(double framerate, QSize resolution);
-  virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount);
-  virtual void incomingMedia(uint32_t sessionID, QString name);
-  virtual void outgoingMedia(uint32_t sessionID, QString name);
+  virtual void addParticipant(uint32_t sessionID, const QString& cname);
+  virtual void removeParticipant(uint32_t sessionID, const QString& cname);
+
+  // MEDIA
+  // basic information on audio/video. Can be called in case information changes.
+  virtual void audioInfo(uint32_t sessionID, uint32_t bitrate, uint32_t sampleRate, uint16_t channelCount);
+  virtual void videoInfo(uint32_t sessionID, uint32_t bitrate, double framerate, QSize resolution);
 
   virtual void selectedICEPair(uint32_t sessionID, std::shared_ptr<ICEPair> pair);
 
-  virtual void encodingDelay(QString type, uint32_t delay);
-  virtual void decodingDelay(QString type, uint32_t delay);
-  virtual void totalDelay(uint32_t sessionID, QString type, int32_t delay);
-  virtual void presentPackage(uint32_t sessionID, QString type);
-  virtual void addEncodedPacket(QString type, uint32_t size);
+  virtual void encodedAudioFrame(uint32_t size, uint32_t encodingTime);
+  virtual void encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution, float psnr = -1.0);
+
+  virtual void decodedAudioFrame(QString cname, uint32_t size, uint32_t decodingTime);
+  virtual void decodedVideoFrame(QString cname, uint32_t size, uint32_t decodingTime, QSize resolution);
+
+  virtual void audioLatency(uint32_t sessionID, QString cname, int64_t latency);
+  virtual void videoLatency(uint32_t sessionID, QString cname, int64_t latency);
 
   // delivery
   virtual void addSendPacket(uint32_t size);

@@ -52,8 +52,7 @@ void AudioMixerFilter::process()
     // Add audio delay to statistics
     int64_t delay = QDateTime::currentMSecsSinceEpoch() - input->creationTimestamp;
     
-    stats_->totalDelay(sessionID_, "Audio", delay);
-    //stats_->decodingDelay("Audio", delay);
+    stats_->audioLatency(sessionID_, "", delay);
 
     if (mixer_)
     {

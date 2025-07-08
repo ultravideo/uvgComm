@@ -113,7 +113,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
       // update stats only for each new image.
       if(stats_ && sessionID_ != 0)
       {
-        stats_->presentPackage(sessionID_, "Video");
+        stats_->videoLatency(sessionID_, "", latency);
       }
     }
     drawMutex_.unlock();

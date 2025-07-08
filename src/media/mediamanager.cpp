@@ -123,9 +123,7 @@ void MediaManager::newParticipant(uint32_t sessionID,
 
   if (stats_ != nullptr)
   {
-    // TODO: Update SDP in stats, currently it just shows the first
-    sdpToStats(sessionID, peerInfo, false);
-    sdpToStats(sessionID, localInfo, true);
+    stats_->addParticipant(sessionID, "");
   }
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
@@ -748,22 +746,6 @@ QString MediaManager::rtpNumberToCodec(const MediaInfo& info)
     }
   }
   return "PCMU";
-}
-
-
-void MediaManager::sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool local)
-{
-  if (stats_)
-  {
-    if (local)
-    {
-      stats_->outgoingMedia(sessionID, sdp->originator_username);
-    }
-    else
-    {
-      stats_->incomingMedia(sessionID, sdp->originator_username);
-    }
-  }
 }
 
 

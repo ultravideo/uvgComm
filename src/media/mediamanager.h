@@ -160,8 +160,6 @@ private:
 
   QString rtpNumberToCodec(const MediaInfo& info);
 
-  void sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool local);
-
   QString getMediaNettype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
   QString getMediaAddrtype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
   QString getMediaAddress(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
