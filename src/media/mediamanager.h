@@ -65,17 +65,17 @@ public:
   // registers a contact for activity monitoring
   void registerContact(in_addr ip);
 
-  void newParticipant(uint32_t sessionID,
-                      const std::shared_ptr<SDPMessageInfo> peerInfo,
-                      const std::shared_ptr<SDPMessageInfo> localInfo,
-                      bool iceController,
-                      bool followOurSDP);
+  void newSession(uint32_t sessionID,
+                  const std::shared_ptr<SDPMessageInfo> peerInfo,
+                  const std::shared_ptr<SDPMessageInfo> localInfo,
+                  bool iceController,
+                  bool followOurSDP);
 
-  void modifyParticipant(uint32_t sessionID,
-                         const std::shared_ptr<SDPMessageInfo> peerInfo,
-                         const std::shared_ptr<SDPMessageInfo> localInfo,
-                         bool iceController,
-                         bool followOurSDP);
+  void modifySession(uint32_t sessionID,
+                     const std::shared_ptr<SDPMessageInfo> peerInfo,
+                     const std::shared_ptr<SDPMessageInfo> localInfo,
+                     bool iceController,
+                     bool followOurSDP);
 
   void removeParticipant(uint32_t sessionID);
 
@@ -180,7 +180,7 @@ private:
 
   std::unique_ptr<Delivery> streamer_;
 
-  std::map<uint32_t, ParticipantMedia> participants_;
+  std::map<uint32_t, ParticipantMedia> sessions_;
 
   std::shared_ptr<VideoviewFactory> viewFactory_;
 

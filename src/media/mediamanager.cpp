@@ -97,11 +97,11 @@ void MediaManager::uninit()
   localInitialIndex_ = -1;
 }
 
-void MediaManager::newParticipant(uint32_t sessionID,
-                                  std::shared_ptr<SDPMessageInfo> peerInfo,
-                                  const std::shared_ptr<SDPMessageInfo> localInfo,
-                                  bool iceController,
-                                  bool followOurSDP)
+void MediaManager::newSession(uint32_t sessionID,
+                              std::shared_ptr<SDPMessageInfo> peerInfo,
+                              const std::shared_ptr<SDPMessageInfo> localInfo,
+                              bool iceController,
+                              bool followOurSDP)
 {
   if (localInitialIndex_ < 0)
   {
@@ -128,27 +128,27 @@ void MediaManager::newParticipant(uint32_t sessionID,
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
 
-  if (participants_.find(sessionID) == participants_.end())
+  if (sessions_.find(sessionID) == sessions_.end())
   {
-    participants_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID, stats_));
+    sessions_[sessionID].ice = std::unique_ptr<ICE>(new ICE(sessionID, stats_));
 
     // connect signals so we get information when ice is ready
-    QObject::connect(participants_[sessionID].ice.get(), &ICE::mediaNominationSucceeded,
+    QObject::connect(sessions_[sessionID].ice.get(), &ICE::mediaNominationSucceeded,
                      this, &MediaManager::iceSucceeded);
 
-    QObject::connect(participants_[sessionID].ice.get(), &ICE::mediaNominationFailed,
+    QObject::connect(sessions_[sessionID].ice.get(), &ICE::mediaNominationFailed,
                      this, &MediaManager::iceFailed);
   }
 
-  return modifyParticipant(sessionID, peerInfo, localInfo, iceController, followOurSDP);
+  return modifySession(sessionID, peerInfo, localInfo, iceController, followOurSDP);
 }
 
 
-void MediaManager::modifyParticipant(uint32_t sessionID,
-                                     std::shared_ptr<SDPMessageInfo> peerInfo,
-                                     const std::shared_ptr<SDPMessageInfo> localInfo,
-                                     bool iceController,
-                                     bool followOurSDP)
+void MediaManager::modifySession(uint32_t sessionID,
+                                 std::shared_ptr<SDPMessageInfo> peerInfo,
+                                 const std::shared_ptr<SDPMessageInfo> localInfo,
+                                 bool iceController,
+                                 bool followOurSDP)
 {
   // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
   if (!sessionChecks(peerInfo, localInfo))
@@ -173,9 +173,9 @@ void MediaManager::modifyParticipant(uint32_t sessionID,
   // perform ICE
   if (!localCandidates.empty() && !remoteCandidates.empty())
   {
-    participants_[sessionID].localInfo = localInfo;
-    participants_[sessionID].peerInfo = peerInfo;
-    participants_[sessionID].followOurSDP = followOurSDP;
+    sessions_[sessionID].localInfo = localInfo;
+    sessions_[sessionID].peerInfo = peerInfo;
+    sessions_[sessionID].followOurSDP = followOurSDP;
 
      // in mesh conference host, we also have media meant for others, so we don't have and id for those
     unsigned int idIndex = 0;
@@ -653,10 +653,10 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
 
 void MediaManager::removeParticipant(uint32_t sessionID)
 {
-  if (participants_.find(sessionID) != participants_.end())
+  if (sessions_.find(sessionID) != sessions_.end())
   {
-    participants_[sessionID].ice->uninit();
-    participants_.erase(sessionID);
+    sessions_[sessionID].ice->uninit();
+    sessions_.erase(sessionID);
   }
 
   if (settingString(SettingsKey::sipRole) != "Server")
@@ -681,7 +681,7 @@ void MediaManager::removeParticipant(uint32_t sessionID)
 void MediaManager::iceSucceeded(const uint32_t& ssrc, uint32_t sessionID,
                                 MediaInfo local, MediaInfo remote)
 {
-  if (participants_.find(sessionID) == participants_.end())
+  if (sessions_.find(sessionID) == sessions_.end())
   {
     Logger::getLogger()->printProgramError(this, "Could not find participant when ice finished");
     return;

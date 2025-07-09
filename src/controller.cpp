@@ -593,7 +593,7 @@ void uvgCommController::createCall(uint32_t sessionID)
         stats_->addSession(sessionID);
       }
 
-      media_.newParticipant(sessionID, remoteSDP, localSDP,
+      media_.newSession(sessionID, remoteSDP, localSDP,
                             states_[sessionID].iceController,
                             states_[sessionID].followOurSDP);
 
@@ -601,7 +601,7 @@ void uvgCommController::createCall(uint32_t sessionID)
      }
     else
     {
-      media_.modifyParticipant(sessionID, remoteSDP, localSDP,
+      media_.modifySession(sessionID, remoteSDP, localSDP,
                                states_[sessionID].iceController,
                                states_[sessionID].followOurSDP);
     }
@@ -1138,7 +1138,6 @@ ConferenceTopology uvgCommController::getTopology(QString topology) const
   {
     return ConferenceTopology::HYBRID;
   }
-
 
   return ConferenceTopology::P2P;
 }
