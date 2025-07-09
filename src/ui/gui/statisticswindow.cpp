@@ -464,7 +464,7 @@ void StatisticsWindow::updateValueBuffer(std::vector<ValueInfo*>& packets,
   }
 
   // add packet at this timestamp
-  //packets[index%BUFFERSIZE] = new ValueInfo{QDateTime::currentMSecsSinceEpoch(), value};
+  packets[index%BUFFERSIZE] = new ValueInfo{QDateTime::currentMSecsSinceEpoch(), value};
   ++index;
 }
 
