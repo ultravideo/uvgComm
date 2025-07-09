@@ -57,15 +57,14 @@ ChartPainter::~ChartPainter()
 
 int ChartPainter::getDrawMinX() const
 {
-  return MARGIN + maxYSize_.width() + NUMBERMARGIN;
+  return MARGIN;
 }
 
 
 int ChartPainter::getDrawMaxX() const
 {
-  return rect().size().width() - MARGIN - NUMBERMARGIN;
+  return rect().size().width() - MARGIN - NUMBERMARGIN - maxYSize_.width();
 }
-
 
 int ChartPainter::getDrawMinY() const
 {
@@ -350,8 +349,8 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID,
   for (unsigned int i = 0; i < points_.at(lineID - 1)->size(); ++i)
   {
     // get points position
-    int xPoint = getDrawMinX() + float(i)/(xWindowCount_ - 1)*drawLength; // left to right
-    //int xPoint = getDrawMaxX() - float(i)/(xWindowCount_ - 1)*drawLength; // right to left
+    //int xPoint = getDrawMinX() + float(i)/(xWindowCount_ - 1)*drawLength; // left to right
+    int xPoint = getDrawMaxX() - float(i)/(xWindowCount_ - 1)*drawLength; // right to left
     int yPoint = getDrawMaxY() - points_.at(lineID - 1)->at(i)/maxY_*drawHeight;
 
     drawMark(painter, lineID, xPoint, yPoint);
@@ -374,9 +373,11 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID,
       QSize numberSize = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
                                                            number);
 
-      //painter.drawText(getDrawMinX() - numberSize.width() - NUMBERMARGIN,
-      //                 yPoint + maxYSize_.height()/4, number);
-
+      // Draw to the right of the chart
+      painter.setPen(appearances.at(appearanceIndex).color);
+      painter.drawText(getDrawMaxX() + NUMBERMARGIN,
+                       yPoint + maxYSize_.height()/4,
+                       number);
     }
     else // draw line if we have at least two points
     {
@@ -394,35 +395,30 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
 {
   painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::FlatCap));
 
-  // draw x-axis
-  painter.drawLine(getDrawMinX(),      getDrawMinY(),
-                   getDrawMinX(),      getDrawMaxY());
-
   // draw y-axis
+  //painter.drawLine(getDrawMinX(),      getDrawMinY(),
+  //                 getDrawMinX(),      getDrawMaxY());
+
+  // draw x-axis
   painter.drawLine(getDrawMinX(),      getDrawMaxY(),
                    getDrawMaxX(),      getDrawMaxY());
 
   // max number
   if (drawMax)
   {
-    // max x
-    painter.drawText(getDrawMinX() - maxYSize_.width() - NUMBERMARGIN,
+    painter.drawText(getDrawMaxX() + NUMBERMARGIN,
                      getDrawMinY() + maxYSize_.height()/4 + 1,
                      QString::number(maxY_));
 
-    // small nod for max x
-    painter.drawLine(getDrawMinX(),           getDrawMinY(),
-                     getDrawMinX() + 3,       getDrawMinY());
+    painter.drawLine(getDrawMinX(), getDrawMinY(),
+                     getDrawMinX() + 3, getDrawMinY());
   }
 
   // min number
   if (drawZero)
   {
-    // mix x
-    QSize zeroSize = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
-                                                       QString::number(0));
-    painter.drawText(getDrawMinX() - zeroSize.width() - NUMBERMARGIN,
-                     getDrawMaxY() + zeroSize.height()/4 + 1,
+    painter.drawText(getDrawMaxX() + NUMBERMARGIN,
+                     getDrawMaxY() + maxYSize_.height()/4 + 1,
                      QString::number(0));
   }
 
