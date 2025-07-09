@@ -110,16 +110,18 @@ void ChartPainter::init(int maxY, int yLines, bool adaptive, int xWindowSize,
 // return line ID
 int ChartPainter::addLine(QString name)
 {
-  Q_ASSERT(name != "" && !name.isNull());
+  Q_ASSERT(!name.isNull());
+
+  QString trimmedName = name.left(8); // trim to 8 characters for legends
 
   lineMutex_.lock();
   // lineID should refer to position in both arrays
-  legends_.push_back(name);
+  legends_.push_back(trimmedName);
   points_.push_back(std::make_shared<std::deque<float>>());
   int lineID = (int)points_.size();
 
   // check if this is the widest name of all for drawing the legends
-  QSize newSize = QFontMetrics(font_).size(Qt::TextSingleLine, name);
+  QSize newSize = QFontMetrics(font_).size(Qt::TextSingleLine, trimmedName);
   if (newSize.width() > legendSize_.width())
   {
     legendSize_ = newSize;
