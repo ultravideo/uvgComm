@@ -2,7 +2,6 @@
 
 #include "statisticsinterface.h"
 
-#include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
 
@@ -10,18 +9,20 @@
 
 enum OHThreadType {OH_THREAD_FRAME  = 1, OH_THREAD_SLICE = 2, OH_THREAD_FRAMESLICE  = 3};
 
-
-OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats,
-                               std::shared_ptr<ResourceAllocator> hwResources):
-  Filter(QString::number(sessionID), "OpenHEVC", stats, hwResources, DT_HEVCVIDEO, DT_YUV420VIDEO),
-  handle_(),
-  vpsReceived_(false),
-  spsReceived_(false),
-  ppsReceived_(false),
-  sessionID_(sessionID),
-  threads_(-1),
-  parallelizationMode_("Slice"),
-  discardedFrames_(0)
+OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID,
+                               QString cname,
+                               StatisticsInterface *stats,
+                               std::shared_ptr<ResourceAllocator> hwResources)
+    : Filter(QString::number(sessionID), "OpenHEVC", stats, hwResources, DT_HEVCVIDEO, DT_YUV420VIDEO)
+    , handle_()
+    , vpsReceived_(false)
+    , spsReceived_(false)
+    , ppsReceived_(false)
+    , sessionID_(sessionID)
+    , cname_(cname)
+    , threads_(-1)
+    , parallelizationMode_("Slice")
+    , discardedFrames_(0)
 {}
 
 
@@ -106,7 +107,7 @@ void OpenHEVCFilter::process()
 
   while(input)
   {
-    getStats()->addReceivePacket(sessionID_, "Video", input->data_size);
+    getStats()->addReceivePacket(sessionID_, cname_, "Video", input->data_size);
     settingsMutex_.lock();
 
     const unsigned char *buff = input->data.get();

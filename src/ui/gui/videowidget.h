@@ -25,9 +25,10 @@ public:
               uint8_t borderSize = 1);
   ~VideoWidget();
 
-  virtual void setStats(StatisticsInterface* stats)
+  virtual void setStats(StatisticsInterface* stats, QString cname)
   {
     stats_ = stats;
+    cname_ = cname;
   }
 
   // Takes ownership of the image data
@@ -85,6 +86,7 @@ private:
 
   StatisticsInterface* stats_;
   uint32_t sessionID_;
+  QString cname_;
   VideoDrawHelper helper_;
 
   QTimer updateTimer_;

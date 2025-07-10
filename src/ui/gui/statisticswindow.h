@@ -58,10 +58,12 @@ public:
 
   // delivery
   virtual void addSendPacket(uint32_t size);
-  virtual void addReceivePacket(uint32_t sessionID, QString type, uint32_t size);
-  virtual void addRTCPPacket(uint32_t sessionID, QString type,
-                             uint8_t  fraction,
-                             int32_t  lost,
+  virtual void addReceivePacket(uint32_t sessionID, const QString &cname, QString type, uint32_t size);
+  virtual void addRTCPPacket(uint32_t sessionID,
+                             const QString& cname,
+                             QString type,
+                             uint8_t fraction,
+                             int32_t lost,
                              uint32_t last_seq,
                              uint32_t jitter);
 
@@ -122,8 +124,11 @@ private:
   int addTableRow(QTableWidget* table, QMutex& mutex, QStringList fields,
                   QString tooltip = "");
 
-  void selectedICECandidate(uint32_t sessionID, QTableWidget* table,
-                            std::shared_ptr<ICEInfo> candidate, bool keepTrack);
+  void selectedICECandidate(uint32_t sessionID,
+                            QString& cname,
+                            QTableWidget* table,
+                            std::shared_ptr<ICEInfo> candidate,
+                            bool keepTrack);
 
   QString combineList(QStringList& list);
 
@@ -156,19 +161,26 @@ private:
     uint32_t audioDelayIndex;
     std::vector<ValueInfo*> audioDelay;
 
+    // decoder latencies
+    uint32_t videoDecDelayIndex_;
+    std::vector<ValueInfo*> videoDecDelay_;
+    uint32_t audioDecDelayIndex_;
+    std::vector<ValueInfo*> audioDecDelay_;
+
     uint32_t videoJitter;
     int32_t videoLost;
     uint32_t audioJitter;
     int32_t audioLost;
 
     int deliveryGraphIndex;
-    int delayGraphIndex;
     int performanceGraphIndex;
 
     std::vector<int> iceIndexes;
   };
 
-  std::map<uint32_t, SessionInfo> sessions_;
+  std::map<QString, SessionInfo> sessions_;
+
+  std::map<uint32_t, QStringList> sessionNames_;
 
   struct FilterStatus
   {
@@ -220,11 +232,6 @@ private:
   uint32_t audioEncDelayIndex_;
   std::vector<ValueInfo*> audioEncDelay_;
 
-  // decoder latencies
-  uint32_t videoDecDelayIndex_;
-  std::vector<ValueInfo*> videoDecDelay_;
-  uint32_t audioDecDelayIndex_;
-  std::vector<ValueInfo*> audioDecDelay_;
 
   // a timer for reducing number of gui updates and making it more readable
   QElapsedTimer guiTimer_;
@@ -235,7 +242,4 @@ private:
 
   int chartVideoID_;
   int chartAudioID_;
-
-  int chartVideoDecID_;
-  int chartAudioDecID_;
 };

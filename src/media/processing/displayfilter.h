@@ -10,7 +10,7 @@ class DisplayFilter : public Filter
 public:
   DisplayFilter(QString id, StatisticsInterface* stats,
                 std::shared_ptr<ResourceAllocator> hwResources,
-                QList<VideoInterface*> widgets, uint32_t peer);
+                QList<VideoInterface*> widgets, uint32_t sessionID, QString cname);
   ~DisplayFilter();
 
   void setHorizontalMirroring(bool status)

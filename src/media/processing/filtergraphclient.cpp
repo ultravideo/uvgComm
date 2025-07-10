@@ -102,7 +102,7 @@ void FilterGraphClient::setSelfViews(QList<VideoInterface*> selfViews)
   }
 
   selfviewFilter_ =
-      std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, hwResources_, selfViews, 1111));
+      std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, hwResources_, selfViews, 1111, ""));
 
   initCameraSelfView();
 }
@@ -518,11 +518,11 @@ void FilterGraphClient::receiveVideoFrom(uint32_t sessionID,
       std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
       peers_[sessionID]->videoViewFlow[cname] = graph;
 
-      addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, stats_, hwResources_)), *graph, 0);
+      addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, cname, stats_, hwResources_)), *graph, 0);
 
       std::shared_ptr<DisplayFilter> displayFilter =
       std::shared_ptr<DisplayFilter>(new DisplayFilter(QString::number(sessionID),
-                                                         stats_, hwResources_, {view}, sessionID));
+                                                         stats_, hwResources_, {view}, sessionID, cname));
 
       addToGraph(displayFilter, *graph, 0);
     }

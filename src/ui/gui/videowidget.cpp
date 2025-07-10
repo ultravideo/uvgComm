@@ -13,6 +13,7 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID,
   : QWidget(parent),
   stats_(nullptr),
   sessionID_(sessionID),
+  cname_(""),
   helper_(sessionID, layoutID, borderSize)
 {
   helper_.initWidget(this);
@@ -113,7 +114,7 @@ void VideoWidget::paintEvent(QPaintEvent *event)
       // update stats only for each new image.
       if(stats_ && sessionID_ != 0)
       {
-        stats_->videoLatency(sessionID_, "", latency);
+        stats_->videoLatency(sessionID_, cname_, latency);
       }
     }
     drawMutex_.unlock();

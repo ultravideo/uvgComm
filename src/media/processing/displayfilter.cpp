@@ -11,10 +11,11 @@
 
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                              std::shared_ptr<ResourceAllocator> hwResources,
-                             QList<VideoInterface *> widgets, uint32_t sessionID):
-  Filter(id, "Display", stats, hwResources, DT_RGB32VIDEO, DT_NONE, false),
-  horizontalMirroring_(false),
-  widgets_(widgets),
+                             QList<VideoInterface *> widgets, uint32_t sessionID, 
+                             QString cname): 
+  Filter(id, "Display", stats, hwResources, DT_RGB32VIDEO, DT_NONE, false), 
+  horizontalMirroring_(false), 
+  widgets_(widgets), 
   sessionID_(sessionID)
 {
 
@@ -45,7 +46,7 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
       }
     }
 
-    widgets.at(0)->setStats(stats);
+    widgets.at(0)->setStats(stats, cname);
   }
   else {
     Q_ASSERT(false);

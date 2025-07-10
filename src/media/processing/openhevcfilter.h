@@ -6,7 +6,7 @@
 class OpenHEVCFilter : public Filter
 {
 public:
-  OpenHEVCFilter(uint32_t sessionID, StatisticsInterface* stats,
+  OpenHEVCFilter(uint32_t sessionID, QString cname, StatisticsInterface* stats,
                  std::shared_ptr<ResourceAllocator> hwResources);
 
   virtual bool init();
@@ -28,6 +28,7 @@ private:
   bool ppsReceived_;
 
   uint32_t sessionID_;
+  QString cname_;
 
   int threads_;
   QString parallelizationMode_;

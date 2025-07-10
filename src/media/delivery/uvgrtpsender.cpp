@@ -208,7 +208,7 @@ void UvgRTPSender::processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp
         type = "Audio";
       }
 
-      getStats()->addRTCPPacket(sessionID_, type,
+      getStats()->addRTCPPacket(sessionID_, "", type,
                                 block.fraction,
                                 block.lost,
                                 block.last_seq,

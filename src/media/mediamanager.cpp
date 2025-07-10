@@ -121,10 +121,7 @@ void MediaManager::newSession(uint32_t sessionID,
     return;
   }
 
-  if (stats_ != nullptr)
-  {
-    stats_->addParticipant(sessionID, "");
-  }
+
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
 
@@ -138,6 +135,31 @@ void MediaManager::newSession(uint32_t sessionID,
 
     QObject::connect(sessions_[sessionID].ice.get(), &ICE::mediaNominationFailed,
                      this, &MediaManager::iceFailed);
+  }
+
+  if (stats_ != nullptr)
+  {
+    QSet<QString> seenCNAMEs;
+
+    for (auto& media : peerInfo->media)
+    {
+      std::vector<QString> remoteCNAMEs;
+      findCNAMEs(media, remoteCNAMEs);
+
+      for (const auto& cname : remoteCNAMEs)
+      {
+        // Skip if already processed
+        if (seenCNAMEs.contains(cname))
+          continue;
+
+        // Skip local cname unless it's the only one
+        if (cname == CName::cname() && remoteCNAMEs.size() > 1)
+          continue;
+
+        stats_->addParticipant(sessionID, cname);
+        seenCNAMEs.insert(cname);
+      }
+    }
   }
 
   return modifySession(sessionID, peerInfo, localInfo, iceController, followOurSDP);

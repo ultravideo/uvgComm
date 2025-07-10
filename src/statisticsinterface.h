@@ -47,10 +47,10 @@ public:
   virtual void addSendPacket(uint32_t size) = 0;
 
   // tracking of received packets.
-  virtual void addReceivePacket(uint32_t sessionID, QString type, uint32_t size) = 0;
+  virtual void addReceivePacket(uint32_t sessionID, const QString& cname, QString type, uint32_t size) = 0;
 
   // Details of an individual packet that shows how well our data is getting delivered
-  virtual void addRTCPPacket(uint32_t sessionID, QString type,
+  virtual void addRTCPPacket(uint32_t sessionID, const QString& cname, QString type,
                              uint8_t  fraction,
                              int32_t  lost,
                              uint32_t last_seq,

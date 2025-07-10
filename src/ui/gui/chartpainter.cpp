@@ -1,6 +1,5 @@
 #include "chartpainter.h"
 
-#include "common.h"
 #include "logger.h"
 
 #include <QPainter>
@@ -31,6 +30,9 @@ const std::vector<LineAppearance> appearances = {
 const int MARGIN = 5;
 const int NUMBERMARGIN = 6;
 const int TITLEMARGIN = 15;
+
+const int MIN_MAX_Y = 10;
+
 
 ChartPainter::ChartPainter(QWidget* parent)
   : QFrame (parent),
@@ -88,7 +90,7 @@ void ChartPainter::clearPoints()
   }
 }
 
-void ChartPainter::init(int maxY, int yLines, bool adaptive, int xWindowSize,
+void ChartPainter::init(unsigned int maxY, int yLines, bool adaptive, int xWindowSize,
                         QString chartTitle)
 {
   Q_ASSERT(maxY >= 1);
@@ -201,6 +203,11 @@ void ChartPainter::addPoint(int lineID, float y)
         // overLines_ variable.
         while (largest < maxY_/2 && yLines_ > 5)
         {
+          if (maxY_ <= 1)
+          {
+            break; // prevent going below 1
+          }
+
           maxY_ /= 2;
           Logger::getLogger()->printNormal(this, "Reducing max Y", "New Max Y", QString::number(maxY_));
 
@@ -212,6 +219,11 @@ void ChartPainter::addPoint(int lineID, float y)
           {
             --overLines_;
           }
+        }
+
+        if (maxY_ < MIN_MAX_Y)
+        {
+          maxY_ = MIN_MAX_Y;
         }
       }
     }
