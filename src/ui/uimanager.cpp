@@ -2,8 +2,12 @@
 
 #include "gui/statisticswindow.h"
 #include "videoviewfactory.h"
+#include "statisticscsv.h"
 
+#include "settingskeys.h"
 #include "logger.h"
+#include "common.h"
+
 
 #include "ui_about.h"
 
@@ -114,18 +118,27 @@ void UIManager::updateServerStatus(QString status)
 
 
 // functions for managing the GUI
-StatisticsInterface* UIManager::createStatsWindow()
+StatisticsInterface* UIManager::createStats()
 {
   Logger::getLogger()->printNormal(this, "Creating statistics window");
 
-  statsWindow_ = new StatisticsWindow(&window_);
 
+  Logger::getLogger()->printNormal(this, "CSV recording enabled");
+  csv_ = new StatisticsCSV();
+
+  statsWindow_ = new StatisticsWindow(&window_);
   // Stats GUI updates are handled solely by timer
   timer_->setInterval(200);
   timer_->setSingleShot(false);
   timer_->start();
 
   connect(timer_, SIGNAL(timeout()), statsWindow_, SLOT(update()));
+
+  if (settingEnabled(SettingsKey::sipRecordCSV))
+  {
+    return csv_;
+  }
+
   return statsWindow_;
 }
 

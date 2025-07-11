@@ -510,9 +510,9 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
 
   ++currentFrame_;
 
-  // disabled for now, should be sent less often and needs better handling of start codes
   bool addTimestamp = (timestampInterval_ > 0 &&
                           (currentFrame_ % timestampInterval_) == 0);
+
   uint32_t timestampSize = 0;
 
   if (addTimestamp)

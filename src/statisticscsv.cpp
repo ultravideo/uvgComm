@@ -155,3 +155,40 @@ void StatisticsCSV::videoLatency(uint32_t, QString cname, int64_t delay)
 {
   sessionInfo_[cname].videoLatencies.push_back(delay);
 }
+
+uint32_t StatisticsCSV::addFilter(QString type, QString identifier, uint64_t TID)
+{
+  return 0;
+}
+
+void StatisticsCSV::removeFilter(uint32_t id)
+{
+
+}
+
+// Tracking of buffer information.
+void StatisticsCSV::updateBufferStatus(uint32_t id, uint16_t buffersize,
+                                uint16_t maxBufferSize)
+{
+
+}
+
+// Tracking of packets dropped due to buffer overflow
+void StatisticsCSV::packetDropped(uint32_t id)
+{
+
+}
+
+// SIP
+// Tracking of sent and received SIP Messages
+void StatisticsCSV::addSentSIPMessage(const QString& headerType, const QString& header,
+                               const QString& bodyType,   const QString& body)
+{
+
+}
+
+void StatisticsCSV::addReceivedSIPMessage(const QString& headerType, const QString& header,
+                                   const QString& bodyType,   const QString& body)
+{
+
+}

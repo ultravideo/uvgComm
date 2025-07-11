@@ -40,7 +40,7 @@ void uvgCommController::init()
 
   userInterface_.init(this, viewFactory_);
 
-  stats_ = userInterface_.createStatsWindow();
+  stats_ = userInterface_.createStats();
 
   QObject::connect(&sip_, &SIPManager::finalLocalSDP,
                    this, &uvgCommController::inputLocalSDP);

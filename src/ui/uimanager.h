@@ -10,6 +10,7 @@ class StatisticsWindow;
 class StatisticsInterface;
 class VideoviewFactory;
 class SDPMediaParticipant;
+class StatisticsCSV;
 
 namespace Ui {
 class AboutWidget;
@@ -33,7 +34,7 @@ public:
   void runScriptFromStdin();
 
   // functions for managing the GUI
-  StatisticsInterface* createStatsWindow();
+  StatisticsInterface* createStats();
 
   // sessionID identifies the view slot
   void displayOutgoingCall(uint32_t sessionID, QString name);
@@ -91,6 +92,7 @@ private:
 
   Settings settingsView_;
   StatisticsWindow *statsWindow_;
+  StatisticsCSV* csv_;
 
   Ui::AboutWidget* aboutWidget_;
   QWidget about_;

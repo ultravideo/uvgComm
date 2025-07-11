@@ -46,7 +46,7 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, LayoutID layoutID, uint8_t 
   micIcon_.setAspectRatioMode(Qt::KeepAspectRatio);
   if (sessionID_ != 0)
   {
-    recordLatencies_ = settingValue(SettingsKey::sipRecordLatencies) == 0;
+    recordLatencies_ = settingValue(SettingsKey::sipRecordCSV) == 0;
   }
 }
 

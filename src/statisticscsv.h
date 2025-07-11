@@ -25,22 +25,42 @@ public:
   virtual void audioInfo(uint32_t sessionID, uint32_t bitrate, uint32_t sampleRate, uint16_t channelCount) override;
   virtual void videoInfo(uint32_t sessionID, uint32_t bitrate, double framerate, QSize resolution) override;
   virtual void selectedICEPair(uint32_t sessionID, std::shared_ptr<ICEPair> pair) override;
-  void addRTCPPacket(uint32_t sessionID, const QString& cname, QString type,
-                     uint8_t fraction, int32_t lost, uint32_t last_seq,
-                     uint32_t jitter) override;
+  virtual void addRTCPPacket(uint32_t sessionID, const QString& cname, QString type,
+                             uint8_t fraction, int32_t lost, uint32_t last_seq,
+                             uint32_t jitter) override;
 
   // record data for the csv file.
-  void audioLatency(uint32_t sessionID, QString cname, int64_t delay) override;
-  void videoLatency(uint32_t sessionID, QString cname, int64_t delay) override;
-  void encodedAudioFrame(uint32_t size, uint32_t encodingTime) override;
-  void encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution,
+  virtual void audioLatency(uint32_t sessionID, QString cname, int64_t delay) override;
+  virtual void videoLatency(uint32_t sessionID, QString cname, int64_t delay) override;
+  virtual void encodedAudioFrame(uint32_t size, uint32_t encodingTime) override;
+  virtual void encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution,
                          float psnrY = -1.0, float psnrU = -1.0, float psnrV = -1.0) override;
-  void decodedAudioFrame(QString cname, uint32_t size, uint32_t decodingTime) override;
-  void decodedVideoFrame(QString cname, uint32_t size, uint32_t decodingTime, QSize resolution) override;
+  virtual void decodedAudioFrame(QString cname, uint32_t size, uint32_t decodingTime) override;
+  virtual void decodedVideoFrame(QString cname, uint32_t size, uint32_t decodingTime, QSize resolution) override;
 
   // ignored
-  void addSendPacket(uint32_t size) override;
-  void addReceivePacket(uint32_t sessionID, const QString& cname, QString type, uint32_t size) override;
+  virtual void addSendPacket(uint32_t size) override;
+  virtual void addReceivePacket(uint32_t sessionID, const QString& cname, QString type, uint32_t size) override;
+
+
+  // FILTER
+  // tell the that we want to track this filter or stop tracking
+  virtual uint32_t addFilter(QString type, QString identifier, uint64_t TID) override;
+  virtual void removeFilter(uint32_t id) override;
+
+  // Tracking of buffer information.
+  virtual void updateBufferStatus(uint32_t id, uint16_t buffersize,
+                                  uint16_t maxBufferSize) override;
+
+  // Tracking of packets dropped due to buffer overflow
+  virtual void packetDropped(uint32_t id) override;
+
+  // SIP
+  // Tracking of sent and received SIP Messages
+  virtual void addSentSIPMessage(const QString& headerType, const QString& header,
+                                 const QString& bodyType,   const QString& body) override;
+  virtual void addReceivedSIPMessage(const QString& headerType, const QString& header,
+                                     const QString& bodyType,   const QString& body) override;
 
 private:
 
