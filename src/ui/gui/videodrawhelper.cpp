@@ -884,6 +884,12 @@ QColor VideoDrawHelper::qpToColor(int qp)
 
 void VideoDrawHelper::recordLatencies()
 {
+  if (latencies_.empty())
+  {
+    Logger::getLogger()->printNormal(this, "No latencies to record");
+    return;
+  }
+
   // 1. Build a timestamp like 20250616_142255
   const QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
 
@@ -904,8 +910,7 @@ void VideoDrawHelper::recordLatencies()
     out << latency << '\n';
   }
 
-
   file.close();
 
-  qDebug() << "Latencies written to" << fileName;
+  Logger::getLogger()->printNormal(this, "Latencies written", "Filename", fileName);
 }
