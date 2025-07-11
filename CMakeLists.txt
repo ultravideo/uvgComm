@@ -178,6 +178,7 @@ qt_add_executable(uvgComm WIN32 MACOSX_BUNDLE
     src/ui/scripting.h src/ui/scripting.cpp
     src/media/processing/hybridfilter.h src/media/processing/hybridfilter.cpp
     src/media/processing/hybridslavefilter.h src/media/processing/hybridslavefilter.cpp
+    src/statisticscsv.h src/statisticscsv.cpp
 
 )
 

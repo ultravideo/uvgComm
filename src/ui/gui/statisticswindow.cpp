@@ -413,7 +413,8 @@ void StatisticsWindow::encodedAudioFrame(uint32_t size, uint32_t encodingTime)
 }
 
 
-void StatisticsWindow::encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution, float psnr)
+void StatisticsWindow::encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution,
+                                         float psnrY, float psnrU, float psnrV)
 {
   updateValueBuffer(videoEncDelay_,
                     videoEncDelayIndex_, encodingTime);

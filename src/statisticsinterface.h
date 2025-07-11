@@ -34,7 +34,8 @@ public:
   virtual void selectedICEPair(uint32_t sessionID, std::shared_ptr<ICEPair> pair) = 0;
 
   virtual void encodedAudioFrame(uint32_t size, uint32_t encodingTime) = 0;
-  virtual void encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution, float psnr = -1.0) = 0;
+  virtual void encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution,
+                                 float psnrY = -1.0, float psnrU = -1.0, float psnrV = -1.0) = 0;
 
   virtual void decodedAudioFrame(QString cname, uint32_t size, uint32_t decodingTime) = 0;
   virtual void decodedVideoFrame(QString cname, uint32_t size, uint32_t decodingTime, QSize resolution) = 0;

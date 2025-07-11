@@ -48,7 +48,8 @@ public:
   virtual void selectedICEPair(uint32_t sessionID, std::shared_ptr<ICEPair> pair);
 
   virtual void encodedAudioFrame(uint32_t size, uint32_t encodingTime);
-  virtual void encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution, float psnr = -1.0);
+  virtual void encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution,
+                                 float psnrY = -1.0, float psnrU = -1.0, float psnrV = -1.0);
 
   virtual void decodedAudioFrame(QString cname, uint32_t size, uint32_t decodingTime);
   virtual void decodedVideoFrame(QString cname, uint32_t size, uint32_t decodingTime, QSize resolution);
@@ -178,9 +179,9 @@ private:
     std::vector<int> iceIndexes;
   };
 
-  std::map<QString, SessionInfo> sessions_;
+  std::unordered_map<QString, SessionInfo> sessions_;
 
-  std::map<uint32_t, QStringList> sessionNames_;
+  std::unordered_map<uint32_t, QStringList> sessionNames_;
 
   struct FilterStatus
   {
@@ -192,7 +193,7 @@ private:
     int tableIndex;
   };
 
-  std::map<uint32_t, FilterStatus> buffers_;
+  std::unordered_map<uint32_t, FilterStatus> buffers_;
   uint32_t nextFilterID_;
 
   Ui::StatisticsWindow *ui_;
