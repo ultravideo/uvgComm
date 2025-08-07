@@ -8,7 +8,7 @@
 #include <QFontDatabase>
 #include <QDir>
 #include <QMessageBox>
-#include <QSystemTrayIcon>
+//#include <QSystemTrayIcon>
 #include <QCommandLineParser>
 
 enum class ScriptMode
@@ -55,6 +55,7 @@ int main(int argc, char *argv[])
 {
   QApplication a(argc, argv);
 
+/*
 #ifndef QT_NO_SYSTEMTRAYICON
 
   if (!QSystemTrayIcon::isSystemTrayAvailable()) {
@@ -64,6 +65,7 @@ int main(int argc, char *argv[])
       return 1;
   }
 #endif
+*/
 
   a.setApplicationName("uvgComm");
   //a.setQuitOnLastWindowClosed(false);
