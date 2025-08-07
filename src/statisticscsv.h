@@ -2,6 +2,8 @@
 
 #include "statisticsinterface.h"
 
+#include <QStringList>
+
 #include <unordered_map>
 #include <vector>
 
