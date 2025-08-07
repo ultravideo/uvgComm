@@ -173,8 +173,13 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
   {
     if(previousSize_ != image.size())
     {
-      Logger::getLogger()->printNormal(this, "Video widget needs to update its target "
-                                             "rectangle because of resolution change");
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Video widget needs to update its target "
+                                                          "rectangle because of resolution change",
+                                      {"Previous size", "Current size"},
+                                      {QString::number(previousSize_.width()) + "x" +
+                                       QString::number(previousSize_.height()),
+                                       QString::number(image.width()) + "x" +
+                                       QString::number(image.height())});
 
       frameBuffer_.clear();
       frameBuffer_.push_front({image, std::move(data), timestamp});
