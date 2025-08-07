@@ -90,8 +90,9 @@ void LibYUVConverter::process()
     // needed by libyuv
     uint32_t fourcc = getFourCC(inputType());
 
-    if (fourcc == 0 || fourcc == libyuv::FOURCC_I420)
+    if (fourcc == 0)
     {
+      Logger::getLogger()->printError(this, "Unsupported conversion requested");
       sendOutput(std::move(input));
       input = getInput();
       continue;
@@ -234,7 +235,6 @@ uint32_t LibYUVConverter::getFourCC(DataType type) const
   {
     case DT_YUV420VIDEO:
     {
-      Logger::getLogger()->printProgramWarning(this, "Already in YUV 420 format");
       fourcc = libyuv::FOURCC_I420;
       break;
     }
