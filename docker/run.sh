@@ -16,5 +16,11 @@ ls -l
 # List available cameras
 v4l2-ctl --list-devices || true
 
+# list video files
+echo "Videos: "
+ls -l /dev/video*
+
+chmod a+rw /dev/video*
+
 # Launch the application binary — adjust binary name if needed
 ./uvgComm "$@"

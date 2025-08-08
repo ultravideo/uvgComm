@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
   libcrypto++-dev \
   libopus-dev \
   v4l-utils \
+  udev \
   yasm \
   libjpeg-dev \
   xvfb \
