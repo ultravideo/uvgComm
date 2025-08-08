@@ -6,8 +6,15 @@
 
 export DISPLAY=${DISPLAY:-:0}
 
+echo "Display: " 
+echo $DISPLAY
+
 echo "Running in $(pwd), contents:"
 ls -l
+
+
+# List available cameras
+v4l2-ctl --list-devices || true
 
 # Launch the application binary — adjust binary name if needed
 ./uvgComm "$@"
