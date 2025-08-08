@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# Start virtual display for GUI apps
-Xvfb :99 -screen 0 1024x768x16 &
+# Start virtual display for GUI apps, use this if not using X-forwarding
+# Xvfb :99 -screen 0 1024x768x16 &
+#export DISPLAY=:99
 
-export DISPLAY=:99
+export DISPLAY=${DISPLAY:-:0}
 
 echo "Running in $(pwd), contents:"
 ls -l
