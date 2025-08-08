@@ -32,7 +32,8 @@ COPY . .
 
 # Build project (you can adjust build options here)
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
- && cmake --build build -j$(nproc)
+ && cmake --build build -j$(nproc) \
+ && ls -l build
 
 # Set default working dir for runtime
 WORKDIR /uvgcomm/build
