@@ -12,6 +12,9 @@ RUN apt-get update && apt-get install -y \
   libspeexdsp-dev \
   libomp-dev \
   libgl1 \
+  libxcb-xinerama0 \
+  libxcb-xinerama0-dev \
+  libxkbcommon-x11-0 \
   libgl1-mesa-dev \
   libopengl0 \
   libcrypto++-dev \
