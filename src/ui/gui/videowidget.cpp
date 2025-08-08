@@ -7,6 +7,15 @@
 #include <QEvent>
 #include <QKeyEvent>
 #include <QLayout>
+#include <QProcessEnvironment>
+
+
+bool isLocalDisplay() {
+  QString display = QProcessEnvironment::systemEnvironment().value("DISPLAY");
+  // Avoid enabling flags if using X11 forwarding (e.g., DISPLAY=:10.0 or localhost:10.0)
+  return !(display.contains("localhost") || display.contains(":10"));
+}
+
 
 VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID,
                          LayoutID layoutID, uint8_t borderSize)
@@ -27,9 +36,11 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID,
 
   helper_.updateTargetRect(this);
 
-  setAttribute(Qt::WA_OpaquePaintEvent);
-  setAttribute(Qt::WA_NoSystemBackground);
-  setAttribute(Qt::WA_PaintOnScreen);
+  if (isLocalDisplay()) {
+    setAttribute(Qt::WA_OpaquePaintEvent);
+    setAttribute(Qt::WA_NoSystemBackground);
+    setAttribute(Qt::WA_PaintOnScreen);
+  }
 }
 
 
