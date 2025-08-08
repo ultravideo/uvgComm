@@ -160,7 +160,7 @@ void VideoWidget::mousePressEvent(QMouseEvent *e)
   // if you want this to also trigger on movement without pressing,
   // enable mouse tracking in qwidget
 
-  helper_.addPointToOverlay(e->localPos(),
+  helper_.addPointToOverlay(e->position(),
                             e->button() == Qt::LeftButton,
                             e->button() == Qt::RightButton);
 }
@@ -181,7 +181,7 @@ void VideoWidget::mouseMoveEvent(QMouseEvent *e)
 
   Qt::MouseButtons buttonFlags = e->buttons();
 
-  helper_.addPointToOverlay(e->localPos(),
+  helper_.addPointToOverlay(e->position(),
                             buttonFlags & Qt::LeftButton,
                             buttonFlags & Qt::RightButton);
 }
