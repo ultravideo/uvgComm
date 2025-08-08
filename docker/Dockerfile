@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
   libopengl0 \
   libcrypto++-dev \
   libopus-dev \
+  v4l-utils \
   yasm \
   libjpeg-dev \
   xvfb \
