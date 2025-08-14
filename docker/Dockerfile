@@ -19,10 +19,16 @@ RUN apt-get update && apt-get install -y \
   libomp-dev \  
   libcrypto++-dev \ 
   yasm \    
-  libjpeg-dev \
   xvfb \        
   && apt-get clean
-    
+
+# optional packages for camera support
+RUN apt-get install -y \
+  libjpeg-dev \
+  gstreamer1.0-plugins-base \
+  gstreamer1.0-plugins-good \
+  && apt-get clean
+
 # optional packages for x-forwarding from the docker container
 RUN apt-get install -y \
   libxcb-xinerama0 \
