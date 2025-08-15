@@ -16,12 +16,14 @@ Add rights to user docker to your user:
 usermod -aG docker <user>
 ```
 
+Remember to log out if you do this for the current user.
+
 ## Building the Docker Image
 
 In this folder ('/docker'), run:
 
 ```bash
-docker build -t uvgcomm-docker .
+docker build --no-cache -t uvgcomm-docker -f Dockerfile ..
 ```
 
 ## Running the Docker Image
@@ -56,12 +58,18 @@ In case you are performing experimental evaluations and want to simulate a web c
 apt install ffmpeg
 apt install v4l2loopback-dkms v4l-utils
 modprobe v4l2loopback video_nr=<X> card_label="FakeCam" exclusive_caps=1
+usermod -aG video <user>
+```
+
+Then logout so change takes effect. The video can be streamed with following command:
+
+```bash
 ffmpeg -re -stream_loop -1 -framerate <framerate> -s <resolution> -i <filename> -f v4l2 /dev/<videoX>
 ```
 
-Then you can just share the created device as it was an actual camera.
+Then you can use the created device as it was an actual camera.
 
-We found that calling v4l2 utils inside the container breaks the video device which just gives 'ioctl(VIDIOC_G_FMT): Invalid argument' error. In this case you need to remove it:
+We found that calling v4l2 utils inside the container breaks the video device which just gives 'ioctl(VIDIOC_G_FMT): Invalid argument' error. If this you may you need to remove it:
 
 ```bash
 modprobe -r v4l2loopback

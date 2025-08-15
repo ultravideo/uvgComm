@@ -6,20 +6,20 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install required build/runtime dependencies (OpenGL is needed by Qt)
 RUN apt-get update && apt-get install -y \
   git \
-  cmake \  
-  build-essential \ 
-  libgl1 \ 
-  libgl1-mesa-dev \ 
-  libopengl0 \   
-  qt6-base-dev \   
-  libqt6svg6-dev \ 
-  qt6-multimedia-dev \  
+  cmake \
+  build-essential \
+  libgl1 \
+  libgl1-mesa-dev \
+  libopengl0 \
+  qt6-base-dev \
+  libqt6svg6-dev \
+  qt6-multimedia-dev \
   libspeexdsp-dev \
-  libopus-dev \  
-  libomp-dev \  
-  libcrypto++-dev \ 
-  yasm \    
-  xvfb \        
+  libopus-dev \
+  libomp-dev \
+  libcrypto++-dev \
+  yasm \
+  xvfb \
   && apt-get clean
 
 # optional packages for camera support
@@ -45,7 +45,8 @@ COPY . .
 
 # Build project (you can adjust build options here)
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
- && cmake --build build -j$(nproc)
+ && cmake --build build -j$(nproc) \
+ && ls -l build
 
 # Set default working dir for runtime
 WORKDIR /uvgcomm/build
