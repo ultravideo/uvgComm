@@ -41,9 +41,13 @@ void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& co
 
   if (!configFilename.isEmpty())
   {
-    Logger::getLogger()->printImportant(this, "Using custom settings file",
+    Logger::getLogger()->printNormal(this, "Using custom settings file",
                                         {"Config file"}, {configFilename});
     setSettingsFile(configFilename);
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Using default settings file");
   }
 
   userInterface_.init(this, viewFactory_);
