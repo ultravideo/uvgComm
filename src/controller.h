@@ -6,6 +6,7 @@
 #include "participantinterface.h"
 
 #include <QObject>
+#include <QString>
 
 #include <map>
 
@@ -24,9 +25,7 @@ class uvgCommController : public ParticipantInterface
 public:
   uvgCommController();
 
-  void init();
-  void init(QString& scriptFilename);
-  void initStdin();
+  void init(bool useStdin, QString& scriptFilename, QString& configFilename);
 
   void uninit();
 

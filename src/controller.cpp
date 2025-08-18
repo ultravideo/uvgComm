@@ -11,6 +11,7 @@
 
 #include <QSettings>
 #include <QHostAddress>
+#include <QString>
 
 #include <thread>
 #include <chrono>
@@ -34,9 +35,16 @@ uvgCommController::uvgCommController():
 {}
 
 
-void uvgCommController::init()
+void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& configFilename)
 {
   Logger::getLogger()->printImportant(this, "uvgComm initiation Started");
+
+  if (!configFilename.isEmpty())
+  {
+    Logger::getLogger()->printImportant(this, "Using custom settings file",
+                                        {"Config file"}, {configFilename});
+    setSettingsFile(configFilename);
+  }
 
   userInterface_.init(this, viewFactory_);
 
@@ -136,23 +144,17 @@ void uvgCommController::init()
                                      QString::number(bitrate)});
   }
 */
+
+  if (useStdin)
+  {
+    userInterface_.runScriptFromStdin();
+  }
+  else if (!scriptFilename.isEmpty())
+  {
+    userInterface_.runScriptFromFile(scriptFilename);
+  }
+
   Logger::getLogger()->printImportant(this, "uvgComm initiation finished");
-}
-
-
-void uvgCommController::init(QString& scriptFilename)
-{
-  init();
-
-  userInterface_.runScriptFromFile(scriptFilename);
-}
-
-
-void uvgCommController::initStdin()
-{
-  init();
-
-  userInterface_.runScriptFromStdin();
 }
 
 

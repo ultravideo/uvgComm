@@ -19,35 +19,49 @@ enum class ScriptMode
 };
 
 
-ScriptMode commandLine(QApplication& app, QString& filename)
+ScriptMode commandLine(QApplication& app, QString& outScriptfile, QString outConfigfile = "")
 {
   QCommandLineParser parser;
   parser.setApplicationDescription("Video conferencing app with optional scripting support");
   parser.addHelpOption();
   parser.addVersionOption();
 
-  QCommandLineOption scriptOption("script",
-                                  "Run script for automated testing. Use '-' to read from stdin.",
-                                  "file");
-  parser.addOption(scriptOption);
+  QCommandLineOption scriptOption1("script",
+                                  "Run script for automated testing. Use 'stdin' to read from stdin.",
+                                  "filename");
+  parser.addOption(scriptOption1);
+
+  QCommandLineOption scriptOption2("config",
+                                  "Use the specified config file instead of default.",
+                                  "filename");
+  parser.addOption(scriptOption2);
+
   parser.process(app);
 
-  if (parser.isSet(scriptOption))
+  ScriptMode scriptMode = ScriptMode::SCRIPT_NONE;
+
+  if (parser.isSet(scriptOption1))
   {
-    QString scriptPath = parser.value(scriptOption);
+    QString scriptPath = parser.value(scriptOption1);
     if (scriptPath == "-" || scriptPath == "stdin")
     {
       // Read from stdin
-      return ScriptMode::SCRIPT_STDIN;
+      scriptMode = ScriptMode::SCRIPT_STDIN;
     }
     else
     {
-      filename = scriptPath;
-      return ScriptMode::SCRIPT_FILE;
+      outScriptfile = scriptPath;
+      scriptMode = ScriptMode::SCRIPT_FILE;
     }
   }
 
-  return ScriptMode::SCRIPT_NONE;
+  if (parser.isSet(scriptOption2))
+  {
+    QString configPath = parser.value(scriptOption2);
+    outConfigfile = configPath;
+  }
+
+  return scriptMode;
 }
 
 
@@ -92,9 +106,10 @@ int main(int argc, char *argv[])
 
   QSettings::setPath(settingsFileFormat, QSettings::SystemScope, ".");
 
-  QString file = "";
+  QString scriptFile = "";
+  QString configFile = "";
 
-  ScriptMode script = commandLine(a, file);
+  ScriptMode script = commandLine(a, scriptFile, configFile);
 
   QFile File(":/stylesheet.qss");
   File.open(QFile::ReadOnly);
@@ -104,24 +119,7 @@ int main(int argc, char *argv[])
 
   uvgCommController controller;
 
-  switch (script)
-  {
-    case ScriptMode::SCRIPT_FILE:
-    {
-      controller.init(file);
-      break;
-    }
-    case ScriptMode::SCRIPT_STDIN:
-    {
-      controller.initStdin();
-      break;
-    }
-    case ScriptMode::SCRIPT_NONE:
-    {
-      controller.init();
-      break;
-    }
-  }
+  controller.init(script == ScriptMode::SCRIPT_STDIN, scriptFile, configFile);
 
   return a.exec(); // starts main thread
 }
