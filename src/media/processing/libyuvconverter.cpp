@@ -27,13 +27,14 @@ LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
 
 void LibYUVConverter::changeResolution()
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Changing resolution for libyuv filter");
-
   QSettings settings(getSettingsFile(), settingsFileFormat);
 
   resolutionMutex_.lock();
 
   QSize resolution = getHWManager()->getVideoResolution();
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Changing resolution for libyuv filter",
+                                  {"Resolution"}, {QString::number(resolution.width()) + "x" + QString::number(resolution.height())});
 
   if (resolution.width() == 0 ||
       resolution.height() == 0)

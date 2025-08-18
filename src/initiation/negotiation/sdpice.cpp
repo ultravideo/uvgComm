@@ -203,7 +203,7 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
     }
     else
     {
-      Logger::getLogger()->printError(this, "No addresses were found!");
+      Logger::getLogger()->printError(this, "No local addresses were found!");
     }
   }
 }
