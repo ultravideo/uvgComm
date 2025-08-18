@@ -164,190 +164,181 @@ bool KvazaarFilter::init()
 {
   Logger::getLogger()->printNormal(this, "Iniating Kvazaar");
 
-  // input picture should not exist at this point
-  if(inputPics_.empty())
+  QSettings settings(getSettingsFile(), settingsFileFormat);
+  timestampInterval_ = settings.value(SettingsKey::sipTimestampInterval).toInt();
+
+  int enumerator = settings.value(SettingsKey::videoFramerateNumerator).toInt();
+  int denominator = settings.value(SettingsKey::videoFramerateDenominator).toInt();
+
+  if (!api_)
   {
-    QSettings settings(getSettingsFile(), settingsFileFormat);
-    timestampInterval_ = settings.value(SettingsKey::sipTimestampInterval).toInt();
+    api_ = kvz_api_get(8);
 
-    int enumerator = settings.value(SettingsKey::videoFramerateNumerator).toInt();
-    int denominator = settings.value(SettingsKey::videoFramerateDenominator).toInt();
-
-    if (!api_)
+    if(!api_)
     {
-      api_ = kvz_api_get(8);
-
-      if(!api_)
-      {
-        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to retrieve Kvazaar API.");
-        return false;
-      }
-    }
-
-    config_ = api_->config_alloc();
-
-    if(!config_)
-    {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to allocate Kvazaar config.");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to retrieve Kvazaar API.");
       return false;
     }
+  }
 
-    api_->config_init(config_);
+  config_ = api_->config_alloc();
 
-    QString preset = settings.value(SettingsKey::videoPreset).toString().toUtf8();
+  if(!config_)
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to allocate Kvazaar config.");
+    return false;
+  }
 
-    config_->target_bitrate = getHWManager()->getEncoderBitrate(DT_HEVCVIDEO);
-    QSize partResolution = getHWManager()->getVideoResolution();
+  api_->config_init(config_);
 
-    QString resolutionStr = QString::number(partResolution.width()) + "x" + QString::number(partResolution.height());
+  QString preset = settings.value(SettingsKey::videoPreset).toString().toUtf8();
 
-    QString framerateStr = QString::number(settings.value(SettingsKey::videoFramerateNumerator).toInt()) + "/" +
-                        QString::number(settings.value(SettingsKey::videoFramerateDenominator).toInt());
+  config_->target_bitrate = getHWManager()->getEncoderBitrate(DT_HEVCVIDEO);
+  QSize partResolution = getHWManager()->getVideoResolution();
 
-    // Input
-    api_->config_parse(config_, "preset",    preset.toLocal8Bit());
-    api_->config_parse(config_, "input-res", resolutionStr.toLocal8Bit());
-    api_->config_parse(config_, "input-fps", framerateStr.toLocal8Bit());
+  QString resolutionStr = QString::number(partResolution.width()) + "x" + QString::number(partResolution.height());
 
-    QString threads = "0";
+  QString framerateStr = QString::number(settings.value(SettingsKey::videoFramerateNumerator).toInt()) + "/" +
+                      QString::number(settings.value(SettingsKey::videoFramerateDenominator).toInt());
 
-    // parallelization
-    if (settings.value(SettingsKey::videoKvzThreads) == "auto")
-    {
-      threads = QString::number(QThread::idealThreadCount());
-    }
-    else if (settings.value(SettingsKey::videoKvzThreads) == "Main")
-    {
-      threads = QString::number(0);
-    }
-    else
-    {
-      threads = settings.value(SettingsKey::videoKvzThreads).toString();
-    }
+  // Input
+  api_->config_parse(config_, "preset",    preset.toLocal8Bit());
+  api_->config_parse(config_, "input-res", resolutionStr.toLocal8Bit());
+  api_->config_parse(config_, "input-fps", framerateStr.toLocal8Bit());
 
-    api_->config_parse(config_, "threads", threads.toLocal8Bit());
-    api_->config_parse(config_, "owf", settings.value(SettingsKey::videoOWF).toString().toLocal8Bit());
-    api_->config_parse(config_, "wpp", settings.value(SettingsKey::videoWPP).toString().toLocal8Bit());
+  QString threads = "0";
 
-    bool tiles = settings.value(SettingsKey::videoTiles).toBool();
-
-    if (tiles)
-    {
-      std::string dimensions = settings.value(SettingsKey::videoTileDimensions).toString().toStdString();
-      api_->config_parse(config_, "tiles", dimensions.c_str());
-    }
-
-    // this does not work with uvgRTP at the moment. Avoid using slices.
-    if(settings.value(SettingsKey::videoSlices).toInt() == 1)
-    {
-      if(config_->wpp)
-      {
-        api_->config_parse(config_, "slices", "wpp");
-      }
-      else if (tiles)
-      {
-        api_->config_parse(config_, "slices", "tiles");
-      }
-    }
-
-    // Video structure
-
-    api_->config_parse(config_, "qp",         settings.value(SettingsKey::videoQP).toString().toLocal8Bit());
-    api_->config_parse(config_, "period",     settings.value(SettingsKey::videoIntra).toString().toLocal8Bit());
-    api_->config_parse(config_, "vps-period", settings.value(SettingsKey::videoVPS).toString().toLocal8Bit());
-
-    if (config_->target_bitrate != 0)
-    {
-      api_->config_parse(config_, "rc-algorithm",    settings.value(SettingsKey::videoRCAlgorithm).toString().toLocal8Bit());
-    }
-
-    api_->config_parse(config_, "intra-bits", "1");
-
-    // TODO: Move to settings
-    api_->config_parse(config_, "gop", "lp-g4d3t1");
-
-    if (settings.value(SettingsKey::videoScalingList).toInt() == 0)
-    {
-      api_->config_parse(config_, "scaling-list", "off");
-    }
-    else
-    {
-      api_->config_parse(config_, "scaling-list", "default");
-    }
-
-    config_->lossless = settings.value(SettingsKey::videoLossless).toInt();
-
-    QString constraint = settings.value(SettingsKey::videoMVConstraint).toString();
-
-    if (constraint == "frame" || constraint == "frametile" || constraint == "frametilemargin")
-    {
-      api_->config_parse(config_, "mv-constraint", "");
-    }
-    else
-    {
-      api_->config_parse(config_, "mv-constraint", "none");
-    }
-
-    if (constraint == "frame")
-    {
-      config_->mv_constraint = KVZ_MV_CONSTRAIN_FRAME;
-    }
-    else if (constraint == "tile")
-    {
-      config_->mv_constraint = KVZ_MV_CONSTRAIN_TILE;
-    }
-    else if (constraint == "frametile")
-    {
-      config_->mv_constraint = KVZ_MV_CONSTRAIN_FRAME_AND_TILE;
-    }
-    else if (constraint == "frametilemargin")
-    {
-      config_->mv_constraint = KVZ_MV_CONSTRAIN_FRAME_AND_TILE_MARGIN;
-    }
-    else
-    {
-      config_->mv_constraint = KVZ_MV_CONSTRAIN_NONE;
-    }
-
-    config_->set_qp_in_cu = settings.value(SettingsKey::videoQPInCU).toInt();
-
-    int vaq = settings.value(SettingsKey::videoVAQ).toInt();
-    if (vaq > 0 && vaq <= 20)
-    {
-      api_->config_parse(config_, "vaq", settings.value(SettingsKey::videoVAQ).toString().toLocal8Bit());
-    }
-
-    // compression-tab
-    customParameters(settings);
-
-    config_->hash = KVZ_HASH_NONE;
-
-    // This is partial code for a system that is not working. A system was planned that would hot swap encoders with
-    // different resolutions, but since resetting worked well enough, I gave up on that idea
-    currentResolution_ = std::make_pair(partResolution.width(), partResolution.height());
-    encoders_[currentResolution_] = api_->encoder_open(config_);
-
-    if(!encoders_[currentResolution_])
-    {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to open Kvazaar encoder.");
-      return false;
-    }
-
-    createInputVector(config_->owf + 1);
-
-    if(inputPics_.empty())
-    {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Could not allocate input picture vector!");
-      return false;
-    }
-
-    Logger::getLogger()->printNormal(this, "Kvazaar iniation succeeded", "Resolution", resolutionStr);
+  // parallelization
+  if (settings.value(SettingsKey::videoKvzThreads) == "auto")
+  {
+    threads = QString::number(QThread::idealThreadCount());
+  }
+  else if (settings.value(SettingsKey::videoKvzThreads) == "Main")
+  {
+    threads = QString::number(0);
   }
   else
   {
-    Logger::getLogger()->printNormal(this, "Input buffer not empty!");
+    threads = settings.value(SettingsKey::videoKvzThreads).toString();
+  }
+
+  api_->config_parse(config_, "threads", threads.toLocal8Bit());
+  api_->config_parse(config_, "owf", settings.value(SettingsKey::videoOWF).toString().toLocal8Bit());
+  api_->config_parse(config_, "wpp", settings.value(SettingsKey::videoWPP).toString().toLocal8Bit());
+
+  bool tiles = settings.value(SettingsKey::videoTiles).toBool();
+
+  if (tiles)
+  {
+    std::string dimensions = settings.value(SettingsKey::videoTileDimensions).toString().toStdString();
+    api_->config_parse(config_, "tiles", dimensions.c_str());
+  }
+
+  // this does not work with uvgRTP at the moment. Avoid using slices.
+  if(settings.value(SettingsKey::videoSlices).toInt() == 1)
+  {
+    if(config_->wpp)
+    {
+      api_->config_parse(config_, "slices", "wpp");
+    }
+    else if (tiles)
+    {
+      api_->config_parse(config_, "slices", "tiles");
+    }
+  }
+
+  // Video structure
+
+  api_->config_parse(config_, "qp",         settings.value(SettingsKey::videoQP).toString().toLocal8Bit());
+  api_->config_parse(config_, "period",     settings.value(SettingsKey::videoIntra).toString().toLocal8Bit());
+  api_->config_parse(config_, "vps-period", settings.value(SettingsKey::videoVPS).toString().toLocal8Bit());
+
+  if (config_->target_bitrate != 0)
+  {
+    api_->config_parse(config_, "rc-algorithm",    settings.value(SettingsKey::videoRCAlgorithm).toString().toLocal8Bit());
+  }
+
+  api_->config_parse(config_, "intra-bits", "1");
+
+  // TODO: Move to settings
+  api_->config_parse(config_, "gop", "lp-g4d3t1");
+
+  if (settings.value(SettingsKey::videoScalingList).toInt() == 0)
+  {
+    api_->config_parse(config_, "scaling-list", "off");
+  }
+  else
+  {
+    api_->config_parse(config_, "scaling-list", "default");
+  }
+
+  config_->lossless = settings.value(SettingsKey::videoLossless).toInt();
+
+  QString constraint = settings.value(SettingsKey::videoMVConstraint).toString();
+
+  if (constraint == "frame" || constraint == "frametile" || constraint == "frametilemargin")
+  {
+    api_->config_parse(config_, "mv-constraint", "");
+  }
+  else
+  {
+    api_->config_parse(config_, "mv-constraint", "none");
+  }
+
+  if (constraint == "frame")
+  {
+    config_->mv_constraint = KVZ_MV_CONSTRAIN_FRAME;
+  }
+  else if (constraint == "tile")
+  {
+    config_->mv_constraint = KVZ_MV_CONSTRAIN_TILE;
+  }
+  else if (constraint == "frametile")
+  {
+    config_->mv_constraint = KVZ_MV_CONSTRAIN_FRAME_AND_TILE;
+  }
+  else if (constraint == "frametilemargin")
+  {
+    config_->mv_constraint = KVZ_MV_CONSTRAIN_FRAME_AND_TILE_MARGIN;
+  }
+  else
+  {
+    config_->mv_constraint = KVZ_MV_CONSTRAIN_NONE;
+  }
+
+  config_->set_qp_in_cu = settings.value(SettingsKey::videoQPInCU).toInt();
+
+  int vaq = settings.value(SettingsKey::videoVAQ).toInt();
+  if (vaq > 0 && vaq <= 20)
+  {
+    api_->config_parse(config_, "vaq", settings.value(SettingsKey::videoVAQ).toString().toLocal8Bit());
+  }
+
+  // compression-tab
+  customParameters(settings);
+
+  config_->hash = KVZ_HASH_NONE;
+
+  // This is partial code for a system that is not working. A system was planned that would hot swap encoders with
+  // different resolutions, but since resetting worked well enough, I gave up on that idea
+  currentResolution_ = std::make_pair(partResolution.width(), partResolution.height());
+  encoders_[currentResolution_] = api_->encoder_open(config_);
+
+  if(!encoders_[currentResolution_])
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to open Kvazaar encoder.");
     return false;
   }
+
+  createInputVector(config_->owf + 1);
+
+  if(inputPics_.empty())
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Could not allocate input picture vector!");
+    return false;
+  }
+
+  Logger::getLogger()->printNormal(this, "Kvazaar iniation succeeded", "Resolution", resolutionStr);
 
   return true;
 }
