@@ -80,7 +80,9 @@ const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipSpeakerMode,
                                     SettingsKey::sipVisibleParticipants,
                                     SettingsKey::sipTimestampInterval,
-                                    SettingsKey::sipHybridPriorization};
+                                    SettingsKey::sipHybridPriorization,
+                                    SettingsKey::sipSIPPort,
+                                    SettingsKey::sipSIPProtocol};
 
 CallSettings::CallSettings(QWidget* parent):
   QDialog (parent),
@@ -295,6 +297,9 @@ void CallSettings::saveAdvancedSettings()
   settings_.setValue(SettingsKey::sipRecordCSV, advancedUI_->record_csv_box->isChecked());
 
   settings_.setValue(SettingsKey::sipHybridPriorization, advancedUI_->hybrid_slider->value());
+
+  settings_.setValue(SettingsKey::sipSIPPort, advancedUI_->sip_port->value());
+  settings_.setValue(SettingsKey::sipSIPProtocol, advancedUI_->protocol_box->currentText());
 }
 
 
@@ -365,6 +370,9 @@ void CallSettings::restoreAdvancedSettings()
     advancedUI_->record_csv_box->setChecked(settings_.value(SettingsKey::sipRecordCSV).toBool());
 
     advancedUI_->hybrid_slider->setValue(settings_.value(SettingsKey::sipHybridPriorization).toInt());
+
+    advancedUI_->sip_port->setValue(settings_.value(SettingsKey::sipSIPPort).toInt());
+    advancedUI_->protocol_box->setCurrentText(settings_.value(SettingsKey::sipSIPProtocol).toString());
   }
   else
   {

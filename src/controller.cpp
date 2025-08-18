@@ -85,8 +85,24 @@ void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& co
 
   sip_.setSDP(sdp);
 
-
-  sip_.listenToAny(SIP_TCP, 5060);
+  uint16_t sipPort = settingValue(SettingsKey::sipSIPPort);
+  QString sipProtocol = settingString(SettingsKey::sipSIPProtocol);
+  if (sipProtocol == "TCP")
+  {
+    sip_.listenToAny(SIP_TCP, sipPort);
+  }
+  else if (sipProtocol == "UDP")
+  {
+    sip_.listenToAny(SIP_UDP, sipPort);
+  }
+  else if (sipProtocol == "TLS")
+  {
+    sip_.listenToAny(SIP_TLS, sipPort);
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Unknown SIP protocol type");
+  }
 
   updateCallSettings();
 

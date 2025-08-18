@@ -134,6 +134,9 @@ const QString sipTimestampInterval = "sip/timestampInterval";
 const QString sipRecordCSV = "sip/recordLatencies";
 const QString sipHybridPriorization = "sip/hybridPriorization";
 
+const QString sipSIPProtocol = "sip/SIPProtocol";
+const QString sipSIPPort = "sip/SIPPort";
+
 // blocklist setting key
 const QString blocklist = "blocklist";
 

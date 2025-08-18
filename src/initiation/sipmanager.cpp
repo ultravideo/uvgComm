@@ -259,8 +259,7 @@ bool SIPManager::listenToAny(SIPConnectionType type, uint16_t port)
   }
   else
   {
-    Logger::getLogger()->printProgramError(this, "Listening to SIP TCP connections",
-                                           "Port", QString::number(port));
+    Logger::getLogger()->printUnimplemented(this, "Unimplemented SIP connection type");
   }
 
   return false;
