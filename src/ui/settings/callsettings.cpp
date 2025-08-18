@@ -86,8 +86,7 @@ const QStringList neededSettings = {SettingsKey::localAutoAccept,
 
 CallSettings::CallSettings(QWidget* parent):
   QDialog (parent),
-  advancedUI_(new Ui::AdvancedSettings),
-  settings_(getSettingsFile(), settingsFileFormat)
+  advancedUI_(new Ui::AdvancedSettings)
 {
   advancedUI_->setupUi(this);
   stunQuestion_.setupUi(&stun_);
@@ -154,7 +153,8 @@ void CallSettings::acceptSTUN()
   advancedUI_->stun_address->setText(stunQuestion_.address->text());
   advancedUI_->stun_port->setValue(stunQuestion_.port->value());
 
-  saveCheckBox(SettingsKey::sipSTUNEnabled, advancedUI_->stun_enabled, settings_);
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+  saveCheckBox(SettingsKey::sipSTUNEnabled, advancedUI_->stun_enabled, settings);
   stun_.hide();
 }
 
@@ -163,7 +163,8 @@ void CallSettings::declineSTUN()
   Logger::getLogger()->printNormal(this, "User declined STUN usage");
   advancedUI_->stun_enabled->setChecked(false);
 
-  saveCheckBox(SettingsKey::sipSTUNEnabled, advancedUI_->stun_enabled, settings_);
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+  saveCheckBox(SettingsKey::sipSTUNEnabled, advancedUI_->stun_enabled, settings);
   stun_.hide();
 }
 
@@ -251,22 +252,24 @@ void CallSettings::saveAdvancedSettings()
   listGUIToSettings(blocklistFile, SettingsKey::blocklist,
                     QStringList() << "userName" << "date", advancedUI_->blockedUsers);
 
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
   // sip settings.
-  saveCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings_);
-  saveCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
+  saveCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings);
+  saveCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings);
 #ifdef uvgComm_NO_RTP_MULTIPLEXING
-  saveCheckBox(SettingsKey::sipICEEnabled,      advancedUI_->ice_checkbox, settings_);
+  saveCheckBox(SettingsKey::sipICEEnabled,      advancedUI_->ice_checkbox, settings);
 #endif
-  saveCheckBox(SettingsKey::privateAddresses,   advancedUI_->local_checkbox, settings_);
-  saveCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
+  saveCheckBox(SettingsKey::privateAddresses,   advancedUI_->local_checkbox, settings);
+  saveCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings);
 
-  saveTextValue(SettingsKey::sipRole, advancedUI_->role_combo->currentText(), settings_);
-  saveTextValue(SettingsKey::sipTopology, advancedUI_->topology_combo->currentText(), settings_);
+  saveTextValue(SettingsKey::sipRole, advancedUI_->role_combo->currentText(), settings);
+  saveTextValue(SettingsKey::sipTopology, advancedUI_->topology_combo->currentText(), settings);
 
-  saveTextValue(SettingsKey::sipSTUNAddress, advancedUI_->stun_address->text(), settings_);
+  saveTextValue(SettingsKey::sipSTUNAddress, advancedUI_->stun_address->text(), settings);
 
-  settings_.setValue(SettingsKey::sipSTUNPort,  QString::number(advancedUI_->stun_port->value()));
-  settings_.setValue(SettingsKey::sipMediaPort,  QString::number(advancedUI_->media_port->value()));
+  settings.setValue(SettingsKey::sipSTUNPort,  QString::number(advancedUI_->stun_port->value()));
+  settings.setValue(SettingsKey::sipMediaPort,  QString::number(advancedUI_->media_port->value()));
 
   if (advancedUI_->resolution_combo->currentText() != "Custom")
   {
@@ -277,29 +280,29 @@ void CallSettings::saveAdvancedSettings()
     }
 
     ResolutionBitrate bitrates = RESOLUTIONS.at(advancedUI_->resolution_combo->currentText());
-    settings_.setValue(SettingsKey::videoResolutionWidth,  QString::number(bitrates.width));
-    settings_.setValue(SettingsKey::videoResolutionHeight, QString::number(bitrates.height));
-    settings_.setValue(SettingsKey::videoBitrate, QString::number(getVideoBitrate(bitrates.totalBitrate)));
-    settings_.setValue(SettingsKey::audioBitrate, QString::number(getAudioBitrate(bitrates.totalBitrate)));
+    settings.setValue(SettingsKey::videoResolutionWidth,  QString::number(bitrates.width));
+    settings.setValue(SettingsKey::videoResolutionHeight, QString::number(bitrates.height));
+    settings.setValue(SettingsKey::videoBitrate, QString::number(getVideoBitrate(bitrates.totalBitrate)));
+    settings.setValue(SettingsKey::audioBitrate, QString::number(getAudioBitrate(bitrates.totalBitrate)));
   }
 
   QString resolution = advancedUI_->resolution_combo->currentText();
 
-  settings_.setValue(SettingsKey::sipUpBandwidth,  QString::number(advancedUI_->up_slider->value()));
-  settings_.setValue(SettingsKey::sipDownBandwidth, QString::number(advancedUI_->down_slider->value()));
+  settings.setValue(SettingsKey::sipUpBandwidth,  QString::number(advancedUI_->up_slider->value()));
+  settings.setValue(SettingsKey::sipDownBandwidth, QString::number(advancedUI_->down_slider->value()));
 
-  settings_.setValue(SettingsKey::sipConferenceMode, advancedUI_->layout_box->currentText());
-  settings_.setValue(SettingsKey::sipSpeakerMode, advancedUI_->speaker_checkbox->isChecked());
+  settings.setValue(SettingsKey::sipConferenceMode, advancedUI_->layout_box->currentText());
+  settings.setValue(SettingsKey::sipSpeakerMode, advancedUI_->speaker_checkbox->isChecked());
 
-  settings_.setValue(SettingsKey::sipVisibleParticipants, advancedUI_->visible_box->value());
+  settings.setValue(SettingsKey::sipVisibleParticipants, advancedUI_->visible_box->value());
 
-  settings_.setValue(SettingsKey::sipTimestampInterval, advancedUI_->timestamp_spinbox->value());
-  settings_.setValue(SettingsKey::sipRecordCSV, advancedUI_->record_csv_box->isChecked());
+  settings.setValue(SettingsKey::sipTimestampInterval, advancedUI_->timestamp_spinbox->value());
+  settings.setValue(SettingsKey::sipRecordCSV, advancedUI_->record_csv_box->isChecked());
 
-  settings_.setValue(SettingsKey::sipHybridPriorization, advancedUI_->hybrid_slider->value());
+  settings.setValue(SettingsKey::sipHybridPriorization, advancedUI_->hybrid_slider->value());
 
-  settings_.setValue(SettingsKey::sipSIPPort, advancedUI_->sip_port->value());
-  settings_.setValue(SettingsKey::sipSIPProtocol, advancedUI_->protocol_box->currentText());
+  settings.setValue(SettingsKey::sipSIPPort, advancedUI_->sip_port->value());
+  settings.setValue(SettingsKey::sipSIPProtocol, advancedUI_->protocol_box->currentText());
 }
 
 
@@ -308,10 +311,12 @@ void CallSettings::restoreAdvancedSettings()
   listSettingsToGUI(blocklistFile, SettingsKey::blocklist, QStringList()
                     << "userName" << "date", advancedUI_->blockedUsers);
 
-  int videoBitrate = settings_.value(SettingsKey::videoBitrate).toInt();
-  int audioBitrate = settings_.value(SettingsKey::audioBitrate).toInt();
-  int resolutionWidth = settings_.value(SettingsKey::videoResolutionWidth).toInt();
-  int resolutionHeight = settings_.value(SettingsKey::videoResolutionHeight).toInt();
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
+  int videoBitrate = settings.value(SettingsKey::videoBitrate).toInt();
+  int audioBitrate = settings.value(SettingsKey::audioBitrate).toInt();
+  int resolutionWidth = settings.value(SettingsKey::videoResolutionWidth).toInt();
+  int resolutionHeight = settings.value(SettingsKey::videoResolutionHeight).toInt();
 
   QString resolution = "Custom";
 
@@ -333,10 +338,10 @@ void CallSettings::restoreAdvancedSettings()
   advancedUI_->bitrate_value->setText(bitrateLabel);
   advancedUI_->resolution_combo->setCurrentText(resolution);
 
-  if(checkSettingsList(settings_, neededSettings))
+  if(checkSettingsList(settings, neededSettings))
   {
-    restoreCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings_);
-    restoreCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings_);
+    restoreCheckBox(SettingsKey::localAutoAccept,    advancedUI_->auto_accept, settings);
+    restoreCheckBox(SettingsKey::sipSTUNEnabled,     advancedUI_->stun_enabled, settings);
 
 // TODO: Remove this once ICE works with multiplexing
 #ifdef uvgComm_NO_RTP_MULTIPLEXING
@@ -345,34 +350,34 @@ void CallSettings::restoreAdvancedSettings()
     advancedUI_->ice_label->hide();
     advancedUI_->ice_checkbox->hide();
 #endif
-    restoreCheckBox(SettingsKey::privateAddresses,     advancedUI_->local_checkbox, settings_);
-    restoreCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings_);
+    restoreCheckBox(SettingsKey::privateAddresses,     advancedUI_->local_checkbox, settings);
+    restoreCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings);
 
-    QString type = settings_.value(SettingsKey::sipRole).toString();
+    QString type = settings.value(SettingsKey::sipRole).toString();
     advancedUI_->role_combo->setCurrentText(type);
 
-    type = settings_.value(SettingsKey::sipTopology).toString();
+    type = settings.value(SettingsKey::sipTopology).toString();
     advancedUI_->topology_combo->setCurrentText(type);
 
-    advancedUI_->stun_address->setText(settings_.value(SettingsKey::sipSTUNAddress).toString());
-    advancedUI_->stun_port->setValue  (settings_.value(SettingsKey::sipSTUNPort).toInt());
-    advancedUI_->media_port->setValue (settings_.value(SettingsKey::sipMediaPort).toInt());
+    advancedUI_->stun_address->setText(settings.value(SettingsKey::sipSTUNAddress).toString());
+    advancedUI_->stun_port->setValue  (settings.value(SettingsKey::sipSTUNPort).toInt());
+    advancedUI_->media_port->setValue (settings.value(SettingsKey::sipMediaPort).toInt());
 
-    advancedUI_->up_slider->setValue(settings_.value(SettingsKey::sipUpBandwidth).toInt());
-    advancedUI_->down_slider->setValue(settings_.value(SettingsKey::sipDownBandwidth).toInt());
+    advancedUI_->up_slider->setValue(settings.value(SettingsKey::sipUpBandwidth).toInt());
+    advancedUI_->down_slider->setValue(settings.value(SettingsKey::sipDownBandwidth).toInt());
 
-    advancedUI_->layout_box->setCurrentText(settings_.value(SettingsKey::sipConferenceMode).toString());
-    advancedUI_->speaker_checkbox->setChecked(settings_.value(SettingsKey::sipSpeakerMode).toBool());
+    advancedUI_->layout_box->setCurrentText(settings.value(SettingsKey::sipConferenceMode).toString());
+    advancedUI_->speaker_checkbox->setChecked(settings.value(SettingsKey::sipSpeakerMode).toBool());
 
-    advancedUI_->visible_box->setValue(settings_.value(SettingsKey::sipVisibleParticipants).toInt());
+    advancedUI_->visible_box->setValue(settings.value(SettingsKey::sipVisibleParticipants).toInt());
 
-    advancedUI_->timestamp_spinbox->setValue(settings_.value(SettingsKey::sipTimestampInterval).toInt());
-    advancedUI_->record_csv_box->setChecked(settings_.value(SettingsKey::sipRecordCSV).toBool());
+    advancedUI_->timestamp_spinbox->setValue(settings.value(SettingsKey::sipTimestampInterval).toInt());
+    advancedUI_->record_csv_box->setChecked(settings.value(SettingsKey::sipRecordCSV).toBool());
 
-    advancedUI_->hybrid_slider->setValue(settings_.value(SettingsKey::sipHybridPriorization).toInt());
+    advancedUI_->hybrid_slider->setValue(settings.value(SettingsKey::sipHybridPriorization).toInt());
 
-    advancedUI_->sip_port->setValue(settings_.value(SettingsKey::sipSIPPort).toInt());
-    advancedUI_->protocol_box->setCurrentText(settings_.value(SettingsKey::sipSIPProtocol).toString());
+    advancedUI_->sip_port->setValue(settings.value(SettingsKey::sipSIPPort).toInt());
+    advancedUI_->protocol_box->setCurrentText(settings.value(SettingsKey::sipSIPProtocol).toString());
   }
   else
   {

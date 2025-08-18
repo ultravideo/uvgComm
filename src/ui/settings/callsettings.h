@@ -75,11 +75,7 @@ private:
 
   QString bitrateString(int totalBitrate, int audioBitrate, int videoBitrate) const;
 
-
-
   Ui::AdvancedSettings *advancedUI_;
   Ui::StunMessage stunQuestion_;
   QWidget stun_;
-
-  QSettings settings_;
 };

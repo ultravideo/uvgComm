@@ -38,7 +38,6 @@ private:
   void executeCommand(const QString& command);
 
   QString filename_;
-  QSettings settings_;
 
   ParticipantInterface* interface_;
 };

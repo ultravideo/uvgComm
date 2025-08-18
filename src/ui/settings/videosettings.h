@@ -100,6 +100,4 @@ private:
   std::shared_ptr<CameraInfo> cam_;
 
   bool sharingScreen_;
-
-  QSettings settings_;
 };

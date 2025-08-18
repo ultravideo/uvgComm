@@ -8,8 +8,7 @@
 
 #include <QSettings>
 
-Scripting::Scripting():
-settings_(getSettingsFile(), settingsFileFormat)
+Scripting::Scripting()
 {}
 
 
@@ -117,7 +116,9 @@ void Scripting::executeCommand(const QString& command)
       Logger::getLogger()->printWarning(this, "Invalid setting command: " + command);
       return;
     }
-    settings_.setValue(parts[0], parts[1]);
+
+    QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+    settings.setValue(parts[0], parts[1]);
   }
   else if (cmd == "setVideo")
   {

@@ -18,6 +18,8 @@ public:
   explicit Demos(QWidget *parent = nullptr);
   ~Demos();
 
+  void init();
+
   VideoWidget* getRoiSelfView();
 
   virtual void show();
@@ -54,8 +56,6 @@ private:
   void disableROI();
 
   Ui::AutomaticSettings *ui_;
-
-  QSettings settings_;
 
   int previousBitrate_;
 

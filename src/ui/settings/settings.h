@@ -139,7 +139,5 @@ private:
   AudioSettings audioSettings_;
   Demos autoSettings_;
 
-  QSettings settings_;
-
   DefaultSettings defaults_;
 };

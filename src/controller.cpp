@@ -60,7 +60,6 @@ void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& co
   QObject::connect(&sip_, &SIPManager::connectionEstablished,
                    this, &uvgCommController::connectionEstablished);
 
-
   sip_.installSIPRequestCallback(std::bind(&uvgCommController::SIPRequestCallback, this,
                                            std::placeholders::_1,
                                            std::placeholders::_2,
