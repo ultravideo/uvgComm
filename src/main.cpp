@@ -19,30 +19,30 @@ enum class ScriptMode
 };
 
 
-ScriptMode commandLine(QApplication& app, QString& outScriptfile, QString outConfigfile = "")
+ScriptMode commandLine(QApplication& app, QString& outScriptfile, QString& outConfigfile)
 {
   QCommandLineParser parser;
   parser.setApplicationDescription("Video conferencing app with optional scripting support");
   parser.addHelpOption();
   parser.addVersionOption();
 
-  QCommandLineOption scriptOption1("script",
+  QCommandLineOption scriptOption("script",
                                   "Run script for automated testing. Use 'stdin' to read from stdin.",
                                   "filename");
-  parser.addOption(scriptOption1);
+  parser.addOption(scriptOption);
 
-  QCommandLineOption scriptOption2("config",
+  QCommandLineOption configOption("config",
                                   "Use the specified config file instead of default.",
                                   "filename");
-  parser.addOption(scriptOption2);
+  parser.addOption(configOption);
 
   parser.process(app);
 
   ScriptMode scriptMode = ScriptMode::SCRIPT_NONE;
 
-  if (parser.isSet(scriptOption1))
+  if (parser.isSet(scriptOption))
   {
-    QString scriptPath = parser.value(scriptOption1);
+    QString scriptPath = parser.value(scriptOption);
     if (scriptPath == "-" || scriptPath == "stdin")
     {
       // Read from stdin
@@ -55,10 +55,9 @@ ScriptMode commandLine(QApplication& app, QString& outScriptfile, QString outCon
     }
   }
 
-  if (parser.isSet(scriptOption2))
+  if (parser.isSet(configOption))
   {
-    QString configPath = parser.value(scriptOption2);
-    outConfigfile = configPath;
+    outConfigfile = parser.value(configOption);
   }
 
   return scriptMode;
