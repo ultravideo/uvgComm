@@ -1,7 +1,7 @@
 #include "callsettings.h"
 
+#include "common.h"
 #include "ui_callsettings.h"
-
 
 #include "settingshelper.h"
 #include "settingskeys.h"
@@ -85,7 +85,7 @@ const QStringList neededSettings = {SettingsKey::localAutoAccept,
 CallSettings::CallSettings(QWidget* parent):
   QDialog (parent),
   advancedUI_(new Ui::AdvancedSettings),
-  settings_(settingsFile, settingsFileFormat)
+  settings_(getSettingsFile(), settingsFileFormat)
 {
   advancedUI_->setupUi(this);
   stunQuestion_.setupUi(&stun_);

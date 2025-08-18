@@ -1,5 +1,6 @@
 #include "scripting.h"
 
+#include "common.h"
 #include "logger.h"
 
 #include "settingskeys.h"
@@ -8,7 +9,7 @@
 #include <QSettings>
 
 Scripting::Scripting():
-settings_(settingsFile, settingsFileFormat)
+settings_(getSettingsFile(), settingsFileFormat)
 {}
 
 

@@ -1,4 +1,5 @@
 #include "demos.h"
+#include "common.h"
 #include "ui_demos.h"
 
 #include "settingskeys.h"
@@ -26,7 +27,7 @@ const std::vector<std::pair<QString, uint16_t>> OBJECT_TYPES =
 Demos::Demos(QWidget *parent):
   QDialog(parent),
   ui_(new Ui::AutomaticSettings),
-  settings_(settingsFile, settingsFileFormat),
+  settings_(getSettingsFile(), settingsFileFormat),
   previousBitrate_(0),
   lastTabIndex_(0)
 {

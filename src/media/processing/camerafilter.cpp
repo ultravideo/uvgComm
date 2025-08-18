@@ -44,7 +44,7 @@ CameraFilter::~CameraFilter()
 
 void CameraFilter::updateSettings()
 {
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
 
   QString deviceName = settings.value(SettingsKey::videoDevice).toString();
   int deviceID = settings.value(SettingsKey::videoDeviceID).toInt();
@@ -145,7 +145,7 @@ bool CameraFilter::initialCameraSetup()
     return false;
   }
 
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
   currentDeviceName_ = settings.value(SettingsKey::videoDevice).toString();
   currentDeviceID_ = settings.value(SettingsKey::videoDeviceID).toInt();
 
@@ -197,7 +197,7 @@ bool CameraFilter::cameraSetup()
 
   if (camera_)
   {
-    QSettings settings(settingsFile, settingsFileFormat);
+    QSettings settings(getSettingsFile(), settingsFileFormat);
 
     int waitRoundMS = 5;
     int totalWaitTime = 1000;

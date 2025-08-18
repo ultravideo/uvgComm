@@ -1,5 +1,6 @@
 #include "libyuvconverter.h"
 
+#include "common.h"
 #include "logger.h"
 #include "settingskeys.h"
 #include "src/media/resourceallocator.h"
@@ -14,7 +15,7 @@ LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
   targetResolution_(0, 0),
   baseResolution_(0, 0)
 {
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
   baseResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
                          settings.value(SettingsKey::videoResolutionHeight).toInt());
 
@@ -28,7 +29,7 @@ void LibYUVConverter::changeResolution()
 {
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Changing resolution for libyuv filter");
 
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
 
   resolutionMutex_.lock();
 
@@ -50,7 +51,7 @@ void LibYUVConverter::changeResolution()
 
 void LibYUVConverter::updateSettings()
 {
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
   baseResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
                           settings.value(SettingsKey::videoResolutionHeight).toInt());
 

@@ -27,6 +27,20 @@ const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 constexpr float SPEAKER_PORTION = 0.80f;
 
 
+static QString settingsFile = "uvgComm.ini";
+
+QString getSettingsFile()
+{
+  return settingsFile;
+}
+
+
+void setSettingsFile(QString filename)
+{
+  settingsFile = filename;
+}
+
+
 QString generateRandomString(uint32_t length)
 {
   // TODO make this cryptographically secure to avoid collisions

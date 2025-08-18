@@ -20,6 +20,9 @@ struct MediaInfo;
 // generates a random string of length.
 QString generateRandomString(uint32_t length);
 
+QString getSettingsFile();
+void setSettingsFile(QString filename);
+
 bool settingEnabled(QString key);
 int settingValue(QString key);
 

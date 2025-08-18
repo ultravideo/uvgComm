@@ -57,7 +57,7 @@ bool OpusEncoderFilter::init()
 
 void OpusEncoderFilter::updateSettings()
 {
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
 
   int bitrate = settings.value(SettingsKey::audioBitrate).toInt();
   int complexity = settings.value(SettingsKey::audioComplexity).toInt();

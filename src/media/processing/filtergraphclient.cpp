@@ -160,7 +160,7 @@ void FilterGraphClient::uninit()
 
 void FilterGraphClient::updateVideoSettings()
 {
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
   // if the video format has changed so that we need different conversions
 
   QString wantedVideoFormat = settings.value(SettingsKey::videoInputFormat).toString();
@@ -245,7 +245,7 @@ void FilterGraphClient::initCameraSelfView()
 {
   Logger::getLogger()->printNormal(this, "Iniating camera");
 
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
   videoFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
 
   if (cameraGraph_.size() > 0)

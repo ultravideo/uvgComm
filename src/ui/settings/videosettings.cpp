@@ -23,7 +23,7 @@ VideoSettings::VideoSettings(QWidget* parent,
   videoSettingsUI_(new Ui::VideoSettings),
   cam_(info),
   sharingScreen_(false),
-  settings_(settingsFile, settingsFileFormat)
+  settings_(getSettingsFile(), settingsFileFormat)
 {
   videoSettingsUI_->setupUi(this);
 
@@ -196,7 +196,7 @@ void VideoSettings::saveSettings()
 
   // compression-tab
   settings_.setValue(SettingsKey::videoPreset,      videoSettingsUI_->preset->currentText());
-  listGUIToSettings(settingsFile, SettingsKey::videoCustomParameters,
+  listGUIToSettings(getSettingsFile(), SettingsKey::videoCustomParameters,
                     QStringList() << "Name" << "Value", videoSettingsUI_->custom_parameters);
 
   // ROI-tab
@@ -360,7 +360,7 @@ void VideoSettings::restoreSettings()
   restoreComboBoxValue(SettingsKey::videoPreset, videoSettingsUI_->preset,
                        "ultrafast", settings_);
 
-  listSettingsToGUI(settingsFile, SettingsKey::videoCustomParameters,
+  listSettingsToGUI(getSettingsFile(), SettingsKey::videoCustomParameters,
                     QStringList() << "Name" << "Value",
                     videoSettingsUI_->custom_parameters);
 

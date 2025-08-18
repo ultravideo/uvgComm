@@ -22,7 +22,7 @@ void SpeexDSP::updateSettings()
 {
   if ( preprocessor_ != nullptr)
   {
-    QSettings settings(settingsFile, settingsFileFormat);
+    QSettings settings(getSettingsFile(), settingsFileFormat);
 
     processMutex_.lock();
 

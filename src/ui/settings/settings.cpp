@@ -33,7 +33,7 @@ Settings::Settings(QWidget *parent) :
   videoSettings_(this, cam_),
   audioSettings_(this, mic_),
   autoSettings_(this),
-  settings_(settingsFile, settingsFileFormat)
+  settings_(getSettingsFile(), settingsFileFormat)
 {}
 
 

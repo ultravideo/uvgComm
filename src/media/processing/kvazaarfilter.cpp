@@ -47,7 +47,7 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
 {
   maxBufferSize_ = 30;
 
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
   timestampInterval_ = settings.value(SettingsKey::sipTimestampInterval).toInt();
 }
 
@@ -124,7 +124,7 @@ kvz_picture* KvazaarFilter::getNextPic()
 void KvazaarFilter::updateSettings()
 {
   Logger::getLogger()->printNormal(this, "Updating kvazaar settings");
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
 
   timestampInterval_ = settings.value(SettingsKey::sipTimestampInterval).toInt();
   reInitializeKvazaar();
@@ -170,7 +170,7 @@ bool KvazaarFilter::init()
   // input picture should not exist at this point
   if(inputPics_.empty())
   {
-    QSettings settings(settingsFile, settingsFileFormat);
+    QSettings settings(getSettingsFile(), settingsFileFormat);
 
     int enumerator = settings.value(SettingsKey::videoFramerateNumerator).toInt();
     int denominator = settings.value(SettingsKey::videoFramerateDenominator).toInt();

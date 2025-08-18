@@ -1,5 +1,6 @@
 #include "openhevcfilter.h"
 
+#include "common.h"
 #include "statisticsinterface.h"
 
 #include "settingskeys.h"
@@ -29,7 +30,7 @@ OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID,
 bool OpenHEVCFilter::init()
 {
   Logger::getLogger()->printNormal(this, "Starting to initiate OpenHEVC");
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
 
   threads_ = settings.value(SettingsKey::videoOpenHEVCThreads).toInt();
   parallelizationMode_ = settings.value(SettingsKey::videoOHParallelization).toString();
@@ -86,7 +87,7 @@ void OpenHEVCFilter::uninit()
 
 void OpenHEVCFilter::updateSettings()
 {
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
 
   if (settings.value(SettingsKey::videoOpenHEVCThreads).toInt() != threads_ ||
       settings.value(SettingsKey::videoOHParallelization).toString() != parallelizationMode_)

@@ -1,7 +1,8 @@
 #include "defaultsettings.h"
 
-#include "settingshelper.h"
+#include "common.h"
 #include "microphoneinfo.h"
+#include "settingshelper.h"
 
 #include "logger.h"
 #include "settingskeys.h"
@@ -9,7 +10,7 @@
 #include <thread>
 
 DefaultSettings::DefaultSettings():
-  settings_(settingsFile, settingsFileFormat)
+  settings_(getSettingsFile(), settingsFileFormat)
 {}
 
 

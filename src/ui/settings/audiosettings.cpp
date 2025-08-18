@@ -27,7 +27,7 @@ AudioSettings::AudioSettings(QWidget* parent,
   currentDevice_(0),
   audioSettingsUI_(new Ui::AudioSettings),
   mic_(info),
-  settings_(settingsFile, settingsFileFormat)
+  settings_(getSettingsFile(), settingsFileFormat)
 {
   audioSettingsUI_->setupUi(this);
 

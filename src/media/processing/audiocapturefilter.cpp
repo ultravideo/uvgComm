@@ -1,7 +1,8 @@
 #include "audiocapturefilter.h"
 
-#include "statisticsinterface.h"
 #include "audioframebuffer.h"
+#include "common.h"
+#include "statisticsinterface.h"
 
 #include "settingskeys.h"
 #include "global.h"
@@ -43,7 +44,7 @@ bool AudioCaptureFilter::init()
   const QList<QAudioDevice> microphones = QMediaDevices::audioInputs();
   if (!microphones.empty())
   {
-    QSettings settings(settingsFile, settingsFileFormat);
+    QSettings settings(getSettingsFile(), settingsFileFormat);
     QString deviceName = settings.value(SettingsKey::audioDevice).toString();
     int deviceID = settings.value(SettingsKey::audioDeviceID).toInt();
 
