@@ -10,7 +10,7 @@ if (NOT OPENHEVC_FOUND)
         FetchContent_Declare(
                         LibOpenHevcWrapper
                         GIT_REPOSITORY https://github.com/jrsnen/openHEVC.git
-                        GIT_TAG        cbe04ded9da58ea0994e122eeb550cf8aaae109e
+                        GIT_TAG        8a7e05260aa5127a9d3c984e018ef3a306b11fea
         )
 
         # static version compiles by default
