@@ -59,6 +59,43 @@ VideoSettings::VideoSettings(QWidget* parent,
 
   connect(videoSettingsUI_->model_button, &QPushButton::clicked,
           this, &VideoSettings::browse);
+
+  // Print the runtime backend used by QMediaDevices
+  const char* backend = qgetenv("QT_MEDIA_BACKEND");
+
+  if (backend && *backend)
+  {
+    videoSettingsUI_->media_backend_label->setText(QString(backend));
+  }
+
+  QStringList pluginNames;
+  QStringList searchPaths = QCoreApplication::libraryPaths();
+  for (const QString &path : searchPaths)
+  {
+    QDir dir(path + "/multimedia/");
+    if (!dir.exists())
+    {
+      continue;
+    }
+
+    QStringList files;
+#ifdef Q_OS_WIN
+    files = dir.entryList(QStringList() << "*.dll", QDir::Files);
+    // skip debug DLLs ending with d.dll
+    for (const QString &file : files)
+    {
+      if (!file.endsWith("d.dll", Qt::CaseInsensitive))
+      {
+        pluginNames << file;
+      }
+    }
+#else
+    files = dir.entryList(QStringList() << "*.so", QDir::Files);
+    pluginNames << files;
+#endif
+  }
+
+  videoSettingsUI_->media_plugins_label->setText(pluginNames.join(", "));
 }
 
 
