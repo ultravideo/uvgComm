@@ -304,7 +304,12 @@ void SIPManager::bindingAtRegistrar(QString serverAddress)
     NameAddr local = localInfo();
     createRegistration(local);
 
-    getRegistration(serverAddress)->client->sendREGISTER(REGISTER_INTERVAL);
+    std::shared_ptr<RegistrationInstance> registration = getRegistration(serverAddress);
+
+    if (registration)
+    {
+      registration->client->sendREGISTER(REGISTER_INTERVAL);
+    }
   }
   else
   {
@@ -735,7 +740,7 @@ std::shared_ptr<RegistrationInstance> SIPManager::getRegistration(QString& addre
   }
   else
   {
-    Logger::getLogger()->printProgramError(this, "Could not find registration",
+    Logger::getLogger()->printError(this, "Could not find registration",
                       "Address", address);
   }
 
