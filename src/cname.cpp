@@ -2,6 +2,8 @@
 
 #include "settingskeys.h"
 
+#include "common.h"
+
 #include <QSettings>
 
 #include <chrono>
@@ -26,7 +28,7 @@ QString CName::cname()
 
 void CName::generateCName()
 {
-  QSettings settings("uvgComm.ini", QSettings::IniFormat);
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
 
   cname_ = settings.value(SettingsKey::sipUUID).toString() + "@"
            + QString::number(std::chrono::system_clock::now().time_since_epoch().count());

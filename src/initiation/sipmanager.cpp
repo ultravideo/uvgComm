@@ -18,6 +18,7 @@
 #include "initiation/negotiation/sdpdefault.h"
 
 #include "siphelper.h"
+#include "settingskeys.h"
 
 #include "common.h"
 #include "global.h"
@@ -36,9 +37,6 @@ const int REGISTER_SEND_PERIOD = (REGISTER_INTERVAL - 5)*1000;
 
 const int MIN_RANDOM_DELAY_MS = 25;
 const int MAX_RANDOM_DELAY_MS = 75;
-
-// default for SIP, use 5061 for tls encrypted
-const uint16_t SIP_PORT = 5060;
 
 
 SIPManager::SIPManager():
@@ -1171,15 +1169,13 @@ NameAddr SIPManager::localInfo(bool registered, QString connectionAddress)
 NameAddr SIPManager::localInfo()
 {
   // init stuff from the settings
-  QSettings settings("uvgComm.ini", QSettings::IniFormat);
-
   NameAddr local;
 
-  local.realname = settings.value("local/Name").toString();
+  local.realname = settingString(SettingsKey::localRealname);
   local.uri.userinfo.user = getLocalUsername();
 
   // dont set server address if we have already set peer-to-peer address
-  local.uri.hostport.host = settings.value("sip/ServerAddress").toString();
+  local.uri.hostport.host = settingString(SettingsKey::sipServerAddress);
 
   local.uri.type = DEFAULT_SIP_TYPE;
   local.uri.hostport.port = 0; // port is added later if needed
