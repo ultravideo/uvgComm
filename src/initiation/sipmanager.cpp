@@ -293,6 +293,12 @@ uint32_t SIPManager::reserveSessionID()
 
 void SIPManager::bindingAtRegistrar(QString serverAddress)
 {
+  if (serverAddress == "")
+  {
+    Logger::getLogger()->printError(this, "Cannot bind to empty address");
+    return;
+  }
+
   if (transports_.find(serverAddress) == transports_.end())
   {
     Logger::getLogger()->printError(this, "No connection found when binding");
@@ -880,8 +886,18 @@ void SIPManager::createRegistration(NameAddr& addressRecord)
    * part of connection with the server (mostly for sending REGISTER requests).
    */
 
-  if (registrations_.find(addressRecord.uri.hostport.host) == registrations_.end())
+  if (addressRecord.uri.hostport.host == "")
   {
+    Logger::getLogger()->printError(this, "Cannot create registration without address");
+    return;
+  }
+
+  if (registrations_.find(addressRecord.uri.hostport.host) == registrations_.end() ||
+      registrations_.at(addressRecord.uri.hostport.host) == nullptr)
+  {
+    Logger::getLogger()->printNormal(this, "Creating SIP registration",
+                                     {"Address"}, {addressRecord.uri.hostport.host});
+
     std::shared_ptr<RegistrationInstance> registration =
         std::shared_ptr<RegistrationInstance> (new RegistrationInstance);
     registrations_[addressRecord.uri.hostport.host] = registration;
@@ -926,6 +942,11 @@ void SIPManager::createRegistration(NameAddr& addressRecord)
     registration->retryTimer.setSingleShot(false);
 
     registration->retryTimer.start();
+  }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "Registration already exists for address",
+                                      {"Address"}, {addressRecord.uri.hostport.host});
   }
 }
 
