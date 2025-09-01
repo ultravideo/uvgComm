@@ -65,7 +65,9 @@ public slots:
   void updateTilesStatus();
   void updateObaStatus(int index);
 
-  void browse();
+  void browseModel();
+
+  void browseVideoFile();
 
 protected:
 
@@ -92,6 +94,8 @@ private:
   // initializes the UI with correct formats and resolutions
   void initializeFormat();
   void initializeThreads();
+
+  void initFileSelection();
 
   int currentDevice_;
 

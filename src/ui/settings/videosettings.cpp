@@ -58,7 +58,10 @@ VideoSettings::VideoSettings(QWidget* parent,
           this, &VideoSettings::updateObaStatus);
 
   connect(videoSettingsUI_->model_button, &QPushButton::clicked,
-          this, &VideoSettings::browse);
+          this, &VideoSettings::browseModel);
+
+  connect(videoSettingsUI_->browse_button, &QPushButton::clicked,
+          this, &VideoSettings::browseVideoFile);
 
   // Print the runtime backend used by QMediaDevices
   const char* backend = qgetenv("QT_MEDIA_BACKEND");
@@ -96,6 +99,22 @@ VideoSettings::VideoSettings(QWidget* parent,
   }
 
   videoSettingsUI_->media_plugins_label->setText(pluginNames.join(", "));
+  initFileSelection();
+}
+
+
+void VideoSettings::initFileSelection()
+{
+  videoSettingsUI_->file_framerate_box->clear();
+  videoSettingsUI_->file_framerate_box->addItem("120");
+  videoSettingsUI_->file_framerate_box->addItem("60");
+  videoSettingsUI_->file_framerate_box->addItem("30");
+
+  videoSettingsUI_->file_resolution_box->clear();
+  videoSettingsUI_->file_resolution_box->addItem("4096x2160");
+  videoSettingsUI_->file_resolution_box->addItem("3840x2160");
+  videoSettingsUI_->file_resolution_box->addItem("1920x1080");
+  videoSettingsUI_->file_resolution_box->addItem("1280x720");
 }
 
 
@@ -182,6 +201,17 @@ void VideoSettings::saveSettings()
   // Video settings
   // input-tab
   saveCameraCapabilities(settings.value(SettingsKey::videoDeviceID).toInt(), !sharingScreen_);
+
+  saveCheckBox(SettingsKey::videoFileEnabled, videoSettingsUI_->file_checkbox, settings);
+  saveTextValue(SettingsKey::videoFilename, videoSettingsUI_->filename->text(), settings);
+  QStringList res = videoSettingsUI_->file_resolution_box->currentText().split("x");
+  if (res.size() == 2)
+  {
+    settings.setValue(SettingsKey::videoFileResolutionWidth,  res.at(0).toInt());
+    settings.setValue(SettingsKey::videoFileResolutionHeight, res.at(1).toInt());
+  }
+  saveTextValue(SettingsKey::videoFileFramerate, videoSettingsUI_->file_framerate_box->currentText(),
+                settings);
 
   // Parallelization-tab
   saveTextValue(SettingsKey::videoKvzThreads,       videoSettingsUI_->kvazaar_threads->currentText(),
@@ -316,6 +346,15 @@ void VideoSettings::restoreSettings()
   videoSettingsUI_->format_box->setCurrentText
       (settings.value(SettingsKey::videoInputFormat).toString());
 
+  restoreCheckBox(SettingsKey::videoFileEnabled, videoSettingsUI_->file_checkbox, settings);
+
+  videoSettingsUI_->file_resolution_box->setCurrentText(
+        QString::number(settings.value(SettingsKey::videoFileResolutionWidth).toInt()) + "x" +
+        QString::number(settings.value(SettingsKey::videoFileResolutionHeight).toInt()));
+
+  videoSettingsUI_->file_framerate_box->setCurrentText(settings.value(SettingsKey::videoFileFramerate).toString());
+  videoSettingsUI_->filename->setText(settings.value(SettingsKey::videoFilename).toString());
+
   // parallelization-tab
   restoreComboBoxValue(SettingsKey::videoKvzThreads, videoSettingsUI_->kvazaar_threads,
                        "auto", settings);
@@ -422,7 +461,6 @@ void VideoSettings::restoreSettings()
 
   // other-tab
   restoreCheckBox(SettingsKey::videoOpenGL, videoSettingsUI_->opengl, settings);
-
 }
 
 
@@ -707,7 +745,7 @@ void VideoSettings::updateObaStatus(int index)
   }
 }
 
-void VideoSettings::browse()
+void VideoSettings::browseModel()
 {
   QString file = videoSettingsUI_->model_path->text();
   if (file.isEmpty())
@@ -720,6 +758,23 @@ void VideoSettings::browse()
   if (!fileName.isEmpty())
   {
     videoSettingsUI_->model_path->setText(fileName);
+  }
+}
+
+
+void VideoSettings::browseVideoFile()
+{
+  QString file = videoSettingsUI_->filename->text();
+  if (file.isEmpty())
+  {
+    file = QDir::currentPath();
+  }
+  QString fileName = QFileDialog::getOpenFileName(this,
+                                                  tr("Select YUV file"), file, tr("Video (*.yuv)"));
+
+  if (!fileName.isEmpty())
+  {
+    videoSettingsUI_->filename->setText(fileName);
   }
 }
 

@@ -43,6 +43,12 @@ const QString videoFramerateNumerator = "video/FramerateNumerator";
 const QString videoFramerateDenominator = "video/FramerateDenominator";
 const QString videoOpenGL = "video/opengl";
 
+// file
+const QString videoFilename = "video/Filename";
+const QString videoFileEnabled = "video/FileEnabled";
+const QString videoFileResolutionWidth = "video/FileResolutionWidth";
+const QString videoFileResolutionHeight = "video/FileResolutionHeight";
+const QString videoFileFramerate = "video/FileFramerate";
 
 // Kvazaar setting keys
 const QString videoQP = "video/QP";

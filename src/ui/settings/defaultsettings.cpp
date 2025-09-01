@@ -105,7 +105,12 @@ bool DefaultSettings::validateVideoSettings()
                                       SettingsKey::videoMVConstraint,
                                       SettingsKey::videoQPInCU,
                                       SettingsKey::videoVAQ,
-                                      SettingsKey::videoPreset};
+                                      SettingsKey::videoPreset,
+
+                                      SettingsKey::videoFileEnabled,
+                                      SettingsKey::videoFileResolutionWidth,
+                                      SettingsKey::videoFileResolutionHeight,
+                                      SettingsKey::videoFileFramerate};
 
   QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
   return checkSettingsList(settings, neededSettings);
@@ -339,6 +344,12 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 #ifndef NDEBUG
   settings.setValue(SettingsKey::videoPreset, "ultrafast");
 #endif
+
+  settings.setValue(SettingsKey::videoFileEnabled, 0);
+  settings.setValue(SettingsKey::videoFilename, "input.yuv");
+  settings.setValue(SettingsKey::videoFileResolutionWidth,  format.resolution.width());
+  settings.setValue(SettingsKey::videoFileResolutionHeight, format.resolution.height());
+  settings.setValue(SettingsKey::videoFileFramerate, format.framerate);
 }
 
 
