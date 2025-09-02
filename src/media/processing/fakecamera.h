@@ -3,8 +3,9 @@
 #include "filter.h"
 
 #include <QFile>
-#include <QString>
 #include <QSize>
+#include <QString>
+#include <QTimer>
 
 class FakeCamera : public Filter
 {
@@ -13,26 +14,20 @@ public:
              std::shared_ptr<ResourceAllocator> hwResources);
   ~FakeCamera();
 
-  // open the file
   virtual bool init();
-
-  // close the file
-  void uninit();
-
-  virtual void start();
-  virtual void stop();
 
   virtual void updateSettings();
 
 protected:
   void process();
 
+private slots:
+  void sendFrame();
 
 private:
-  QFile file_;
 
+  QTimer sendTimer_;
+  QFile file_;
   QSize resolution_;
   int framerate_;
-
-  bool running_ = false;
 };

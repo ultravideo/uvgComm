@@ -87,8 +87,17 @@ void ResourceAllocator::updateSettings()
   conferenceViewMode_ = settingString(SettingsKey::sipConferenceMode);
   isSpeaker_ = settingBool(SettingsKey::sipSpeakerMode);
   uploadBandwidth_ = settingValue(SettingsKey::sipUpBandwidth);
-  conferenceResolution_ = QSize(settingValue(SettingsKey::videoResolutionWidth),
-                            settingValue(SettingsKey::videoResolutionHeight));
+
+  if (settingEnabled(SettingsKey::videoFileEnabled))
+  {
+    conferenceResolution_ = QSize(settingValue(SettingsKey::videoFileResolutionWidth),
+                                  settingValue(SettingsKey::videoFileResolutionHeight));
+  }
+  else
+  {
+    conferenceResolution_ = QSize(settingValue(SettingsKey::videoResolutionWidth),
+                                  settingValue(SettingsKey::videoResolutionHeight));
+  }
   videoResolution_ = conferenceResolution_;
 
   hybridPrioritization_ = settingValue(SettingsKey::sipHybridPriorization);

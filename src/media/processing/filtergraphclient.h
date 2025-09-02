@@ -67,6 +67,7 @@ private:
   void mic(bool state);
   void camera(bool state);
   void screenShare(bool shareState);
+  void fileInput(bool state);
 
   // iniates camera and attaches a self view to it.
   void initCameraSelfView();
@@ -86,6 +87,7 @@ private:
   // --------------- Video stuff   --------------------
   GraphSegment cameraGraph_;
   GraphSegment screenShareGraph_;
+  GraphSegment fileInputGraph_;
 
   std::shared_ptr<CameraFilter> camera_;
   std::shared_ptr<LibYUVConverter> libyuv_;

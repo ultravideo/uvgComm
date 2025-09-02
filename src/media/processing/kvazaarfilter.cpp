@@ -201,6 +201,12 @@ bool KvazaarFilter::init()
   QString framerateStr = QString::number(settings.value(SettingsKey::videoFramerateNumerator).toInt()) + "/" +
                       QString::number(settings.value(SettingsKey::videoFramerateDenominator).toInt());
 
+  if (settingEnabled(SettingsKey::videoFileEnabled))
+  {
+    framerateStr = QString::number(settings.value(SettingsKey::videoFileFramerate).toInt()) + "/" +
+                   QString::number(1);
+  }
+
   // Input
   api_->config_parse(config_, "preset",    preset.toLocal8Bit());
   api_->config_parse(config_, "input-res", resolutionStr.toLocal8Bit());

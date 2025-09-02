@@ -2,6 +2,7 @@
 
 #include "media/processing/camerafilter.h"
 #include "media/processing/screensharefilter.h"
+#include "media/processing/fakecamera.h"
 #include "media/processing/kvazaarfilter.h"
 #include "media/processing/roimanualfilter.h"
 #include "media/processing/hybridfilter.h"
@@ -150,6 +151,7 @@ void FilterGraphClient::uninit()
   videoSendIniated_ = false;
 
   destroyFilters(screenShareGraph_);
+  destroyFilters(fileInputGraph_);
 
   destroyFilters(audioInputGraph_);
   destroyFilters(audioOutputGraph_);
@@ -203,6 +205,12 @@ void FilterGraphClient::updateVideoSettings()
 
   // screen share and conversions
   for (auto& filter : screenShareGraph_)
+  {
+    filter->updateSettings();
+  }
+
+  // screen share and conversions
+  for (auto& filter : fileInputGraph_)
   {
     filter->updateSettings();
   }
@@ -271,6 +279,15 @@ void FilterGraphClient::initCameraSelfView()
     }
   }
 
+  if (fileInputGraph_.empty())
+  {
+    if (addToGraph(std::shared_ptr<Filter>(new FakeCamera("", stats_, hwResources_)),
+                   fileInputGraph_))
+    {
+      fileInputGraph_.at(0)->stop();
+    }
+  }
+
   if (selfviewFilter_)
   {
     Logger::getLogger()->printNormal(this, "Iniating self view");
@@ -295,6 +312,7 @@ void FilterGraphClient::initCameraSelfView()
 
     std::shared_ptr<Filter> resizeFilter1 = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
     std::shared_ptr<Filter> resizeFilter2 = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
+    std::shared_ptr<Filter> resizeFilter3 = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
     if (!cameraGraph_.empty())
     {
       libyuv_ = std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
@@ -311,6 +329,15 @@ void FilterGraphClient::initCameraSelfView()
                  screenShareGraph_, 0);
       addToGraph(resizeFilter2, screenShareGraph_, screenShareGraph_.size() - 1);
       addToGraph(selfviewFilter_, screenShareGraph_, screenShareGraph_.size() - 1);
+    }
+
+    if (!fileInputGraph_.empty())
+    {
+      addToGraph(std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
+                                                                      fileInputGraph_.at(0)->outputType())),
+                 fileInputGraph_, 0);
+      addToGraph(resizeFilter3, fileInputGraph_, fileInputGraph_.size() - 1);
+      addToGraph(selfviewFilter_, fileInputGraph_, fileInputGraph_.size() - 1);
     }
 
     selfviewFilter_->setHorizontalMirroring(true);
@@ -359,6 +386,7 @@ void FilterGraphClient::initVideoSend(std::pair<uint16_t, uint16_t> resolution)
 
   addToGraph(kvazaar_, cameraGraph_, cameraGraph_.size() - 1);
   addToGraph(kvazaar_, screenShareGraph_, 0);
+  addToGraph(kvazaar_, fileInputGraph_, 0);
 
   addHybridFilter(std::shared_ptr<HybridFilter>(new HybridFilter("", stats_, hwResources_)),
                   cameraGraph_);
@@ -698,19 +726,51 @@ void FilterGraphClient::screenShare(bool shareState)
 }
 
 
+void FilterGraphClient::fileInput(bool shareState)
+{
+  if(fileInputGraph_.size() > 0)
+  {
+    if(shareState)
+    {
+      Logger::getLogger()->printNormal(this, "Starting fake cam");
+      selfviewFilter_->setHorizontalMirroring(true);
+      fileInputGraph_.at(0)->start();
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Not using fake cam");
+      fileInputGraph_.at(0)->stop();
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "File input graph empty");
+  }
+}
+
+
 void FilterGraphClient::selectVideoSource()
 {
-  if (settingEnabled(SettingsKey::screenShareStatus))
+  if (settingEnabled(SettingsKey::videoFileEnabled))
+  {
+    Logger::getLogger()->printNormal(this, "Enabled video file in filter graph");
+    camera(false);
+    screenShare(false);
+    fileInput(true);
+  }
+  else if (settingEnabled(SettingsKey::screenShareStatus))
   {
     Logger::getLogger()->printNormal(this, "Enabled screen sharing in filter graph");
     camera(false);
     screenShare(true);
+    fileInput(true);
   }
   else if (settingEnabled(SettingsKey::cameraStatus))
   {
     Logger::getLogger()->printNormal(this, "Enabled camera in filter graph");
     screenShare(false);
     camera(true);
+    fileInput(true);
   }
   else
   {
@@ -718,6 +778,7 @@ void FilterGraphClient::selectVideoSource()
 
     screenShare(false);
     camera(false);
+    fileInput(true);
 
     // maybe some custom image here?
   }
@@ -746,6 +807,11 @@ void FilterGraphClient::running(bool state)
     changeState(screenShareGraph_.at(0), state);
   }
 
+  if (fileInputGraph_.size() > 0)
+  {
+    changeState(fileInputGraph_.at(0), state);
+  }
+
   FilterGraph::running(state);
 }
 
@@ -771,6 +837,7 @@ void FilterGraphClient::lastPeerRemoved()
 {
   destroyFilters(cameraGraph_);
   destroyFilters(screenShareGraph_);
+  destroyFilters(fileInputGraph_);
   destroyFilters(audioInputGraph_);
   destroyFilters(audioOutputGraph_);
   audioOutput_ = nullptr;

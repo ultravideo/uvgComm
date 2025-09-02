@@ -74,7 +74,7 @@ void LibYUVConverter::process()
         input->vInfo->width == 0 ||
         input->vInfo->height == 0)
     {
-      Logger::getLogger()->printError(this, "Wrong resolution");
+      Logger::getLogger()->printError(this, "Invalid input data for libyuv filter");
       sendOutput(std::move(input));
       input = getInput();
       continue;
