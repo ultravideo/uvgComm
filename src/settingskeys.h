@@ -137,7 +137,6 @@ const QString sipConferenceMode = "sip/conferenceMode";
 const QString sipSpeakerMode = "sip/speakerMode";
 const QString sipVisibleParticipants = "sip/visibleParticipants";
 const QString sipTimestampInterval = "sip/timestampInterval";
-const QString sipRecordCSV = "sip/recordLatencies";
 const QString sipHybridPriorization = "sip/hybridPriorization";
 
 const QString sipSIPProtocol = "sip/SIPProtocol";

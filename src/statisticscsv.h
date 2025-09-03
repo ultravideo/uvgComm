@@ -12,7 +12,6 @@ class StatisticsCSV : public StatisticsInterface
 public:
   StatisticsCSV();
 
-
   virtual void addSession(uint32_t sessionID) override;
 
   // writes the csv

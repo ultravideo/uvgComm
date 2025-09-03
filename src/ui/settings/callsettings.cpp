@@ -297,7 +297,6 @@ void CallSettings::saveAdvancedSettings()
   settings.setValue(SettingsKey::sipVisibleParticipants, advancedUI_->visible_box->value());
 
   settings.setValue(SettingsKey::sipTimestampInterval, advancedUI_->timestamp_spinbox->value());
-  settings.setValue(SettingsKey::sipRecordCSV, advancedUI_->record_csv_box->isChecked());
 
   settings.setValue(SettingsKey::sipHybridPriorization, advancedUI_->hybrid_slider->value());
 
@@ -372,8 +371,6 @@ void CallSettings::restoreAdvancedSettings()
     advancedUI_->visible_box->setValue(settings.value(SettingsKey::sipVisibleParticipants).toInt());
 
     advancedUI_->timestamp_spinbox->setValue(settings.value(SettingsKey::sipTimestampInterval).toInt());
-    advancedUI_->record_csv_box->setChecked(settings.value(SettingsKey::sipRecordCSV).toBool());
-
     advancedUI_->hybrid_slider->setValue(settings.value(SettingsKey::sipHybridPriorization).toInt());
 
     advancedUI_->sip_port->setValue(settings.value(SettingsKey::sipSIPPort).toInt());

@@ -1,4 +1,7 @@
 #include "statisticscsv.h"
+
+#include "logger.h"
+
 #include <QFile>
 #include <QTextStream>
 #include <QDir>
@@ -18,12 +21,31 @@ void StatisticsCSV::addSession(uint32_t sessionID)
 
 void StatisticsCSV::removeSession(uint32_t sessionID)
 {
+  // Write CSV files for all participants in this session
+  if (sessionNames_.find(sessionID) == sessionNames_.end())
+  {
+    Logger::getLogger()->printWarning("CSV Stats", QString("No participants found for session %1").arg(sessionID));
+    return;
+  }
+
+  Logger::getLogger()->printNormal("CSV Stats", QString("Writing statistics for session %1").arg(sessionID));
+
+  QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+  QString baseFolder = "stats_output";
+  QString sessionFolder = baseFolder + "/" + timestamp;
+
+  QDir dir;
+  if (!dir.exists(sessionFolder))
+  {
+    dir.mkpath(sessionFolder);
+  }
+
   QStringList names = sessionNames_.at(sessionID);
   for (const QString& cname : names)
   {
     QString safeName = cname;
     safeName.replace(":", "_"); // make it file-safe
-    QString filename = QString("stats_output/participant_%1.csv").arg(safeName);
+    QString filename = sessionFolder + QString("/participant_%1.csv").arg(safeName);
 
     QFile file(filename);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
@@ -33,7 +55,7 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
     }
 
     QTextStream out(&file);
-    out << "Type,Size(Bytes),DecodeTime(ms),Latency(ms),Resolution\n";
+    out << "Type;Size(Bytes);DecodeTime(ms);Latency(ms);Resolution\n";
 
     const auto& info = sessionInfo_[cname];
 
@@ -54,32 +76,37 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
 
     for (int64_t delay : info.videoLatencies)
     {
-      out << "VideoLatency,,,,"
+      out << "VideoLatency;;;;"
           << delay << "\n";
     }
 
     for (int64_t delay : info.audioLatencies)
     {
-      out << "AudioLatency,,,,"
+      out << "AudioLatency;;;;"
           << delay << "\n";
     }
   }
 
   // Save local info (only once per session)
-  QString filename = QString("stats_output/local_encoded_video.csv");
+  QString filename = sessionFolder + QString("/local_encoded_video.csv");
   QFile file(filename);
   if (file.open(QIODevice::WriteOnly | QIODevice::Text))
   {
     QTextStream out(&file);
-    out << "Size(Bytes),EncodeTime(ms),PSNR_Y,PSNR_U,PSNR_V,Resolution\n";
+    out << "Frame;Size(Bytes);EncodeTime(ms);PSNR_Y;PSNR_U;PSNR_V;Resolution;Width;Height;Pixels\n";
+    unsigned int frame_number = 1;
     for (const auto& frame : localInfo_.encodedVideoFrames)
     {
-      out << frame.size << ","
-          << frame.encodingTime << ","
-          << frame.psnrY << ","
-          << frame.psnrU << ","
-          << frame.psnrV << ","
-          << QString("%1x%2").arg(frame.resolution.width()).arg(frame.resolution.height()) << "\n";
+      out << frame_number++ << ";"
+          << frame.size << ";"
+          << frame.encodingTime << ";"
+          << frame.psnrY << ";"
+          << frame.psnrU << ";"
+          << frame.psnrV << ";"
+          << QString("%1x%2").arg(frame.resolution.width()).arg(frame.resolution.height()) << ";"
+          << frame.resolution.width() << ";"
+          << frame.resolution.height() << ";"
+          << (frame.resolution.width() * frame.resolution.height()) << "\n";
     }
   }
 

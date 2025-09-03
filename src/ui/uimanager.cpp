@@ -118,25 +118,24 @@ void UIManager::updateServerStatus(QString status)
 
 
 // functions for managing the GUI
-StatisticsInterface* UIManager::createStats()
+StatisticsInterface* UIManager::createStats(bool useCSV)
 {
-  Logger::getLogger()->printNormal(this, "Creating statistics window");
-
-
-  Logger::getLogger()->printNormal(this, "CSV recording enabled");
-  csv_ = new StatisticsCSV();
-
-  statsWindow_ = new StatisticsWindow(&window_);
-  // Stats GUI updates are handled solely by timer
-  timer_->setInterval(200);
-  timer_->setSingleShot(false);
-  timer_->start();
-
-  connect(timer_, SIGNAL(timeout()), statsWindow_, SLOT(update()));
-
-  if (settingEnabled(SettingsKey::sipRecordCSV))
+  if (useCSV)
   {
+    Logger::getLogger()->printNormal(this, "CSV recording enabled");
+    csv_ = new StatisticsCSV();
     return csv_;
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Creating statistics window");
+    statsWindow_ = new StatisticsWindow(&window_);
+    // Stats GUI updates are handled solely by timer
+    timer_->setInterval(200);
+    timer_->setSingleShot(false);
+    timer_->start();
+
+    connect(timer_, SIGNAL(timeout()), statsWindow_, SLOT(update()));
   }
 
   return statsWindow_;

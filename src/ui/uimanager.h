@@ -34,7 +34,7 @@ public:
   void runScriptFromStdin();
 
   // functions for managing the GUI
-  StatisticsInterface* createStats();
+  StatisticsInterface* createStats(bool useCSV);
 
   // sessionID identifies the view slot
   void displayOutgoingCall(uint32_t sessionID, QString name);

@@ -46,7 +46,7 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, LayoutID layoutID, uint8_t 
   micIcon_.setAspectRatioMode(Qt::KeepAspectRatio);
   if (sessionID_ != 0)
   {
-    recordLatencies_ = settingValue(SettingsKey::sipRecordCSV) == 0;
+    recordLatencies_ = false;
   }
 }
 
@@ -117,7 +117,6 @@ void VideoDrawHelper::disableOverlay()
   drawOverlay_ = false;
   overlay_ = QImage(imageRect_.size(), IMAGE_FORMAT);
   overlay_.fill(QColor(0,0,0,0));
-
 }
 
 

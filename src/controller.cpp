@@ -35,7 +35,7 @@ uvgCommController::uvgCommController():
 {}
 
 
-void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& configFilename)
+void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& configFilename, bool statsToFile)
 {
   Logger::getLogger()->printImportant(this, "uvgComm initiation Started");
 
@@ -52,7 +52,7 @@ void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& co
 
   userInterface_.init(this, viewFactory_);
 
-  stats_ = userInterface_.createStats();
+  stats_ = userInterface_.createStats(statsToFile);
 
   QObject::connect(&sip_, &SIPManager::finalLocalSDP,
                    this, &uvgCommController::inputLocalSDP);
