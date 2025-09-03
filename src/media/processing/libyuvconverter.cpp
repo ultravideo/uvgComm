@@ -24,7 +24,6 @@ LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
 }
 
 
-
 void LibYUVConverter::changeResolution()
 {
   QSettings settings(getSettingsFile(), settingsFileFormat);

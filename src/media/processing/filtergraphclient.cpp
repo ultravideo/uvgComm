@@ -120,6 +120,11 @@ void FilterGraphClient::refreshResolutions()
   {
     libyuv_->changeResolution();
   }
+
+  if (libyuv2_)
+  {
+    libyuv2_->changeResolution();
+  }
 }
 
 
@@ -188,6 +193,7 @@ void FilterGraphClient::updateVideoSettings()
         {
           for (auto& senderFilter : peer.second->videoSenders)
           {
+            // kvazaar is the last in all input graphs so we only need to connect to one graph
             cameraGraph_.back()->addOutConnection(senderFilter.second);
           }
         }
@@ -333,9 +339,9 @@ void FilterGraphClient::initCameraSelfView()
 
     if (!fileInputGraph_.empty())
     {
-      addToGraph(std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
-                                                                      fileInputGraph_.at(0)->outputType())),
-                 fileInputGraph_, 0);
+      libyuv2_ = std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
+                                                                      fileInputGraph_.at(0)->outputType()));
+      addToGraph(libyuv2_, fileInputGraph_, 0);
       addToGraph(resizeFilter3, fileInputGraph_, fileInputGraph_.size() - 1);
       addToGraph(selfviewFilter_, fileInputGraph_, fileInputGraph_.size() - 1);
     }
@@ -372,6 +378,11 @@ void FilterGraphClient::initVideoSend(std::pair<uint16_t, uint16_t> resolution)
     libyuv_->changeResolution();
   }
 
+  if (libyuv2_)
+  {
+    libyuv2_->changeResolution();
+  }
+
   // we connect mroi to libyuv conversion filter which makes sure the format is correct
   std::shared_ptr<Filter> mRoi =
       std::shared_ptr<Filter>(new ROIManualFilter("", stats_, hwResources_, roiInterface_));
@@ -384,16 +395,14 @@ void FilterGraphClient::initVideoSend(std::pair<uint16_t, uint16_t> resolution)
   // TODO: the init fails if we add same filter twice
   kvazaar_ = std::shared_ptr<KvazaarFilter>(new KvazaarFilter("", stats_, hwResources_, resolution));
 
-  addToGraph(kvazaar_, cameraGraph_, cameraGraph_.size() - 1);
+  // note that all inputs feed to the same kvazaar so we only need to attach senders at the end of one graph (camera)
+  addToGraph(kvazaar_, cameraGraph_, cameraGraph_.size() - 1); // mroi
   addToGraph(kvazaar_, screenShareGraph_, 0);
-  addToGraph(kvazaar_, fileInputGraph_, 0);
+  addToGraph(kvazaar_, fileInputGraph_, 1); // libyuv, could also be roi
 
+  // only the camera filter needs hybrid as all senders are attached to end of camera graph
   addHybridFilter(std::shared_ptr<HybridFilter>(new HybridFilter("", stats_, hwResources_)),
                   cameraGraph_);
-
-
-  // TODO: What to do for screen sharing.
-  //addToGraph(hybrid_, screenShareGraph_, screenShareGraph_.size() - 1);
 
   videoSendIniated_ = true;
 }
@@ -844,6 +853,7 @@ void FilterGraphClient::lastPeerRemoved()
   audioCapture_ = nullptr;
 
   libyuv_ = nullptr;
+  libyuv2_ = nullptr;
   kvazaar_ = nullptr;
   hybrid_ = nullptr;
 

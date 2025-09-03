@@ -91,6 +91,7 @@ private:
 
   std::shared_ptr<CameraFilter> camera_;
   std::shared_ptr<LibYUVConverter> libyuv_;
+  std::shared_ptr<LibYUVConverter> libyuv2_;
   std::shared_ptr<KvazaarFilter> kvazaar_;
   std::shared_ptr<HybridFilter> hybrid_;
   std::vector<std::shared_ptr<HybridSlaveFilter>> slaves_;
