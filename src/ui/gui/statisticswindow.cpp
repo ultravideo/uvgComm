@@ -425,39 +425,65 @@ void StatisticsWindow::encodedVideoFrame(uint32_t size, uint32_t encodingTime, Q
 
 void StatisticsWindow::decodedAudioFrame(QString cname, uint32_t size, uint32_t decodingTime)
 {
-  Q_ASSERT(sessions_.find(cname) != sessions_.end());
-  updateValueBuffer(sessions_.at(cname).audioDecDelay_,
-                    sessions_.at(cname).audioDecDelayIndex_, decodingTime);
+  if(sessions_.find(cname) != sessions_.end())
+  {
+    updateValueBuffer(sessions_.at(cname).audioPackets,
+                      sessions_.at(cname).audioIndex, size);
+  }
+  else
+  {
+    Logger::getLogger()->printProgramWarning(this, "Couldn't find correct participant for decoded audio frame",
+                                             "CName", cname);
+  }
 }
 
 
 void StatisticsWindow::decodedVideoFrame(QString cname, uint32_t size, uint32_t decodingTime, QSize resolution)
 {
-  Q_ASSERT(sessions_.find(cname) != sessions_.end());
-  updateValueBuffer(sessions_.at(cname).videoDecDelay_,
-                    sessions_.at(cname).videoDecDelayIndex_, decodingTime);
+  if(sessions_.find(cname) != sessions_.end())
+  {
+    updateValueBuffer(sessions_.at(cname).videoDecDelay_,
+                      sessions_.at(cname).videoDecDelayIndex_, decodingTime);
+  }
+  else
+  {
+    Logger::getLogger()->printProgramWarning(this, "Couldn't find correct participant for decoded video frame",
+                                             "CName", cname);
+  }
 }
 
 
 void StatisticsWindow::audioLatency(uint32_t sessionID, QString cname, int64_t latency)
 {
-  Q_ASSERT(sessions_.find(cname) != sessions_.end());
-  updateValueBuffer(sessions_.at(cname).audioDelay,
-                    sessions_.at(cname).audioDelayIndex, latency);
+  if(sessions_.find(cname) != sessions_.end())
+  {
+    updateValueBuffer(sessions_.at(cname).audioDelay, sessions_.at(cname).audioDelayIndex, latency);
 
-  updateValueBuffer(sessions_.at(cname).pAudioPackets,
-                    sessions_.at(cname).pAudioIndex, 0);
+    updateValueBuffer(sessions_.at(cname).pAudioPackets, sessions_.at(cname).pAudioIndex, 0);
+  }
+  else
+  {
+    Logger::getLogger()->printProgramWarning(this, "Couldn't find correct participant for audio latency",
+                                             "CName", cname);
+  }
 }
 
 
 void StatisticsWindow::videoLatency(uint32_t sessionID, QString cname, int64_t latency)
 {
-  Q_ASSERT(sessions_.find(cname) != sessions_.end());
-  updateValueBuffer(sessions_.at(cname).videoDelay,
-                    sessions_.at(cname).videoDelayIndex, latency);
+  if(sessions_.find(cname) != sessions_.end())
+  {
+    updateValueBuffer(sessions_.at(cname).videoDelay,
+                      sessions_.at(cname).videoDelayIndex, latency);
 
-  updateValueBuffer(sessions_.at(cname).pVideoPackets,
-                    sessions_.at(cname).pVideoIndex, 0);
+    updateValueBuffer(sessions_.at(cname).pVideoPackets,
+                      sessions_.at(cname).pVideoIndex, 0);
+  }
+  else
+  {
+    Logger::getLogger()->printProgramWarning(this, "Couldn't find correct participant for video latency",
+                                             "CName", cname);
+  }
 }
 
 
