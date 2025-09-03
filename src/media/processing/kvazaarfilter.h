@@ -52,7 +52,7 @@ private:
 
   void reInitializeKvazaar();
 
-  double calculate_psnr(const kvz_picture *orig, const kvz_picture *recon);
+  void calculate_psnr(const kvz_picture *orig, const kvz_picture *recon, double& psnr_y, double& psnr_u, double& psnr_v);
 
   const kvz_api *api_;
   kvz_config *config_;

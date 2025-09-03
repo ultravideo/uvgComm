@@ -569,11 +569,13 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
     dataWritten += chunk->len;
   }
 
-  float psnr  = -1.0;
+  double psnr_y  = -1.0;
+  double psnr_u  = -1.0;
+  double psnr_v  = -1.0;
 
   if (info.inputPic && recon_pic)
   {
-    psnr = calculate_psnr(info.inputPic, recon_pic);
+    calculate_psnr(info.inputPic, recon_pic, psnr_y, psnr_u, psnr_v);
   }
 
   api_->chunk_free(data_out);
@@ -581,7 +583,8 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   
   uint32_t delay = QDateTime::currentMSecsSinceEpoch() - info.data->creationTimestamp;
 
-  getStats()->encodedVideoFrame(len_out, delay, QSize(currentResolution_.first, currentResolution_.second), psnr);
+  getStats()->encodedVideoFrame(len_out, delay, QSize(currentResolution_.first, currentResolution_.second),
+                                psnr_y, psnr_u, psnr_v);
 
   // send last packet reusing input structure
   sendEncodedFrame(std::move(info.data), std::move(hevc_frame), dataWritten);
@@ -599,7 +602,8 @@ void KvazaarFilter::sendEncodedFrame(std::unique_ptr<Data> input,
 }
 
 
-double KvazaarFilter::calculate_psnr(const kvz_picture *orig, const kvz_picture *recon)
+void KvazaarFilter::calculate_psnr(const kvz_picture *orig, const kvz_picture *recon,
+                                   double& psnr_y, double& psnr_u, double& psnr_v)
 {
   const int max_val = 255;
   double mse_y = 0.0, mse_u = 0.0, mse_v = 0.0;
@@ -629,11 +633,10 @@ double KvazaarFilter::calculate_psnr(const kvz_picture *orig, const kvz_picture 
   mse_u /= uv_size;
   mse_v /= uv_size;
 
-  double psnr_y = (mse_y == 0) ? INFINITY : 10.0 * log10((max_val * max_val) / mse_y);
-  double psnr_u = (mse_u == 0) ? INFINITY : 10.0 * log10((max_val * max_val) / mse_u);
-  double psnr_v = (mse_v == 0) ? INFINITY : 10.0 * log10((max_val * max_val) / mse_v);
+  psnr_y = (mse_y == 0) ? INFINITY : 10.0 * log10((max_val * max_val) / mse_y);
+  psnr_u = (mse_u == 0) ? INFINITY : 10.0 * log10((max_val * max_val) / mse_u);
+  psnr_v = (mse_v == 0) ? INFINITY : 10.0 * log10((max_val * max_val) / mse_v);
 
-  //printf("PSNR Y: %.2f dB, U: %.2f dB, V: %.2f dB\n", psnr_y, psnr_u, psnr_v);
 /*
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "PSNR",
                                    {"Y", "U", "V"},
@@ -641,6 +644,4 @@ double KvazaarFilter::calculate_psnr(const kvz_picture *orig, const kvz_picture 
                                     QString::number(psnr_u, 'f', 2),
                                     QString::number(psnr_v, 'f', 2)});
 */
-
-  return psnr_y; // or return average if preferred
 }
