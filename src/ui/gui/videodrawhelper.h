@@ -169,8 +169,4 @@ private:
   bool showLatency_ = false;
 
   int64_t lastLatency_ = 0;
-
-  bool recordLatencies_ = false;
-
-  std::vector<int64_t> latencies_;
 };
