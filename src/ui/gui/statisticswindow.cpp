@@ -892,12 +892,13 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
           float presentationVideoFramerate = 0;
           calculateAverageAndRate(d.second.pVideoPackets, d.second.pVideoIndex,
                                   presentationVideoFramerate, interval, true);
-
-          uint32_t videoDelay = calculateAverage(d.second.videoDelay, d.second.videoDelayIndex,
+          uint32_t videoDecDelay = calculateAverage(d.second.videoDecDelay_, d.second.videoDecDelayIndex_,
                                                  interval, false);
+          uint32_t videoTotalDelay = calculateAverage(d.second.videoDelay, d.second.videoDelayIndex,
+                                                      interval, false);
 
           ui_->vd_bitrate_chart->addPoint(d.second.performanceGraphIndex, videoBitrate);
-          ui_->vd_delay_chart->addPoint(d.second.performanceGraphIndex, (float)videoDelay);
+          ui_->vd_delay_chart->addPoint(d.second.performanceGraphIndex, (float)videoDecDelay);
           ui_->vd_framerate_chart->addPoint(d.second.performanceGraphIndex, presentationVideoFramerate);
 
           // TODO: total latency

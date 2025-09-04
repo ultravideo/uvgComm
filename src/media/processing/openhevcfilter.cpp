@@ -7,6 +7,7 @@
 #include "logger.h"
 
 #include <QSettings>
+#include <qdatetime.h>
 
 enum OHThreadType {OH_THREAD_FRAME  = 1, OH_THREAD_SLICE = 2, OH_THREAD_FRAMESLICE  = 3};
 
@@ -187,7 +188,6 @@ void OpenHEVCFilter::process()
 
     input = getInput();
   }
-
 }
 
 
@@ -199,6 +199,11 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
     std::unique_ptr<Data> decodedFrame = std::move(decodingFrames_.back());
     decodingFrames_.pop_back();
     libOpenHevcGetPictureInfo(handle_, &openHevcFrame.frameInfo);
+
+    // we take the size from compressed frame because that is more interesting.
+    int64_t decoding_delay = QDateTime::currentMSecsSinceEpoch() - decodedFrame->presentationTimestamp;
+    getStats()->decodedVideoFrame(cname_, decodedFrame->data_size, decoding_delay,
+                                  QSize(openHevcFrame.frameInfo.nWidth, openHevcFrame.frameInfo.nHeight));
 
     decodedFrame->vInfo->width = openHevcFrame.frameInfo.nWidth;
     decodedFrame->vInfo->height = openHevcFrame.frameInfo.nHeight;

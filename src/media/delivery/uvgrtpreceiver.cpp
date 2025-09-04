@@ -131,7 +131,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     received_picture->creationTimestamp = 0;
   }
 
-  received_picture->presentationTimestamp = received_picture->creationTimestamp;
+  received_picture->presentationTimestamp = QDateTime::currentMSecsSinceEpoch();
 
   // check if the uvgRTP added start code and if not, add it ourselves
   if (output_ == DT_HEVCVIDEO &&
