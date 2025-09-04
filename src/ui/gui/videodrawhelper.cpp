@@ -242,7 +242,7 @@ void VideoDrawHelper::visualizeROIMap(RoiMap& map, int baseQP)
 }
 
 
-bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& latency)
+bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& latency, bool& showLatency)
 {
   Q_ASSERT(readyToDraw());
   bool showNewFrame = false;
@@ -297,14 +297,8 @@ bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& latency)
       image = lastFrame_.image;
     }
 
-    if (showLatency_)
-    {
-      latency = lastLatency_;
-    }
-    else
-    {
-      latency = 0;
-    }
+    latency = lastLatency_;
+    showLatency = showLatency_;
   }
 
   return showNewFrame;

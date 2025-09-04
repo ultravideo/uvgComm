@@ -55,7 +55,7 @@ public:
   void visualizeROIMap(RoiMap &map, int baseQP);
 
   // returns whether this is a new image or the previous one
-  bool getRecentImage(QImage& image, int64_t& latency);
+  bool getRecentImage(QImage& image, int64_t& latency, bool &showLatency);
 
   void draw(QPainter& painter);
 
