@@ -51,11 +51,11 @@ public:
   virtual void encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution,
                                  float psnrY = -1.0, float psnrU = -1.0, float psnrV = -1.0);
 
-  virtual void decodedAudioFrame(QString cname, uint32_t size, uint32_t decodingTime);
-  virtual void decodedVideoFrame(QString cname, uint32_t size, uint32_t decodingTime, QSize resolution);
+  virtual void decodedAudioFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime);
+  virtual void decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution);
 
-  virtual void audioLatency(uint32_t sessionID, QString cname, int64_t latency);
-  virtual void videoLatency(uint32_t sessionID, QString cname, int64_t latency);
+  virtual void audioLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t latency);
+  virtual void videoLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t latency);
 
   // delivery
   virtual void addSendPacket(uint32_t size);

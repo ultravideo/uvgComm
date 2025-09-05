@@ -92,7 +92,7 @@ void FakeCamera::process()
   }
 
   std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
-  auto now = std::chrono::system_clock::now();
+  auto now = std::chrono::steady_clock::now();
   newImage->creationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   newImage->presentationTimestamp = newImage->creationTimestamp;
 

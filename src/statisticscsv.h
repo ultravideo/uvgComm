@@ -31,13 +31,13 @@ public:
                              uint32_t jitter) override;
 
   // record data for the csv file.
-  virtual void audioLatency(uint32_t sessionID, QString cname, int64_t delay) override;
-  virtual void videoLatency(uint32_t sessionID, QString cname, int64_t delay) override;
+  virtual void audioLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t delay) override;
+  virtual void videoLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t delay) override;
   virtual void encodedAudioFrame(uint32_t size, uint32_t encodingTime) override;
   virtual void encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution,
                          float psnrY = -1.0, float psnrU = -1.0, float psnrV = -1.0) override;
-  virtual void decodedAudioFrame(QString cname, uint32_t size, uint32_t decodingTime) override;
-  virtual void decodedVideoFrame(QString cname, uint32_t size, uint32_t decodingTime, QSize resolution) override;
+  virtual void decodedAudioFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime) override;
+  virtual void decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution) override;
 
   // ignored
   virtual void addSendPacket(uint32_t size) override;
@@ -74,6 +74,8 @@ private:
     float psnrY = -1.0f;
     float psnrU = -1.0f;
     float psnrV = -1.0f;
+
+    int64_t creationTimestamp = -1;
   };
 
   struct DecodedFrame
@@ -82,6 +84,8 @@ private:
     uint32_t decodingTime;
 
     QSize resolution;
+
+    int64_t timestamp = -1;
   };
 
   struct LocalInfo
@@ -94,8 +98,8 @@ private:
 
   struct SessionInfo
   {
-    std::vector<int64_t> audioLatencies;
-    std::vector<int64_t> videoLatencies;
+    std::unordered_map<int64_t, int64_t> audioLatencies;
+    std::unordered_map<int64_t, int64_t> videoLatencies;
     std::vector<DecodedFrame> decodedAudioFrames;
     std::vector<DecodedFrame> decodedVideoFrames;
   };

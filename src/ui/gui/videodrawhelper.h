@@ -47,15 +47,19 @@ public:
   void setDrawMicOff(bool state);
 
   bool readyToDraw();
-  void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data,
-                  QImage &image, double framerate, int64_t timestamp);
+  void inputImage(QWidget* widget,
+                  std::unique_ptr<uchar[]> data,
+                  QImage& image,
+                  double framerate,
+                  int64_t creationTimestamp,
+                  int64_t displayTimestamp);
 
   void inputDetections(std::vector<Detection> detections, QSize original_size, uint64_t timestamp);
 
   void visualizeROIMap(RoiMap &map, int baseQP);
 
   // returns whether this is a new image or the previous one
-  bool getRecentImage(QImage& image, int64_t& latency, bool &showLatency);
+  bool getRecentImage(QImage& image, int64_t &timestamp, int64_t& latency, bool &showLatency);
 
   void draw(QPainter& painter);
 
@@ -126,7 +130,8 @@ private:
   {
     QImage image;
     std::unique_ptr<uchar[]> data;
-    int64_t timestamp;
+    int64_t creationTimestamp;
+    int64_t displayTimestamp;
   };
 
   Frame lastFrame_;

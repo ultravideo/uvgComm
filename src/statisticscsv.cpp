@@ -1,6 +1,7 @@
 #include "statisticscsv.h"
 
 #include "logger.h"
+#include "cname.h"
 
 #include <QFile>
 #include <QTextStream>
@@ -55,40 +56,75 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
     }
 
     QTextStream out(&file);
-    out << "Type;Size(Bytes);DecodeTime(ms);Latency(ms);Resolution\n";
+    out << "Frame;Type;Size(Bytes);DecodeTime(ms);Latency(ms);Resolution;Width;Height;Pixels\n";
 
     const auto& info = sessionInfo_[cname];
+    unsigned int frame_number = 1;
 
-    for (const auto& frame : info.decodedVideoFrames)
+    // Video frames
+    for (int i = 0; i < info.decodedVideoFrames.size(); ++i)
     {
-      out << "Video,"
-          << frame.size << ","
-          << frame.decodingTime << ",,"
-          << QString("%1x%2").arg(frame.resolution.width()).arg(frame.resolution.height()) << "\n";
+      const auto& frame = info.decodedVideoFrames[i];
+      QString latencyString = "N/A";
+      if (info.videoLatencies.find(frame.timestamp) != info.videoLatencies.end())
+      {
+        if (info.videoLatencies.at(frame.timestamp) >= 0)
+        {
+          latencyString = QString::number(info.videoLatencies.at(frame.timestamp));
+        }
+        else
+        {
+          latencyString = "-1";
+        }
+      }
+
+      int width = frame.resolution.width();
+      int height = frame.resolution.height();
+      int pixels = width * height;
+
+      out << frame_number << ";Video;"
+          << frame.size << ";"
+          << frame.decodingTime << ";"
+          << latencyString << ";"
+          << QString("%1x%2").arg(width).arg(height) << ";"
+          << width << ";"
+          << height << ";"
+          << pixels << "\n";
+
+      frame_number++;
     }
 
-    for (const auto& frame : info.decodedAudioFrames)
+    // Audio frames
+    for (int i = 0; i < info.decodedAudioFrames.size(); ++i)
     {
-      out << "Audio,"
-          << frame.size << ","
-          << frame.decodingTime << ",,\n";
-    }
+      const auto& frame = info.decodedAudioFrames[i];
+      QString latencyString = "";
+      if (info.audioLatencies.find(frame.timestamp) != info.audioLatencies.end())
+      {
+        if (info.audioLatencies.at(frame.timestamp) >= 0)
+        {
+          latencyString = QString::number(info.audioLatencies.at(frame.timestamp));
+        }
+        else
+        {
+          latencyString = "-1";
+        }
+      }
 
-    for (int64_t delay : info.videoLatencies)
-    {
-      out << "VideoLatency;;;;"
-          << delay << "\n";
-    }
+      out << frame_number << ";Audio;"
+          << frame.size << ";"
+          << frame.decodingTime << ";"
+          << latencyString << ";"
+          << ";;;;" << "\n"; // no resolution for audio
 
-    for (int64_t delay : info.audioLatencies)
-    {
-      out << "AudioLatency;;;;"
-          << delay << "\n";
+      frame_number++;
     }
   }
 
+  QString localCname = CName::cname();
+
   // Save local info (only once per session)
-  QString filename = sessionFolder + QString("/local_encoded_video.csv");
+  QString filename = sessionFolder + QString("/local_" + CName::cname() + QString(".csv"));
   QFile file(filename);
   if (file.open(QIODevice::WriteOnly | QIODevice::Text))
   {
@@ -156,31 +192,33 @@ void StatisticsCSV::encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSiz
   localInfo_.encodedVideoFrames.push_back(frame);
 }
 
-void StatisticsCSV::decodedAudioFrame(QString cname, uint32_t size, uint32_t decodingTime)
+void StatisticsCSV::decodedAudioFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime)
 {
   DecodedFrame frame;
   frame.size = size;
   frame.decodingTime = decodingTime;
+  frame.timestamp = timestamp;
   sessionInfo_[cname].decodedAudioFrames.push_back(frame);
 }
 
-void StatisticsCSV::decodedVideoFrame(QString cname, uint32_t size, uint32_t decodingTime, QSize resolution)
+void StatisticsCSV::decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution)
 {
   DecodedFrame frame;
   frame.size = size;
   frame.decodingTime = decodingTime;
   frame.resolution = resolution;
+  frame.timestamp = timestamp;
   sessionInfo_[cname].decodedVideoFrames.push_back(frame);
 }
 
-void StatisticsCSV::audioLatency(uint32_t, QString cname, int64_t delay)
+void StatisticsCSV::audioLatency(uint32_t, QString cname, int64_t timestamp, int64_t delay)
 {
-  sessionInfo_[cname].audioLatencies.push_back(delay);
+  sessionInfo_[cname].audioLatencies[timestamp] = delay;
 }
 
-void StatisticsCSV::videoLatency(uint32_t, QString cname, int64_t delay)
+void StatisticsCSV::videoLatency(uint32_t, QString cname, int64_t timestamp, int64_t delay)
 {
-  sessionInfo_[cname].videoLatencies.push_back(delay);
+  sessionInfo_[cname].videoLatencies[timestamp] = delay;
 }
 
 uint32_t StatisticsCSV::addFilter(QString type, QString identifier, uint64_t TID)

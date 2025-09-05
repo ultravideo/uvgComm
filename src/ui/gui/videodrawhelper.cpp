@@ -138,7 +138,7 @@ bool VideoDrawHelper::readyToDraw()
 
 
 void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data, QImage &image,
-                                 double framerate, int64_t timestamp)
+                                 double framerate, int64_t creationTimestamp, int64_t displayTimestamp)
 {
   if (!widget->isVisible() ||
       widget->isHidden() ||
@@ -154,7 +154,7 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
 
   if(!firstImageReceived_)
   {
-    lastFrame_ = {image, std::move(data), timestamp};
+    lastFrame_ = {image, std::move(data), creationTimestamp, displayTimestamp};
     firstImageReceived_ = true;
     updateTargetRect(widget);
   }
@@ -171,13 +171,13 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
                                        QString::number(image.height())});
 
       frameBuffer_.clear();
-      frameBuffer_.push_front({image, std::move(data), timestamp});
+      frameBuffer_.push_front({image, std::move(data), creationTimestamp, displayTimestamp});
 
       updateTargetRect(widget);
     }
     else
     {
-      frameBuffer_.push_front({image, std::move(data), timestamp});
+      frameBuffer_.push_front({image, std::move(data), creationTimestamp, displayTimestamp});
     }
 
     // delete oldes image if there is too much buffer
@@ -242,7 +242,7 @@ void VideoDrawHelper::visualizeROIMap(RoiMap& map, int baseQP)
 }
 
 
-bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& latency, bool& showLatency)
+bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& timestamp, int64_t& latency, bool& showLatency)
 {
   Q_ASSERT(readyToDraw());
   bool showNewFrame = false;
@@ -278,13 +278,11 @@ bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& latency, bool& show
 
     if (showNewFrame)
     {
-      if (frameBuffer_.back().timestamp != 0)
+      if (frameBuffer_.back().creationTimestamp != 0)
       {
-        auto nowtp = std::chrono::system_clock::now();
-        lastLatency_ = std::chrono::
-                           duration_cast<std::chrono::milliseconds>(nowtp.time_since_epoch())
-                               .count()
-                       - frameBuffer_.back().timestamp;
+        auto now = std::chrono::steady_clock::now();
+        lastLatency_ = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()
+                       - frameBuffer_.back().creationTimestamp;
       }
 
       image = frameBuffer_.back().image;
@@ -297,6 +295,7 @@ bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& latency, bool& show
       image = lastFrame_.image;
     }
 
+    timestamp = lastFrame_.displayTimestamp;
     latency = lastLatency_;
     showLatency = showLatency_;
   }

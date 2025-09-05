@@ -83,13 +83,16 @@ void VideoWidget::visualizeROIMap(RoiMap& map, int qp)
   helper_.visualizeROIMap(map, qp);
 }
 
-void VideoWidget::inputImage(std::unique_ptr<uchar[]> data, QImage &image, double framerate,
-                             int64_t timestamp)
+void VideoWidget::inputImage(std::unique_ptr<uchar[]> data,
+                             QImage &image,
+                             double framerate,
+                             int64_t creationTimestamp,
+                             int64_t displayTimestamp)
 {
   drawMutex_.lock();
   // if the resolution has changed in video
 
-  helper_.inputImage(this, std::move(data), image, framerate, timestamp);
+  helper_.inputImage(this, std::move(data), image, framerate, creationTimestamp, displayTimestamp);
 
   //update();
 
@@ -117,15 +120,16 @@ void VideoWidget::paintEvent(QPaintEvent *event)
   {
     QImage frame;
     int64_t latency = 0;
+    int64_t timestamp = 0;
     bool showLatency = false;
     drawMutex_.lock();
-    if(helper_.getRecentImage(frame, latency, showLatency))
+    if(helper_.getRecentImage(frame, timestamp, latency, showLatency))
     {
       // sessionID 0 is the self display and we are not interested
       // update stats only for each new image.
       if(stats_ && sessionID_ != 0)
       {
-        stats_->videoLatency(sessionID_, cname_, latency);
+        stats_->videoLatency(sessionID_, cname_, timestamp, latency);
       }
     }
     drawMutex_.unlock();

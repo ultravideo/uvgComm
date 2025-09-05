@@ -423,7 +423,7 @@ void StatisticsWindow::encodedVideoFrame(uint32_t size, uint32_t encodingTime, Q
 }
 
 
-void StatisticsWindow::decodedAudioFrame(QString cname, uint32_t size, uint32_t decodingTime)
+void StatisticsWindow::decodedAudioFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime)
 {
   if(sessions_.find(cname) != sessions_.end())
   {
@@ -438,7 +438,7 @@ void StatisticsWindow::decodedAudioFrame(QString cname, uint32_t size, uint32_t 
 }
 
 
-void StatisticsWindow::decodedVideoFrame(QString cname, uint32_t size, uint32_t decodingTime, QSize resolution)
+void StatisticsWindow::decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution)
 {
   if(sessions_.find(cname) != sessions_.end())
   {
@@ -453,7 +453,7 @@ void StatisticsWindow::decodedVideoFrame(QString cname, uint32_t size, uint32_t 
 }
 
 
-void StatisticsWindow::audioLatency(uint32_t sessionID, QString cname, int64_t latency)
+void StatisticsWindow::audioLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t latency)
 {
   if(sessions_.find(cname) != sessions_.end())
   {
@@ -469,7 +469,7 @@ void StatisticsWindow::audioLatency(uint32_t sessionID, QString cname, int64_t l
 }
 
 
-void StatisticsWindow::videoLatency(uint32_t sessionID, QString cname, int64_t latency)
+void StatisticsWindow::videoLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t latency)
 {
   if(sessions_.find(cname) != sessions_.end())
   {

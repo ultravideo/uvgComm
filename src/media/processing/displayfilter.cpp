@@ -144,7 +144,7 @@ std::unique_ptr<Data> DisplayFilter::deliverFrame(VideoInterface* screen,
   
   screen->inputImage(std::move(input->data), image,
                      double(input->vInfo->framerateNumerator/input->vInfo->framerateDenominator),
-                     input->creationTimestamp);
+                     input->creationTimestamp, input->presentationTimestamp);
 
   if (useCopy)
   {
