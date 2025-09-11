@@ -188,6 +188,8 @@ void Settings::show()
 
   QWidget::show();
   basicUI_->save->hide();
+
+  Logger::getLogger()->printNormal(this, "Settings opened");
 }
 
 

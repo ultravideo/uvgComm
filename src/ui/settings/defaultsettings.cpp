@@ -22,12 +22,6 @@ void DefaultSettings::validateSettings(std::shared_ptr<MicrophoneInfo> mic,
     Logger::getLogger()->printWarning(this, "No mic found");
     settings.setValue(SettingsKey::audioDevice,        "No microphone");
     settings.setValue(SettingsKey::audioDeviceID,      -1);
-    setDefaultAudioSettings(mic);
-  }
-  else if (!validateAudioSettings() || settings.value(SettingsKey::audioDeviceID).toInt() == -1)
-  {
-    Logger::getLogger()->printWarning(this, "Did not find valid audio settings, using defaults");
-    setDefaultAudioSettings(mic);
   }
 
   if (cam->getDeviceList().empty())
@@ -35,9 +29,15 @@ void DefaultSettings::validateSettings(std::shared_ptr<MicrophoneInfo> mic,
     Logger::getLogger()->printWarning(this, "No cam found");
     settings.setValue(SettingsKey::videoDevice,        "No Camera");
     settings.setValue(SettingsKey::videoDeviceID,      -1);
-    setDefaultVideoSettings(cam);
   }
-  else if (!validateVideoSettings() || settings.value(SettingsKey::videoDeviceID).toInt() == -1)
+
+  if (!validateAudioSettings())
+  {
+    Logger::getLogger()->printWarning(this, "Did not find valid audio settings, using defaults");
+    setDefaultAudioSettings(mic);
+  }
+
+  if (!validateVideoSettings())
   {
     Logger::getLogger()->printWarning(this, "Did not find valid video settings, using defaults");
     setDefaultVideoSettings(cam);
