@@ -1,4 +1,4 @@
-#include "FakeCamera.h"
+#include "fakecamera.h"
 
 #include "logger.h"
 #include "settingskeys.h"
