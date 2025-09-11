@@ -299,6 +299,12 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 
   settings.setValue(SettingsKey::videoRCAlgorithm, "lambda");
 
+  settings.setValue(SettingsKey::videoFileEnabled, 0);
+  settings.setValue(SettingsKey::videoFilename, "input.yuv");
+  settings.setValue(SettingsKey::videoFileResolutionWidth,  1920);
+  settings.setValue(SettingsKey::videoFileResolutionHeight, 1080);
+  settings.setValue(SettingsKey::videoFileFramerate, 30);
+
   // use resolution and framerate to determine the best bit rate
   uint64_t formatComplexity = calculateComplexity(format.resolution,
                                                   format.framerate.toDouble());
