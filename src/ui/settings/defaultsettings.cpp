@@ -35,8 +35,9 @@ void DefaultSettings::validateSettings(std::shared_ptr<MicrophoneInfo> mic,
     Logger::getLogger()->printWarning(this, "No cam found");
     settings.setValue(SettingsKey::videoDevice,        "No Camera");
     settings.setValue(SettingsKey::videoDeviceID,      -1);
+    setDefaultVideoSettings(cam);
   }
-  else  if (!validateVideoSettings() || settings.value(SettingsKey::videoDeviceID).toInt() == -1)
+  else if (!validateVideoSettings() || settings.value(SettingsKey::videoDeviceID).toInt() == -1)
   {
     Logger::getLogger()->printWarning(this, "Did not find valid video settings, using defaults");
     setDefaultVideoSettings(cam);
@@ -306,11 +307,7 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
   {
     settings.setValue(SettingsKey::videoTileDimensions, "2x2");
     settings.setValue(SettingsKey::videoBitrate, 250000); // 250 kbit/s
-#ifdef NDEBUG
     settings.setValue(SettingsKey::videoPreset, "fast");
-#else
-     settings.setValue(SettingsKey::videoPreset, "ultrafast");
-#endif
   }
   else if (formatComplexity < CC_EASY)
   {

@@ -36,6 +36,12 @@ void restoreCheckBox(const QString settingValue, QCheckBox* box, QSettings& sett
   {
     box->setChecked(false);
   }
+  else if (!settings.contains(settingValue))
+  {
+    Logger::getLogger()->printDebug(DEBUG_ERROR, "Settings Helper",
+                                    "Missing settings value for checkbox in settings file",
+                                    {"Key"}, {settingValue});
+  }
   else
   {
     Logger::getLogger()->printDebug(DEBUG_ERROR, "Settings Helper", 

@@ -126,7 +126,15 @@ void CameraInfo::getFramerates(int deviceID, QString format, QString resolution,
 std::unique_ptr<QCamera> CameraInfo::loadCamera(int deviceID)
 {
   const QList<QCameraDevice> cameras = QMediaDevices::videoInputs();
-  if(deviceID == -1 || deviceID >= cameras.size())
+
+  if(deviceID == -1)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, "CameraInfo",
+                                    "No camera to load");
+    return std::unique_ptr<QCamera> (nullptr);
+  }
+
+  if(deviceID >= cameras.size())
   {
     Logger::getLogger()->printDebug(DEBUG_ERROR, "CameraInfo", 
                                     "Invalid deviceID for getVideoCapabilities");
