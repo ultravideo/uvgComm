@@ -30,7 +30,7 @@ if(PkgConfig_FOUND)
         pkg_search_module(SPEEXDSP libspeexdsp>=1.2 speexdsp>=1.2)
     endif()
     if (NOT UVGRTP_FOUND)
-        pkg_search_module(UVGRTP uvgrtp>=3.1 uvgRTP>=3.1)
+        pkg_search_module(UVGRTP uvgrtp>=3.2 uvgRTP>=3.2)
     endif()
 endif()
 
