@@ -350,9 +350,9 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 
   settings.setValue(SettingsKey::videoFileEnabled, 0);
   settings.setValue(SettingsKey::videoFilename, "input.yuv");
-  settings.setValue(SettingsKey::videoFileResolutionWidth,  format.resolution.width());
-  settings.setValue(SettingsKey::videoFileResolutionHeight, format.resolution.height());
-  settings.setValue(SettingsKey::videoFileFramerate, format.framerate);
+  settings.setValue(SettingsKey::videoFileResolutionWidth,  1920);
+  settings.setValue(SettingsKey::videoFileResolutionHeight, 1080);
+  settings.setValue(SettingsKey::videoFileFramerate, 30);
 }
 
 

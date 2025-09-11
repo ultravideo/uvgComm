@@ -210,8 +210,15 @@ void VideoSettings::saveSettings()
     settings.setValue(SettingsKey::videoFileResolutionWidth,  res.at(0).toInt());
     settings.setValue(SettingsKey::videoFileResolutionHeight, res.at(1).toInt());
   }
-  saveTextValue(SettingsKey::videoFileFramerate, videoSettingsUI_->file_framerate_box->currentText(),
-                settings);
+
+  if (videoSettingsUI_->file_framerate_box->currentText() != "")
+  {
+    settings.setValue(SettingsKey::videoFileFramerate, videoSettingsUI_->file_framerate_box->currentText());
+  }
+  else
+  {
+    settings.setValue(SettingsKey::videoFileFramerate, "30");
+  }
 
   // Parallelization-tab
   saveTextValue(SettingsKey::videoKvzThreads,       videoSettingsUI_->kvazaar_threads->currentText(),
