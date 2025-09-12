@@ -282,6 +282,8 @@ void CallSettings::saveAdvancedSettings()
     ResolutionBitrate bitrates = RESOLUTIONS.at(advancedUI_->resolution_combo->currentText());
     settings.setValue(SettingsKey::videoResolutionWidth,  QString::number(bitrates.width));
     settings.setValue(SettingsKey::videoResolutionHeight, QString::number(bitrates.height));
+    settings.setValue(SettingsKey::videoFileResolutionWidth,  QString::number(bitrates.width));
+    settings.setValue(SettingsKey::videoFileResolutionHeight, QString::number(bitrates.height));
     settings.setValue(SettingsKey::videoBitrate, QString::number(getVideoBitrate(bitrates.totalBitrate)));
     settings.setValue(SettingsKey::audioBitrate, QString::number(getAudioBitrate(bitrates.totalBitrate)));
   }
@@ -316,6 +318,12 @@ void CallSettings::restoreAdvancedSettings()
   int audioBitrate = settings.value(SettingsKey::audioBitrate).toInt();
   int resolutionWidth = settings.value(SettingsKey::videoResolutionWidth).toInt();
   int resolutionHeight = settings.value(SettingsKey::videoResolutionHeight).toInt();
+
+  if (settings.value(SettingsKey::videoFileEnabled).toBool())
+  {
+    resolutionWidth = settings.value(SettingsKey::videoFileResolutionWidth).toInt();
+    resolutionHeight = settings.value(SettingsKey::videoFileResolutionHeight).toInt();
+  }
 
   QString resolution = "Custom";
 

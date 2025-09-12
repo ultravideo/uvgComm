@@ -272,7 +272,7 @@ void FilterGraphClient::initCameraSelfView()
   if (!addToGraph(camera_, cameraGraph_))
   {
     // camera failed
-    Logger::getLogger()->printError(this, "Failed to add camera. Does it have supported formats?");
+    Logger::getLogger()->printError(this, "Failed to add camera to graph");
   }
 
   // create screen share filter, but it is stopped at the beginning

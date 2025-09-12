@@ -128,8 +128,16 @@ void UvgRTPSender::updateSettings()
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Updated buffersize",
                                     {"Size"}, {QString::number(maxBufferSize_)});
 
-    framerateNumerator_ = settingValue(SettingsKey::videoFramerateNumerator);
-    framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
+    if (settingValue(SettingsKey::videoFileEnabled))
+    {
+      framerateNumerator_ = settingValue(SettingsKey::videoFileFramerate);
+      framerateDenominator_ = 1;
+    }
+    else
+    {
+      framerateNumerator_ = settingValue(SettingsKey::videoFramerateNumerator);
+      framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
+    }
 
     if (stream_ &&
         dataFormat_ == RTP_FORMAT_H264 ||

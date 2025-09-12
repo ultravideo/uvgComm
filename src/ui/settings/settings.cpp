@@ -165,6 +165,11 @@ void Settings::init()
     setCameraState(true);
   }
 
+  if (!settings.value(SettingsKey::videoFileEnabled).isValid())
+  {
+    settings.setValue(SettingsKey::videoFileEnabled, "0");
+  }
+
   // never start with screen sharing turned on
   setScreenShareState(false);
 

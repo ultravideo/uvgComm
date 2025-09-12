@@ -906,6 +906,14 @@ std::pair<uint16_t, uint16_t> MediaManager::getResolution(const MediaInfo& local
     }
   }
 
+  if (settingEnabled(SettingsKey::videoFileEnabled))
+  {
+    return {
+        settingValue(SettingsKey::videoFileResolutionWidth),
+        settingValue(SettingsKey::videoFileResolutionHeight)
+    };
+  }
+
   return {
       settingValue(SettingsKey::videoResolutionWidth),
       settingValue(SettingsKey::videoResolutionHeight)

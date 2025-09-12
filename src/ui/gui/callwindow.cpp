@@ -142,17 +142,20 @@ void CallWindow::initializeMediaStates()
   const QList<QCameraDevice> cameras = QMediaDevices::videoInputs();
   if (cameras.empty())
   {
-    // reverse on state to off if no cameras
-    if (settingEnabled(SettingsKey::cameraStatus))
+    if (!settingEnabled(SettingsKey::videoFileEnabled))
     {
-      cameraButton(false); // reverses state
+      // reverse on state to off if no cameras
+      if (settingEnabled(SettingsKey::cameraStatus))
+      {
+        cameraButton(false); // reverses state
+      }
+      setCameraState(false);
+      ui_->camera->setDisabled(true);
     }
-    setCameraState(false);
-    ui_->camera->setDisabled(true);
   }
   else
   {
-    setCameraState(settingEnabled(SettingsKey::cameraStatus));
+    setCameraState(settingEnabled(SettingsKey::cameraStatus) || settingEnabled(SettingsKey::videoFileEnabled));
   }
 
   const auto microphones = QMediaDevices::audioInputs();
@@ -513,7 +516,7 @@ void CallWindow::screensShareButton()
   // TODO: Show a preview of each screen/window
 
   // we change the state of screensharestatus setting here
-  emit videoSourceChanged(settingEnabled(SettingsKey::cameraStatus),
+  emit videoSourceChanged(settingEnabled(SettingsKey::cameraStatus) || settingEnabled(SettingsKey::videoFileEnabled),
                           !settingEnabled(SettingsKey::screenShareStatus));
 }
 

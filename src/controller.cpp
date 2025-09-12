@@ -188,6 +188,15 @@ void uvgCommController::uninit()
 
 SIPConfig uvgCommController::createSIPConfig()
 {
+  uint16_t width = settingValue(SettingsKey::videoResolutionWidth);
+  uint16_t height = settingValue(SettingsKey::videoResolutionHeight);
+
+  if (settingEnabled(SettingsKey::videoFileEnabled))
+  {
+    width = settingValue(SettingsKey::videoFileResolutionWidth);
+    height = settingValue(SettingsKey::videoFileResolutionHeight);
+  }
+
   return {settingEnabled(SettingsKey::sipAutoConnect),
           settingString(SettingsKey::sipServerAddress),
           5060,
@@ -203,8 +212,7 @@ SIPConfig uvgCommController::createSIPConfig()
           settingEnabled(SettingsKey::sipSTUNEnabled),
           settingString(SettingsKey::sipSTUNAddress),
           (uint16_t)settingValue(SettingsKey::sipSTUNPort),
-          (uint16_t)settingValue(SettingsKey::videoResolutionWidth),
-          (uint16_t)settingValue(SettingsKey::videoResolutionHeight),
+          width, height,
           (uint32_t)settingValue(SettingsKey::videoBitrate)/1000,
           (uint32_t)settingValue(SettingsKey::audioBitrate)/1000};
 }
@@ -425,7 +433,9 @@ void uvgCommController::updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp
 
 void uvgCommController::updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp)
 {
-  if ((!settingEnabled(SettingsKey::screenShareStatus) && !settingEnabled(SettingsKey::cameraStatus)))
+  if ((!settingEnabled(SettingsKey::screenShareStatus) &&
+       !settingEnabled(SettingsKey::cameraStatus) &&
+       !settingEnabled(SettingsKey::videoFileEnabled)))
   {
     for (auto& media : sdp->media)
     {

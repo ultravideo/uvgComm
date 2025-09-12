@@ -16,8 +16,16 @@ LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
   baseResolution_(0, 0)
 {
   QSettings settings(getSettingsFile(), settingsFileFormat);
-  baseResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
-                         settings.value(SettingsKey::videoResolutionHeight).toInt());
+  if (settings.value(SettingsKey::videoFileEnabled).toBool())
+  {
+    baseResolution_ = QSize(settings.value(SettingsKey::videoFileResolutionWidth).toInt(),
+                            settings.value(SettingsKey::videoFileResolutionHeight).toInt());
+  }
+  else
+  {
+    baseResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
+                            settings.value(SettingsKey::videoResolutionHeight).toInt());
+  }
 
   // also sets target resolution
   changeResolution();

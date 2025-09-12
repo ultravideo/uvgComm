@@ -376,8 +376,8 @@ void KvazaarFilter::process()
   {
     if(inputPics_.empty())
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,  
-                                      "Input pictures were not allocated correctly");
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                      "Input pictures have not been allocated");
       break;
     }
     settingsMutex_.lock();
