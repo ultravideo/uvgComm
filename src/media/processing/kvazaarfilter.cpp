@@ -43,7 +43,8 @@ KvazaarFilter::KvazaarFilter(QString id, StatisticsInterface *stats,
   inputPics_(),
   nextInputPic_(-1),
   timestampInterval_(0),
-  currentFrame_(0)
+  currentFrame_(0),
+  initialized_(false)
 {
   maxBufferSize_ = 30;
 }
@@ -133,8 +134,10 @@ void KvazaarFilter::updateSettings()
 void KvazaarFilter::reInitializeKvazaar()
 {
   stop();
+  initialized_ = false;
   while(isRunning())
   {
+    Logger::getLogger()->printNormal(this, "Waiting for Kvazaar to stop...");
     sleep(1);
   }
 
@@ -345,7 +348,7 @@ bool KvazaarFilter::init()
   }
 
   Logger::getLogger()->printNormal(this, "Kvazaar iniation succeeded", "Resolution", resolutionStr);
-
+  initialized_ = true;
   return true;
 }
 
@@ -372,7 +375,7 @@ void KvazaarFilter::process()
 {
   std::unique_ptr<Data> input = getInput();
 
-  while(input)
+  while(input && initialized_)
   {
     if(inputPics_.empty())
     {

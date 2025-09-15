@@ -14,6 +14,10 @@ public:
              std::shared_ptr<ResourceAllocator> hwResources);
   ~FakeCamera();
 
+  virtual void start();
+  virtual void stop();
+
+
   virtual bool init();
 
   virtual void updateSettings();
@@ -30,4 +34,6 @@ private:
   QFile file_;
   QSize resolution_;
   int framerate_;
+
+  bool running_;
 };

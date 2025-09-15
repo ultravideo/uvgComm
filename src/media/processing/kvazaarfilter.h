@@ -80,4 +80,6 @@ private:
   int timestampInterval_;
 
   uint64_t currentFrame_;
+
+  bool initialized_;
 };

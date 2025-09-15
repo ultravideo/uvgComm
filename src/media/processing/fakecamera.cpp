@@ -6,13 +6,17 @@
 
 #include <QString>
 
+#include <chrono>
+#include <thread>
+
 
 FakeCamera::FakeCamera(QString id, StatisticsInterface* stats,
                        std::shared_ptr<ResourceAllocator> hwResources):
 Filter(id, "File Camera", stats, hwResources, DT_NONE, DT_YUV420VIDEO),
 file_(),
 resolution_(0, 0),
-framerate_(0)
+framerate_(0),
+    running_(false)
 {}
 
 
@@ -24,7 +28,25 @@ bool FakeCamera::init()
 {
   updateSettings();
 
+  running_ = true;
+
   return Filter::init();
+}
+
+
+void FakeCamera::start()
+{
+  running_ = true;
+
+  Filter::start();
+}
+
+
+void FakeCamera::stop()
+{
+  running_ = false;
+
+  Filter::stop();
 }
 
 
@@ -74,37 +96,59 @@ void FakeCamera::updateSettings()
 
 void FakeCamera::process()
 {
-  int frameSize = resolution_.width() * resolution_.height() * 3 / 2;
-
-  QByteArray buffer = file_.read(frameSize);
-  if (buffer.size() < frameSize)
-  {
-    // End of file reached; you can loop
-    file_.seek(0);
-    buffer = file_.read(frameSize);
-  }
-
-  if (buffer.size() < frameSize)
-  {
-    // Still not enough data; exit the loop
-    Logger::getLogger()->printWarning("FakeCamera", "Not enough data in file");
+  if (!file_.isOpen() || framerate_ <= 0 || resolution_.isEmpty()) {
+    Logger::getLogger()->printError(this, "FakeCamera not initialized properly");
     return;
   }
 
-  std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
-  auto now = std::chrono::steady_clock::now();
-  newImage->creationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-  newImage->presentationTimestamp = newImage->creationTimestamp;
+  const int frameSize = resolution_.width() * resolution_.height() * 3 / 2;
+  int64_t frameIndex = 0;
+  auto startTime = std::chrono::steady_clock::now();
 
-  newImage->type = output_;
-  newImage->data_size = frameSize;
-  newImage->vInfo->width = resolution_.width();
-  newImage->vInfo->height = resolution_.height();
-  newImage->vInfo->framerateNumerator = framerate_;
-  newImage->vInfo->framerateDenominator = 1;
-  newImage->data = std::make_unique<uchar[]>(frameSize);
-  memcpy(newImage->data.get(), buffer.data(), frameSize);
-  sendOutput(std::move(newImage));
+  while (running_)
+  {
+    // Expected time for this frame
+    auto expectedPts = frameIndex * 1000 / framerate_;
+    auto expectedTime = startTime + std::chrono::milliseconds(expectedPts);
+
+    // Read one frame
+    QByteArray buffer = file_.read(frameSize);
+    if (buffer.size() < frameSize) {
+      file_.seek(0);
+      buffer = file_.read(frameSize);
+    }
+    if (buffer.size() < frameSize) {
+      Logger::getLogger()->printWarning("FakeCamera", "Not enough data in file even after rewind");
+      break; // fatal, nothing left
+    }
+
+    // Build the frame
+    std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
+
+    newImage->type = output_;
+    newImage->data_size = frameSize;
+    newImage->vInfo->width = resolution_.width();
+    newImage->vInfo->height = resolution_.height();
+    newImage->vInfo->framerateNumerator = framerate_;
+    newImage->vInfo->framerateDenominator = 1;
+    newImage->data = std::make_unique<uchar[]>(frameSize);
+    memcpy(newImage->data.get(), buffer.data(), frameSize);
+
+    auto now = std::chrono::steady_clock::now();
+    newImage->creationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    newImage->presentationTimestamp = newImage->creationTimestamp;
+
+    sendOutput(std::move(newImage));
+    frameIndex++;
+
+    // Sleep until the next frame’s deadline
+    if (now < expectedTime)
+    {
+      std::this_thread::sleep_until(expectedTime);
+    }
+  }
+
+  Logger::getLogger()->printNormal(this, "FakeCamera stopped");
 }
 
 
