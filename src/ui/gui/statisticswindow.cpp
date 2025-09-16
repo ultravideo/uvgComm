@@ -899,9 +899,8 @@ void StatisticsWindow::paintEvent(QPaintEvent *event)
 
           ui_->vd_bitrate_chart->addPoint(d.second.performanceGraphIndex, videoBitrate);
           ui_->vd_delay_chart->addPoint(d.second.performanceGraphIndex, (float)videoDecDelay);
+          ui_->vd_latency_chart->addPoint(d.second.performanceGraphIndex, (float)videoTotalDelay);
           ui_->vd_framerate_chart->addPoint(d.second.performanceGraphIndex, presentationVideoFramerate);
-
-          // TODO: total latency
 
           sessionMutex_.unlock();
         }
