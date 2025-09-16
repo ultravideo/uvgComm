@@ -9,7 +9,7 @@ if (NOT UVGRTP_FOUND)
     FetchContent_Declare(
             uvgrtp
             GIT_REPOSITORY https://github.com/jrsnen/uvgRTP.git
-            GIT_TAG        a5d24fe202242edcfa15449a8172ea237f67bdc6
+            GIT_TAG        bc63580755d6bd2ce6a08872e0a22739875c6960
     )
 
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
