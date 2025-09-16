@@ -187,4 +187,6 @@ private:
   std::shared_ptr<ResourceAllocator> hwResources_;
 
   int localInitialIndex_;
+
+  std::map<uint32_t, QSet<QString>> seenCNames_;
 };

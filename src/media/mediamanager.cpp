@@ -121,8 +121,6 @@ void MediaManager::newSession(uint32_t sessionID,
     return;
   }
 
-
-
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
 
   if (sessions_.find(sessionID) == sessions_.end())
@@ -137,9 +135,30 @@ void MediaManager::newSession(uint32_t sessionID,
                      this, &MediaManager::iceFailed);
   }
 
+  return modifySession(sessionID, peerInfo, localInfo, iceController, followOurSDP);
+}
+
+
+void MediaManager::modifySession(uint32_t sessionID,
+                                 std::shared_ptr<SDPMessageInfo> peerInfo,
+                                 const std::shared_ptr<SDPMessageInfo> localInfo,
+                                 bool iceController,
+                                 bool followOurSDP)
+{
+  // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
+  if (!sessionChecks(peerInfo, localInfo))
+  {
+    return;
+  }
+
   if (stats_ != nullptr)
   {
-    QSet<QString> seenCNAMEs;
+    if(seenCNames_.find(sessionID) == seenCNames_.end())
+    {
+      seenCNames_[sessionID] = QSet<QString>();
+    }
+
+    QSet<QString>& seenCNAMEs = seenCNames_[sessionID];
 
     for (auto& media : peerInfo->media)
     {
@@ -160,22 +179,6 @@ void MediaManager::newSession(uint32_t sessionID,
         seenCNAMEs.insert(cname);
       }
     }
-  }
-
-  return modifySession(sessionID, peerInfo, localInfo, iceController, followOurSDP);
-}
-
-
-void MediaManager::modifySession(uint32_t sessionID,
-                                 std::shared_ptr<SDPMessageInfo> peerInfo,
-                                 const std::shared_ptr<SDPMessageInfo> localInfo,
-                                 bool iceController,
-                                 bool followOurSDP)
-{
-  // TODO: support stop-time and start-time as recommended by RFC 4566 section 5.9
-  if (!sessionChecks(peerInfo, localInfo))
-  {
-    return;
   }
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Modifying participant");
@@ -695,6 +698,8 @@ void MediaManager::removeParticipant(uint32_t sessionID)
   {
     streamer_->removePeer(sessionID);
   }
+
+  seenCNames_.erase(sessionID);
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, "Media Manager", "Session media removed",
             {"SessionID"}, {QString::number(sessionID)});
