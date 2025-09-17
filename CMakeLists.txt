@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.16)
 
 include(cmake/ProjectDetails.cmake)
 
-# Note: We do not set the default build type, since this is typically handled by Qt Creator
+#  Default to release build type if none is specified
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "No build type specified, defaulting to Release")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
 
 project(uvgComm
     VERSION ${uvgComm_VER}
