@@ -288,7 +288,8 @@ void MediaManager::modifySession(uint32_t sessionID,
           clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
         }
 
-        if (settingString(SettingsKey::sipRole) != "Client")
+        if (settingString(SettingsKey::sipRole) == "Server" &&
+            settingString(SettingsKey::sipTopology) == "SFU")
         {
           sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
         }
@@ -536,6 +537,8 @@ void MediaManager::sfuMedia(uint32_t sessionID,
     Logger::getLogger()->printProgramError(this, "Address was empty when creating outgoing media");
     return;
   }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "We are the SFU, creating media");
 
   // add structures for keeping track of this session in Delivery
   if(!streamer_->addSession(sessionID,

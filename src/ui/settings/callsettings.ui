@@ -171,9 +171,9 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="client">
+     <widget class="QWidget" name="role">
       <attribute name="title">
-       <string>Client</string>
+       <string>Role</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
        <item row="9" column="1">
