@@ -283,15 +283,48 @@ void MediaManager::modifySession(uint32_t sessionID,
 
       if (isLocalAddress(localInfo->media.at(i).connection_address))
       {
-        if (settingString(SettingsKey::sipRole) != "Server")
+        if (settingString(SettingsKey::sipRole) == "Client")
         {
+          // we are a client, we need to create connections from SDP, but we dont care about topology
           clientMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
         }
-
-        if (settingString(SettingsKey::sipRole) == "Server" &&
-            settingString(SettingsKey::sipTopology) == "SFU")
+        else if (settingString(SettingsKey::sipRole) == "Server")
         {
-          sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
+          if (!followOurSDP)
+          {
+            Logger::getLogger()->printWarning(this, "Server is not host, this may cause issues");
+          }
+
+          if (settingString(SettingsKey::sipTopology) == "P2P Mesh")
+          {
+            Logger::getLogger()->printNormal(this, "Acting as P2P mesh host, no media");
+          }
+          else if (settingString(SettingsKey::sipTopology) == "SFU")
+          {
+            Logger::getLogger()->printNormal(this, "Acting as SFU server, setting up UDP relays");
+            sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
+          }
+          else if (settingString(SettingsKey::sipTopology) == "Hybrid")
+          {
+            Logger::getLogger()->printNormal(this, "Acting as Hybrid server, setting up UDP relays for SFU portion");
+            sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
+          }
+          else if (settingString(SettingsKey::sipTopology) == "MCU")
+          {
+            Logger::getLogger()->printUnimplemented(this, "MCU server topology not implemented");
+          }
+          else if (settingString(SettingsKey::sipTopology) == "No Conferencing")
+          {
+            Logger::getLogger()->printNormal(this, "No conferencing, no server media");
+          }
+          else
+          {
+            Logger::getLogger()->printProgramError(this, "Unknown server topology");
+          }
+        }
+        else
+        {
+          Logger::getLogger()->printProgramError(this, "Unknown media role");
         }
       }
     }
@@ -537,8 +570,6 @@ void MediaManager::sfuMedia(uint32_t sessionID,
     Logger::getLogger()->printProgramError(this, "Address was empty when creating outgoing media");
     return;
   }
-
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "We are the SFU, creating media");
 
   // add structures for keeping track of this session in Delivery
   if(!streamer_->addSession(sessionID,
