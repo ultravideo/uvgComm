@@ -18,14 +18,9 @@ enum class ScriptMode
   SCRIPT_FILE
 };
 
-enum class StatsMode
-{
-  STATS_WINDOW,
-  STATS_CSV
-};
 
 
-ScriptMode commandLine(QApplication& app, QString& outScriptfile, QString& outConfigfile, StatsMode& statsMode)
+ScriptMode commandLine(QApplication& app, QString& outScriptfile, QString& outConfigfile, QString& statsFolder)
 {
   QCommandLineParser parser;
   parser.setApplicationDescription("Video conferencing app with optional scripting support");
@@ -43,8 +38,8 @@ ScriptMode commandLine(QApplication& app, QString& outScriptfile, QString& outCo
   parser.addOption(configOption);
 
   QCommandLineOption statsOption("stats",
-                                  "Record stats to a csv file or show them in the window.",
-                                  "destination");
+                                  "Record statistics into a folder instead of the window.",
+                                  "destination folder");
   parser.addOption(statsOption);
 
   parser.process(app);
@@ -73,12 +68,7 @@ ScriptMode commandLine(QApplication& app, QString& outScriptfile, QString& outCo
 
   if (parser.isSet(statsOption))
   {
-    QString statsParameter = parser.value(statsOption);
-    statsMode = StatsMode::STATS_WINDOW;
-    if (statsParameter == "csv" || statsParameter == "file")
-    {
-      statsMode = StatsMode::STATS_CSV;
-    }
+    statsFolder = parser.value(statsOption);
   }
 
   return scriptMode;
@@ -128,9 +118,9 @@ int main(int argc, char *argv[])
 
   QString scriptFile = "";
   QString configFile = "";
-  StatsMode statsMode = StatsMode::STATS_WINDOW;
+  QString statsFolder = "";
 
-  ScriptMode script = commandLine(a, scriptFile, configFile, statsMode);
+  ScriptMode script = commandLine(a, scriptFile, configFile, statsFolder);
 
   QFile File(":/stylesheet.qss");
   File.open(QFile::ReadOnly);
@@ -140,7 +130,7 @@ int main(int argc, char *argv[])
 
   uvgCommController controller;
 
-  controller.init(script == ScriptMode::SCRIPT_STDIN, scriptFile, configFile, statsMode == StatsMode::STATS_CSV);
+  controller.init(script == ScriptMode::SCRIPT_STDIN, scriptFile, configFile, statsFolder);
 
   return a.exec(); // starts main thread
 }

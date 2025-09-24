@@ -9,13 +9,9 @@
 #include <QDateTime>
 #include <QDebug>
 
-const QString baseFolder = "stats_csv";
-
-StatisticsCSV::StatisticsCSV()
-{
-  // Create output directory
-  QDir().mkpath(baseFolder);
-}
+StatisticsCSV::StatisticsCSV(QString folder):
+folder_(folder)
+{}
 
 void StatisticsCSV::addSession(uint32_t sessionID)
 {
@@ -33,8 +29,7 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
 
   Logger::getLogger()->printNormal("CSV Stats", QString("Writing statistics for session %1").arg(sessionID));
 
-  QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
-  QString sessionFolder = baseFolder + "/" + timestamp;
+  QString sessionFolder = folder_;
 
   QDir dir;
   if (!dir.exists(sessionFolder))

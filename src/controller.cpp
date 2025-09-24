@@ -35,7 +35,7 @@ uvgCommController::uvgCommController():
 {}
 
 
-void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& configFilename, bool statsToFile)
+void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& configFilename, QString& statsFolder)
 {
   Logger::getLogger()->printImportant(this, "uvgComm initiation Started");
 
@@ -52,7 +52,7 @@ void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& co
 
   userInterface_.init(this, viewFactory_);
 
-  stats_ = userInterface_.createStats(statsToFile);
+  stats_ = userInterface_.createStats(statsFolder);
 
   QObject::connect(&sip_, &SIPManager::finalLocalSDP,
                    this, &uvgCommController::inputLocalSDP);
@@ -1081,7 +1081,7 @@ bool uvgCommController::areWeICEController(bool initialAgent, uint32_t sessionID
   if (states_.at(sessionID).remoteSDP &&
       states_.at(sessionID).remoteSDP->media.size() == 2)
   {
-    Logger::getLogger()->printNormal(this, "One-to-one call so we follow specification");
+    Logger::getLogger()->printNormal(this, "One-to-one call so we follow specification when selecting ICE controller");
     return initialAgent;
   }
 

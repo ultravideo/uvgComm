@@ -10,7 +10,7 @@
 class StatisticsCSV : public StatisticsInterface
 {
 public:
-  StatisticsCSV();
+  StatisticsCSV(QString folder);
 
   virtual void addSession(uint32_t sessionID) override;
 
@@ -106,4 +106,6 @@ private:
 
   std::unordered_map<QString, SessionInfo> sessionInfo_;
   std::unordered_map<uint32_t, QStringList> sessionNames_;
+
+  QString folder_;
 };

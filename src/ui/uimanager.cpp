@@ -118,12 +118,12 @@ void UIManager::updateServerStatus(QString status)
 
 
 // functions for managing the GUI
-StatisticsInterface* UIManager::createStats(bool useCSV)
+StatisticsInterface* UIManager::createStats(QString statsFolder)
 {
-  if (useCSV)
+  if (statsFolder != "")
   {
     Logger::getLogger()->printNormal(this, "CSV recording enabled");
-    csv_ = new StatisticsCSV();
+    csv_ = new StatisticsCSV(statsFolder);
     return csv_;
   }
   else

@@ -25,7 +25,7 @@ class uvgCommController : public ParticipantInterface
 public:
   uvgCommController();
 
-  void init(bool useStdin, QString& scriptFilename, QString& configFilename, bool statsToFile);
+  void init(bool useStdin, QString& scriptFilename, QString& configFilename, QString &statsFolder);
 
   void uninit();
 
