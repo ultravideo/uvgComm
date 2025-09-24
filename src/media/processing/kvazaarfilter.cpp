@@ -169,7 +169,6 @@ bool KvazaarFilter::init()
 
   QSettings settings(getSettingsFile(), settingsFileFormat);
   timestampInterval_ = settings.value(SettingsKey::sipTimestampInterval).toInt();
-
   int enumerator = settings.value(SettingsKey::videoFramerateNumerator).toInt();
   int denominator = settings.value(SettingsKey::videoFramerateDenominator).toInt();
 
@@ -200,14 +199,29 @@ bool KvazaarFilter::init()
   QSize partResolution = getHWManager()->getVideoResolution();
 
   QString resolutionStr = QString::number(partResolution.width()) + "x" + QString::number(partResolution.height());
-
-  QString framerateStr = QString::number(settings.value(SettingsKey::videoFramerateNumerator).toInt()) + "/" +
-                      QString::number(settings.value(SettingsKey::videoFramerateDenominator).toInt());
+  QString framerateStr = QString::number(enumerator) + "/" +  QString::number(denominator);
 
   if (settingEnabled(SettingsKey::videoFileEnabled))
   {
     framerateStr = QString::number(settings.value(SettingsKey::videoFileFramerate).toInt()) + "/" +
                    QString::number(1);
+    if (settings.value(SettingsKey::videoFileFramerate).toInt() <= 0)
+    {
+      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                      "Invalid framerate settings",
+                                      {"Framerate"},
+                                      {framerateStr});
+      return false;
+    }
+  }
+  else if (enumerator <= 0 || denominator <= 0)
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "Invalid framerate settings",
+                                    {"Numerator", "Denominator"},
+                                    {QString::number(enumerator),
+                                     QString::number(denominator)});
+    return false;
   }
 
   // Input
