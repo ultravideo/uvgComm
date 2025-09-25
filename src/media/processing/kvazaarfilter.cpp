@@ -198,6 +198,16 @@ bool KvazaarFilter::init()
   config_->target_bitrate = getHWManager()->getEncoderBitrate(DT_HEVCVIDEO);
   QSize partResolution = getHWManager()->getVideoResolution();
 
+  if (partResolution.width() <= 0 || partResolution.height() <= 0)
+  {
+    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+                                    "Invalid resolution settings",
+                                    {"Width", "Height"},
+                                    {QString::number(partResolution.width()),
+                                     QString::number(partResolution.height())});
+    return false;
+  }
+
   QString resolutionStr = QString::number(partResolution.width()) + "x" + QString::number(partResolution.height());
   QString framerateStr = QString::number(enumerator) + "/" +  QString::number(denominator);
 
