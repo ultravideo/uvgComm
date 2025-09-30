@@ -136,7 +136,8 @@ void FilterGraphClient::updateConferenceSize()
 {
   if (resolution_.first == 0 || resolution_.second == 0)
   {
-    Logger::getLogger()->printProgramError(this, "Conference resolution not set");
+    Logger::getLogger()->printProgramError(this, "Conference resolution is zero, "
+                                                 "cannot update conference size");
     return;
   }
 
@@ -385,6 +386,12 @@ void FilterGraphClient::initVideoSend(std::pair<uint16_t, uint16_t> resolution)
 {
   Logger::getLogger()->printNormal(this, "Iniating video send");
 
+  if(resolution.first == 0 || resolution.second == 0)
+  {
+    Logger::getLogger()->printProgramError(this, "Cannot initiate video send with zero resolution");
+    return;
+  }
+
   if(cameraGraph_.size() == 0)
   {
     Logger::getLogger()->printProgramWarning(this, "Camera was not iniated for video send");
@@ -429,6 +436,7 @@ void FilterGraphClient::initVideoSend(std::pair<uint16_t, uint16_t> resolution)
                   cameraGraph_);
 
   videoSendIniated_ = true;
+  resolution_ = resolution;
 }
 
 
@@ -524,8 +532,7 @@ void FilterGraphClient::sendVideoto(uint32_t sessionID,
   // make sure we are generating video
   if(!videoSendIniated_)
   {
-    resolution_ = resolution;
-    initVideoSend(resolution_);
+    initVideoSend(resolution);
   }
 
   // add participant if necessary

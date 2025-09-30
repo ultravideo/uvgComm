@@ -424,6 +424,7 @@ void uvgCommController::updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp
     {
       if (media.type == "audio")
       {
+        Logger::getLogger()->printNormal(this, "Disabling our audio in SDP");
         media.flagAttributes = {A_RECVONLY};
       }
     }
@@ -441,6 +442,7 @@ void uvgCommController::updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp
     {
       if (media.type == "video")
       {
+        Logger::getLogger()->printNormal(this, "Disabling our video in SDP");
         media.flagAttributes = {A_RECVONLY};
       }
     }

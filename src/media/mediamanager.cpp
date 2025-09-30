@@ -385,6 +385,11 @@ void MediaManager::clientMedia(uint32_t sessionID,
       clientSendMedia(sessionID, localMedia, remoteMedia, send, codec,
                       localSSRCs.at(0));
     }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Not sending video due to participant limit",
+                                       {"Limit"}, {QString::number(settingValue(SettingsKey::sipVisibleParticipants))});
+    }
 
     // go through all SSRCs and try to receive them
     for (auto& attributeList : remoteMedia.multiAttributes)
