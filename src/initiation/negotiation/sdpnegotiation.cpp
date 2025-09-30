@@ -574,7 +574,8 @@ bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& comparedNums, const Q
       if(remoteCodec.codec == supportedCodec.codec)
       {
         resultCodecs.append(remoteCodec);
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",  "Found suitable codec");
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",  "Found suitable codec",
+                                        {"Code"}, {remoteCodec.codec});
 
         resultNums.push_back(remoteCodec.rtpNum);
 

@@ -188,22 +188,22 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
 
     if (usePrivateAddresses_ && !existingLocalCandidates_[mediaIndex]->empty())
     {
-      Logger::getLogger()->printNormal(this, "Using local IP address");
+      Logger::getLogger()->printNormal(this, "Using local IP addresses");
       setMediaAddress(existingLocalCandidates_, media, mediaIndex);
     }
     else if (!existingGlobalCandidates_[mediaIndex]->empty())
     {
-      Logger::getLogger()->printNormal(this, "Using Global IP address");
+      Logger::getLogger()->printNormal(this, "Using Global IP addresses");
       setMediaAddress(existingGlobalCandidates_, media, mediaIndex);
     }
     else if (!existingStunCandidates_[mediaIndex]->empty())
     {
-      Logger::getLogger()->printNormal(this, "Using STUN address");
+      Logger::getLogger()->printNormal(this, "Using STUN addresses");
       setMediaAddress(existingStunCandidates_, media, mediaIndex);
     }
     else
     {
-      Logger::getLogger()->printError(this, "No local addresses were found!");
+      Logger::getLogger()->printError(this, "No suitable addresses were found!");
     }
   }
 }

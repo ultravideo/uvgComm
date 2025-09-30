@@ -892,7 +892,8 @@ bool parseValueAttribute(SDPAttributeType type, QString value,
 {
   if(value != "")
   {
-    Logger::getLogger()->printNormal("SipContent", "Correctly matched a value attribute");
+    Logger::getLogger()->printNormal("SipContent", "Correctly parsed a value attribute",
+                                     {"Type"}, {attributeTypeToString(type)});
     valueAttributes.push_back(SDPAttribute{type, value});
     return true;
   }
