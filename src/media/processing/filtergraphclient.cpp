@@ -140,14 +140,22 @@ void FilterGraphClient::updateConferenceSize()
     }
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Updating conference size",
-                                   {"Other Participants", "Conference resolution"},
-                                   {QString::number(otherParticipants),
-                                    QString("%1x%2").arg(resolution_.first).arg(resolution_.second)});
+  if (otherParticipants > 0) {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                     "Updating conference size", {"Other Participants", "Conference resolution"},
+                     {QString::number(otherParticipants),
+                      QString("%1x%2").arg(resolution_.first).arg(resolution_.second)});
 
-  hwResources_->setParticipants(otherParticipants);
+    hwResources_->setParticipants(otherParticipants);
 
-  refreshResolutions();
+    refreshResolutions();
+  }
+  else
+  {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+                     "No other participants, setting conference size to 1");
+    hwResources_->setParticipants(1);
+  }
 }
 
 
