@@ -4,9 +4,7 @@
 #include "videoviewfactory.h"
 #include "statisticscsv.h"
 
-#include "settingskeys.h"
 #include "logger.h"
-#include "common.h"
 
 
 #include "ui_about.h"
@@ -118,12 +116,12 @@ void UIManager::updateServerStatus(QString status)
 
 
 // functions for managing the GUI
-StatisticsInterface* UIManager::createStats(QString statsFolder)
+StatisticsInterface* UIManager::createStats(QString statsFolder, QString& sipLogFile)
 {
   if (statsFolder != "")
   {
     Logger::getLogger()->printNormal(this, "CSV recording enabled");
-    csv_ = new StatisticsCSV(statsFolder);
+    csv_ = new StatisticsCSV(statsFolder, sipLogFile);
     return csv_;
   }
   else

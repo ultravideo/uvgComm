@@ -9,9 +9,33 @@
 #include <QDateTime>
 #include <QDebug>
 
-StatisticsCSV::StatisticsCSV(QString folder):
-folder_(folder)
-{}
+StatisticsCSV::StatisticsCSV(const QString folder, const QString sipLogFile)
+    : folder_(folder), sipLogFile_(sipLogFile)
+{
+  if (!sipLogFile_.isEmpty())
+  {
+    QFileInfo fileInfo(sipLogFile_);
+    if (fileInfo.isDir())
+    {
+      Logger::getLogger()->printWarning("CSV Stats",
+                                        QString("SIP log file %1 is a directory, disabling SIP logging").arg(sipLogFile_));
+      sipLogFile_.clear();
+      return;
+    }
+
+    QFile file(sipLogFile_);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
+      QTextStream out(&file);
+      out << "==== SIP Log Started ====\n";
+      file.close();
+    }
+    else
+    {
+      Logger::getLogger()->printWarning("CSV Stats", QString("Failed to open SIP log file %1").arg(sipLogFile_));
+    }
+  }
+}
 
 void StatisticsCSV::addSession(uint32_t sessionID)
 {
@@ -230,9 +254,7 @@ void StatisticsCSV::removeFilter(uint32_t id)
 // Tracking of buffer information.
 void StatisticsCSV::updateBufferStatus(uint32_t id, uint16_t buffersize,
                                 uint16_t maxBufferSize)
-{
-
-}
+{}
 
 // Tracking of packets dropped due to buffer overflow
 void StatisticsCSV::packetDropped(uint32_t id)
@@ -243,13 +265,37 @@ void StatisticsCSV::packetDropped(uint32_t id)
 // SIP
 // Tracking of sent and received SIP Messages
 void StatisticsCSV::addSentSIPMessage(const QString& headerType, const QString& header,
-                               const QString& bodyType,   const QString& body)
+                                      const QString& bodyType,   const QString& body)
 {
+  if (sipLogFile_.isEmpty())
+  {
+    return;
+  }
 
+  QFile file(sipLogFile_);
+  if (file.open(QIODevice::Append | QIODevice::Text))
+  {
+    QTextStream out(&file);
+    out << "\n--- SENT SIP MESSAGE " + headerType + " (" + bodyType + ") " + QDateTime::currentDateTime().toString() + " ---\n";
+    out << header << "\r\n";  // headers
+    out << body << "\r\n";    // body
+  }
 }
 
 void StatisticsCSV::addReceivedSIPMessage(const QString& headerType, const QString& header,
                                    const QString& bodyType,   const QString& body)
 {
+  if (sipLogFile_.isEmpty())
+  {
+    return;
+  }
 
+  QFile file(sipLogFile_);
+  if (file.open(QIODevice::Append | QIODevice::Text))
+  {
+    QTextStream out(&file);
+    out << "\n--- RECEIVED SIP MESSAGE " + headerType + " (" + bodyType + ") " + QDateTime::currentDateTime().toString() + " ---\n";
+    out << header << "\r\n";  // headers
+    out << body << "\r\n";    // body
+  }
 }

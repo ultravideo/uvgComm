@@ -19,9 +19,12 @@ enum class ScriptMode
 };
 
 
-
-ScriptMode commandLine(QApplication& app, QString& outScriptfile, QString& outConfigfile, QString& statsFolder)
+ScriptMode commandLine(QApplication& app,
+                       QString& outScriptfile, QString& outConfigfile,
+                       QString& statsFolder,   QString& sipLogFile)
 {
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Parsing command line arguments");
+
   QCommandLineParser parser;
   parser.setApplicationDescription("Video conferencing app with optional scripting support");
   parser.addHelpOption();
@@ -41,6 +44,12 @@ ScriptMode commandLine(QApplication& app, QString& outScriptfile, QString& outCo
                                   "Record statistics into a folder instead of the window.",
                                   "destination folder");
   parser.addOption(statsOption);
+
+  QCommandLineOption sipOption("siplog",
+                               "Record SIP messages into a file.",
+                               "filename");
+  parser.addOption(sipOption);
+
 
   parser.process(app);
 
@@ -70,6 +79,16 @@ ScriptMode commandLine(QApplication& app, QString& outScriptfile, QString& outCo
   {
     statsFolder = parser.value(statsOption);
   }
+
+  if (parser.isSet(sipOption))
+  {
+    sipLogFile = parser.value(sipOption);
+  }
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Command line parsing done",
+                                  {"Script mode", "Script file", "Config file", "Stats folder", "SIP log file"},
+                                  {QString::number(static_cast<int>(scriptMode)),
+                                   outScriptfile, outConfigfile, statsFolder, sipLogFile});
 
   return scriptMode;
 }
@@ -116,11 +135,12 @@ int main(int argc, char *argv[])
 
   QSettings::setPath(settingsFileFormat, QSettings::SystemScope, ".");
 
-  QString scriptFile = "";
-  QString configFile = "";
+  QString scriptFile  = "";
+  QString configFile  = "";
   QString statsFolder = "";
+  QString sipLogFile  = "";
 
-  ScriptMode script = commandLine(a, scriptFile, configFile, statsFolder);
+  ScriptMode script = commandLine(a, scriptFile, configFile, statsFolder, sipLogFile);
 
   QFile File(":/stylesheet.qss");
   File.open(QFile::ReadOnly);
@@ -130,7 +150,7 @@ int main(int argc, char *argv[])
 
   uvgCommController controller;
 
-  controller.init(script == ScriptMode::SCRIPT_STDIN, scriptFile, configFile, statsFolder);
+  controller.init(script == ScriptMode::SCRIPT_STDIN, scriptFile, configFile, statsFolder, sipLogFile);
 
   return a.exec(); // starts main thread
 }
