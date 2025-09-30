@@ -69,7 +69,7 @@ bool Delivery::addSession(uint32_t sessionID,
   }
   else
   {
-    Logger::getLogger()->printNormal(this, "Adding a new session for peer since we use different route",
+    Logger::getLogger()->printNormal(this, "Adding a new session for peer since route is not recognized",
                                       "Connection", connection);
 
     peers_[sessionID]->sessions.push_back({rtp_ctx_->create_session(peerAddress.toStdString(), localAddress.toStdString()),
@@ -324,18 +324,18 @@ std::shared_ptr<RelayInterface> Delivery::getUDPRelay(QString localAddress, uint
 
   if (relays_.find(relayKey) == relays_.end())
   {
-    Logger::getLogger()->printNormal(this, "Creating new UDP relay", "Path", relayKey);
+    Logger::getLogger()->printNormal(this, "Creating new UDP relay", "Local socket", relayKey);
 
     bool customRelay = true;
 
     if (customRelay)
     {
-      Logger::getLogger()->printNormal(this, "Using custom UDP relay", "Path", relayKey);
+      Logger::getLogger()->printNormal(this, "Using custom UDP relay", "Local socket", relayKey);
       relays_[relayKey] = std::shared_ptr<RelayInterface>(new UVGRelay(localAddress.toStdString(), localPort));
     }
     else
     {
-      Logger::getLogger()->printNormal(this, "Using Qts UDP relay", "Path", relayKey);
+      Logger::getLogger()->printNormal(this, "Using Qts UDP relay", "Local socket", relayKey);
       relays_[relayKey] = std::shared_ptr<RelayInterface>(new UDPRelay(localAddress.toStdString(), localPort));
     }
 

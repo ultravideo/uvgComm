@@ -941,18 +941,27 @@ std::pair<uint16_t, uint16_t> MediaManager::getResolution(const MediaInfo& local
   {
     if (attr.sendResolution.has_value())
     {
+      Logger::getLogger()->printNormal(this, "Using SDP resolution", "Resolution",
+                                       QString::number(attr.sendResolution->x) + "x" +
+                                           QString::number(attr.sendResolution->y));
       return {attr.sendResolution->x, attr.sendResolution->y};
     }
   }
 
   if (settingEnabled(SettingsKey::videoFileEnabled))
   {
+    Logger::getLogger()->printNormal(this, "Using file resolution", "Resolution",
+                                     settingString(SettingsKey::videoFileResolutionWidth) + "x" +
+                                         settingString(SettingsKey::videoFileResolutionHeight));
     return {
         settingValue(SettingsKey::videoFileResolutionWidth),
         settingValue(SettingsKey::videoFileResolutionHeight)
     };
   }
 
+  Logger::getLogger()->printNormal(this, "Using camera resolution", "Resolution",
+                                   settingString(SettingsKey::videoResolutionWidth) + "x" +
+                                       settingString(SettingsKey::videoResolutionHeight));
   return {
       settingValue(SettingsKey::videoResolutionWidth),
       settingValue(SettingsKey::videoResolutionHeight)

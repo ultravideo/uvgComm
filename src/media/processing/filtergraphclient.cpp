@@ -115,6 +115,10 @@ void FilterGraphClient::refreshResolutions()
   {
     kvazaar_->restartEncoder();
   }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Kvazaar not initialized when refreshing resolutions");
+  }
 
   if (libyuv_)
   {
@@ -130,6 +134,12 @@ void FilterGraphClient::refreshResolutions()
 
 void FilterGraphClient::updateConferenceSize()
 {
+  if (resolution_.first == 0 || resolution_.second == 0)
+  {
+    Logger::getLogger()->printProgramError(this, "Conference resolution not set");
+    return;
+  }
+
   uint32_t otherParticipants = 0;
 
   for (auto& peer : peers_)
@@ -140,7 +150,8 @@ void FilterGraphClient::updateConferenceSize()
     }
   }
 
-  if (otherParticipants > 0) {
+  if (otherParticipants > 0)
+  {
     Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
                      "Updating conference size", {"Other Participants", "Conference resolution"},
                      {QString::number(otherParticipants),
