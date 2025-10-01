@@ -434,9 +434,10 @@ void uvgCommController::updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp
 
 void uvgCommController::updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp)
 {
-  if ((!settingEnabled(SettingsKey::screenShareStatus) &&
-       !settingEnabled(SettingsKey::cameraStatus) &&
-       !settingEnabled(SettingsKey::videoFileEnabled)))
+  if ((getMediaRole(settingString(SettingsKey::sipRole)) != MediaRole::MEDIA_SERVER) &&
+      !settingEnabled(SettingsKey::screenShareStatus) &&
+      !settingEnabled(SettingsKey::cameraStatus) &&
+      !settingEnabled(SettingsKey::videoFileEnabled))
   {
     for (auto& media : sdp->media)
     {
