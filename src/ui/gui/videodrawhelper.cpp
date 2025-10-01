@@ -38,7 +38,7 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, LayoutID layoutID, uint8_t 
   micIcon_(QString(":/icons/mic_off.svg")),
   drawIcon_(false),
   fullscreen_(false),
-  bufferFullWarnings_(0),
+  discardedFrames_(0),
   showLatency_(false),
   lastLatency_(0)
 {
@@ -180,27 +180,28 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
       frameBuffer_.push_front({image, std::move(data), creationTimestamp, displayTimestamp});
     }
 
-    // delete oldes image if there is too much buffer
+    // delete oldest image if there is too much buffer
     if(frameBuffer_.size() > VIEWBUFFERSIZE)
     {
-      if (bufferFullWarnings_ == 0)
-      {
-        Logger::getLogger()->printWarning(this, "Buffer full when inputting image",
-                                         {"Buffer"}, QString::number(frameBuffer_.size()) + "/" +
-                                                     QString::number(VIEWBUFFERSIZE));
-      }
-
-      ++bufferFullWarnings_;
+      ++discardedFrames_;
       frameBuffer_.pop_back();
+
+      if (discardedFrames_%30 == 1)
+      {
+        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Buffer full when inputting image, discarding oldest frame",
+                                         {"Buffer", "Discarded so far"},
+                                          {QString::number(frameBuffer_.size()) + "/" + QString::number(VIEWBUFFERSIZE),
+                                          QString::number(discardedFrames_)});
+      }
 
       //setUpdatesEnabled(true);
       //stats_->packetDropped("view" + QString::number(sessionID_));
     }
-    else if (bufferFullWarnings_ > 0)
+    else if (discardedFrames_ > 0)
     {
-      Logger::getLogger()->printWarning(this, "Discarded frames because buffer was full",
-                                        {"Amount discarded"}, QString::number(bufferFullWarnings_));
-      bufferFullWarnings_ = 0;
+      Logger::getLogger()->printWarning(this, "Space in image buffer again after discarding frames",
+                                        {"Amount discarded"}, QString::number(discardedFrames_));
+      discardedFrames_ = 0;
     }
   }
 }

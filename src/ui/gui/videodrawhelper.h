@@ -160,7 +160,7 @@ private:
 
   bool fullscreen_;
 
-  int bufferFullWarnings_;
+  int discardedFrames_ = 0;
 
   std::vector<Detection> detections_;
   int64_t timepoint_ = 0;
