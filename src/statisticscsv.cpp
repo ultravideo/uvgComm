@@ -276,7 +276,7 @@ void StatisticsCSV::addSentSIPMessage(const QString& headerType, const QString& 
   if (file.open(QIODevice::Append | QIODevice::Text))
   {
     QTextStream out(&file);
-    out << "\n--- SENT SIP MESSAGE " + headerType + " (" + bodyType + ") " + QDateTime::currentDateTime().toString() + " ---\n";
+    out << "\n--- SENT " + headerType + " (" + bodyType + ") " + QDateTime::currentDateTime().toString() + " ---\n";
     out << header << "\r\n";  // headers
     out << body << "\r\n";    // body
   }
@@ -294,7 +294,7 @@ void StatisticsCSV::addReceivedSIPMessage(const QString& headerType, const QStri
   if (file.open(QIODevice::Append | QIODevice::Text))
   {
     QTextStream out(&file);
-    out << "\n--- RECEIVED SIP MESSAGE " + headerType + " (" + bodyType + ") " + QDateTime::currentDateTime().toString() + " ---\n";
+    out << "\n--- RECEIVED " + headerType + " (" + bodyType + ") " + QDateTime::currentDateTime().toString() + " ---\n";
     out << header << "\r\n";  // headers
     out << body << "\r\n";    // body
   }
