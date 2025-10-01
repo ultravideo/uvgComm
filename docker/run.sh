@@ -1,22 +1,45 @@
 #!/bin/bash
 
-# Start virtual display for GUI apps, use this if not using X-forwarding
-# Xvfb :99 -screen 0 1024x768x16 &
-#export DISPLAY=:99
+# Default: try to use virtual screen
+USE_VIRTUAL_SCREEN=true
 
-export DISPLAY=${DISPLAY:-:0}
+# if DISPLAY is defined, lets use it
+if [ ! -z "$DISPLAY" ]; then
+    USE_VIRTUAL_SCREEN=false
+    echo "Using host display"
+else
+    USE_VIRTUAL_SCREEN=true
+fi
 
-echo "Display: " 
-echo $DISPLAY
+if [ "$USE_VIRTUAL_SCREEN" = true ]; then
+    # Start Xvfb on :99
+    export DISPLAY=:99
+    Xvfb $DISPLAY -screen 0 1280x720x24 &
+    XVFB_PID=$!
+    echo "Virtual screen started with PID $XVFB_PID"
+fi
+
+echo "Display: $DISPLAY"
+echo "Contents of /uvgcomm:"
+ls -l /uvgcomm
 
 echo "Running in $(pwd), contents:"
 ls -l
 
-# list video files
-echo "Videos: "
-ls -l /dev/video*
-
-chmod a+rw /dev/video*
+echo "Video devices:"
+shopt -s nullglob
+video_found=false
+for dev in /dev/video*; do
+    chmod a+rw "$dev"
+    echo "$dev"
+    video_found=true
+done
+shopt -u nullglob
+[ "$video_found" = false ] && echo "No video devices found"
 
 # Launch uvgComm
 ./uvgComm "$@"
+
+if [ "$USE_VIRTUAL_SCREEN" = true ]; then
+    kill $XVFB_PID
+fi
