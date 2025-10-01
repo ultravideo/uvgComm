@@ -121,10 +121,12 @@ kvz_picture* KvazaarFilter::getNextPic()
 
 void KvazaarFilter::updateSettings()
 {
-  Logger::getLogger()->printNormal(this, "Updating kvazaar settings");
   QSettings settings(getSettingsFile(), settingsFileFormat);
-
   timestampInterval_ = settings.value(SettingsKey::sipTimestampInterval).toInt();
+
+  Logger::getLogger()->printNormal(this, "Updating kvazaar settings",
+                                   "Timestamp Interval", QString::number(timestampInterval_));
+
   reInitializeKvazaar();
 
   Filter::updateSettings();
@@ -165,12 +167,14 @@ void KvazaarFilter::reInitializeKvazaar()
 
 bool KvazaarFilter::init()
 {
-  Logger::getLogger()->printNormal(this, "Iniating Kvazaar");
-
   QSettings settings(getSettingsFile(), settingsFileFormat);
   timestampInterval_ = settings.value(SettingsKey::sipTimestampInterval).toInt();
   int enumerator = settings.value(SettingsKey::videoFramerateNumerator).toInt();
   int denominator = settings.value(SettingsKey::videoFramerateDenominator).toInt();
+
+  Logger::getLogger()->printNormal(this, "Iniating Kvazaar",
+                                   "Timestamp interval", QString::number(timestampInterval_));
+
 
   if (!api_)
   {

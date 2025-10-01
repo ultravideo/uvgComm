@@ -96,6 +96,7 @@ ScriptMode commandLine(QApplication& app,
 
 int main(int argc, char *argv[])
 {
+  Logger::getLogger()->printImportant("Main", "uvgComm started");
   QApplication a(argc, argv);
 
 /*
