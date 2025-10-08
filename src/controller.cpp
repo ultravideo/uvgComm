@@ -1152,7 +1152,7 @@ MediaRole uvgCommController::getMediaRole(QString role) const
 
 ConferenceTopology uvgCommController::getTopology(QString topology) const
 {
-  if (topology == "P2P Mesh")
+  if (topology == "P2P_Mesh")
   {
     return ConferenceTopology::P2P_MESH;
   }

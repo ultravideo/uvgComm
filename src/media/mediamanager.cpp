@@ -295,18 +295,18 @@ void MediaManager::modifySession(uint32_t sessionID,
             Logger::getLogger()->printWarning(this, "Server is not host, this may cause issues");
           }
 
-          if (settingString(SettingsKey::sipTopology) == "P2P Mesh")
+          if (settingString(SettingsKey::sipTopology) == "P2P_Mesh")
           {
             Logger::getLogger()->printNormal(this, "Acting as P2P mesh host, no media");
           }
           else if (settingString(SettingsKey::sipTopology) == "SFU")
           {
-            Logger::getLogger()->printNormal(this, "Acting as SFU server, setting up UDP relays");
+            Logger::getLogger()->printNormal(this, "Acting as SFU server, setting up UDP forwarding");
             sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
           }
           else if (settingString(SettingsKey::sipTopology) == "Hybrid")
           {
-            Logger::getLogger()->printNormal(this, "Acting as Hybrid server, setting up UDP relays for SFU portion");
+            Logger::getLogger()->printNormal(this, "Acting as a Hybrid server, setting up UDP forwarding for SFU portion");
             sfuMedia(sessionID, localInfo->media.at(i), peerInfo->media.at(i), send, receive);
           }
           else if (settingString(SettingsKey::sipTopology) == "MCU")
