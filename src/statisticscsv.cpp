@@ -76,10 +76,9 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
     }
 
     QTextStream out(&file);
-    out << "Frame;Type;Size(Bytes);DecodeTime(ms);Latency(ms);Resolution;Width;Height;Pixels\n";
+    out << "Timestamp;Type;Size(Bytes);DecodeTime(ms);Latency(ms);Resolution;Width;Height;Pixels\n";
 
     const auto& info = sessionInfo_[cname];
-    unsigned int frame_number = 1;
 
     // Video frames
     for (int i = 0; i < info.decodedVideoFrames.size(); ++i)
@@ -102,7 +101,7 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
       int height = frame.resolution.height();
       int pixels = width * height;
 
-      out << frame_number << ";Video;"
+      out << frame.timestamp << ";Video;"
           << frame.size << ";"
           << frame.decodingTime << ";"
           << latencyString << ";"
@@ -110,8 +109,6 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
           << width << ";"
           << height << ";"
           << pixels << "\n";
-
-      frame_number++;
     }
 
     // Audio frames
@@ -131,13 +128,11 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
         }
       }
 
-      out << frame_number << ";Audio;"
+      out << frame.timestamp << ";Audio;"
           << frame.size << ";"
           << frame.decodingTime << ";"
           << latencyString << ";"
           << ";;;;" << "\n"; // no resolution for audio
-
-      frame_number++;
     }
   }
 
@@ -149,11 +144,11 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
   if (file.open(QIODevice::WriteOnly | QIODevice::Text))
   {
     QTextStream out(&file);
-    out << "Frame;Size(Bytes);EncodeTime(ms);PSNR_Y;PSNR_U;PSNR_V;Resolution;Width;Height;Pixels\n";
-    unsigned int frame_number = 1;
+    out << "Timestamp;Size(Bytes);EncodeTime(ms);PSNR_Y;PSNR_U;PSNR_V;Resolution;Width;Height;Pixels\n";
+
     for (const auto& frame : localInfo_.encodedVideoFrames)
     {
-      out << frame_number++ << ";"
+      out << frame.creationTimestamp << ";"
           << frame.size << ";"
           << frame.encodingTime << ";"
           << frame.psnrY << ";"
@@ -199,8 +194,13 @@ void StatisticsCSV::encodedAudioFrame(uint32_t size, uint32_t encodingTime)
   localInfo_.encodedAudioFrames.push_back(frame);
 }
 
-void StatisticsCSV::encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution,
-                                      float psnrY, float psnrU, float psnrV)
+void StatisticsCSV::encodedVideoFrame(uint32_t size,
+                                      uint32_t encodingTime,
+                                      QSize resolution,
+                                      float psnrY,
+                                      float psnrU,
+                                      float psnrV,
+                                      int64_t creationTimestamp)
 {
   EncodedFrame frame;
   frame.size = size;
@@ -209,6 +209,7 @@ void StatisticsCSV::encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSiz
   frame.psnrY = psnrY;
   frame.psnrU = psnrU;
   frame.psnrV = psnrV;
+  frame.creationTimestamp = creationTimestamp;
   localInfo_.encodedVideoFrames.push_back(frame);
 }
 

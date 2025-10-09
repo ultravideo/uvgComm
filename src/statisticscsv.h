@@ -34,8 +34,13 @@ public:
   virtual void audioLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t delay) override;
   virtual void videoLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t delay) override;
   virtual void encodedAudioFrame(uint32_t size, uint32_t encodingTime) override;
-  virtual void encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution,
-                         float psnrY = -1.0, float psnrU = -1.0, float psnrV = -1.0) override;
+  virtual void encodedVideoFrame(uint32_t size,
+                                 uint32_t encodingTime,
+                                 QSize resolution,
+                                 float psnrY = -1.0,
+                                 float psnrU = -1.0,
+                                 float psnrV = -1.0,
+                                 int64_t creationTimestamp = 0.0) override;
   virtual void decodedAudioFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime) override;
   virtual void decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution) override;
 

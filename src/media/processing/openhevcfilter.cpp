@@ -204,7 +204,7 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
     auto now = std::chrono::steady_clock::now();
     int64_t since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     int64_t decoding_delay = since_epoch - decodedFrame->presentationTimestamp;
-    getStats()->decodedVideoFrame(cname_, decodedFrame->presentationTimestamp, decodedFrame->data_size, decoding_delay,
+    getStats()->decodedVideoFrame(cname_, since_epoch, decodedFrame->data_size, decoding_delay,
                                   QSize(openHevcFrame.frameInfo.nWidth, openHevcFrame.frameInfo.nHeight));
 
     decodedFrame->vInfo->width = openHevcFrame.frameInfo.nWidth;

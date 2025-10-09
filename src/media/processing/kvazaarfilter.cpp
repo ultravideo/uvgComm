@@ -617,7 +617,7 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   uint32_t delay = since_epoch - info.data->creationTimestamp;
 
   getStats()->encodedVideoFrame(len_out, delay, QSize(currentResolution_.first, currentResolution_.second),
-                                psnr_y, psnr_u, psnr_v);
+                                psnr_y, psnr_u, psnr_v, info.data->creationTimestamp);
 
   // send last packet reusing input structure
   sendEncodedFrame(std::move(info.data), std::move(hevc_frame), dataWritten);

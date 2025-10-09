@@ -35,7 +35,8 @@ public:
 
   virtual void encodedAudioFrame(uint32_t size, uint32_t encodingTime) = 0;
   virtual void encodedVideoFrame(uint32_t size, uint32_t encodingTime, QSize resolution,
-                                 float psnrY = -1.0, float psnrU = -1.0, float psnrV = -1.0) = 0;
+                                 float psnrY = -1.0, float psnrU = -1.0, float psnrV = -1.0,
+                                 int64_t creationTimestamp = 0.0) = 0;
 
   virtual void decodedAudioFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime) = 0;
   virtual void decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution) = 0;
