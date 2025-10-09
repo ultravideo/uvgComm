@@ -137,6 +137,10 @@ void Scripting::executeCommand(const QString& command)
     emit quitScript();
     quit();
   }
+  else if (cmd == "comment" || cmd.startsWith("#"))
+  {
+    // Do nothing, it's a comment
+  }
   else
   {
     Logger::getLogger()->printWarning(this, "Unknown command: " + cmd);
