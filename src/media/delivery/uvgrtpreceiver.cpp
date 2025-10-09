@@ -130,7 +130,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     //received_picture->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
     received_picture->creationTimestamp = 0;
   }
-  auto now = std::chrono::steady_clock::now();
+  auto now = std::chrono::system_clock::now();
   received_picture->presentationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
 
   // check if the uvgRTP added start code and if not, add it ourselves

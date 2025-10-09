@@ -103,13 +103,14 @@ void FakeCamera::process()
 
   const int frameSize = resolution_.width() * resolution_.height() * 3 / 2;
   int64_t frameIndex = 0;
-  auto startTime = std::chrono::steady_clock::now();
+  auto startTime = std::chrono::system_clock::now();
+  auto startTimeSteady = std::chrono::steady_clock::now();
 
   while (running_)
   {
     // Expected time for this frame
     auto expectedPts = frameIndex * 1000 / framerate_;
-    auto expectedTime = startTime + std::chrono::milliseconds(expectedPts);
+    auto expectedTimeSteady = startTimeSteady + std::chrono::milliseconds(expectedPts);
 
     // Read one frame
     QByteArray buffer = file_.read(frameSize);
@@ -134,18 +135,14 @@ void FakeCamera::process()
     newImage->data = std::make_unique<uchar[]>(frameSize);
     memcpy(newImage->data.get(), buffer.data(), frameSize);
 
-    auto now = std::chrono::steady_clock::now();
+    auto now = std::chrono::system_clock::now();
     newImage->creationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     newImage->presentationTimestamp = newImage->creationTimestamp;
 
     sendOutput(std::move(newImage));
     frameIndex++;
 
-    // Sleep until the next frame’s deadline
-    if (now < expectedTime)
-    {
-      std::this_thread::sleep_until(expectedTime);
-    }
+    std::this_thread::sleep_until(expectedTimeSteady);
   }
 
   Logger::getLogger()->printNormal(this, "FakeCamera stopped");

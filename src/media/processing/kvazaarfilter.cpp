@@ -612,7 +612,7 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   api_->chunk_free(data_out);
   api_->picture_free(recon_pic);
   
-  auto now = std::chrono::steady_clock::now();
+  auto now = std::chrono::system_clock::now();
   int64_t since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   uint32_t delay = since_epoch - info.data->creationTimestamp;
 

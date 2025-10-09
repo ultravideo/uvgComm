@@ -281,7 +281,7 @@ bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& timestamp, int64_t&
     {
       if (frameBuffer_.back().creationTimestamp != 0)
       {
-        auto now = std::chrono::steady_clock::now();
+        auto now = std::chrono::system_clock::now();
         lastLatency_ = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()
                        - frameBuffer_.back().creationTimestamp;
       }

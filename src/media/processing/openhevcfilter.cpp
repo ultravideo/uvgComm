@@ -201,7 +201,7 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
     libOpenHevcGetPictureInfo(handle_, &openHevcFrame.frameInfo);
 
     // we take the size from compressed frame because that is more interesting.
-    auto now = std::chrono::steady_clock::now();
+    auto now = std::chrono::system_clock::now();
     int64_t since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     int64_t decoding_delay = since_epoch - decodedFrame->presentationTimestamp;
     getStats()->decodedVideoFrame(cname_, since_epoch, decodedFrame->data_size, decoding_delay,

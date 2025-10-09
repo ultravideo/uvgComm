@@ -101,7 +101,7 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
       int height = frame.resolution.height();
       int pixels = width * height;
 
-      out << frame.timestamp << ";Video;"
+      out << QString::number(frame.timestamp) << ";Video;"
           << frame.size << ";"
           << frame.decodingTime << ";"
           << latencyString << ";"
@@ -128,7 +128,7 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
         }
       }
 
-      out << frame.timestamp << ";Audio;"
+      out << QString::number(frame.timestamp) << ";Audio;"
           << frame.size << ";"
           << frame.decodingTime << ";"
           << latencyString << ";"
