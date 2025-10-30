@@ -32,13 +32,33 @@ LibYUVConverter::LibYUVConverter(QString id, StatisticsInterface* stats,
 }
 
 
+void LibYUVConverter::setTargetResolution(const QSize& resolution)
+{
+  resolutionMutex_.lock();
+  targetResolution_ = resolution;
+  manualTargetResolution_ = true;
+  resolutionMutex_.unlock();
+}
+
+
 void LibYUVConverter::changeResolution()
 {
   QSettings settings(getSettingsFile(), settingsFileFormat);
 
   resolutionMutex_.lock();
 
-  QSize resolution = getHWManager()->getVideoResolution();
+  // If an external caller has forced a target resolution, honor it instead
+  // of querying the HW manager. This avoids races where the encoder's
+  // resolution is updated separately and libyuv does not follow.
+  QSize resolution;
+  if (manualTargetResolution_)
+  {
+    resolution = targetResolution_;
+  }
+  else
+  {
+    resolution = getHWManager()->getVideoResolution();
+  }
 
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Changing resolution for libyuv filter",
                                   {"Resolution"}, {QString::number(resolution.width()) + "x" + QString::number(resolution.height())});
@@ -62,6 +82,9 @@ void LibYUVConverter::updateSettings()
   QSettings settings(getSettingsFile(), settingsFileFormat);
   baseResolution_ = QSize(settings.value(SettingsKey::videoResolutionWidth).toInt(),
                           settings.value(SettingsKey::videoResolutionHeight).toInt());
+  // Allow changeResolution to pick up HW manager values again unless an external
+  // caller explicitly set a manual target later.
+  manualTargetResolution_ = false;
 
   changeResolution();
   Filter::updateSettings();

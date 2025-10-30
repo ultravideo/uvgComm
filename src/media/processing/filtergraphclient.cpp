@@ -120,13 +120,19 @@ void FilterGraphClient::refreshResolutions()
     Logger::getLogger()->printProgramError(this, "Kvazaar not initialized when refreshing resolutions");
   }
 
+  // Make sure libyuv uses the same resolution the encoder will use. Force the
+  // target before asking the filter to change so there is no race where
+  // changeResolution() reads an outdated HW manager value and applies it.
+  QSize hwRes = hwResources_->getVideoResolution();
   if (libyuv_)
   {
+    libyuv_->setTargetResolution(hwRes);
     libyuv_->changeResolution();
   }
 
   if (libyuv2_)
   {
+    libyuv2_->setTargetResolution(hwRes);
     libyuv2_->changeResolution();
   }
 }
@@ -349,15 +355,19 @@ void FilterGraphClient::initCameraSelfView()
       libyuv_ = std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
                                                             cameraGraph_.at(0)->outputType()));
       addToGraph(libyuv_, cameraGraph_, 0);
+      // Ensure libyuv is immediately using the current HW resolution to avoid
+      // processing a frame at a stale/full resolution before sync.
+      libyuv_->setTargetResolution(hwResources_->getVideoResolution());
       addToGraph(resizeFilter1, cameraGraph_, cameraGraph_.size() - 1);
       addToGraph(selfviewFilter_, cameraGraph_, cameraGraph_.size() - 1);
     }
 
     if (!screenShareGraph_.empty())
     {
-      addToGraph(std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
-                                                             screenShareGraph_.at(0)->outputType())),
-                 screenShareGraph_, 0);
+      auto libyuv_ss = std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
+                                                             screenShareGraph_.at(0)->outputType()));
+      addToGraph(libyuv_ss, screenShareGraph_, 0);
+      libyuv_ss->setTargetResolution(hwResources_->getVideoResolution());
       addToGraph(resizeFilter2, screenShareGraph_, screenShareGraph_.size() - 1);
       addToGraph(selfviewFilter_, screenShareGraph_, screenShareGraph_.size() - 1);
     }
@@ -367,6 +377,7 @@ void FilterGraphClient::initCameraSelfView()
       libyuv2_ = std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
                                                                       fileInputGraph_.at(0)->outputType()));
       addToGraph(libyuv2_, fileInputGraph_, 0);
+      libyuv2_->setTargetResolution(hwResources_->getVideoResolution());
       addToGraph(resizeFilter3, fileInputGraph_, fileInputGraph_.size() - 1);
       addToGraph(selfviewFilter_, fileInputGraph_, fileInputGraph_.size() - 1);
     }
@@ -406,11 +417,14 @@ void FilterGraphClient::initVideoSend(std::pair<uint16_t, uint16_t> resolution)
 
   if (libyuv_)
   {
+    // Ensure libyuv uses the same resolution as the encoder/ResourceAllocator.
+    libyuv_->setTargetResolution(conferenceResolution);
     libyuv_->changeResolution();
   }
 
   if (libyuv2_)
   {
+    libyuv2_->setTargetResolution(conferenceResolution);
     libyuv2_->changeResolution();
   }
 

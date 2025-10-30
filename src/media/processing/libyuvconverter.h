@@ -12,6 +12,9 @@ public:
 
   void changeResolution();
 
+  // Force target resolution (used to keep libyuv in sync with encoder)
+  void setTargetResolution(const QSize& resolution);
+
   virtual void updateSettings();
 
 protected:
@@ -24,6 +27,10 @@ private:
 
   QSize targetResolution_;
   QSize baseResolution_;
+
+  // If true, targetResolution_ is set externally and changeResolution() should not
+  // override it from HW manager.
+  bool manualTargetResolution_ = false;
 
   QMutex resolutionMutex_;
 };
