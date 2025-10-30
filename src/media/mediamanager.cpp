@@ -725,12 +725,14 @@ void MediaManager::removeParticipant(uint32_t sessionID)
 
   if (settingString(SettingsKey::sipRole) != "Server")
   {
-    clientFg_->removeParticipant(sessionID);
+    if (clientFg_)
+      clientFg_->removeParticipant(sessionID);
   }
 
   if (settingString(SettingsKey::sipRole) != "Client")
   {
-    sfuFg_->removeParticipant(sessionID);
+    if (sfuFg_)
+      sfuFg_->removeParticipant(sessionID);
   }
 
   if (streamer_ != nullptr)

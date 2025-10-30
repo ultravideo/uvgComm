@@ -571,12 +571,18 @@ void Delivery::removePeer(uint32_t sessionID)
       // take all keys so we wont get iterator errors
       for (auto& stream : session.outgoingStreams)
       {
-        localSSRCs.push_back(stream.first);
+        if (stream.second != nullptr)
+        {
+          localSSRCs.push_back(stream.first);
+        }
       }
 
       for (auto& stream : session.incomingStreams)
       {
-        remoteSSRCs.push_back(stream.first);
+        if (stream.second != nullptr)
+        {
+          remoteSSRCs.push_back(stream.first);
+        }
       }
 
       // delete all streams
@@ -589,7 +595,6 @@ void Delivery::removePeer(uint32_t sessionID)
       {
         removeRecvStream(sessionID, session, ssrc);
       }
-
 
       // delete session
       if (rtp_ctx_ && session.session)
