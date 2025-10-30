@@ -24,7 +24,8 @@ OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID,
     , cname_(cname)
     , threads_(-1)
     , parallelizationMode_("Slice")
-    , discardedFrames_(0)
+  , discardedFrames_(0)
+  , pendingParamSetBytes_(0)
 {}
 
 
@@ -136,6 +137,12 @@ void OpenHEVCFilter::process()
 
     bool vcl = nalType <= 31; // 31 is highest vlc nal_type
 
+    if (!vcl)
+    {
+      // needed for accurate frame sizes
+      pendingParamSetBytes_ += input->data_size;
+    }
+
     if((vpsReceived_ && spsReceived_ && ppsReceived_) || !vcl)
     {
       if (discardedFrames_ != 0)
@@ -151,7 +158,10 @@ void OpenHEVCFilter::process()
       // only VCL frames result in output from decoder (at least I think so)
       if (vcl)
       {
-        decodingFrames_.push_front(std::move(input));
+        // Push a pair of (Data, extraBytes) so the extra non-VCL bytes are
+        // associated with this queued frame without modifying Data.
+        decodingFrames_.push_front(std::make_pair(std::move(input), pendingParamSetBytes_));
+        pendingParamSetBytes_ = 0;
       }
 
       if (gotPicture <= -1)
@@ -196,7 +206,10 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
   OpenHevc_Frame openHevcFrame;
   if ((gotPicture = libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame)) > 0)
   {
-    std::unique_ptr<Data> decodedFrame = std::move(decodingFrames_.back());
+    // Pop the queued pair (Data, extraBytes) and separate them.
+    auto queued = std::move(decodingFrames_.back());
+    std::unique_ptr<Data> decodedFrame = std::move(queued.first);
+    uint32_t extraBytesForStats = queued.second;
     decodingFrames_.pop_back();
     libOpenHevcGetPictureInfo(handle_, &openHevcFrame.frameInfo);
 
@@ -204,7 +217,8 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
     auto now = std::chrono::system_clock::now();
     int64_t since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     int64_t decoding_delay = since_epoch - decodedFrame->presentationTimestamp;
-    getStats()->decodedVideoFrame(cname_, since_epoch, decodedFrame->data_size, decoding_delay,
+    uint32_t reportedCompressedSize = decodedFrame->data_size + extraBytesForStats;
+    getStats()->decodedVideoFrame(cname_, since_epoch, reportedCompressedSize, decoding_delay,
                                   QSize(openHevcFrame.frameInfo.nWidth, openHevcFrame.frameInfo.nHeight));
 
     decodedFrame->vInfo->width = openHevcFrame.frameInfo.nWidth;

@@ -2,6 +2,7 @@
 #include "filter.h"
 
 #include "openHevcWrapper.h"
+#include <utility>
 
 class OpenHEVCFilter : public Filter
 {
@@ -33,10 +34,13 @@ private:
   int threads_;
   QString parallelizationMode_;
 
-  // temporarily store frame info during decoding
-  std::deque<std::unique_ptr<Data>> decodingFrames_;
+  // temporarily store frame info during decoding together with any extra
+  // compressed bytes (VPS/SPS/PPS/SEI/etc.) that arrived outside VCL NALs.
+  std::deque<std::pair<std::unique_ptr<Data>, uint32_t>> decodingFrames_;
 
   QMutex settingsMutex_;
 
   uint32_t discardedFrames_;
+  // accumulator for non-VCL bytes seen between VCL frames
+  uint32_t pendingParamSetBytes_;
 };
