@@ -54,6 +54,11 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                                     "Gived nonexistant widget");
   }
 
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "DisplayFilter created",
+                                  {"ID", "SessionID", "WidgetCount", "FirstWidgetPtr", "CName"},
+                                  {id, QString::number(sessionID_), QString::number(widgets_.size()),
+                                   QString::number((qintptr)widgets_.at(0)), cname});
+
   updateSettings();
 }
 

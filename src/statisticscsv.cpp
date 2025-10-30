@@ -170,6 +170,11 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
 void StatisticsCSV::addParticipant(uint32_t sessionID, const QString& cname)
 {
   sessionNames_[sessionID].append(cname);
+
+  // Debug: log participant registration to help diagnose missing CSV entries
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "CSV Stats", "addParticipant",
+                                  {"SessionID", "CName"},
+                                  {QString::number(sessionID), cname});
 }
 
 void StatisticsCSV::removeParticipant(uint32_t sessionID, const QString& cname)

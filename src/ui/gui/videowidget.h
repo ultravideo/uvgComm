@@ -25,11 +25,7 @@ public:
               uint8_t borderSize = 1);
   ~VideoWidget();
 
-  virtual void setStats(StatisticsInterface* stats, QString cname)
-  {
-    stats_ = stats;
-    cname_ = cname;
-  }
+  virtual void setStats(StatisticsInterface* stats, QString cname);
 
   // Takes ownership of the image data
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, double framerate, int64_t creationTimestamp, int64_t displayTimestamp);

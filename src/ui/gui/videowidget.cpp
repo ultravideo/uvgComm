@@ -2,6 +2,8 @@
 
 #include "statisticsinterface.h"
 
+#include "logger.h"
+
 #include <QPaintEvent>
 #include <QCoreApplication>
 #include <QEvent>
@@ -26,6 +28,10 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID,
   helper_(sessionID, layoutID, borderSize)
 {
   helper_.initWidget(this);
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "VideoWidget created",
+                                  {"SessionID", "LayoutID", "WidgetPtr"},
+                                  {QString::number(sessionID_), QString::number(layoutID), QString::number((qintptr)this)});
 
   QObject::connect(&updateTimer_, &QTimer::timeout, this, &VideoWidget::paintTimer);
   updateTimer_.start(16); // 16 ms is the screen refresh time for 60 hz monitors
@@ -98,6 +104,16 @@ void VideoWidget::inputImage(std::unique_ptr<uchar[]> data,
 
   emit newImage();
   drawMutex_.unlock();
+}
+
+void VideoWidget::setStats(StatisticsInterface* stats, QString cname)
+{
+  stats_ = stats;
+  cname_ = cname;
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "VideoWidget::setStats",
+                                  {"SessionID", "CName", "WidgetPtr"},
+                                  {QString::number(sessionID_), cname_, QString::number((qintptr)this)});
 }
 
 
