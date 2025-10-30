@@ -621,7 +621,8 @@ void Delivery::removeAllPeers()
   // remove all peers by sessionID
   for (unsigned int i = 0; i < ids.size(); ++i)
   {
-    removePeer(i);
+    // Use the collected id values
+    removePeer(ids[i]);
   }
 
   for (auto& relay : relays_)
