@@ -506,6 +506,10 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
     {
       stream->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC);
     }
+
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created mediastream for receiving",
+                                     {"SessionID","RemoteSSRC","IncomingCount"},
+                                     {QString::number(sessionID), QString::number(remoteSSRC), QString::number(session.incomingStreams.size())});
   }
   else
   {
@@ -529,6 +533,10 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
     {
       stream->configure_ctx(RCC_SSRC, localSSRC);
     }
+
+    Logger::getLogger()->printDebug(DEBUG_NORMAL,this, "Created mediastream for sending",
+                                     {"SessionID","LocalSSRC","OutgoingCount"},
+                                     {QString::number(sessionID), QString::number(localSSRC), QString::number(session.outgoingStreams.size())});
   }
 
   return true;
