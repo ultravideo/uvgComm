@@ -13,6 +13,7 @@
 #include <QtEndian>
 #include <QHostInfo>
 #include <QCoreApplication>
+#include <QThread>
 
 #include <uvgrtp/lib.hh>
 
@@ -548,10 +549,40 @@ void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
 {
   Logger::getLogger()->printNormal(this, "Removing mediastream");
 
-  session.session->destroy_stream(session.outgoingStreams[localSSRC]->ms);
-  delete session.outgoingStreams[localSSRC];
-  session.outgoingStreams[localSSRC] = nullptr;
-  session.outgoingStreams.erase(localSSRC);
+  // If a sender filter exists, stop it and release it before destroying
+  // the underlying uvgRTP media_stream. The filter may access the
+  // media_stream on background threads, so destroying the stream while
+  // the filter is still running can cause crashes.
+  if (session.outgoingStreams.find(localSSRC) != session.outgoingStreams.end() &&
+      session.outgoingStreams[localSSRC] != nullptr &&
+      session.outgoingStreams[localSSRC]->sender != nullptr)
+  {
+    auto sender = session.outgoingStreams[localSSRC]->sender;
+    // stop processing and drain buffers
+    sender->stop();
+    sender->emptyBuffer();
+
+    // wait for filter to actually stop
+    while (sender->isRunning())
+    {
+      QCoreApplication::processEvents();
+      QThread::msleep(1);
+    }
+
+    // release our reference so the filter can be destroyed
+    session.outgoingStreams[localSSRC]->sender = nullptr;
+    sender = nullptr;
+  }
+
+  // Now it is safe to destroy the uvgRTP stream and the wrapper
+  if (session.outgoingStreams.find(localSSRC) != session.outgoingStreams.end() &&
+      session.outgoingStreams[localSSRC] != nullptr)
+  {
+    session.session->destroy_stream(session.outgoingStreams[localSSRC]->ms);
+    delete session.outgoingStreams[localSSRC];
+    session.outgoingStreams[localSSRC] = nullptr;
+    session.outgoingStreams.erase(localSSRC);
+  }
 }
 
 
@@ -560,10 +591,36 @@ void Delivery::removeRecvStream(uint32_t sessionID, DeliverySession& session,
 {
   Logger::getLogger()->printNormal(this, "Removing mediastream");
 
-  session.session->destroy_stream(session.incomingStreams[remoteSSRC]->ms);
-  delete session.incomingStreams[remoteSSRC];
-  session.incomingStreams[remoteSSRC] = nullptr;
-  session.incomingStreams.erase(remoteSSRC);
+  // If a receiver filter exists, stop it and release it before destroying
+  // the underlying uvgRTP media_stream. The receiver installs hooks into
+  // the stream and may be called from uvgRTP threads; releasing the hook
+  // after stream destruction would be unsafe.
+  if (session.incomingStreams.find(remoteSSRC) != session.incomingStreams.end() &&
+      session.incomingStreams[remoteSSRC] != nullptr &&
+      session.incomingStreams[remoteSSRC]->receiver != nullptr)
+  {
+    auto receiver = session.incomingStreams[remoteSSRC]->receiver;
+    receiver->stop();
+    receiver->emptyBuffer();
+
+    while (receiver->isRunning())
+    {
+      QCoreApplication::processEvents();
+      QThread::msleep(1);
+    }
+
+    session.incomingStreams[remoteSSRC]->receiver = nullptr;
+    receiver = nullptr;
+  }
+
+  if (session.incomingStreams.find(remoteSSRC) != session.incomingStreams.end() &&
+      session.incomingStreams[remoteSSRC] != nullptr)
+  {
+    session.session->destroy_stream(session.incomingStreams[remoteSSRC]->ms);
+    delete session.incomingStreams[remoteSSRC];
+    session.incomingStreams[remoteSSRC] = nullptr;
+    session.incomingStreams.erase(remoteSSRC);
+  }
 }
 
 
