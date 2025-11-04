@@ -56,6 +56,19 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
 
 UvgRTPSender::~UvgRTPSender()
 {
+  uninit();
+}
+
+
+void UvgRTPSender::stop()
+{
+  uninit();
+  Filter::stop();
+}
+
+
+void UvgRTPSender::uninit()
+{
   // If ZRTP handshake thread is running, wait for it to finish so we don't
   // race with stream destruction.
   if (futureRes_.isRunning())
@@ -73,7 +86,6 @@ UvgRTPSender::~UvgRTPSender()
     }
   }
 }
-
 
 void UvgRTPSender::startForwarding(uint32_t remoteSSRC, int afterFrames)
 {

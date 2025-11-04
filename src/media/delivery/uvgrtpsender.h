@@ -19,6 +19,8 @@ public:
                uvgrtp::media_stream* stream, bool runZRTP);
   ~UvgRTPSender();
 
+  virtual void stop();
+
   void updateSettings();
 
   void startForwarding(uint32_t remoteSSRC, int afterFrames);
@@ -34,6 +36,8 @@ protected:
   void process();
 
 private:
+
+  void uninit();
 
   void processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr);
 

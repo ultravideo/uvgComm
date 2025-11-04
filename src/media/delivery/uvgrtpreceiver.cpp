@@ -65,6 +65,19 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id,
 
 UvgRTPReceiver::~UvgRTPReceiver()
 {
+  uninit();
+}
+
+
+void UvgRTPReceiver::stop()
+{
+  uninit();
+  Filter::stop();
+}
+
+
+void UvgRTPReceiver::uninit()
+{
   // If ZRTP handshake thread is running, wait for it to finish so we don't
   // race with stream destruction.
   if (futureRes_.isRunning())
@@ -85,6 +98,7 @@ UvgRTPReceiver::~UvgRTPReceiver()
     stream_->install_receive_hook(nullptr, nullptr);
   }
 }
+
 
 void UvgRTPReceiver::process()
 {}
