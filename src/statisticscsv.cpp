@@ -7,6 +7,7 @@
 #include <QTextStream>
 #include <QDir>
 #include <QDateTime>
+#include <QThread>
 #include <QDebug>
 
 StatisticsCSV::StatisticsCSV(const QString folder, const QString sipLogFile)
@@ -45,6 +46,9 @@ void StatisticsCSV::addSession(uint32_t sessionID)
 void StatisticsCSV::removeSession(uint32_t sessionID)
 {
   // Write CSV files for all participants in this session
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "CSV Stats", "Removing session",
+                                  {"SessionID","Thread","Time"},
+                                  {QString::number(sessionID), QString::number((quintptr)QThread::currentThreadId()), QDateTime::currentDateTime().toString()});
   if (sessionNames_.find(sessionID) == sessionNames_.end())
   {
     Logger::getLogger()->printWarning("CSV Stats", QString("No participants found for session %1").arg(sessionID));
@@ -165,6 +169,9 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
   sessionInfo_.clear();
   sessionNames_.clear();
   localInfo_ = {};
+
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, "CSV Stats", "Result writing finished",
+                                  {"SessionID","Time"}, {QString::number(sessionID), QDateTime::currentDateTime().toString()});
 }
 
 void StatisticsCSV::addParticipant(uint32_t sessionID, const QString& cname)

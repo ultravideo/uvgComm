@@ -717,27 +717,52 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
 
 void MediaManager::removeParticipant(uint32_t sessionID)
 {
+  // Add diagnostics: log entry, and trace each step so we can detect where
+  // removal may be failing or racing with other components.
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Tearing down session media",
+                                   {"SessionID"}, {QString::number(sessionID)});
+
   if (sessions_.find(sessionID) != sessions_.end())
   {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Uninitializing ICE for session",
+                                     {"SessionID"}, {QString::number(sessionID)});
     sessions_[sessionID].ice->uninit();
     sessions_.erase(sessionID);
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Erased session entry",
+                                     {"SessionID"}, {QString::number(sessionID)});
   }
 
   if (settingString(SettingsKey::sipRole) != "Server")
   {
     if (clientFg_)
+    {
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Removing session from client filter graph",
+                                       {"SessionID"}, {QString::number(sessionID)});
       clientFg_->removeParticipant(sessionID);
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Completed removal from client filter graph",
+                                       {"SessionID"}, {QString::number(sessionID)});
+    }
   }
 
   if (settingString(SettingsKey::sipRole) != "Client")
   {
     if (sfuFg_)
+    {
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Removing session from SFU filter graph",
+                                       {"SessionID"}, {QString::number(sessionID)});
       sfuFg_->removeParticipant(sessionID);
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Completed removal from SFU filter graph",
+                                       {"SessionID"}, {QString::number(sessionID)});
+    }
   }
 
   if (streamer_ != nullptr)
   {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Removing peer from streamer",
+                                     {"SessionID"}, {QString::number(sessionID)});
     streamer_->removePeer(sessionID);
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Completed removal from streamer",
+                                     {"SessionID"}, {QString::number(sessionID)});
   }
 
   seenCNames_.erase(sessionID);
