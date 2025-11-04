@@ -173,6 +173,8 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
       frameBuffer_.clear();
       frameBuffer_.push_front({image, std::move(data), creationTimestamp, displayTimestamp});
 
+      lastFrame_ = {image, std::move(data), creationTimestamp, displayTimestamp};
+      firstImageReceived_ = true;
       updateTargetRect(widget);
     }
     else
