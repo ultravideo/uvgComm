@@ -55,7 +55,20 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
 
 
 UvgRTPSender::~UvgRTPSender()
-{}
+{
+  uninit();
+}
+
+void UvgRTPSender::uninit()
+{
+  // Uninstall RTCP RTT hook to avoid callbacks into this object after
+  // the media_stream is destroyed.
+  if (stream_)
+  {
+    // Clear the installed RTT hook by setting an empty std::function
+    stream_->get_rtcp()->install_roundtrip_time_hook(std::function<void(uint32_t, uint32_t, double)>());
+  }
+}
 
 
 void UvgRTPSender::startForwarding(uint32_t remoteSSRC, int afterFrames)

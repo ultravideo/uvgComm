@@ -24,8 +24,6 @@ public:
 
   void receiveHook(uvg_rtp::frame::rtp_frame *frame);
 
-  void uninit();
-
 protected:
   void process();
 
@@ -33,6 +31,9 @@ signals:
   void zrtpFailure(uint32_t sessionID);
 
 private:
+
+  void uninit();
+
 
   void processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr);
 
