@@ -16,14 +16,7 @@ if (NOT KVAZAAR_FOUND)
     set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
     set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
-    if (TRUE) # use this if kvazaar gets a CMake in the main repo
-        FetchContent_MakeAvailable(kvazaar)
-    else()
-        FetchContent_Populate(kvazaar)
-
-        configure_file(dependencies/kvazaar_CMakeLists.txt ${kvazaar_SOURCE_DIR}/CMakeLists.txt COPYONLY)
-        add_subdirectory(${kvazaar_SOURCE_DIR} ${kvazaar_BINARY_DIR} EXCLUDE_FROM_ALL)
-    endif()
+    FetchContent_MakeAvailable(kvazaar)
 
     unset(BUILD_SHARED_LIBS)
     unset(BUILD_TESTS)

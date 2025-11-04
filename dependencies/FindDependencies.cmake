@@ -5,7 +5,7 @@ find_package(libyuv       QUIET) # libyuv does not have versions
 find_package(OpenHEVC 2.0 QUIET)
 find_package(Opus     1.1 QUIET)
 find_package(SpeexDSP 1.2 QUIET)
-find_package(uvgRTP   2.3 QUIET)
+find_package(uvgRTP   3.2 QUIET)
 
 
 # do another check with pkgConfig in case the first one failed
