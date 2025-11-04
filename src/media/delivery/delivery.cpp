@@ -547,10 +547,9 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
 void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
                                 uint32_t localSSRC)
 {
-  Logger::getLogger()->printNormal(this, "Removing mediastream");
   Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Removing send media",
-                                   {"SessionID","LocalSSRC"},
-                                   {QString::number(sessionID), QString::number(localSSRC)});
+                                   {"LocalSSRC"},
+                                   {QString::number(localSSRC)});
 
   // If a sender filter exists, stop it and release it before destroying
   // the underlying uvgRTP media_stream. The filter may access the
@@ -577,10 +576,10 @@ void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
       if (waitMs % 100 == 0)
       {
         Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Waiting for sender to stop",
-                                          {"SessionID","LocalSSRC","WaitMs"},
-                                          {QString::number(sessionID), QString::number(localSSRC), QString::number(waitMs)});
+                                          {"LocalSSRC","WaitMs"},
+                                          {QString::number(localSSRC), QString::number(waitMs)});
       }
-      if (waitMs > 5000)
+      if (waitMs > 2000)
       {
         Logger::getLogger()->printError(this, "Timeout waiting for sender to stop");
         break;
@@ -596,8 +595,7 @@ void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
   if (session.outgoingStreams.find(localSSRC) != session.outgoingStreams.end() &&
       session.outgoingStreams[localSSRC] != nullptr)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Destroying outgoing media_stream",
-                                     {"ms_ptr"}, {QString::number((quintptr)session.outgoingStreams[localSSRC]->ms)});
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Destroying outgoing media_stream");
     session.session->destroy_stream(session.outgoingStreams[localSSRC]->ms);
     delete session.outgoingStreams[localSSRC];
     session.outgoingStreams[localSSRC] = nullptr;
@@ -609,41 +607,34 @@ void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
 void Delivery::removeRecvStream(uint32_t sessionID, DeliverySession& session,
                                 uint32_t remoteSSRC)
 {
-  Logger::getLogger()->printNormal(this, "Removing mediastream");
-
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "removeRecvStream called",
-                                   {"SessionID","RemoteSSRC"},
-                                   {QString::number(sessionID), QString::number(remoteSSRC)});
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Removing receive stream",
+                                   {"RemoteSSRC"}, {QString::number(remoteSSRC)});
 
   // If a receiver filter exists, stop it and release it before destroying
   // the underlying uvgRTP media_stream. The receiver installs hooks into
   // the stream and may be called from uvgRTP threads; releasing the hook
   // after stream destruction would be unsafe.
   if (session.incomingStreams.find(remoteSSRC) != session.incomingStreams.end() &&
-      session.incomingStreams[remoteSSRC] != nullptr &&
-      session.incomingStreams[remoteSSRC]->receiver != nullptr)
-  {
-    auto receiver = session.incomingStreams[remoteSSRC]->receiver;
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found receiver before removal",
-                                     {"ReceiverPtr"}, {QString::number((quintptr)receiver.get())});
-    receiver->stop();
-    receiver->emptyBuffer();
-
-    while (receiver->isRunning())
-    {
-      QCoreApplication::processEvents();
-      QThread::msleep(1);
-    }
-
-    session.incomingStreams[remoteSSRC]->receiver = nullptr;
-    receiver = nullptr;
-  }
-
-  if (session.incomingStreams.find(remoteSSRC) != session.incomingStreams.end() &&
       session.incomingStreams[remoteSSRC] != nullptr)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Destroying incoming media_stream",
-                                     {"ms_ptr"}, {QString::number((quintptr)session.incomingStreams[remoteSSRC]->ms)});
+    if (session.incomingStreams[remoteSSRC]->receiver != nullptr)
+    {
+      auto receiver = session.incomingStreams[remoteSSRC]->receiver;
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found receiver before removal");
+      receiver->stop();
+      receiver->emptyBuffer();
+
+      while (receiver->isRunning())
+      {
+        QCoreApplication::processEvents();
+        QThread::msleep(1);
+      }
+
+      session.incomingStreams[remoteSSRC]->receiver = nullptr;
+      receiver = nullptr;
+    }
+
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Destroying incoming media_stream");
     session.session->destroy_stream(session.incomingStreams[remoteSSRC]->ms);
     delete session.incomingStreams[remoteSSRC];
     session.incomingStreams[remoteSSRC] = nullptr;

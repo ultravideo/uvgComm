@@ -35,8 +35,6 @@ protected:
 
 private:
 
-  void uninit();
-
   void processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr);
 
   void sendAPP(uint32_t remoteSSRC, int afterFrames, const char *name, uint8_t subtype);

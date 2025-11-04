@@ -64,9 +64,7 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id,
 
 
 UvgRTPReceiver::~UvgRTPReceiver()
-{
-  uninit();
-}
+{}
 
 void UvgRTPReceiver::process()
 {}
@@ -202,51 +200,5 @@ void UvgRTPReceiver::processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp
                                 block.last_seq,
                                 block.jitter);
     }
-  }
-}
-
-void UvgRTPReceiver::uninit()
-{
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "UvgRTPReceiver::uninit called",
-                                  {"LocalSSRC", "Remote SSRC"},
-                                  {QString::number(localSSRC_), QString::number(remoteSSRC_)});
-
-  // Request the filter thread to stop and drain any queued data
-  stop();
-  emptyBuffer();
-
-  // Wait for the filter thread to exit (but don't block forever)
-  int waitedMs = 0;
-  const int timeoutMs = 2000;
-  while (isRunning() && waitedMs < timeoutMs)
-  {
-    QCoreApplication::processEvents();
-    QThread::msleep(1);
-    ++waitedMs;
-    if (waitedMs % 1000 == 0)
-    {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Waiting for UvgRTPReceiver thread to stop",
-                                      {"waitedMs"}, {QString::number(waitedMs)});
-    }
-  }
-
-  if (isRunning())
-  {
-    Logger::getLogger()->printWarning(this, "UvgRTPReceiver thread did not stop within timeout");
-  }
-
-  // Uninstall hooks from the underlying uvgRTP media stream so that
-  // uvgrtp worker threads will no longer call into this object.
-  if (stream_)
-  {
-    // uninstall receive hook
-    stream_->install_receive_hook(nullptr, nullptr);
-
-    // uninstall rtcp sender hook (provide an empty std::function to clear)
-    stream_->get_rtcp()->install_sender_hook(std::function<void(std::unique_ptr<uvgrtp::frame::rtcp_sender_report>)>());
-
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "UvgRTPReceiver hooks uninstalled",
-                                    {"LocalSSRC", "Remote SSRC"},
-                                    {QString::number(localSSRC_), QString::number(remoteSSRC_)});
   }
 }

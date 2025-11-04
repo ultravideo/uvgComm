@@ -32,9 +32,6 @@ signals:
 
 private:
 
-  void uninit();
-
-
   void processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr);
 
   bool discardUntilIntra_;
