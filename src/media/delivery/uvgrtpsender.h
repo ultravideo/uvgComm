@@ -6,6 +6,7 @@
 #include <QMutex>
 #include <QSemaphore>
 #include <QFutureWatcher>
+#include <atomic>
 
 class StatisticsInterface;
 
@@ -44,6 +45,10 @@ private:
   void sendAPP(uint32_t remoteSSRC, int afterFrames, const char *name, uint8_t subtype);
 
   uvgrtp::media_stream* stream_;
+
+  // Guard used to indicate the filter is alive; set to false early during
+  // teardown so callbacks and processing can bail out safely.
+  std::atomic<bool> alive_{true};
 
   QFutureWatcher<uvg_rtp::media_stream *> watcher_;
   uint32_t sessionID_;

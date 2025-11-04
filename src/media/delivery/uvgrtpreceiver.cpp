@@ -78,6 +78,9 @@ void UvgRTPReceiver::stop()
 
 void UvgRTPReceiver::uninit()
 {
+  // mark as not alive so callbacks can bail out early
+  alive_.store(false);
+
   // If ZRTP handshake thread is running, wait for it to finish so we don't
   // race with stream destruction.
   if (futureRes_.isRunning())
@@ -96,6 +99,8 @@ void UvgRTPReceiver::uninit()
 
     // Install a nullptr receive hook to clear any installed receive hook.
     stream_->install_receive_hook(nullptr, nullptr);
+    // Null out our reference to make it safe for concurrent checks.
+    stream_ = nullptr;
   }
 }
 
@@ -105,6 +110,10 @@ void UvgRTPReceiver::process()
 
 void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 {
+  // If we're tearing down, don't process incoming frames.
+  if (!alive_.load())
+    return;
+
   Q_ASSERT(frame && frame->payload != nullptr);
 
   if (frame == nullptr ||
@@ -205,6 +214,10 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 
 void UvgRTPReceiver::processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr)
 {
+  // If we're tearing down or stream gone, bail out early.
+  if (!alive_.load() || !stream_)
+    return;
+
   //TODO: Record the newest NTP and RTP timestamps from sender report
 
   //uint64_t msw = sr->sender_info.ntp_msw;

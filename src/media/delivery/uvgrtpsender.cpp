@@ -69,6 +69,9 @@ void UvgRTPSender::stop()
 
 void UvgRTPSender::uninit()
 {
+  // mark as not alive so callbacks / process() can bail out early
+  alive_.store(false);
+
   // If ZRTP handshake thread is running, wait for it to finish so we don't
   // race with stream destruction.
   if (futureRes_.isRunning())
@@ -84,6 +87,8 @@ void UvgRTPSender::uninit()
     {
       stream_->get_rtcp()->remove_all_hooks();
     }
+    // Null out our reference to make it safe for concurrent checks.
+    stream_ = nullptr;
   }
 }
 
@@ -182,6 +187,9 @@ void UvgRTPSender::updateSettings()
 
 void UvgRTPSender::process()
 {
+  if (!alive_.load())
+    return;
+
   if (!stream_)
     return;
 
@@ -210,7 +218,10 @@ void UvgRTPSender::process()
       previousTimestamp_ += 90; // Default increment for other formats
     }
 
-    ret = stream_->push_frame(std::move(input->data), input->data_size, previousTimestamp_, rtpFlags_);
+    if (stream_)
+    {
+      ret = stream_->push_frame(std::move(input->data), input->data_size, previousTimestamp_, rtpFlags_);
+    }
 
     if (ret != RTP_OK)
     {
@@ -227,6 +238,9 @@ void UvgRTPSender::process()
 
 void UvgRTPSender::processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr)
 {
+  if (!alive_.load() || !stream_)
+    return;
+
   uint32_t ourSSRC = stream_->get_ssrc();
 
   for (auto& block : rr->report_blocks)

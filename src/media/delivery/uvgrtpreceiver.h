@@ -5,6 +5,7 @@
 #include "media/processing/filter.h"
 
 #include <QFuture>
+#include <atomic>
 
 class UvgRTPReceiver : public Filter
 {
@@ -46,6 +47,10 @@ private:
   uint32_t localSSRC_;
   uint32_t remoteSSRC_;
   uvgrtp::media_stream* stream_;
+
+  // Guard used to indicate the filter is alive; set to false early during
+  // teardown so callbacks and processing can bail out safely.
+  std::atomic<bool> alive_{true};
 
   int64_t lastSEITime_;
 
