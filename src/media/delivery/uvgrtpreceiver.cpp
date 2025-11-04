@@ -64,7 +64,27 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id,
 
 
 UvgRTPReceiver::~UvgRTPReceiver()
-{}
+{
+  // If ZRTP handshake thread is running, wait for it to finish so we don't
+  // race with stream destruction.
+  if (futureRes_.isRunning())
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Waiting for ZRTP to finish in destructor");
+    futureRes_.waitForFinished();
+  }
+
+  if (stream_)
+  {
+    // Remove all RTCP hooks
+    if (stream_->get_rtcp())
+    {
+      stream_->get_rtcp()->remove_all_hooks();
+    }
+
+    // Install a nullptr receive hook to clear any installed receive hook.
+    stream_->install_receive_hook(nullptr, nullptr);
+  }
+}
 
 void UvgRTPReceiver::process()
 {}
