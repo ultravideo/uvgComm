@@ -6,6 +6,7 @@
 
 #include <QFuture>
 #include <atomic>
+#include <mutex>
 
 class UvgRTPReceiver : public Filter
 {
@@ -47,6 +48,9 @@ private:
   uint32_t localSSRC_;
   uint32_t remoteSSRC_;
   uvgrtp::media_stream* stream_;
+
+  // Protects accesses to stream_. Acquire before reading or writing stream_.
+  mutable std::mutex streamMutex_;
 
   // Guard used to indicate the filter is alive; set to false early during
   // teardown so callbacks and processing can bail out safely.

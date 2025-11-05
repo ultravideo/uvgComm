@@ -41,7 +41,11 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
 
   std::function<void(uint32_t, uint32_t, double)> f = std::bind(&UvgRTPSender::rtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-  stream_->get_rtcp()->install_roundtrip_time_hook(f);
+  {
+    std::lock_guard<std::mutex> g(streamMutex_);
+    if (stream_ && stream_->get_rtcp())
+      stream_->get_rtcp()->install_roundtrip_time_hook(f);
+  }
 
   if (runZRTP)
   {
@@ -80,6 +84,7 @@ void UvgRTPSender::uninit()
     futureRes_.waitForFinished();
   }
 
+  std::lock_guard<std::mutex> g(streamMutex_);
   if (stream_)
   {
     // Remove all RTCP hooks
@@ -123,6 +128,7 @@ void UvgRTPSender::sendAPP(uint32_t remoteSSRC, int afterFrames, const char* nam
   memcpy(payload, &netSSRC, 4);
   memcpy(payload + 4, &netTimestamp, 4);
 
+  std::lock_guard<std::mutex> g(streamMutex_);
   if (stream_ && stream_->get_rtcp())
   {
     rtp_error_t result = stream_->get_rtcp()->send_app_packet(name, subtype, sizeof(payload), payload);
@@ -173,6 +179,7 @@ void UvgRTPSender::updateSettings()
       framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
     }
 
+    std::lock_guard<std::mutex> g(streamMutex_);
     if (stream_ &&
         dataFormat_ == RTP_FORMAT_H264 ||
         dataFormat_ == RTP_FORMAT_H265 ||
@@ -218,9 +225,12 @@ void UvgRTPSender::process()
       previousTimestamp_ += 90; // Default increment for other formats
     }
 
-    if (stream_)
     {
-      ret = stream_->push_frame(std::move(input->data), input->data_size, previousTimestamp_, rtpFlags_);
+      std::lock_guard<std::mutex> g(streamMutex_);
+      if (stream_)
+      {
+        ret = stream_->push_frame(std::move(input->data), input->data_size, previousTimestamp_, rtpFlags_);
+      }
     }
 
     if (ret != RTP_OK)
@@ -238,6 +248,7 @@ void UvgRTPSender::process()
 
 void UvgRTPSender::processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr)
 {
+  std::lock_guard<std::mutex> g(streamMutex_);
   if (!alive_.load() || !stream_)
     return;
 

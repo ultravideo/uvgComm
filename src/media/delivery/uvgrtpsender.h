@@ -7,6 +7,7 @@
 #include <QSemaphore>
 #include <QFutureWatcher>
 #include <atomic>
+#include <mutex>
 
 class StatisticsInterface;
 
@@ -45,6 +46,9 @@ private:
   void sendAPP(uint32_t remoteSSRC, int afterFrames, const char *name, uint8_t subtype);
 
   uvgrtp::media_stream* stream_;
+
+  // Protects accesses to stream_. Acquire before reading or writing stream_.
+  mutable std::mutex streamMutex_;
 
   // Guard used to indicate the filter is alive; set to false early during
   // teardown so callbacks and processing can bail out safely.

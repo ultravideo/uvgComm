@@ -47,9 +47,16 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id,
                                    QString::number(remoteSSRC_),
                                    datatypeToString(output_)});
 
-  stream_->install_receive_hook(this, __receiveHook);
-  stream_->get_rtcp()->install_sender_hook(std::bind(&UvgRTPReceiver::processRTCPSenderReport,
-                                                      this, std::placeholders::_1 ));
+  {
+    std::lock_guard<std::mutex> g(streamMutex_);
+    if (stream_)
+    {
+      stream_->install_receive_hook(this, __receiveHook);
+      if (stream_->get_rtcp())
+        stream_->get_rtcp()->install_sender_hook(std::bind(&UvgRTPReceiver::processRTCPSenderReport,
+                                                          this, std::placeholders::_1 ));
+    }
+  }
 
   if (runZRTP)
   {
@@ -89,6 +96,7 @@ void UvgRTPReceiver::uninit()
     futureRes_.waitForFinished();
   }
 
+  std::lock_guard<std::mutex> g(streamMutex_);
   if (stream_)
   {
     // Remove all RTCP hooks
@@ -207,7 +215,13 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
     frame->payload = nullptr;    // avoid memory deletion
   }
 
-  (void)uvg_rtp::frame::dealloc_frame(frame);
+  (void)uvgrtp::frame::dealloc_frame(frame);
+
+  if (!alive_.load())
+  {
+    return;
+  }
+
   sendOutput(std::move(received_picture));
 }
 
@@ -215,6 +229,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 void UvgRTPReceiver::processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr)
 {
   // If we're tearing down or stream gone, bail out early.
+  std::lock_guard<std::mutex> g(streamMutex_);
   if (!alive_.load() || !stream_)
     return;
 
