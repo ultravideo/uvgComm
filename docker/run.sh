@@ -39,6 +39,7 @@ shopt -u nullglob
 
 # Launch uvgComm
 ./uvgComm "$@"
+echo "uvgComm exited with code $? at $(date)"
 
 if [ "$USE_VIRTUAL_SCREEN" = true ]; then
     kill $XVFB_PID

@@ -4,7 +4,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required build/runtime dependencies (OpenGL is needed by Qt)
-RUN apt-get update && apt-get install -y \
+RUN apt update && apt-get install -y \
   git \
   cmake \
   build-essential \
@@ -19,23 +19,22 @@ RUN apt-get update && apt-get install -y \
   libomp-dev \
   libcrypto++-dev \
   yasm \
-  xvfb \
-  && apt-get clean
+  xvfb
 
 # optional packages for camera support
-RUN apt-get install -y \
+RUN apt install -y \
   libjpeg-dev \
   gstreamer1.0-plugins-base \
-  gstreamer1.0-plugins-good \
-  && apt-get clean
+  gstreamer1.0-plugins-good
 
 # optional packages for x-forwarding from the docker container
-RUN apt-get install -y \
+RUN apt install -y \
   libxcb-xinerama0 \
   libxcb-xinerama0-dev \
   libxkbcommon-x11-0 \
-  libx11-6 libxext6 libxrender1 libxfixes3 \
-  && apt-get clean
+  libx11-6 libxext6 libxrender1 libxfixes3
+
+RUN apt clean
 
 # Create working directory
 WORKDIR /uvgcomm
