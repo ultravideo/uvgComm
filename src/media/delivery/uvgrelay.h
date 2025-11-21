@@ -3,14 +3,19 @@
 #include "relayinterface.h"
 #include "uvgrtp_socket.hh"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
 
 #include <QThread>
+#include <QString>
 
-class UVGRelay : public RelayInterface, public QThread
+class Filter;
+
+class UVGRelay : public QThread, public RelayInterface
 {
+  Q_OBJECT
 public:
   UVGRelay(std::string localAddress, uint16_t port);
   ~UVGRelay();
@@ -49,7 +54,16 @@ public:
     return QThread::isRunning();
   }
 
+signals:
+  void rtcpAppPacketReceived(uint32_t senderSsrc,
+                             uint32_t targetSsrc,
+                             uint32_t rtpTimestamp,
+                             QString appName,
+                             uint8_t subtype);
+
 private:
+
+  void handleRTCPCompound(const uint8_t* buffer, int length);
 
   std::unordered_map<uint32_t, std::shared_ptr<Filter>> receivers_;
 

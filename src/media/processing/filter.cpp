@@ -139,6 +139,22 @@ void Filter::removeOutConnection(std::shared_ptr<Filter> out)
   }
 }
 
+int Filter::getOutConnectionIndex(std::shared_ptr<Filter> target) const
+{
+  QMutexLocker lock(&const_cast<Filter*>(this)->connectionMutex_);
+  for (int i = 0; i < (int)outConnections_.size(); ++i)
+  {
+    if (outConnections_[i].filter.get() == target.get())
+      return i;
+  }
+  return -1;
+}
+
+void Filter::setOutConnectionEnabledByIndex(int index, bool enabled)
+{
+  setOutputStatus(index, enabled);
+}
+
 void Filter::emptyBuffer()
 {
   bufferMutex_.lock();

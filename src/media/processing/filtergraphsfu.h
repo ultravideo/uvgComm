@@ -26,6 +26,10 @@ public:
   virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
                                 uint32_t remoteSSRC, QString cname);
 
+public slots:
+  // Handle incoming RTCP APP messages forwarded from the relay/delivery layer.
+  void handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsrc, uint32_t rtpTimestamp, QString appName, uint8_t subtype);
+
 protected:
 
   virtual void lastPeerRemoved();

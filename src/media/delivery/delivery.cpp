@@ -333,6 +333,16 @@ std::shared_ptr<RelayInterface> Delivery::getUDPRelay(QString localAddress, uint
     {
       Logger::getLogger()->printNormal(this, "Using custom UDP relay", "Local socket", relayKey);
       relays_[relayKey] = std::shared_ptr<RelayInterface>(new UVGRelay(localAddress.toStdString(), localPort));
+      // If the relay is a UVGRelay, connect its RTCP APP signal to Delivery so
+      // higher layers can listen for APP messages.
+      {
+        auto maybeUvg = std::dynamic_pointer_cast<UVGRelay>(relays_[relayKey]);
+        if (maybeUvg)
+        {
+          connect(maybeUvg.get(), &UVGRelay::rtcpAppPacketReceived,
+                  this, &Delivery::rtcpAppPacketReceived);
+        }
+      }
     }
     else
     {

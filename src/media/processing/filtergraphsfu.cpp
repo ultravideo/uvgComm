@@ -2,6 +2,7 @@
 
 #include "filter.h"
 #include "logger.h"
+#include "../delivery/udpreceiver.h"
 
 
 FilterGraphSFU::FilterGraphSFU() : FilterGraph()
@@ -177,4 +178,76 @@ void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter
 void FilterGraphSFU::lastPeerRemoved()
 {
   // nothing to do
+}
+
+
+void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsrc, uint32_t rtpTimestamp, QString appName, uint8_t subtype)
+{
+  Q_UNUSED(subtype);
+  // Find the receiver for the publishing SSRC
+  std::shared_ptr<Filter> receiver = nullptr;
+  for (auto &p : peers_)
+  {
+    if (p.second == nullptr) continue;
+    if (p.second->videoReceivers.find(senderSsrc) != p.second->videoReceivers.end())
+    {
+      receiver = p.second->videoReceivers.at(senderSsrc);
+      break;
+    }
+  }
+
+  if (!receiver)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "RTCP APP for unknown sender SSRC",
+                                    {"SenderSSRC"}, {QString::number(senderSsrc)});
+    return;
+  }
+
+  // Find the sender filter for the target SSRC
+  std::shared_ptr<Filter> senderFilter = nullptr;
+  for (auto &p : peers_)
+  {
+    if (p.second == nullptr) continue;
+    if (p.second->videoSenders.find(targetSsrc) != p.second->videoSenders.end())
+    {
+      senderFilter = p.second->videoSenders.at(targetSsrc);
+      break;
+    }
+  }
+
+  if (!senderFilter)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "RTCP APP for unknown target SSRC",
+                                    {"TargetSSRC"}, {QString::number(targetSsrc)});
+    return;
+  }
+
+  int idx = receiver->getOutConnectionIndex(senderFilter);
+  if (idx < 0)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Could not find connection from receiver to sender",
+                                    {"SenderSSRC", "TargetSSRC"}, {QString::number(senderSsrc), QString::number(targetSsrc)});
+    return;
+  }
+
+  // Try to cast to UDPReceiver (SFU-side receiver) to register pending stop/start by connection index.
+  UDPReceiver* rcv = dynamic_cast<UDPReceiver*>(receiver.get());
+  if (!rcv)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Receiver is not a UDPReceiver when handling RTCP APP");
+    return;
+  }
+
+  if (appName == "STOP")
+  {
+    rcv->requestStopForwardingForIndex(idx, rtpTimestamp);
+  }
+  else if (appName == "STRT")
+  {
+    rcv->requestStartForwardingForIndex(idx, rtpTimestamp);
+  }
+  else
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Unknown RTCP APP name", {"app"}, {appName});
+  }
 }

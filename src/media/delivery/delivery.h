@@ -78,6 +78,7 @@ public:
 signals:
   void handleZRTPFailure(uint32_t sessionID);
   void handleNoEncryption();
+  void rtcpAppPacketReceived(uint32_t senderSsrc, uint32_t targetSsrc, uint32_t rtpTimestamp, QString appName, uint8_t subtype);
 
 private:
 

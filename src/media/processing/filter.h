@@ -161,6 +161,14 @@ public:
     return name_;
   }
 
+  // Returns the index of the out-connection that points to 'target'.
+  // Returns -1 if not found.
+  int getOutConnectionIndex(std::shared_ptr<Filter> target) const;
+
+  // Enable or disable an out connection by index. Safe to call from other
+  // threads; will lock the connection mutex briefly.
+  void setOutConnectionEnabledByIndex(int index, bool enabled);
+
   static std::unique_ptr<Data> initializeData(DataType type, DataSource source);
 
   static bool isVideo(DataType type);

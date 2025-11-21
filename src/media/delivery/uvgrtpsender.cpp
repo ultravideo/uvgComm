@@ -114,11 +114,17 @@ void UvgRTPSender::sendAPP(uint32_t remoteSSRC, int afterFrames, const char* nam
   if (futureRes_.isRunning())
   {
     Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Waiting for ZRTP to finish");
-    sleep(100);
+    // Block until ZRTP handshake finishes instead of using ad-hoc sleeps.
+    // This keeps behavior deterministic and avoids timing races.
+    futureRes_.waitForFinished();
   }
 
   // Calculate the future RTP timestamp based on frame interval
-  uint32_t rtpTimestamp = previousTimestamp_ + (VIDEO_RTP_TIMESTAMP_RATE / 30) * afterFrames;
+  
+  timestampMutex_.lock();
+  uint32_t timestampSnapshot = previousTimestamp_;
+  timestampMutex_.unlock();
+  uint32_t rtpTimestamp = timestampSnapshot + (VIDEO_RTP_TIMESTAMP_RATE / 30) * afterFrames;
 
   // Allocate and populate 8-byte payload: [SSRC (4 bytes)] [Timestamp (4 bytes)]
   uint32_t netSSRC = htonl(remoteSSRC);
@@ -212,6 +218,8 @@ void UvgRTPSender::process()
   // TODO: For HEVC, make sure that the first frame we send is intra
   while (input)
   {
+    uint32_t timestampValue = 0;
+    timestampMutex_.lock();
     if (input_ == DT_HEVCVIDEO)
     {
       previousTimestamp_ += (VIDEO_RTP_TIMESTAMP_RATE / framerateDenominator_) * framerateNumerator_;
@@ -224,14 +232,15 @@ void UvgRTPSender::process()
     {
       previousTimestamp_ += 90; // Default increment for other formats
     }
+    timestampValue = previousTimestamp_;
+    timestampMutex_.unlock();
 
+    streamMutex_.lock();
+    if (stream_)
     {
-      std::lock_guard<std::mutex> g(streamMutex_);
-      if (stream_)
-      {
-        ret = stream_->push_frame(std::move(input->data), input->data_size, previousTimestamp_, rtpFlags_);
-      }
+      ret = stream_->push_frame(std::move(input->data), input->data_size, timestampValue, rtpFlags_);
     }
+    streamMutex_.unlock();
 
     if (ret != RTP_OK)
     {

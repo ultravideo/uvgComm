@@ -49,6 +49,7 @@ private:
 
   // Protects accesses to stream_. Acquire before reading or writing stream_.
   mutable std::mutex streamMutex_;
+  std::mutex timestampMutex_;
 
   // Guard used to indicate the filter is alive; set to false early during
   // teardown so callbacks and processing can bail out safely.

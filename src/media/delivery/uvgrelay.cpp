@@ -5,6 +5,7 @@
 #include "src/media/processing/filter.h"
 
 #include <QDateTime>
+#include <cstring>
 
 #ifndef _WIN32
 #include <errno.h>
@@ -196,6 +197,8 @@ void UVGRelay::run()
         }
         else if (rtcp_pt == 200 || rtcp_pt == 201 || rtcp_pt == 202)
         {
+          handleRTCPCompound(buffer, read);
+
           // RTCP
           uint32_t ssrc = *reinterpret_cast<uint32_t*>(buffer + 4);
           ssrc = htonl(ssrc);
@@ -231,4 +234,61 @@ void UVGRelay::run()
   }
 
   delete pfds;
+}
+
+void UVGRelay::handleRTCPCompound(const uint8_t* buffer, int length)
+{
+  int offset = 0;
+
+  while (offset + 4 <= length)
+  {
+    const uint8_t firstOctet = buffer[offset];
+    const uint8_t version = firstOctet >> 6;
+    if (version != 2)
+    {
+      break;
+    }
+
+    uint16_t wordLength = 0;
+    std::memcpy(&wordLength, buffer + offset + 2, sizeof(wordLength));
+    wordLength = ntohs(wordLength);
+    int packetSize = (static_cast<int>(wordLength) + 1) * 4;
+    if (packetSize <= 0 || offset + packetSize > length)
+    {
+      break;
+    }
+
+    const uint8_t payloadType = buffer[offset + 1];
+    if (payloadType == 204 && packetSize >= 12)
+    {
+      const uint8_t subtype = firstOctet & 0x1F;
+
+      uint32_t senderSsrc = 0;
+      std::memcpy(&senderSsrc, buffer + offset + 4, sizeof(senderSsrc));
+      senderSsrc = ntohl(senderSsrc);
+
+      char name[5];
+      std::memcpy(name, buffer + offset + 8, 4);
+      name[4] = '\0';
+      QString appName = QString::fromLatin1(name, 4);
+
+      if (packetSize >= 20)
+      {
+        uint32_t targetSsrc = 0;
+        std::memcpy(&targetSsrc, buffer + offset + 12, sizeof(targetSsrc));
+        targetSsrc = ntohl(targetSsrc);
+
+        uint32_t timestamp = 0;
+        if (packetSize >= 24)
+        {
+          std::memcpy(&timestamp, buffer + offset + 16, sizeof(timestamp));
+          timestamp = ntohl(timestamp);
+        }
+
+        emit rtcpAppPacketReceived(senderSsrc, targetSsrc, timestamp, appName, subtype);
+      }
+    }
+
+    offset += packetSize;
+  }
 }

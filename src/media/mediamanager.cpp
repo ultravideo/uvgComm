@@ -65,6 +65,11 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewFactory,
 
   streamer_->init(stats_, hwResources_);
 
+  // Forward RTCP APP messages from Delivery to SFU filter graph so the SFU
+  // can act on STOP/STRT control packets.
+  connect(streamer_.get(), &Delivery::rtcpAppPacketReceived,
+    sfuFg_.get(), &FilterGraphSFU::handleRtcpAppPacket);
+
   QObject::connect(this, &MediaManager::updateVideoSettings,
                    clientFg_.get(), &FilterGraph::updateVideoSettings);
 
