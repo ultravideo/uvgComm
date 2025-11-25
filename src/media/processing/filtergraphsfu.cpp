@@ -62,10 +62,10 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
         if (publisherSsrc != 0)
         {
           int idx = peer.second->videoReceivers.begin()->second->getOutConnectionIndex(sender);
-          outConnectionIndexMap_[{publisherSsrc, localSSRC}] = idx;
-          Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded SFU out-connection mapping",
+          outConnectionIndexMap_[{publisherSsrc, remoteSSRCs.at(0)}] = idx;
+          Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded SFU out-connection mapping when adding a sender",
                                           {"publisher","target","outIndex"},
-                                          {QString::number(publisherSsrc), QString::number(localSSRC), QString::number(idx)});
+                                          {QString::number(publisherSsrc), QString::number(remoteSSRCs.at(0)), QString::number(idx)});
         }
       }
       else
@@ -116,7 +116,7 @@ void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
         uint32_t targetSsrc = peer.second->videoSenders.begin()->first;
         int idx = receiver->getOutConnectionIndex(sender);
         outConnectionIndexMap_[{remoteSSRC, targetSsrc}] = idx;
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded SFU out-connection mapping",
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded SFU out-connection mapping when adding a receiver",
                                         {"publisher","target","outIndex"},
                                         {QString::number(remoteSSRC), QString::number(targetSsrc), QString::number(idx)});
       }
@@ -139,7 +139,7 @@ void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sen
     return;
   }
 
-  peers_.at(sessionID)->audioSenders[localSSRC] = sender; // TODO: This is not correct, should be remote SSRC
+  peers_.at(sessionID)->audioSenders[localSSRC] = sender; // TODO: this is probably incorrect, it should be remote SSRC
 
   // find the other participant whose stream is supposed to connected to this sender
   for (auto& peer : peers_)
@@ -212,6 +212,14 @@ void FilterGraphSFU::lastPeerRemoved()
 void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsrc, uint32_t rtpTimestamp, QString appName, uint8_t subtype)
 {
   Q_UNUSED(subtype);
+
+  if (senderSsrc == targetSsrc)
+  {
+    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "RTCP APP sender SSRC is the same as target SSRC, ignoring",
+                                    {"SSRC"}, {QString::number(senderSsrc)});
+    return;
+  }
+
   // Find the receiver for the publishing SSRC
   std::shared_ptr<Filter> receiver = nullptr;
   for (auto &p : peers_)
@@ -256,11 +264,20 @@ void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsr
   if (outConnectionIndexMap_.find(key) != outConnectionIndexMap_.end())
   {
     idx = outConnectionIndexMap_[key];
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found mapping for RTCP APP",
+                                    {"publisher","target","outIndex"},
+                                    {QString::number(senderSsrc), QString::number(targetSsrc), QString::number(idx)});
   }
   else
   {
-    // Fallback: attempt to find the out-connection by pointer comparison
+    // Fallback: directly query the receiver for this connection
     idx = receiver->getOutConnectionIndex(senderFilter);
+    if (idx >= 0)
+    {
+      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Used fallback index lookup for RTCP APP",
+                                      {"publisher","target","outIndex"},
+                                      {QString::number(senderSsrc), QString::number(targetSsrc), QString::number(idx)});
+    }
   }
 
   if (idx < 0)

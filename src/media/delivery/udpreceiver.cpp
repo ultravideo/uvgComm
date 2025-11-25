@@ -41,11 +41,12 @@ void UDPReceiver::process()
 
         if (act.action == ForwardingStatus::PENDING_STOP)
         {
-          uint32_t stopTs = act.rtpTimestamp;
-          uint32_t diff = pkt_ts - stopTs;
-          if (diff < 0x80000000U)
+          const uint32_t stopTs = act.rtpTimestamp;
+          // Use signed arithmetic to decide whether pkt_ts has reached
+          // or passed stopTs, while still handling wrap-around.
+          const int32_t delta = static_cast<int32_t>(pkt_ts - stopTs);
+          if (delta >= 0)
           {
-            // Reached or passed stop timestamp -> disable output
             setOutputStatus(outIndex, false);
             Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Applying STOP forwarding action for outIndex",
                                             {"outIndex","rtpTimestamp","packetTs","ssrc"},
@@ -55,11 +56,10 @@ void UDPReceiver::process()
         }
         else if (act.action == ForwardingStatus::PENDING_START)
         {
-          uint32_t startTs = act.rtpTimestamp;
-          uint32_t diff = pkt_ts - startTs;
-          if (diff < 0x80000000U)
+          const uint32_t startTs = act.rtpTimestamp;
+          const int32_t delta = static_cast<int32_t>(pkt_ts - startTs);
+          if (delta >= 0)
           {
-            // Reached or passed start timestamp -> enable output
             setOutputStatus(outIndex, true);
             Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Applying START forwarding action for outIndex",
                                             {"outIndex","rtpTimestamp","packetTs","ssrc"},

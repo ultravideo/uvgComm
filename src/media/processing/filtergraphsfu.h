@@ -11,6 +11,7 @@ public:
 
   virtual void uninit();
 
+  // localSSRC here is the SSRC of the destination client, the one we are sending to
   virtual void sendVideoto(uint32_t sessionID,
                            std::shared_ptr<Filter> sender,
                            uint32_t localSSRC,
@@ -37,6 +38,6 @@ protected:
   virtual void lastPeerRemoved();
 
   // Map (publisherSSRC, targetSSRC) -> out-connection index on the receiver
-  std::map<std::pair<uint32_t,uint32_t>, int> outConnectionIndexMap_;
+  std::map<std::pair<uint32_t, uint32_t>, int> outConnectionIndexMap_;
 
 };

@@ -172,8 +172,9 @@ void UVGRelay::run()
         if (rtp_pt <= 34 || 96 <= rtp_pt)
         {
           // RTP
-          uint32_t ssrc = *reinterpret_cast<uint32_t*>(buffer + 8);
-          ssrc = htonl(ssrc);
+          uint32_t ssrc = 0;
+          std::memcpy(&ssrc, buffer + 8, sizeof(ssrc));
+          ssrc = ntohl(ssrc);
 
           if (receivers_.find(ssrc) != receivers_.end())
           {
@@ -200,8 +201,9 @@ void UVGRelay::run()
           handleRTCPCompound(buffer, read);
 
           // RTCP
-          uint32_t ssrc = *reinterpret_cast<uint32_t*>(buffer + 4);
-          ssrc = htonl(ssrc);
+          uint32_t ssrc = 0;
+          std::memcpy(&ssrc, buffer + 4, sizeof(ssrc));
+          ssrc = ntohl(ssrc);
 
           if (receivers_.find(ssrc) != receivers_.end())
           {
