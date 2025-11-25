@@ -1,5 +1,7 @@
 #include "udpreceiver.h"
 
+#include "logger.h"
+
 UDPReceiver::UDPReceiver(QString id, StatisticsInterface *stats,
                          std::shared_ptr<ResourceAllocator> hwResources):
     Filter(id, "UDPReceiver", stats, hwResources, DT_NONE, DT_RTP)
@@ -23,14 +25,21 @@ void UDPReceiver::process()
       uint32_t net_ts = 0;
       memcpy(&net_ts, input->data.get() + 4, sizeof(net_ts));
       uint32_t pkt_ts = ntohl(net_ts);
+      uint32_t pkt_ssrc = 0;
+      if (input->data_size >= 12)
+      {
+        uint32_t net_ssrc = 0;
+        memcpy(&net_ssrc, input->data.get() + 8, sizeof(net_ssrc));
+        pkt_ssrc = ntohl(net_ssrc);
+      }
 
       std::lock_guard<std::mutex> g(pendingMutex_);
       for (auto &entry : pendingActions_)
       {
         int outIndex = entry.first;
-        PendingAction &act = entry.second;
+        ForwardingStatus &act = entry.second;
 
-        if (act.action == PendingAction::PENDING_STOP)
+        if (act.action == ForwardingStatus::PENDING_STOP)
         {
           uint32_t stopTs = act.rtpTimestamp;
           uint32_t diff = pkt_ts - stopTs;
@@ -38,10 +47,13 @@ void UDPReceiver::process()
           {
             // Reached or passed stop timestamp -> disable output
             setOutputStatus(outIndex, false);
-            act.action = PendingAction::PAUSED;
+            Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Applying STOP forwarding action for outIndex",
+                                            {"outIndex","rtpTimestamp","packetTs","ssrc"},
+                                            {QString::number(outIndex), QString::number(stopTs), QString::number(pkt_ts), QString::number(pkt_ssrc)});
+            act.action = ForwardingStatus::PAUSED;
           }
         }
-        else if (act.action == PendingAction::PENDING_START)
+        else if (act.action == ForwardingStatus::PENDING_START)
         {
           uint32_t startTs = act.rtpTimestamp;
           uint32_t diff = pkt_ts - startTs;
@@ -49,7 +61,10 @@ void UDPReceiver::process()
           {
             // Reached or passed start timestamp -> enable output
             setOutputStatus(outIndex, true);
-            act.action = PendingAction::FORWARDING;
+            Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Applying START forwarding action for outIndex",
+                                            {"outIndex","rtpTimestamp","packetTs","ssrc"},
+                                            {QString::number(outIndex), QString::number(startTs), QString::number(pkt_ts), QString::number(pkt_ssrc)});
+            act.action = ForwardingStatus::FORWARDING;
           }
         }
       }
@@ -64,8 +79,8 @@ void UDPReceiver::process()
 void UDPReceiver::requestStopForwardingForIndex(int outIndex, uint32_t rtpTimestamp)
 {
   std::lock_guard<std::mutex> g(pendingMutex_);
-  PendingAction a;
-  a.action = PendingAction::PENDING_STOP;
+  ForwardingStatus a;
+  a.action = ForwardingStatus::PENDING_STOP;
   a.rtpTimestamp = rtpTimestamp;
   pendingActions_[outIndex] = a;
 }
@@ -73,8 +88,8 @@ void UDPReceiver::requestStopForwardingForIndex(int outIndex, uint32_t rtpTimest
 void UDPReceiver::requestStartForwardingForIndex(int outIndex, uint32_t rtpTimestamp)
 {
   std::lock_guard<std::mutex> g(pendingMutex_);
-  PendingAction a;
-  a.action = PendingAction::PENDING_START;
+  ForwardingStatus a;
+  a.action = ForwardingStatus::PENDING_START;
   a.rtpTimestamp = rtpTimestamp;
   pendingActions_[outIndex] = a;
 }

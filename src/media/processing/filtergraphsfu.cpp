@@ -48,6 +48,25 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
                                         {QString::number(remoteSSRCs.at(0))});
 
         connectFilters(peer.second->videoReceivers.begin()->second, sender);
+        // Record mapping: publisherSSRC = key in videoReceivers map, targetSSRC = localSSRC
+        // Find the receiver's SSRC key
+        uint32_t publisherSsrc = 0;
+        for (auto &vr : peer.second->videoReceivers)
+        {
+          if (vr.second.get() == peer.second->videoReceivers.begin()->second.get())
+          {
+            publisherSsrc = vr.first;
+            break;
+          }
+        }
+        if (publisherSsrc != 0)
+        {
+          int idx = peer.second->videoReceivers.begin()->second->getOutConnectionIndex(sender);
+          outConnectionIndexMap_[{publisherSsrc, localSSRC}] = idx;
+          Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded SFU out-connection mapping",
+                                          {"publisher","target","outIndex"},
+                                          {QString::number(publisherSsrc), QString::number(localSSRC), QString::number(idx)});
+        }
       }
       else
       {
@@ -90,7 +109,16 @@ void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
     {
       if (!peer.second->videoSenders.empty())
       {
-        connectFilters(receiver, peer.second->videoSenders.begin()->second);
+        auto sender = peer.second->videoSenders.begin()->second;
+        connectFilters(receiver, sender);
+
+        // Record mapping: publisherSSRC = remoteSSRC (parameter), targetSSRC = key in videoSenders
+        uint32_t targetSsrc = peer.second->videoSenders.begin()->first;
+        int idx = receiver->getOutConnectionIndex(sender);
+        outConnectionIndexMap_[{remoteSSRC, targetSsrc}] = idx;
+        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded SFU out-connection mapping",
+                                        {"publisher","target","outIndex"},
+                                        {QString::number(remoteSSRC), QString::number(targetSsrc), QString::number(idx)});
       }
     }
   }
@@ -222,7 +250,19 @@ void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsr
     return;
   }
 
-  int idx = receiver->getOutConnectionIndex(senderFilter);
+  // First try the explicit mapping (publisherSSRC,targetSSRC) -> outIndex
+  int idx = -1;
+  auto key = std::make_pair(senderSsrc, targetSsrc);
+  if (outConnectionIndexMap_.find(key) != outConnectionIndexMap_.end())
+  {
+    idx = outConnectionIndexMap_[key];
+  }
+  else
+  {
+    // Fallback: attempt to find the out-connection by pointer comparison
+    idx = receiver->getOutConnectionIndex(senderFilter);
+  }
+
   if (idx < 0)
   {
     Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Could not find connection from receiver to sender",
@@ -240,10 +280,16 @@ void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsr
 
   if (appName == "STOP")
   {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "RTCP APP STOP received, scheduling stop-forwarding",
+                                    {"sender","target","outIndex","rtpTimestamp"},
+                                    {QString::number(senderSsrc), QString::number(targetSsrc), QString::number(idx), QString::number(rtpTimestamp)});
     rcv->requestStopForwardingForIndex(idx, rtpTimestamp);
   }
   else if (appName == "STRT")
   {
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "RTCP APP STRT received, scheduling start-forwarding",
+                                    {"sender","target","outIndex","rtpTimestamp"},
+                                    {QString::number(senderSsrc), QString::number(targetSsrc), QString::number(idx), QString::number(rtpTimestamp)});
     rcv->requestStartForwardingForIndex(idx, rtpTimestamp);
   }
   else

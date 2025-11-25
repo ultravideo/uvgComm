@@ -1,6 +1,8 @@
 #pragma once
 
 #include "filtergraph.h"
+#include <map>
+#include <utility>
 
 class FilterGraphSFU : public FilterGraph
 {
@@ -33,5 +35,8 @@ public slots:
 protected:
 
   virtual void lastPeerRemoved();
+
+  // Map (publisherSSRC, targetSSRC) -> out-connection index on the receiver
+  std::map<std::pair<uint32_t,uint32_t>, int> outConnectionIndexMap_;
 
 };

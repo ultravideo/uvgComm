@@ -16,7 +16,7 @@ protected:
 
 public:
   // Pending forwarding actions keyed by out-connection index.
-  struct PendingAction
+  struct ForwardingStatus
   {
     enum ActionType {NONE = 0, PENDING_STOP, PAUSED, PENDING_START, FORWARDING};
     ActionType action = NONE;
@@ -33,6 +33,6 @@ public:
 
 private:
   std::mutex pendingMutex_;
-  std::map<int, PendingAction> pendingActions_;
+  std::map<int, ForwardingStatus> pendingActions_;
 
 };
