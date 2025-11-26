@@ -703,7 +703,7 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
     }
     else if (localMedia.type == "video")
     {
-      VideoInterface* videoView = viewFactory_->getVideo(remoteSSRCs.at(0));
+      VideoInterface* videoView = nullptr; // SFU does not need a view for receiving
       sfuFg_->receiveVideoFrom(sessionID, receive, videoView, remoteSSRCs.at(0), remoteCNAME);
     }
     else
