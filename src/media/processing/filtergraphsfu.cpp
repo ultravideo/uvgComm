@@ -31,7 +31,7 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
     return;
   }
 
-  peers_.at(sessionID)->videoSenders[localSSRC] =sender;
+  peers_.at(sessionID)->videoSenders[remoteSSRCs.at(0)] = sender;
 
   // find the other participant whose stream is supposed to connected to this sender
   for (auto& peer : peers_)
@@ -44,7 +44,7 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
       {
         Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Connecting receiver to newly created sender",
                                         {"Sender SSRC"},
-                                        {QString::number(localSSRC)});
+                                        {QString::number(remoteSSRCs.at(0))});
 
         connectFilters(peer.second->videoReceivers.begin()->second, sender);
       }
@@ -59,6 +59,7 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
 
   sender->start();
 }
+
 
 void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
                                       std::shared_ptr<Filter> receiver,
@@ -96,6 +97,7 @@ void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
   receiver->start();
 }
 
+
 void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
                                  uint32_t localSSRC)
 {
@@ -108,7 +110,7 @@ void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sen
     return;
   }
 
-  peers_.at(sessionID)->audioSenders[localSSRC] = sender;
+  peers_.at(sessionID)->audioSenders[localSSRC] = sender; // TODO: This is not correct, should be remote SSRC
 
   // find the other participant whose stream is supposed to connected to this sender
   for (auto& peer : peers_)
@@ -137,7 +139,9 @@ void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sen
   sender->start();
 }
 
-void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver, uint32_t remoteSSRC, QString cname)
+
+void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                      uint32_t remoteSSRC, QString cname)
 {
   Q_UNUSED(cname);
 
