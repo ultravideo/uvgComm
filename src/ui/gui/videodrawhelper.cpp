@@ -269,8 +269,8 @@ bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& timestamp, int64_t&
     }
     else if (frameBuffer_.size() == VIEWBUFFERSIZE) // we are buffering frames
     {
-      Logger::getLogger()->printWarning(this, "We are buffering, showing more images",
-                                        "Image interval", QString::number(timeSinceLastFrame));
+      //Logger::getLogger()->printWarning(this, "We are buffering, showing more images",
+      //                                  "Image interval", QString::number(timeSinceLastFrame));
       showNewFrame = true;
     }
     else // show previous frame while waiting
