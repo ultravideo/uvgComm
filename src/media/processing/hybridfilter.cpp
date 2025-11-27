@@ -12,6 +12,7 @@
 const uint8_t MAX_RTT_MEASUREMENTS = 64; // Maximum number of RTT samples to keep
 const int EVALUATION_INTERVAL = 640; // Number of frames between evaluations
 const int DUMMY_INTERVAL = 160; // Number of frames between dummy packets
+const int SYNC_PERIOD_IN_FRAMES = 60; // the period after which delayed switch is applied
 
 
 HybridFilter::HybridFilter(QString id, StatisticsInterface *stats,
@@ -72,15 +73,18 @@ void HybridFilter::addLink(LinkType type,
 
   if (type == LINK_P2P)
   {
-    if (entry->p2pRTPSender)
+    if (entry->p2pRTPSender == nullptr)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Overwriting existing P2P link",
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Adding P2P link",
                                       {"CNAME", "SSRC", "SenderPtr"},
                                       {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
+
+      entry->p2pActive = false; // we use SFU only at the start
+      setOutputStatus(outIdx, entry->p2pActive);
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Adding P2P link",
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Overwriting existing P2P link",
                                       {"CNAME", "SSRC", "SenderPtr"},
                                       {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
     }
@@ -88,8 +92,6 @@ void HybridFilter::addLink(LinkType type,
     entry->p2pSSRC = ssrc;
     entry->p2pRTPSender = rtpSender;
     entry->p2pOutIndex = outIdx;
-    entry->p2pActive = false; // we use SFU only at the start
-    setOutputStatus(outIdx, entry->p2pActive);
 
     QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
                      this, &HybridFilter::recordRTT);
@@ -189,7 +191,6 @@ void HybridFilter::process()
     //                                 {"Input size"},
     //                                 {QString::number(input->data_size)});
 
-
     ++count_;
     if (count_ % EVALUATION_INTERVAL == 0)
     {
@@ -200,7 +201,7 @@ void HybridFilter::process()
 
     if (count_ % DUMMY_INTERVAL == 0)
     {
-      sendDummies(); // send dummies to get latency measurements for inactive connections
+      sendDummies(); // to get latency measurements for inactive connections
     }
 
     if (triggerReEvaluation_)
@@ -226,27 +227,23 @@ void HybridFilter::process()
             if (!link)
               continue;
 
-            bool p2pActive = link->p2pActive;
-
             if (link->p2pActive)
             {
               // switch from P2P -> SFU
-              link->p2pActive = false;
-              setConnection(link->p2pOutIndex, false);
-              setConnection(sfuOutIndex_, true);
+              link->p2pActive = false; // turn P2P off
+              setConnection(link->p2pOutIndex, link->p2pActive);
             }
             else
             {
               // switch from SFU -> P2P
-              link->p2pActive = true;
-              setConnection(link->p2pOutIndex, true);
+              link->p2pActive = true; // turn P2P on
+              setConnection(link->p2pOutIndex, link->p2pActive);
               // Note: SFU is disabled by bandwidth evaluation
             }
           }
           linksToSwitch_.clear();
+
           // Apply SFU state decisions that were computed during evaluation.
-          // This ensures SFU is not disabled immediately during evaluation
-          // while a delayed switch to P2P is still pending.
           applySfuState(pendingSfuActive_, true);
         }
     }
@@ -375,7 +372,7 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> p2p)
   if (!p2p)
     return;
 
-  if (cnameToLinks_.size() == 1)
+  if (cnameToLinks_.size() == 1) // immidiate switch
   {
     // we only have one connection so it can be switched immediately
     p2p->p2pActive = true;
@@ -386,12 +383,15 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> p2p)
       setConnection(sfuOutIndex_, false);
     }
   }
-  else if (!p2p->p2pActive)
+  else if (!p2p->p2pActive) // delayed switch
   {
     // delayed switch to P2P link
-    nextSwitch_ = EVALUATION_INTERVAL/2; // wait frames until we switch to P2P
+    nextSwitch_ = SYNC_PERIOD_IN_FRAMES; // wait frames until we switch to P2P
     if (sfuRTPSender_)
+    {
+      // sync with sfu server
       sfuRTPSender_->stopForwarding(p2p->sfuSSRC, nextSwitch_);
+    }
     linksToSwitch_.push_back(p2p);
   }
   else
@@ -422,7 +422,8 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> p2p)
   {
     if (sfuRTPSender_)
     {
-      nextSwitch_ = EVALUATION_INTERVAL/2; // wait frames until we switch to SFU
+      nextSwitch_ = SYNC_PERIOD_IN_FRAMES; // wait frames until we switch to SFU
+      // sync with sfu server
       sfuRTPSender_->startForwarding(p2p->sfuSSRC, nextSwitch_);
       linksToSwitch_.push_back(p2p);
     }
@@ -475,7 +476,7 @@ void HybridFilter::fullBandwidthEvaluation()
       else
       {
         Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Switching to SFU connection",
-                                        {"CNAME", "Expected latency reduction", "SSRC"},
+                                        {"CNAME", "Expected latency change", "SSRC"},
                                         {pair.first, QString::number(entry->latestsP2PRtt - entry->latestsSFURtt) + " ms",
                                          QString::number(entry->sfuSSRC)});
         if (entry->p2pActive)
