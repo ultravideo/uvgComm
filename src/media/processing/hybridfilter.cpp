@@ -11,6 +11,7 @@
 
 const uint8_t MAX_RTT_MEASUREMENTS = 64; // Maximum number of RTT samples to keep
 const int EVALUATION_INTERVAL = 640; // Number of frames between evaluations
+const int DUMMY_INTERVAL = 160; // Number of frames between dummy packets
 
 
 HybridFilter::HybridFilter(QString id, StatisticsInterface *stats,
@@ -197,11 +198,15 @@ void HybridFilter::process()
                                       {"count","interval"}, {QString::number(count_), QString::number(EVALUATION_INTERVAL)});
     }
 
+    if (count_ % DUMMY_INTERVAL == 0)
+    {
+      sendDummies(); // send dummies to get latency measurements for inactive connections
+    }
+
     if (triggerReEvaluation_)
     {
       reEvaluateConnections();
       triggerReEvaluation_ = false;
-      sendDummies(); // send dummies to get latency measurements for inactive connections
     }
 
     sendOutput(std::move(input));
