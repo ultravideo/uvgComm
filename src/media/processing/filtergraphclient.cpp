@@ -552,31 +552,28 @@ void FilterGraphClient::sendVideoto(uint32_t sessionID,
   // add participant if necessary
   checkParticipant(sessionID);
 
+  // add sender if necessary
   if (peers_[sessionID]->videoSenders.find(localSSRC) == peers_[sessionID]->videoSenders.end())
   {
-    std::shared_ptr<UvgRTPSender> rtpSender = std::dynamic_pointer_cast<UvgRTPSender>(sender);
     peers_[sessionID]->videoSenders[localSSRC] = sender;
-
     cameraGraph_.back()->addOutConnection(sender);
     sender->start();
-
-    for (unsigned int i = 0; i < remoteSSRCs.size(); ++i)
-    {
-      // inform the type to hybrid
-      if (isP2P)
-      {
-        hybrid_->addLink(LINK_P2P, remoteSSRCs.at(i), remoteCNAMEs.at(i), rtpSender);
-      }
-      else
-      {
-        hybrid_->addLink(LINK_SFU, remoteSSRCs.at(i), remoteCNAMEs.at(i), rtpSender);
-      }
-    }
   }
-  else
+
+  std::shared_ptr<UvgRTPSender> rtpSender = std::dynamic_pointer_cast<UvgRTPSender>(peers_[sessionID]->videoSenders[localSSRC]);
+
+  // always inform hybrid about new remote SSRCs
+  for (unsigned int i = 0; i < remoteSSRCs.size(); ++i)
   {
-    Logger::getLogger()->printNormal(this, "Found existing filter, not adding video sender to Filter Graph",
-                                     "Local SSRC", QString::number(localSSRC));
+    // inform the type to hybrid
+    if (isP2P)
+    {
+      hybrid_->addLink(LINK_P2P, remoteSSRCs.at(i), remoteCNAMEs.at(i), rtpSender);
+    }
+    else
+    {
+      hybrid_->addLink(LINK_SFU, remoteSSRCs.at(i), remoteCNAMEs.at(i), rtpSender);
+    }
   }
 }
 
