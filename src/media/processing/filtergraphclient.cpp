@@ -556,7 +556,7 @@ void FilterGraphClient::sendVideoto(uint32_t sessionID,
   if (peers_[sessionID]->videoSenders.find(localSSRC) == peers_[sessionID]->videoSenders.end())
   {
     peers_[sessionID]->videoSenders[localSSRC] = sender;
-    cameraGraph_.back()->addOutConnection(sender);
+    cameraGraph_.back()->addOutConnection(sender); // connect to hybrid filter
     sender->start();
   }
 

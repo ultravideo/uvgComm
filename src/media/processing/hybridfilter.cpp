@@ -41,7 +41,18 @@ void HybridFilter::addLink(LinkType type,
     return;
   }
 
-  unsigned int outIdx = sizeOfOutputConnections() - 1;
+    int outIdx = -1;
+  if (rtpSender)
+  {
+    // UvgRTPSender inherits from Filter, so we can lookup its index
+    outIdx = getOutConnectionIndex(std::static_pointer_cast<Filter>(rtpSender));
+  }
+
+  if (outIdx < 0)
+  {
+    Logger::getLogger()->printError("Hybrid", "RTP sender not found among output connections");
+    return;
+  }
 
   // Ensure we have a LinkInfo entry for this cname
   std::shared_ptr<LinkInfo>& entry = cnameToLinks_[cname];
