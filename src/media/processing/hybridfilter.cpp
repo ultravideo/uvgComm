@@ -87,6 +87,19 @@ void HybridFilter::addLink(LinkType type,
       Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Overwriting existing P2P link",
                                       {"CNAME", "SSRC", "SenderPtr"},
                                       {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
+
+      if (entry->p2pRTPSender != rtpSender)
+      {
+        Logger::getLogger()->printWarning(this, "P2P RTP sender pointer changed for existing link");
+      }
+      if (entry->p2pSSRC != ssrc)
+      {
+        Logger::getLogger()->printWarning(this, "P2P SSRC changed for existing link");
+      }
+      if (entry->p2pOutIndex != outIdx)
+      {
+        Logger::getLogger()->printWarning(this, "P2P output index changed for existing link");
+      }
     }
 
     entry->p2pSSRC = ssrc;
@@ -218,9 +231,6 @@ void HybridFilter::process()
       --nextSwitch_;
         if (nextSwitch_ == 0)
         {
-          Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Switching connections",
-                                          {"Next switch"}, {QString::number(nextSwitch_)});
-
           // Delayed switch of links, needs to be synchronized with sfu server
           for (const auto& link : linksToSwitch_)
           {
@@ -229,13 +239,17 @@ void HybridFilter::process()
 
             if (link->p2pActive)
             {
-              // switch from P2P -> SFU
+              Logger::getLogger()->printNormal(this, "Switch from P2P to SFU for SSRC " +
+                                              QString::number(link->p2pSSRC) + " to " + QString::number(link->sfuSSRC));
+
               link->p2pActive = false; // turn P2P off
               setConnection(link->p2pOutIndex, link->p2pActive);
             }
             else
             {
-              // switch from SFU -> P2P
+              Logger::getLogger()->printNormal(this, "Switch from SFU to P2P for SSRC " +
+                                                         QString::number(link->sfuSSRC) + " to " + QString::number(link->p2pSSRC));
+
               link->p2pActive = true; // turn P2P on
               setConnection(link->p2pOutIndex, link->p2pActive);
               // Note: SFU is disabled by bandwidth evaluation
@@ -243,8 +257,8 @@ void HybridFilter::process()
           }
           linksToSwitch_.clear();
 
-          // Apply SFU state decisions that were computed during evaluation.
-          applySfuState(pendingSfuActive_, true);
+          // Apply SFU state decision from evaluation
+          applySfuState(pendingSfuActive_);
         }
     }
   }
@@ -288,24 +302,15 @@ void HybridFilter::setConnection(int index, bool status)
 }
 
 
-void HybridFilter::applySfuState(bool needSFU, bool immediate)
+void HybridFilter::applySfuState(bool needSFU)
 {
   if (!sfuRTPSender_)
     return;
 
-  if (immediate)
-  {
-    sfuActive_ = needSFU;
-    setConnection(sfuOutIndex_, sfuActive_);
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Applying SFU state",
-                                    {"SFU State"}, {sfuActive_ ? "enabled" : "disabled"});
-  }
-  else
-  {
-    pendingSfuActive_ = needSFU;
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "SFU state pending",
-                                    {"SFU State"}, {pendingSfuActive_ ? "enabled" : "disabled"});
-  }
+  sfuActive_ = needSFU;
+  setConnection(sfuOutIndex_, sfuActive_);
+  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Applying SFU state",
+                                  {"SFU State"}, {sfuActive_ ? "enabled" : "disabled"});
 }
 
 
@@ -364,35 +369,38 @@ void HybridFilter::reEvaluateConnections()
 
   // Otherwise, use P2P where RTT benefit is biggest
   rankedBandwidthEvaluation(maxP2PConnections, linkBandwidth);
+  pendingSfuActive_ = true; // we need sfu if not all connections are P2P
 }
 
 
-void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> p2p)
+void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo)
 {
-  if (!p2p)
+  if (!linkInfo)
     return;
 
-  if (cnameToLinks_.size() == 1) // immidiate switch
+  if (cnameToLinks_.size() == 1) // immediate switch
   {
-    // we only have one connection so it can be switched immediately
-    p2p->p2pActive = true;
-    setConnection(p2p->p2pOutIndex, true);
-    if (sfuRTPSender_)
-    {
-      sfuActive_ = false;
-      setConnection(sfuOutIndex_, false);
-    }
+    Logger::getLogger()->printNormal(this, "Switching to P2P connection immediately for single connection",
+                                     "P2P SSRC", QString::number(linkInfo->p2pSSRC));
+
+    linkInfo->p2pActive = true;
+    setConnection(linkInfo->p2pOutIndex, true);
+
+    applySfuState(false);
   }
-  else if (!p2p->p2pActive) // delayed switch
+  else if (!linkInfo->p2pActive) // delayed switch
   {
-    // delayed switch to P2P link
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Scheduling delayed switch to P2P connection",
+                                    {"SFU SSRC","P2P SSRC"},
+                                    {QString::number(linkInfo->sfuSSRC), QString::number(linkInfo->p2pSSRC)});
+
     nextSwitch_ = SYNC_PERIOD_IN_FRAMES; // wait frames until we switch to P2P
     if (sfuRTPSender_)
     {
       // sync with sfu server
-      sfuRTPSender_->stopForwarding(p2p->sfuSSRC, nextSwitch_);
+      sfuRTPSender_->stopForwarding(linkInfo->sfuSSRC, nextSwitch_);
     }
-    linksToSwitch_.push_back(p2p);
+    linksToSwitch_.push_back(linkInfo);
   }
   else
   {
@@ -401,31 +409,35 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> p2p)
 }
 
 
-void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> p2p)
+void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo)
 {
-  if (!p2p)
+  if (!linkInfo)
     return;
 
-  if (cnameToLinks_.size() == 1)
+  if (cnameToLinks_.size() == 1) // immediate switch
   {
-    // If this is the only connection we should enable SFU immediately
     if (sfuRTPSender_)
     {
-      sfuActive_ = true;
-      setConnection(sfuOutIndex_, true);
+      Logger::getLogger()->printNormal(this, "Switching to SFU connection immediately for single connection",
+                                       "SFU SSRC", QString::number(linkInfo->sfuSSRC));
 
-      p2p->p2pActive = false;
-      setConnection(p2p->p2pOutIndex, false);
+      applySfuState(true);
+
+      linkInfo->p2pActive = false;
+      setConnection(linkInfo->p2pOutIndex, false);
     }
   }
-  else if (!sfuActive_)
+  else if (!sfuActive_) // delayed switch
   {
     if (sfuRTPSender_)
     {
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Scheduling delayed switch to SFU connection",
+                                      {"P2P SSRC","SFU SSRC"},
+                                      {QString::number(linkInfo->p2pSSRC), QString::number(linkInfo->sfuSSRC)});
       nextSwitch_ = SYNC_PERIOD_IN_FRAMES; // wait frames until we switch to SFU
       // sync with sfu server
-      sfuRTPSender_->startForwarding(p2p->sfuSSRC, nextSwitch_);
-      linksToSwitch_.push_back(p2p);
+      sfuRTPSender_->startForwarding(linkInfo->sfuSSRC, nextSwitch_);
+      linksToSwitch_.push_back(linkInfo);
     }
   }
   else

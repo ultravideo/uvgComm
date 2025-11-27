@@ -68,8 +68,8 @@ private:
 
   void rankedBandwidthEvaluation(const int maxP2PConnections, int connectionBandwidth);
 
-  void delayedSwitchToP2P(std::shared_ptr<LinkInfo> p2p);
-  void delayedSwitchToSFU(std::shared_ptr<LinkInfo> p2p);
+  void delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo);
+  void delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo);
 
   QMutex slaveMutex_;
   std::vector<std::shared_ptr<HybridSlaveFilter>> slaves_;
@@ -88,7 +88,7 @@ private:
 
   // Apply the SFU state. If `immediate` is true the change is applied
   // right away; otherwise it is recorded as pending.
-  void applySfuState(bool needSFU, bool immediate = false);
+  void applySfuState(bool needSFU);
 
   uint64_t count_;
 
