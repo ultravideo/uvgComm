@@ -113,6 +113,15 @@ void CallWindow::init(ParticipantInterface *partInt)
   ui_->EndCallButton->hide();
 
   initializeMediaStates();
+
+  callSettingsUpdated();
+}
+
+
+void CallWindow::callSettingsUpdated()
+{
+  ui_->our_name->setText(settingString(SettingsKey::localUsername)
+                        + "@" + settingString(SettingsKey::sipServerAddress));
 }
 
 

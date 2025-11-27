@@ -85,6 +85,8 @@ public slots:
   void layoutRejects(LayoutID layoutID);
   void layoutCancels(LayoutID layoutID);
 
+  void callSettingsUpdated();
+
 private slots:
   void expireLayouts();
 

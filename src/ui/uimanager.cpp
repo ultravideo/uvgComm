@@ -37,6 +37,9 @@ void UIManager::init(ParticipantInterface *partInt, std::shared_ptr<VideoviewFac
   QObject::connect(&settingsView_, &Settings::updateCallSettings,
                    this,           &UIManager::updateCallSettings);
 
+  QObject::connect(&settingsView_, &Settings::updateCallSettings,
+                   &window_,        &CallWindow::callSettingsUpdated);
+
   QObject::connect(&settingsView_, &Settings::updateVideoSettings,
                    this,           &UIManager::updateVideoSettings);
 
