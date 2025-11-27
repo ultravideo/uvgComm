@@ -48,18 +48,29 @@ void HybridFilter::addLink(LinkType type,
   if (!entry)
   {
     entry = std::make_shared<LinkInfo>();
+    entry->p2pActive = false;
+    entry->p2pOutIndex = -1;
+    entry->p2pRTPSender = nullptr;
+    entry->sfuSSRC = 0;
+    entry->latestsP2PRtt = 0.0;
+    entry->latestsSFURtt = 0.0;
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created new LinkInfo for cname",
+                                    {"CNAME","OutIndex"}, {cname, QString::number(outIdx)});
   }
 
   if (type == LINK_P2P)
   {
     if (entry->p2pRTPSender)
     {
-      Logger::getLogger()->printNormal("Hybrid", "P2P link already exists for cname: " + cname);
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Overwriting existing P2P link",
+                                      {"CNAME", "SSRC", "SenderPtr"},
+                                      {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, "Hybrid", "Adding P2P link", {"CNAME", "SSRC"},
-                                        {cname, QString::number(ssrc)});
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Adding P2P link",
+                                      {"CNAME", "SSRC", "SenderPtr"},
+                                      {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
     }
 
     entry->p2pSSRC = ssrc;
@@ -73,16 +84,15 @@ void HybridFilter::addLink(LinkType type,
   }
   else if (type == LINK_SFU)
   {
-    if (sfuRTPSender_)
-    {
-      Logger::getLogger()->printNormal("Hybrid", "SFU link already exists for cname: " + cname);
-    }
-
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Adding SFU link",
+                                    {"CNAME","SSRC","SenderPtr"},
+                                    {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
     entry->sfuSSRC = ssrc;
 
     // SFU sender is a shared sender
     if (sfuRTPSender_ == nullptr)
     {
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Setting RTP sender for SFU link (shared sender)");
       sfuRTPSender_ = rtpSender;
       sfuActive_ = true; // SFU link is active at the start
       sfuOutIndex_ = outIdx;
@@ -130,7 +140,20 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
 
   if (!foundSSRC)
   {
+    // Dump current known entries for diagnostics
+    QStringList names;
+    QStringList values;
+    for (const auto& kv : cnameToLinks_)
+    {
+      const QString& key = kv.first;
+      const std::shared_ptr<LinkInfo>& e = kv.second;
+      if (!e) continue;
+      names << "CNAME" << "p2pSSRC" << "sfuSSRC";
+      values << key << QString::number(e->p2pSSRC) << QString::number(e->sfuSSRC);
+    }
     Logger::getLogger()->printError("Hybrid", "RTT record for unknown SSRC: " + QString::number(ssrc));
+    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Known SSRCs at time of unknown RTT",
+                                    names, values);
     return;
   }
 }
@@ -159,6 +182,8 @@ void HybridFilter::process()
     if (count_ % EVALUATION_INTERVAL == 0)
     {
       triggerReEvaluation_ = true;
+      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Evaluation triggered by frame count",
+                                      {"count","interval"}, {QString::number(count_), QString::number(EVALUATION_INTERVAL)});
     }
 
     if (triggerReEvaluation_)
