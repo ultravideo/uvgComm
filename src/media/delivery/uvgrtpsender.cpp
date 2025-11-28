@@ -31,7 +31,7 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
 {
   Q_ASSERT(stream_);
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initializing uvgRTP sender",
+  Logger::getLogger()->printNormal(this, "Initializing uvgRTP sender",
                                   {"LocalSSRC", "Remote SSRC", "Sender type"},
                                   {QString::number(localSSRC),
                                    QString::number(remoteSSRC),
@@ -80,7 +80,7 @@ void UvgRTPSender::uninit()
   // race with stream destruction.
   if (futureRes_.isRunning())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Waiting for ZRTP to finish in destructor");
+    Logger::getLogger()->printWarning(this, "Waiting for ZRTP to finish in destructor");
     futureRes_.waitForFinished();
   }
 
@@ -113,7 +113,7 @@ void UvgRTPSender::sendAPP(uint32_t remoteSSRC, int afterFrames, const char* nam
 {
   if (futureRes_.isRunning())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Waiting for ZRTP to finish");
+    Logger::getLogger()->printWarning(this, "Waiting for ZRTP to finish");
     // Block until ZRTP handshake finishes instead of using ad-hoc sleeps.
     // This keeps behavior deterministic and avoids timing races.
     futureRes_.waitForFinished();
@@ -140,7 +140,7 @@ void UvgRTPSender::sendAPP(uint32_t remoteSSRC, int afterFrames, const char* nam
     rtp_error_t result = stream_->get_rtcp()->send_app_packet(name, subtype, sizeof(payload), payload);
     if (result != RTP_OK)
     {
-      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Failed to send RTCP APP STOP packet");
+      Logger::getLogger()->printWarning(this, "Failed to send RTCP APP STOP packet");
     }
   }
 }
@@ -148,7 +148,7 @@ void UvgRTPSender::sendAPP(uint32_t remoteSSRC, int afterFrames, const char* nam
 
 void UvgRTPSender::rtt(uint32_t localSSRC, uint32_t remoteSSRC, double time)
 {
-  //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "RTT received",
+  //Logger::getLogger()->printNormal(this, "RTT received",
   //                                {"Time (ms)", "SSRC"}, {QString::number(time, 'f', 2), QString::number(remoteSSRC)});
 
   if (time < 0 || time > 5000) // we assume max 5 seconds
@@ -171,7 +171,7 @@ void UvgRTPSender::updateSettings()
     uint32_t vps   = settingValue(SettingsKey::videoVPS);
     uint16_t intra = (uint16_t)settingValue(SettingsKey::videoIntra);
     maxBufferSize_ = vps * intra;
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Updated buffersize",
+    Logger::getLogger()->printNormal(this,  "Updated buffersize",
                                     {"Size"}, {QString::number(maxBufferSize_)});
 
     if (settingValue(SettingsKey::videoFileEnabled))
@@ -208,7 +208,7 @@ void UvgRTPSender::process()
 
   if (futureRes_.isRunning())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Waiting for ZRTP to finish");
+    Logger::getLogger()->printWarning(this, "Waiting for ZRTP to finish");
     return;
   }
 
@@ -244,7 +244,7 @@ void UvgRTPSender::process()
 
     if (ret != RTP_OK)
     {
-      Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Failed to send data", 
+      Logger::getLogger()->printError(this,  "Failed to send data", 
                                       { "Error" }, { QString::number(ret) });
     }
 

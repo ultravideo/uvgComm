@@ -174,7 +174,7 @@ bool FilterGraph::addToGraph(std::shared_ptr<Filter> filter,
   {
     if(graph.at(connectIndex)->outputType() != filter->inputType())
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+      Logger::getLogger()->printNormal(this,
                                       "Filter output and input do not match. Finding conversion",
                                       {"Connection"}, {graph.at(connectIndex)->getName() + "->" + filter->getName()});
 
@@ -231,12 +231,12 @@ bool FilterGraph::connectFilters(std::shared_ptr<Filter> previous, std::shared_p
 {
   Q_ASSERT(filter != nullptr && previous != nullptr);
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "FilterGraph", "Connecting filters",
+  Logger::getLogger()->printNormal("FilterGraph", "Connecting filters",
                                   {"Connection"}, {previous->getName() + " -> " + filter->getName()});
 
   if(previous->outputType() != filter->inputType())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "FilterGraph",
+    Logger::getLogger()->printWarning("FilterGraph",
                                     "The connecting filter output and input DO NOT MATCH.");
     return false;
   }
@@ -250,7 +250,7 @@ void FilterGraph::removeParticipant(uint32_t sessionID)
   if (peers_.find(sessionID) != peers_.end() &&
       peers_[sessionID] != nullptr)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+    Logger::getLogger()->printNormal(this,
                                     "Removing peer", {"SessionID", "Remaining sessions"},
                                     {QString::number(sessionID), QString::number(peers_.size())});
 

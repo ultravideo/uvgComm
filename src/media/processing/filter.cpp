@@ -134,8 +134,7 @@ void Filter::removeOutConnection(std::shared_ptr<Filter> out)
 
   if(!removed)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this,
-                                    "Did not succeed at removing outconnection.");
+    Logger::getLogger()->printWarning(this, "Did not succeed at removing outconnection.");
   }
 }
 
@@ -174,7 +173,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
   if(!ok)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this,  "Discarding bad data");
+    Logger::getLogger()->printWarning(this, "Discarding bad data");
     return;
   }
 #endif
@@ -215,8 +214,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
     {
       if(inBuffer_[0]->type == DT_OPUSAUDIO)
       {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, this,  
-                                        "Should input Null pointer to opus decoder.");
+        Logger::getLogger()->printWarning(this, "Should input Null pointer to opus decoder.");
       }
       inBuffer_.pop_front(); // discard the oldest
     }
@@ -226,7 +224,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
     if (inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
     {
-      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Buffer too full",
+      Logger::getLogger()->printWarning(this, "Buffer too full",
                                       {"Name", "Discarded/total input"},
                                       {name_, QString::number(inputDiscarded_) + "/" +
                                               QString::number(inputTaken_)});
@@ -335,7 +333,7 @@ std::unique_ptr<Data> Filter::getInput()
         r->vInfo->framerateDenominator != framerateDenominator_ || now > timeSlot)
     {
       /*
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Updating frame rate synchronization point.",
+      Logger::getLogger()->printNormal(this, "Updating frame rate synchronization point.",
                                       {"Arrival time"},
                                       {QString::number(std::chrono::duration_cast<
                                        std::chrono::milliseconds>
@@ -383,7 +381,7 @@ void Filter::sendOutput(std::unique_ptr<Data> output, bool inverse)
 
   if (outDataCallbacks_.empty() && outConnections_.empty())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this,
+    Logger::getLogger()->printWarning(this,
                                     "Trying to send output data without outconnections.",
                                     {"Name/id"}, {name_ + " " + id_});
     return;
@@ -502,8 +500,7 @@ Data* Filter::shallowDataCopy(Data* original) const
 
     return copy;
   }
-  Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
-                                  "Trying to copy nullptr Data pointer.");
+  Logger::getLogger()->printWarning(this, "Trying to copy nullptr Data pointer.");
   return nullptr;
 }
 
@@ -518,8 +515,7 @@ Data* Filter::deepDataCopy(Data* original) const
 
     return copy;
   }
-  Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
-                                  "Trying to copy nullptr Data pointer.");
+  Logger::getLogger()->printWarning(this, "Trying to copy nullptr Data pointer.");
   return nullptr;
 }
 

@@ -155,7 +155,7 @@ void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& co
     int32_t baseBitrate = 1000000;
     QSize resolution = participantsToResolution(baseResolution, i);
     int32_t bitrate = participantsToBitrate(baseResolution, baseBitrate, i);
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Resolution",
+    Logger::getLogger()->printNormal(this, "Resolution",
                                     {"Participants", "Width", "Height", "Bitrate"},
                                     {QString::number(i),
                                      QString::number(resolution.width()),
@@ -296,7 +296,7 @@ void uvgCommController::createSIPDialog(QString name, QString username, QString 
 uint32_t uvgCommController::chatWithParticipant(QString name, QString username,
                                                 QString ip)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Starting a chat with contact",
+  Logger::getLogger()->printNormal(this, "Starting a chat with contact",
             {"ip", "Name", "Username"}, {ip, name, username});
   return 0;
 }

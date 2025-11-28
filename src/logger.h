@@ -109,11 +109,12 @@ public:
   void printUnimplemented(const QObject* object, QString whatIsNotImplemented);
   void printUnimplemented(const QString module, QString whatIsNotImplemented);
 
-
-
   bool checkError(QObject* object, bool check, DebugType type = DEBUG_ERROR,
                   QString description = "", QStringList values = {});
 
+private:
+
+  Logger();
 
   // Print debug information with custom class name. Use this and getname with filters.
   // context is a general context that makes it easier to link different prints to one another.
@@ -125,11 +126,6 @@ public:
   // use this if printing is inside class derived from QObject which is most classes in uvgComm
   void printDebug(DebugType type, const QObject* object, QString description = "",
                   QStringList valueNames = {}, QStringList values = {});
-
-
-private:
-
-  Logger();
 
   struct PrintSet
   {

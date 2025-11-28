@@ -125,7 +125,7 @@ void OpusEncoderFilter::process()
     u_copy->data = std::move(opus_frame);
     sendOutput(std::move(u_copy));
 
-    /*Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Encoded Opus Audio.",
+    /*Logger::getLogger()->printNormal(this, "Encoded Opus Audio.",
               {"Input size", "Index", "Position", "Output size"},
               {QString::number(input->data_size), QString::number(i),
                QString::number(pos), QString::number(len)});*/

@@ -65,8 +65,7 @@ int settingValue(QString key)
 
   if (!settings.value(key).isValid())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Found faulty setting", 
-                                    {"Key"}, {key});
+    Logger::getLogger()->printWarning("Common", "Found faulty setting", {"Key"}, {key});
     return 0;
   }
 
@@ -80,8 +79,7 @@ QString settingString(QString key)
 
   if (!settings.value(key).isValid())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Found faulty setting", 
-                                   {"Key"}, {key});
+    Logger::getLogger()->printWarning("Common", "Found faulty setting", {"Key"}, {key});
     return "";
   }
 
@@ -95,7 +93,7 @@ bool settingBool(QString key)
 
   if (!settings.value(key).isValid())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Found faulty setting",
+    Logger::getLogger()->printWarning("Common", "Found faulty setting",
                                     {"Key"}, {key});
     return "";
   }
@@ -306,7 +304,7 @@ void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates
     }
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Common", text, names, values);
+  Logger::getLogger()->printNormal("Common", text, names, values);
 }
 
 
@@ -353,7 +351,7 @@ QSize galleryResolution(QSize baseResolution, uint32_t otherParticipants)
 
   if ((baseResolution.width()/cols)%8 != 0 || (baseResolution.height()/rows)%2 != 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Target resolution not divisible by 8 or 2",
+    Logger::getLogger()->printWarning("Common", "Target resolution not divisible by 8 or 2",
                                     {"Resolution reduction"},
                                     {QString::number((baseResolution.width()/cols)%8) + "x" +
                                      QString::number((baseResolution.height()/rows)%2)});
@@ -362,13 +360,13 @@ QSize galleryResolution(QSize baseResolution, uint32_t otherParticipants)
   // the encoder only supports resolutions larger than or equal to 64x64
   if (resolution.width() < 64)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Resolution too small",
+    Logger::getLogger()->printWarning("Common", "Resolution too small",
                                     {"Width"}, {QString::number(resolution.width())});
     resolution.setWidth(64);
   }
   if (resolution.height() < 64)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Resolution too small",
+    Logger::getLogger()->printWarning("Common", "Resolution too small",
                                     {"Height"}, {QString::number(resolution.height())});
     resolution.setHeight(64);
   }
@@ -426,13 +424,13 @@ QSize listenerResolution(QSize baseResolution, uint32_t otherParticipants)
   // Avoid too-small tiles as encoder cannot handle these
   if (listenerWidth < 64)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Listener resolution too small",
+    Logger::getLogger()->printWarning("Common", "Listener resolution too small",
                                     {"Width"}, {QString::number(listenerWidth)});
     listenerWidth = 64;
   }
   if (listenerRowHeight < 64)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Listener resolution too small",
+    Logger::getLogger()->printWarning("Common", "Listener resolution too small",
                                     {"Height"}, {QString::number(listenerRowHeight)});
     listenerRowHeight = 64;
   }

@@ -71,11 +71,11 @@ void SDPConference::recordReceivedSDP(uint32_t sessionID, SDPMessageInfo &sdp)
 
 void SDPConference::distributeGeneratedMedia(uint32_t sessionID,SDPMessageInfo &sdp)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
-                                  "Received SDP message as a reply to generated SSRCs",
-                                  {"Number of generated SSRCs", "Number of medias"},
-                                  {QString::number(generatedSSRCs_[sessionID].size()),
-                                   QString::number(sdp.media.size())});
+  Logger::getLogger()->printNormal("SDPMeshConference",
+                                   "Received SDP message as a reply to generated SSRCs",
+                                   {"Number of generated SSRCs", "Number of medias"},
+                                   {QString::number(generatedSSRCs_[sessionID].size()),
+                                    QString::number(sdp.media.size())});
 
   // go through received medias for updating
   for (auto& media : sdp.media)
@@ -94,7 +94,7 @@ void SDPConference::distributeGeneratedMedia(uint32_t sessionID,SDPMessageInfo &
 
         if (p2pPreparedMessages_.find(details.sessionID) != p2pPreparedMessages_.end())
         {
-          Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+          Logger::getLogger()->printNormal("SDPMeshConference",
                                           "Distributing media to existing session from new participant",
                                           {"Target SessionID", "MID"}, {QString::number(details.sessionID), mid});
 
@@ -154,8 +154,7 @@ void SDPConference::updateP2PMedias(SDPMessageInfo &sdp)
                     || existingSSRCs.size() >= 2 && existingSSRCs[1] == recvSSRC)
                 && verifyMediaInfoMatch(preparedMedia, sdp.media[i]))
             {
-              Logger::getLogger()->printDebug(DEBUG_NORMAL,
-                                              "SDPMeshConference",
+              Logger::getLogger()->printNormal("SDPMeshConference",
                                               "Updated media for session from new participant",
                                               {"SessionID", "index"},
                                               {QString::number(existingMessage.first),
@@ -219,8 +218,7 @@ void SDPConference::distributeSFUSSRCs(uint32_t sessionID, SDPMessageInfo &sdp)
               }
 
               if (!exists) {
-                Logger::getLogger()->printDebug(DEBUG_NORMAL,
-                                                "SDPMeshConference",
+                Logger::getLogger()->printNormal("SDPMeshConference",
                                                 "Added SSRC to existing session",
                                                 {"SessionID", "index"},
                                                 {QString::number(preparedMessage.first),
@@ -273,7 +271,7 @@ void SDPConference::removeSession(uint32_t sessionID)
           {
             toDelete = true;
 
-            Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+            Logger::getLogger()->printNormal("SDPMeshConference",
                                             "Removed media from session",
                                             {"SessionID", "index"},
                                             {QString::number(message.first), QString::number(i)});
@@ -289,7 +287,7 @@ void SDPConference::removeSession(uint32_t sessionID)
     }
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
+  Logger::getLogger()->printNormal("SDPMeshConference",
                                   "Removed session from conference",
                                   {"SessionID"}, {QString::number(sessionID)});
 }
@@ -392,18 +390,18 @@ void SDPConference::getMeshMedia(uint32_t sessionID, QList<MediaInfo>& sdpMedia)
       }
     }
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
-                                    "Generated media for session from templates",
-                                    {"Number of medias"},
-                                    {QString::number(p2pPreparedMessages_[sessionID].size())});
+    Logger::getLogger()->printNormal("SDPMeshConference",
+                                     "Generated media for session from templates",
+                                     {"Number of medias"},
+                                     {QString::number(p2pPreparedMessages_[sessionID].size())});
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPMeshConference",
-                                    "Using previously generated SDP mesh message for session",
-                                    {"SessionID", "Number of medias"},
-                                    {QString::number(sessionID),
-                                     QString::number(p2pPreparedMessages_[sessionID].size())});
+    Logger::getLogger()->printNormal("SDPMeshConference",
+                                     "Using previously generated SDP mesh message for session",
+                                     {"SessionID", "Number of medias"},
+                                     {QString::number(sessionID),
+                                      QString::number(p2pPreparedMessages_[sessionID].size())});
   }
 
   sdpMedia.append(p2pPreparedMessages_[sessionID]);

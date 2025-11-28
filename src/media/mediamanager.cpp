@@ -39,7 +39,7 @@ MediaManager::~MediaManager()
 void MediaManager::init(std::shared_ptr<VideoviewFactory> viewFactory,
                         StatisticsInterface *stats)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initiating");
+  Logger::getLogger()->printNormal(this, "Initiating");
   stats_ = stats;
   streamer_ = std::unique_ptr<Delivery> (new Delivery());
   viewFactory_ = viewFactory;
@@ -83,7 +83,7 @@ void MediaManager::init(std::shared_ptr<VideoviewFactory> viewFactory,
 
 void MediaManager::uninit()
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Closing");
+  Logger::getLogger()->printNormal(this, "Closing");
 
   // first filter graph, then streamer because of the rtpfilters
   clientFg_->running(false);
@@ -121,12 +121,12 @@ void MediaManager::newSession(uint32_t sessionID,
 
   if (getMediaNettype(peerInfo, 0) != "IN")
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printProgramError(this,
                                     "What are we using if not the internet!?");
     return;
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start creating media");
+  Logger::getLogger()->printNormal(this, "Start creating media");
 
   if (sessions_.find(sessionID) == sessions_.end())
   {
@@ -186,7 +186,7 @@ void MediaManager::modifySession(uint32_t sessionID,
     }
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Modifying participant");
+  Logger::getLogger()->printNormal(this, "Modifying participant");
   QList<std::shared_ptr<ICEInfo>> localCandidates;
   QList<std::shared_ptr<ICEInfo>> remoteCandidates;
 
@@ -362,7 +362,7 @@ void MediaManager::clientMedia(uint32_t sessionID,
                              localMedia.connection_addrtype,
                              localMedia.connection_address))
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printProgramError(this,
                                     "Error creating RTP peer");
     return;
   }
@@ -468,7 +468,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
     Q_ASSERT(remoteMedia.receivePort);
     Q_ASSERT(!remoteMedia.rtpNums.empty());
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating client send stream", {"Destination", "Type"},
+    Logger::getLogger()->printNormal(this, "Creating client send stream", {"Destination", "Type"},
                                     {remoteMedia.connection_address + ":" + QString::number(remoteMedia.receivePort),
                                      remoteMedia.type});
 
@@ -494,14 +494,13 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported media type!",
+      Logger::getLogger()->printProgramError(this, "Unsupported media type!",
                                       {"type"}, QStringList() << remoteMedia.type);
     }
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                    "Not sending media according to attribute", {"Type"}, {localMedia.type});
+    Logger::getLogger()->printNormal(this, "Not sending media according to attribute", {"Type"}, {localMedia.type});
 
     // TODO: Spec says we should still send RTCP if the port is not 0
   }
@@ -530,7 +529,7 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID,
     Q_ASSERT(localMedia.receivePort);
     Q_ASSERT(!localMedia.rtpNums.empty());
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+    Logger::getLogger()->printNormal(this,
                                     "Creating client receive stream",
                                     {"Interface", "codec"},
                                     {localMedia.connection_address + ":"
@@ -551,20 +550,19 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID,
       }
       else
       {
-        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                        "Failed to get view from viewFactory");
+        Logger::getLogger()->printProgramError(this, "Failed to get view from viewFactory");
       }
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+      Logger::getLogger()->printProgramError(this,
                                       "Unsupported incoming media type!",
                                       {"type"}, QStringList() << localMedia.type);
     }
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+    Logger::getLogger()->printNormal(this,
                                     "Not receiving media according to attribute",
                                     {"Type"}, {localMedia.type});
   }
@@ -588,8 +586,7 @@ void MediaManager::sfuMedia(uint32_t sessionID,
                              localMedia.connection_addrtype,
                              localMedia.connection_address))
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                    "Error creating RTP peer");
+    Logger::getLogger()->printProgramError(this, "Error creating RTP peer");
     return;
   }
 
@@ -650,7 +647,7 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
     Q_ASSERT(localMedia.receivePort);
     Q_ASSERT(!localMedia.rtpNums.empty());
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Creating SFU send stream", {"Destination", "Type"},
+    Logger::getLogger()->printNormal(this, "Creating SFU send stream", {"Destination", "Type"},
                                     {remoteMedia.connection_address + ":" + QString::number(remoteMedia.receivePort),
                                      remoteMedia.type});
 
@@ -666,14 +663,13 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported media type!",
+      Logger::getLogger()->printProgramError(this, "Unsupported media type!",
                                       {"type"}, QStringList() << localMedia.type);
     }
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                    "Not sending media according to attribute", {"Type"}, {localMedia.type});
+    Logger::getLogger()->printNormal(this, "Not sending media according to attribute", {"Type"}, {localMedia.type});
   }
 }
 
@@ -713,7 +709,7 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Unsupported incoming media type!",
+      Logger::getLogger()->printProgramError(this, "Unsupported incoming media type!",
                                       {"type"}, QStringList() << localMedia.type);
     }
   }
@@ -724,16 +720,16 @@ void MediaManager::removeParticipant(uint32_t sessionID)
 {
   // Add diagnostics: log entry, and trace each step so we can detect where
   // removal may be failing or racing with other components.
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Tearing down session media",
+  Logger::getLogger()->printNormal(this, "Tearing down session media",
                                    {"SessionID"}, {QString::number(sessionID)});
 
   if (sessions_.find(sessionID) != sessions_.end())
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Uninitializing ICE for session",
+    Logger::getLogger()->printNormal(this, "Uninitializing ICE for session",
                                      {"SessionID"}, {QString::number(sessionID)});
     sessions_[sessionID].ice->uninit();
     sessions_.erase(sessionID);
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Erased session entry",
+    Logger::getLogger()->printNormal(this, "Erased session entry",
                                      {"SessionID"}, {QString::number(sessionID)});
   }
 
@@ -741,10 +737,10 @@ void MediaManager::removeParticipant(uint32_t sessionID)
   {
     if (clientFg_)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Removing session from client filter graph",
+      Logger::getLogger()->printNormal(this, "Removing session from client filter graph",
                                        {"SessionID"}, {QString::number(sessionID)});
       clientFg_->removeParticipant(sessionID);
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Completed removal from client filter graph",
+      Logger::getLogger()->printNormal(this, "Completed removal from client filter graph",
                                        {"SessionID"}, {QString::number(sessionID)});
     }
   }
@@ -753,26 +749,26 @@ void MediaManager::removeParticipant(uint32_t sessionID)
   {
     if (sfuFg_)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Removing session from SFU filter graph",
+      Logger::getLogger()->printNormal(this, "Removing session from SFU filter graph",
                                        {"SessionID"}, {QString::number(sessionID)});
       sfuFg_->removeParticipant(sessionID);
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Completed removal from SFU filter graph",
+      Logger::getLogger()->printNormal(this, "Completed removal from SFU filter graph",
                                        {"SessionID"}, {QString::number(sessionID)});
     }
   }
 
   if (streamer_ != nullptr)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Removing peer from streamer",
+    Logger::getLogger()->printNormal(this, "Removing peer from streamer",
                                      {"SessionID"}, {QString::number(sessionID)});
     streamer_->removePeer(sessionID);
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Completed removal from streamer",
+    Logger::getLogger()->printNormal(this, "Completed removal from streamer",
                                      {"SessionID"}, {QString::number(sessionID)});
   }
 
   seenCNames_.erase(sessionID);
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Media Manager", "Session media removed",
+  Logger::getLogger()->printNormal("Media Manager", "Session media removed",
             {"SessionID"}, {QString::number(sessionID)});
 }
 
@@ -884,7 +880,7 @@ bool MediaManager::sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
   Q_ASSERT(peerInfo->media.size() == localInfo->media.size());
   if (peerInfo->media.size() != localInfo->media.size() || peerInfo->media.empty())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Media manager",
+    Logger::getLogger()->printProgramError("Media manager",
                "addParticipant, invalid SDPs",
                 {"LocalInfo", "PeerInfo"},
                 {QString::number(localInfo->media.size()),
@@ -895,8 +891,7 @@ bool MediaManager::sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
   if(peerInfo->timeDescriptions.at(0).startTime != 0 ||
      localInfo->timeDescriptions.at(0).startTime != 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                    "Nonzero start-time not supported!");
+    Logger::getLogger()->printProgramError(this, "Nonzero start-time not supported!");
     return false;
   }
 

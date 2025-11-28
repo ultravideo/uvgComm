@@ -61,7 +61,7 @@ void STUNMessage::setTransactionID(uint8_t *transactionID)
 {
   if (!transactionID)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "STUN Message", 
+    Logger::getLogger()->printProgramError("STUN Message", 
                                     "Could not set transaction ID");
     return;
   }
@@ -123,7 +123,7 @@ bool STUNMessage::getXorMappedAddress(std::pair<QHostAddress, uint16_t>& info)
 {
   if (this->mappedAddr_.first == QHostAddress("") || this->mappedAddr_.second == 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "STUN Message", 
+    Logger::getLogger()->printProgramError("STUN Message", 
                                     "Could not set Xor mapped address");
     return false;
   }

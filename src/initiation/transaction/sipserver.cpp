@@ -138,7 +138,7 @@ bool SIPServer::doesCANCELMatchRequest(SIPRequest &request) const
   }
   else if (!(receivedRequest_->requestURI == request.requestURI))
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Different request URI in CANCEL",
+    Logger::getLogger()->printNormal(this, "Different request URI in CANCEL",
                                      {"Existing request uri user", "Request uri user",
                                       "Existing request uri host", "Request uri host"},
                                      {receivedRequest_->requestURI.userinfo.user, request.requestURI.userinfo.user,
@@ -146,7 +146,7 @@ bool SIPServer::doesCANCELMatchRequest(SIPRequest &request) const
   }
   else if (receivedRequest_->message->callID != request.message->callID)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Different Call-ID in CANCEL",
+    Logger::getLogger()->printNormal(this, "Different Call-ID in CANCEL",
                                      {"Existing request Call-ID", "Request Call-ID"},
                                      {receivedRequest_->message->callID, request.message->callID});
   }
@@ -191,8 +191,8 @@ void SIPServer::createResponse(SIPResponseStatus status)
 
   if(receivedRequest_ == nullptr)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                    "We are trying to respond when we have not received a request!");
+    Logger::getLogger()->printProgramError(this, "We are trying to respond when we "
+                                                 "have not received a request!");
     return;
   }
 
@@ -207,8 +207,7 @@ void SIPServer::createResponse(SIPResponseStatus status)
 
   if(response.type >= 200)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                   "Sending a final response. Deleting request details.",
+    Logger::getLogger()->printNormal(this, "Sending a final response. Deleting request details.",
                                    {"Code", "Cseq"},
                                    {QString::number(response.type),
                                     QString::number(receivedRequest_->message->cSeq.cSeq)});

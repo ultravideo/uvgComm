@@ -27,7 +27,7 @@ SIPDialogState::~SIPDialogState()
 
 void SIPDialogState::init(NameAddr &local, NameAddr &remote, bool createDialog)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState", "Creating a new dialog.");
+  Logger::getLogger()->printNormal("SIPDialogState", "Creating a new dialog.");
 
   localURI_ = local;
   remoteURI_ = remote;
@@ -43,7 +43,7 @@ void SIPDialogState::init(NameAddr &local, NameAddr &remote, bool createDialog)
 
 void SIPDialogState::createServerConnection(NameAddr &local, SIP_URI requestURI)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState", "Creating a Server dialog.");
+  Logger::getLogger()->printNormal("SIPDialogState", "Creating a Server dialog.");
 
   init(local, local, true);
   remoteTarget_ = requestURI; // server connection has different request uri from to
@@ -86,7 +86,7 @@ void SIPDialogState::initDialog()
     callID_ += "@" + localURI_.uri.hostport.host;
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Local dialog created",
+  Logger::getLogger()->printNormal(this, "Local dialog created",
              {"Call-ID", "Tag"}, {callID_, localTag_});
 }
 
@@ -103,7 +103,7 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
   if(localURI_.uri.userinfo.user == "" || localURI_.uri.hostport.host == "" ||
      remoteURI_.uri.userinfo.user == "" || remoteURI_.uri.hostport.host == "")
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPDialogState",
+    Logger::getLogger()->printProgramError("SIPDialogState",
                "The dialog state info has not been set, but we are using it.",
                 {"username", "host", "remote username", "remote host"},
                 {localURI_.uri.userinfo.user, localURI_.uri.hostport.host,
@@ -193,7 +193,7 @@ void SIPDialogState::processOutgoingRequest(SIPRequest& request, QVariant& conte
       if(request.method != SIP_ACK && request.method != SIP_CANCEL)
       {
         ++localCseq_;
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState",  "Increasing CSeq",
+        Logger::getLogger()->printNormal("SIPDialogState",  "Increasing CSeq",
                    {"CSeq"}, {QString::number(localCseq_)});
       }
     }
@@ -233,7 +233,7 @@ void SIPDialogState::processOutgoingResponse(SIPResponse& response, QVariant& co
     localTag_ = generateRandomString(TAG_LENGTH);
     response.message->to.tagParameter = localTag_;
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Generated our tag to response. Creating dialog.",
+    Logger::getLogger()->printNormal(this, "Generated our tag to response. Creating dialog.",
                {"Call-ID", "Local Tag"}, {callID_, localTag_});
   }
 
@@ -258,7 +258,7 @@ void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& conte
 
   if(request.message->from.tagParameter == "")
   {
-    Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, this,
+    Logger::getLogger()->printPeerError(this,
                "They did not provide their tag!");
     // TODO: send an error response.
     return;
@@ -266,7 +266,7 @@ void SIPDialogState::processIncomingRequest(SIPRequest& request, QVariant& conte
 
   if (callID_ == "" && request.method == SIP_INVITE)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPDialogState",
+    Logger::getLogger()->printNormal("SIPDialogState",
                "Creating a dialog from incoming INVITE.");
 
     callID_ = request.message->callID;
@@ -323,7 +323,7 @@ void SIPDialogState::processIncomingResponse(SIPResponse& response, QVariant& co
   // The response cseq should be the same as our cseq
   if(response.message->cSeq.cSeq != localCseq_)
   {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, this,
+    Logger::getLogger()->printError(this,
                                     "The CSeq in incoming response was not same as request",
                                     {"Our CSeq", "Response CSeq"},
                                     {QString::number(localCseq_),

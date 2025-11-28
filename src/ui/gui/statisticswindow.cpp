@@ -273,7 +273,7 @@ void  StatisticsWindow::removeParticipant(uint32_t sessionID, const QString& cna
     if (ui_->table_incoming->rowCount() <= index ||
         ui_->table_outgoing->rowCount() <= index)
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, this, "Invalid ICE index in stats",
+      Logger::getLogger()->printProgramWarning(this, "Invalid ICE index in stats",
                                       {"Index", "Table size"},
                                       {QString::number(index),
                                        QString::number(ui_->table_incoming->rowCount())});

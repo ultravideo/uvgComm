@@ -112,7 +112,7 @@ void UDPSender::process()
 
 void UDPSender::keepLive()
 {
-  //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Sending keep alive packet",
+  //Logger::getLogger()->printNormal(this, "Sending keep alive packet",
   //                                {"Destination"}, {QString::fromStdString(destination_) + ":" + QString::number(port_)});
   // send keep alive packet
   int packetSize = 2;

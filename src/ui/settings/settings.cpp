@@ -564,7 +564,7 @@ int Settings::getDeviceID(QComboBox* deviceSelector, QString settingID,
   int deviceIndex = deviceSelector->findText(deviceName);
   int deviceID = settings.value(settingID).toInt();
 
-//  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Getting device ID from selector list",
+//  Logger::getLogger()->printNormal(this, "Getting device ID from selector list",
 //      {"SettingsID", "DeviceName", "List Index", "Number of items"},
 //      {settingID, deviceName, QString::number(deviceIndex),
 //       QString::number(deviceSelector->count())});
@@ -607,7 +607,7 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
   {
     if(deviceSelector->currentText() != settings.value(settingsDevice).toString())
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "The device name has changed",
+      Logger::getLogger()->printNormal(this, "The device name has changed",
                                        {"Old name", "New name"},
                                        {settings.value(settingsDevice).toString(), deviceSelector->currentText()});
 
@@ -628,7 +628,7 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
     }
     else if(deviceSelector->currentIndex() != settings.value(settingsID).toInt())
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "The device ID has changed",
+      Logger::getLogger()->printNormal(this, "The device ID has changed",
                                        {"Old ID", "New ID"},
                                        {settings.value(settingsID).toString(),
                                         QString::number(deviceSelector->currentIndex())});

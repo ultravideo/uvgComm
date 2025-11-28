@@ -78,7 +78,7 @@ bool AudioCaptureFilter::init()
           if(parsedName == deviceName)
           {
             deviceID = i;
-            Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found Mic.", {"Name", "ID"},
+            Logger::getLogger()->printNormal(this, "Found Mic.", {"Name", "ID"},
                         {microphones.at(i).description(), QString::number(deviceID)});
             break;
           }
@@ -145,7 +145,7 @@ void AudioCaptureFilter::createAudioInput()
   connect(audioInput_, &QAudioSource::stateChanged,
           this,        &AudioCaptureFilter::stateChanged);
 /*
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created audio input",
+  Logger::getLogger()->printNormal(this, "Created audio input",
              {"Notify interval", "Buffer size", "Period Size"},
              {QString::number(audioInput_->notifyInterval()),
               QString::number(audioInput_->bufferSize()),

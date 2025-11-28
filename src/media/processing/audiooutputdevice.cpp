@@ -43,8 +43,7 @@ void AudioOutputDevice::init(QAudioFormat format)
 {
   QAudioDevice info(device_);
   if (!info.isFormatSupported(format)) {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, this,
-               "Default audio output format not supported");
+    Logger::getLogger()->printError(this, "Default audio output format not supported");
     //format_ = info.nearestFormat(format);
     return;
   }
@@ -77,7 +76,7 @@ void AudioOutputDevice::createAudioOutput()
   audioOutput_->start(this);
 
 /*
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created audio output",
+  Logger::getLogger()->printNormal(this, "Created audio output",
              {"Notify interval", "Buffer size", "Period Size"},
              {QString::number(audioOutput_->notifyInterval()),
               QString::number(audioOutput_->bufferSize()),

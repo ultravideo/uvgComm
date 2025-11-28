@@ -16,7 +16,7 @@ QStringList MicrophoneInfo::getDeviceList()
   const QList<QAudioDevice> microphones = QMediaDevices::audioInputs();
   QStringList list;
 
-  //Logger::getLogger()->printDebug(DEBUG_NORMAL, "Microphone Info", "Get microhone list",
+  //Logger::getLogger()->printNormal("Microphone Info", "Get microhone list",
   //                                {"Microphones"}, {QString::number(microphones.size())});
 
   for (int i = 0; i < microphones.size(); ++i)

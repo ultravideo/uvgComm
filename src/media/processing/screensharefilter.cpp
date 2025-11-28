@@ -86,7 +86,7 @@ void ScreenShareFilter::process()
     QString screenResolution = QString::number(screen->size().width()) + "x" +
         QString::number(screen->size().height());
 
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
+    Logger::getLogger()->printProgramError(this, 
                                     "Current resolution differs from screen size",
                                     {"Current", "Screen resolution"}, {currentResolution,
                                                                        screenResolution});

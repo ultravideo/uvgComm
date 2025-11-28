@@ -67,7 +67,7 @@ void HybridFilter::addLink(LinkType type,
     entry->sfuSSRC = 0;
     entry->latestsP2PRtt = 0.0;
     entry->latestsSFURtt = 0.0;
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created new LinkInfo for cname",
+    Logger::getLogger()->printNormal(this, "Created new LinkInfo for cname",
                                     {"CNAME","OutIndex"}, {cname, QString::number(outIdx)});
   }
 
@@ -75,7 +75,7 @@ void HybridFilter::addLink(LinkType type,
   {
     if (entry->p2pRTPSender == nullptr)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Adding P2P link",
+      Logger::getLogger()->printNormal(this, "Adding P2P link",
                                       {"CNAME", "SSRC", "SenderPtr"},
                                       {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
 
@@ -84,7 +84,7 @@ void HybridFilter::addLink(LinkType type,
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Overwriting existing P2P link",
+      Logger::getLogger()->printNormal(this, "Overwriting existing P2P link",
                                       {"CNAME", "SSRC", "SenderPtr"},
                                       {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
 
@@ -111,7 +111,7 @@ void HybridFilter::addLink(LinkType type,
   }
   else if (type == LINK_SFU)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Adding SFU link",
+    Logger::getLogger()->printNormal(this, "Adding SFU link",
                                     {"CNAME","SSRC","SenderPtr"},
                                     {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
     entry->sfuSSRC = ssrc;
@@ -119,7 +119,7 @@ void HybridFilter::addLink(LinkType type,
     // SFU sender is a shared sender
     if (sfuRTPSender_ == nullptr)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Setting RTP sender for SFU link (shared sender)");
+      Logger::getLogger()->printNormal(this, "Setting RTP sender for SFU link (shared sender)");
       sfuRTPSender_ = rtpSender;
       sfuActive_ = true; // SFU link is active at the start
       sfuOutIndex_ = outIdx;
@@ -179,7 +179,7 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
       values << key << QString::number(e->p2pSSRC) << QString::number(e->sfuSSRC);
     }
     Logger::getLogger()->printError("Hybrid", "RTT record for unknown SSRC: " + QString::number(ssrc));
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Known SSRCs at time of unknown RTT",
+    Logger::getLogger()->printNormal(this, "Known SSRCs at time of unknown RTT",
                                     names, values);
     return;
   }
@@ -200,7 +200,7 @@ void HybridFilter::process()
 
   while(input)
   {
-    //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Processing input",
+    //Logger::getLogger()->printNormal(this, "Processing input",
     //                                 {"Input size"},
     //                                 {QString::number(input->data_size)});
 
@@ -208,7 +208,7 @@ void HybridFilter::process()
     if (count_ % EVALUATION_INTERVAL == 0)
     {
       triggerReEvaluation_ = true;
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Evaluation triggered by frame count",
+      Logger::getLogger()->printNormal(this, "Evaluation triggered by frame count",
                                       {"count","interval"}, {QString::number(count_), QString::number(EVALUATION_INTERVAL)});
     }
 
@@ -309,8 +309,8 @@ void HybridFilter::applySfuState(bool needSFU)
 
   sfuActive_ = needSFU;
   setConnection(sfuOutIndex_, sfuActive_);
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Applying SFU state",
-                                  {"SFU State"}, {sfuActive_ ? "enabled" : "disabled"});
+  Logger::getLogger()->printNormal(this, "Applying SFU state",
+                                  "SFU State", sfuActive_ ? "enabled" : "disabled");
 }
 
 
@@ -390,7 +390,7 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo)
   }
   else if (!linkInfo->p2pActive) // delayed switch
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Scheduling delayed switch to P2P connection",
+    Logger::getLogger()->printNormal(this, "Scheduling delayed switch to P2P connection",
                                     {"SFU SSRC","P2P SSRC"},
                                     {QString::number(linkInfo->sfuSSRC), QString::number(linkInfo->p2pSSRC)});
 
@@ -431,7 +431,7 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo)
   {
     if (sfuRTPSender_)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Scheduling delayed switch to SFU connection",
+      Logger::getLogger()->printNormal(this, "Scheduling delayed switch to SFU connection",
                                       {"P2P SSRC","SFU SSRC"},
                                       {QString::number(linkInfo->p2pSSRC), QString::number(linkInfo->sfuSSRC)});
       nextSwitch_ = SYNC_PERIOD_IN_FRAMES; // wait frames until we switch to SFU
@@ -478,7 +478,7 @@ void HybridFilter::fullBandwidthEvaluation()
         ++p2pLinks;
         if (!entry->p2pActive)
         {
-          Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Switching to P2P connection",
+          Logger::getLogger()->printNormal(this, "Switching to P2P connection",
                                           {"CNAME", "Expected latency reduction", "SSRC"},
                                           {pair.first, QString::number(entry->latestsSFURtt - entry->latestsP2PRtt) + " ms",
                                            QString::number(entry->p2pSSRC)});
@@ -487,7 +487,7 @@ void HybridFilter::fullBandwidthEvaluation()
       }
       else
       {
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Switching to SFU connection",
+        Logger::getLogger()->printNormal(this, "Switching to SFU connection",
                                         {"CNAME", "Expected latency change", "SSRC"},
                                         {pair.first, QString::number(entry->latestsP2PRtt - entry->latestsSFURtt) + " ms",
                                          QString::number(entry->sfuSSRC)});
@@ -514,7 +514,7 @@ void HybridFilter::fullBandwidthEvaluation()
     sfuStatus = "not available";
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Full-bandwidth evaluation",
+  Logger::getLogger()->printNormal(this, "Full-bandwidth evaluation",
                                   {"P2P Links", "SFU Status"},
                                   {QString::number(p2pLinks) + "/" + QString::number(cnameToLinks_.size()),
                                    sfuStatus});
@@ -576,7 +576,7 @@ void HybridFilter::rankedBandwidthEvaluation(const int maxP2PConnections, int co
     }
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Partial-bandwidth evaluation",
+  Logger::getLogger()->printNormal(this, "Partial-bandwidth evaluation",
                                   {"Connection bandwidth", "maxP2PConnections", "P2P Links"},
                                   {QString::number(connectionBandwidth), QString::number(maxP2PConnections),
                                    QString::number(p2pLinks) + "/" + QString::number(cnameToLinks_.size())});

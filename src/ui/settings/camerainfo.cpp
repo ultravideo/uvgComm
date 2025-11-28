@@ -39,7 +39,7 @@ QStringList CameraInfo::getDeviceList()
 
   const QList<QCameraDevice> cameras = QMediaDevices::videoInputs();
 
-  //Logger::getLogger()->printDebug(DEBUG_NORMAL, "Camera Info", "Get camera list",
+  //Logger::getLogger()->printNormal("Camera Info", "Get camera list",
   //          {"Cameras"}, {QString::number(cameras.size())});
 
   for (int i = 0; i < cameras.size(); ++i)
@@ -129,15 +129,13 @@ std::unique_ptr<QCamera> CameraInfo::loadCamera(int deviceID)
 
   if(deviceID == -1)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "CameraInfo",
-                                    "No camera to load");
+    Logger::getLogger()->printWarning("CameraInfo", "No camera to load");
     return std::unique_ptr<QCamera> (nullptr);
   }
 
   if(deviceID >= cameras.size())
   {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, "CameraInfo", 
-                                    "Invalid deviceID for getVideoCapabilities");
+    Logger::getLogger()->printError("CameraInfo", "Invalid deviceID for getVideoCapabilities");
     return std::unique_ptr<QCamera> (nullptr);
   }
 
@@ -307,7 +305,7 @@ void CameraInfo::printFormatOption(QCameraFormat& formatOption) const
 
   QString format = videoFormatToString(formatOption.pixelFormat());
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "CameraInfo", "Camera format option",
+  Logger::getLogger()->printNormal("CameraInfo", "Camera format option",
                                    {"Format", "Resolution", "Frame rate"},
                                    {format, resolution, framerate});
 }

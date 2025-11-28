@@ -218,7 +218,7 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
   }
 
   Q_ASSERT(ourSDP != nullptr);
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Adding local SDP to content");
+  Logger::getLogger()->printNormal(this, "Adding local SDP to content");
   if(!ourSDP)
   {
     Logger::getLogger()->printWarning(this, "Failed to get local SDP!");
@@ -238,12 +238,10 @@ bool SDPNegotiation::processSDP(QVariant& content)
     case NEG_OFFER_RECEIVED:
     case NEG_FINISHED:
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                      "Got an SDP offer");
+      Logger::getLogger()->printNormal(this, "Got an SDP offer");
       if(!processOfferSDP(content))
       {
-         Logger::getLogger()->printError(this,
-                                         "Failed to process SDP offer");
+         Logger::getLogger()->printError(this, "Failed to process SDP offer");
 
          return false;
       }
@@ -251,8 +249,7 @@ bool SDPNegotiation::processSDP(QVariant& content)
     }
     case NEG_OFFER_SENT:
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                      "Got an SDP answer.");
+      Logger::getLogger()->printNormal(this, "Got an SDP answer.");
       processAnswerSDP(content);
       break;
     }
@@ -271,7 +268,7 @@ bool SDPNegotiation::processOfferSDP(QVariant& content)
 {
   if(!content.isValid())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printProgramError(this,
                                     "The SDP content is not valid at processing. "
                                     "Should be detected earlier.");
     return false;
@@ -309,14 +306,13 @@ bool SDPNegotiation::processAnswerSDP(QVariant &content)
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
   if (!content.isValid())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printProgramError(this,
                                     "Content is not valid when processing SDP. "
                                     "Should be detected earlier.");
     return false;
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation",
-                                  "Starting to process answer SDP.");
+  Logger::getLogger()->printNormal("Negotiation", "Starting to process answer SDP.");
 
   if (isHost_)
   {
@@ -355,8 +351,7 @@ bool SDPNegotiation::checkSessionValidity(bool checkRemote) const
   if(localSDP_ == nullptr ||
      (remoteSDP_ == nullptr && checkRemote))
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Negotiation",
-                                    "SDP not set correctly");
+    Logger::getLogger()->printProgramError("Negotiation", "SDP not set correctly");
     return false;
   }
   return true;
@@ -574,7 +569,7 @@ bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& comparedNums, const Q
       if(remoteCodec.codec == supportedCodec.codec)
       {
         resultCodecs.append(remoteCodec);
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",  "Found suitable codec",
+        Logger::getLogger()->printNormal("SDPNegotiationHelper",  "Found suitable codec",
                                         {"Code"}, {remoteCodec.codec});
 
         resultNums.push_back(remoteCodec.rtpNum);
@@ -591,15 +586,13 @@ bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& comparedNums, const Q
       if(rtpNumber == supportedNum)
       {
         resultNums.append(rtpNumber);
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",
-                                        "Found suitable RTP number");
+        Logger::getLogger()->printNormal("SDPNegotiationHelper", "Found suitable RTP number");
         return true;
       }
     }
   }
 
-  Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPNegotiationHelper",
-                                  "Could not find suitable codec or RTP number for media.");
+  Logger::getLogger()->printError("SDPNegotiationHelper", "Could not find suitable codec or RTP number for media.");
 
   return false;
 }

@@ -485,7 +485,7 @@ void ICEPairTester::recvStunMessage(QNetworkDatagram message)
   }
   else
   {
-     Logger::getLogger()->printDebug(DEBUG_WARNING, this,  
+     Logger::getLogger()->printWarning(this,  
                                      "Received message with unknown type", 
                                      {"type", "from", "to" }, {
                                      QString::number(stunMsg.getType()),

@@ -62,7 +62,7 @@ QWidget* VideoviewFactory::getView(uint32_t remoteSSRC)
 {
   if (ssrcToViewID_.find(remoteSSRC) == ssrcToViewID_.end())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory",
+    Logger::getLogger()->printProgramError("VideoviewFactory",
                                     "Failed to find widget", {"Remote SSRC"},
                                     {QString::number(remoteSSRC)});
     return nullptr;
@@ -76,7 +76,7 @@ VideoInterface* VideoviewFactory::getVideo(const uint32_t remoteSSRC)
 {
   if (ssrcToViewID_.find(remoteSSRC) == ssrcToViewID_.end())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory",
+    Logger::getLogger()->printProgramError("VideoviewFactory",
                                     "Failed to find video interface", {"Remote SSRC"},
                                     {QString::number(remoteSSRC)});
     return nullptr;
@@ -88,7 +88,7 @@ VideoInterface* VideoviewFactory::getVideo(const uint32_t remoteSSRC)
 
 void VideoviewFactory::clearWidgets(uint32_t remoteSSRC)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "VideoviewFactory",  "Clearing widgets",
+  Logger::getLogger()->printNormal("VideoviewFactory",  "Clearing widgets",
                                   {"videoID"}, {QString::number(remoteSSRC)});
 
   QWidget* widget = nullptr;
@@ -159,12 +159,12 @@ void VideoviewFactory::createWidget(uint32_t sessionID, LayoutID layoutID, const
       ssrcToViewID_[remoteSSRC] = viewID;
     }
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, "VideoviewFactory",
+    Logger::getLogger()->printNormal("VideoviewFactory",
                                     "Created video widget.", {"Remote SSRCs", "ViewID"},
                                     {QString::number(remoteSSRCs.size()), QString::number(viewID)});
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", "Failed to create view widget.");
+    Logger::getLogger()->printProgramError("VideoviewFactory", "Failed to create view widget.");
   }
 }

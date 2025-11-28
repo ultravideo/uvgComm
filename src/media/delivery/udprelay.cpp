@@ -49,12 +49,12 @@ void UDPRelay::readPendingDatagrams()
 
     if (datagram.size() < 12)
     {
-      //Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received a packet which is too small",
+      //Logger::getLogger()->printWarning(this, "Received a packet which is too small",
       //                                {"Packet size"}, {QString::number(datagram.size())});
       continue;
     }
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received a packet",
+    Logger::getLogger()->printNormal(this, "Received a packet",
                                     {"Packet size", "Sender IP", "Sender port"},
                                     {QString::number(datagram.size()), sender.toString(), QString::number(senderPort)});
 
@@ -65,7 +65,7 @@ void UDPRelay::readPendingDatagrams()
     if (rtcp_pt == 200 || rtcp_pt == 201 || rtcp_pt == 202)
     {
       // RTCP
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received an RTCP packet, not doing anything",
+      Logger::getLogger()->printNormal(this, "Received an RTCP packet, not doing anything",
                                       {"Payload type", "Packet size"},
                                       {QString::number(rtcp_pt), QString::number(datagram.size())});
     }
@@ -91,7 +91,7 @@ void UDPRelay::readPendingDatagrams()
       }
       else
       {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received an RTP packet for which we have no receiver",
+        Logger::getLogger()->printWarning(this, "Received an RTP packet for which we have no receiver",
                                         {"SSRC", "Payload type", "Packet size"},
                                         {QString::number(ssrc), QString::number(rtp_pt), QString::number(datagram.size())});
       }
@@ -99,7 +99,7 @@ void UDPRelay::readPendingDatagrams()
     else
     {
       // unknown payload type
-      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received a packet which does not follow RTP specifications",
+      Logger::getLogger()->printWarning(this, "Received a packet which does not follow RTP specifications",
                                       {"Payload type", " Possible SSRC", "Packet size"},
                                       {QString::number(rtp_pt),
                                        QString::number(*reinterpret_cast<uint32_t*>(datagram.data() + 4)),

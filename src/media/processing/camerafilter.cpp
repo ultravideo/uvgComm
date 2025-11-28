@@ -164,20 +164,20 @@ bool CameraFilter::initialCameraSetup()
     {
       if(cameras.at(i).description() == currentDeviceName_)
       {
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found the camera.", {"Description", "ID"},
+        Logger::getLogger()->printNormal(this, "Found the camera.", {"Description", "ID"},
                    {cameras.at(i).description(), QString::number(i)});
         currentDeviceID_ = i;
         break;
       }
     }
     // previous camera could not be found, use first.
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Did not find the camera. Using first.", 
+    Logger::getLogger()->printNormal(this, "Did not find the camera. Using first.", 
                                     {"Settings camera", "First camera"},
                {currentDeviceName_, cameras.at(0).description()});
     currentDeviceID_ = 0;
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initiating Qt camera", {"ID"},
+  Logger::getLogger()->printNormal(this, "Initiating Qt camera", {"ID"},
               {QString::number(currentDeviceID_)});
 
   if (currentDeviceID_ != -1 && currentDeviceID_ < cameras.size())
@@ -367,7 +367,7 @@ void CameraFilter::process()
 
 /*
     printDataBytes("Camera bytes", newImage->data.get(), newImage->data_size, 3, 0);
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Captured frame",
+    Logger::getLogger()->printNormal(this, "Captured frame",
                                     {"Width", "Height", "data size"},
                                     {QString::number(newImage->vInfo->width),
                                      QString::number(newImage->vInfo->height),

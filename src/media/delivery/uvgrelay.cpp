@@ -27,7 +27,7 @@ running_(false),
   // check if the local address is IPv4 or IPv6
   if (localAddress.find(':') != std::string::npos)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "IPv6 address detected");
+    Logger::getLogger()->printNormal(this, "IPv6 address detected");
     socket_.init(AF_INET6, SOCK_DGRAM, 0);
 
     sockaddr_in6 local_addr;
@@ -40,7 +40,7 @@ running_(false),
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "IPv4 address detected");
+    Logger::getLogger()->printNormal(this, "IPv4 address detected");
     socket_.init(AF_INET, SOCK_DGRAM, 0);
     ipv6_ = false;
     sockaddr_in local_addr;
@@ -58,7 +58,7 @@ running_(false),
   if (socket_.setsockopt(SOL_SOCKET, SO_SNDBUF, (const char*)&buf_size, sizeof(int)) != RTP_OK ||
       socket_.setsockopt(SOL_SOCKET, SO_RCVBUF, (const char*)&buf_size, sizeof(int)) != RTP_OK)
   {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, this, "Failed to set the UDP buffer sizes");
+    Logger::getLogger()->printError(this, "Failed to set the UDP buffer sizes");
   }
 }
 
@@ -136,7 +136,7 @@ void UVGRelay::run()
 #else
     if (poll(pfds, 1, POLL_TIMEOUT_MS) < 0) {
 #endif
-      Logger::getLogger()->printDebug(DEBUG_ERROR, this, "poll() failed");
+      Logger::getLogger()->printError(this, "poll() failed");
       break;
     }
 
@@ -153,14 +153,14 @@ void UVGRelay::run()
         }
         else if (ret != RTP_OK)
         {
-          Logger::getLogger()->printDebug(DEBUG_ERROR, this, "recvfrom() failed");
+          Logger::getLogger()->printError(this, "recvfrom() failed");
           running_ = false;
           break;
         }
 
         if (read < 12)
         {
-          //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Received a packet which is too small to be an RTP packet",
+          //Logger::getLogger()->printNormal(this, "Received a packet which is too small to be an RTP packet",
           //                                {"Packet size"}, {QString::number(read)});
           continue;
         }
@@ -192,7 +192,7 @@ void UVGRelay::run()
           }
           else
           {
-            Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received an RTP packet for which we have no receiver",
+            Logger::getLogger()->printWarning(this, "Received an RTP packet for which we have no receiver",
                                             {"SSRC"}, {QString::number(ssrc)});
           }
         }
@@ -221,13 +221,13 @@ void UVGRelay::run()
           }
           else
           {
-            Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received an RTCP packet for which we have no receiver",
+            Logger::getLogger()->printWarning(this, "Received an RTCP packet for which we have no receiver",
                                             {"SSRC"}, {QString::number(ssrc)});
           }
         }
         else
         {
-          Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Received a packet which does not follow RTP specifications",
+          Logger::getLogger()->printWarning(this, "Received a packet which does not follow RTP specifications",
                                           {"Payload type"},
                                           {QString::number(rtp_pt)});
         }

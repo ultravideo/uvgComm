@@ -60,7 +60,7 @@ void LibYUVConverter::changeResolution()
     resolution = getHWManager()->getVideoResolution();
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Changing resolution for libyuv filter",
+  Logger::getLogger()->printNormal(this, "Changing resolution for libyuv filter",
                                   {"Resolution"}, {QString::number(resolution.width()) + "x" + QString::number(resolution.height())});
 
   if (resolution.width() == 0 ||
@@ -243,7 +243,7 @@ void LibYUVConverter::process()
 
     if(input->vInfo->width != targetResolution_.width() || input->vInfo->height != targetResolution_.height())
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Incorrect resolution conversion",
+      Logger::getLogger()->printProgramError(this, "Incorrect resolution conversion",
                                       {"Expected resolutions", "Converted resolution"},
                                        {QString::number(targetResolution_.width()) + "x" + QString::number(targetResolution_.height()),
                                         QString::number(input->vInfo->width) + "x" + QString::number(input->vInfo->height)});

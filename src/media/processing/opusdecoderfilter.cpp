@@ -60,7 +60,7 @@ void OpusDecoderFilter::process()
 
     uint32_t datasize = len*format_.channelCount()*sizeof(opus_int16);
 
-    //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Decoded Opus audio.", 
+    //Logger::getLogger()->printNormal(this, "Decoded Opus audio.", 
     //                                {"Input size", "Output size"},
     //                                {QString::number(input->data_size),
     //                                 QString::number(datasize)};

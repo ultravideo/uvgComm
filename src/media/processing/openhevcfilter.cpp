@@ -52,7 +52,7 @@ bool OpenHEVCFilter::init()
 
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to start decoder.");
+    Logger::getLogger()->printProgramError(this, "Failed to start decoder.");
     return false;
   }
   libOpenHevcSetTemporalLayer_id(handle_, 0);
@@ -63,7 +63,7 @@ bool OpenHEVCFilter::init()
 
   // libOpenHevcSetDebugMode(handle_, OHEVC_LOG_DEBUG);
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "OpenHEVC initiation successful.",
+  Logger::getLogger()->printNormal(this, "OpenHEVC initiation successful.",
                                    {"Version", "Threads", "Parallelization"},
                                   {libOpenHevcVersion(handle_), QString::number(threads_),
                                   parallelizationMode_});
@@ -119,19 +119,19 @@ void OpenHEVCFilter::process()
 
     if (!vpsReceived_ && nalType == VPS_NUT)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "VPS found");
+      Logger::getLogger()->printNormal(this,  "VPS found");
       vpsReceived_ = true;
     }
 
     if (!spsReceived_ && nalType == SPS_NUT)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "SPS found");
+      Logger::getLogger()->printNormal(this,  "SPS found");
       spsReceived_ = true;
     }
 
     if (!ppsReceived_ && nalType == PPS_NUT)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "PPS found");
+      Logger::getLogger()->printNormal(this,  "PPS found");
       ppsReceived_ = true;
     }
 

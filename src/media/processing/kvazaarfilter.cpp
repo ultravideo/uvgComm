@@ -182,7 +182,7 @@ bool KvazaarFilter::init()
 
     if(!api_)
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to retrieve Kvazaar API.");
+      Logger::getLogger()->printProgramError(this, "Failed to retrieve Kvazaar API.");
       return false;
     }
   }
@@ -191,7 +191,7 @@ bool KvazaarFilter::init()
 
   if(!config_)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to allocate Kvazaar config.");
+    Logger::getLogger()->printProgramError(this, "Failed to allocate Kvazaar config.");
     return false;
   }
 
@@ -204,7 +204,7 @@ bool KvazaarFilter::init()
 
   if (partResolution.width() <= 0 || partResolution.height() <= 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printProgramError(this,
                                     "Invalid resolution settings",
                                     {"Width", "Height"},
                                     {QString::number(partResolution.width()),
@@ -221,7 +221,7 @@ bool KvazaarFilter::init()
                    QString::number(1);
     if (settings.value(SettingsKey::videoFileFramerate).toInt() <= 0)
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+      Logger::getLogger()->printProgramError(this,
                                       "Invalid framerate settings",
                                       {"Framerate"},
                                       {framerateStr});
@@ -230,7 +230,7 @@ bool KvazaarFilter::init()
   }
   else if (enumerator <= 0 || denominator <= 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printProgramError(this,
                                     "Invalid framerate settings",
                                     {"Numerator", "Denominator"},
                                     {QString::number(enumerator),
@@ -363,7 +363,7 @@ bool KvazaarFilter::init()
 
   if(!encoders_[currentResolution_])
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to open Kvazaar encoder.");
+    Logger::getLogger()->printProgramError(this, "Failed to open Kvazaar encoder.");
     return false;
   }
 
@@ -371,7 +371,7 @@ bool KvazaarFilter::init()
 
   if(inputPics_.empty())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Could not allocate input picture vector!");
+    Logger::getLogger()->printProgramError(this, "Could not allocate input picture vector!");
     return false;
   }
 
@@ -407,7 +407,7 @@ void KvazaarFilter::process()
   {
     if(inputPics_.empty())
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+      Logger::getLogger()->printProgramError(this,
                                       "Input pictures have not been allocated");
       break;
     }
@@ -456,7 +456,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
       || config_->framerate_denom != input->vInfo->framerateDenominator)
   {
     // This should not happen.
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printProgramError(this,
                                     "Input resolution or framerate differs from settings",
                                     {"Settings", "Input"},
                                     {QString::number(config_->width) + "x" +
@@ -472,7 +472,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 
   if (nextInputPic_ == -1 || nextInputPic_ >= inputPics_.size())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Input vec initilized incorrectly");
+    Logger::getLogger()->printProgramError(this, "Input vec initilized incorrectly");
     return;
   }
 
@@ -671,7 +671,7 @@ void KvazaarFilter::calculate_psnr(const kvz_picture *orig, const kvz_picture *r
   psnr_v = (mse_v == 0) ? INFINITY : 10.0 * log10((max_val * max_val) / mse_v);
 
 /*
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "PSNR",
+  Logger::getLogger()->printNormal(this, "PSNR",
                                    {"Y", "U", "V"},
                                    {QString::number(psnr_y, 'f', 2),
                                     QString::number(psnr_u, 'f', 2),

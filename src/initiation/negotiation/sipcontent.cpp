@@ -88,7 +88,7 @@ bool checkSDPValidity(const SDPMessageInfo &sdpInfo)
      sdpInfo.timeDescriptions.empty() ||
      sdpInfo.media.empty())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, "SipContent", 
+    Logger::getLogger()->printProgramWarning("SipContent",
                                     "SDP is not valid",
                                     {"Version", "Originator", "Session Name", 
                                      "Number of time descriptions", "Number of medias"},
@@ -141,13 +141,13 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
   Q_ASSERT(checkSDPValidity(sdpInfo));
   if(!checkSDPValidity(sdpInfo))
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPContent",  
+    Logger::getLogger()->printProgramError("SIPContent",  
                                     "Bad SDPInfo in string formation.");
     return "";
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIPContent",  
+    Logger::getLogger()->printNormal("SIPContent",  
                                     "Parameter SDP is valid. Starting to compose to string.");
   }
 
@@ -186,7 +186,7 @@ QString composeSDPContent(const SDPMessageInfo &sdpInfo)
 
     if (mediaStream.rtpNums.empty())
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPContent",
+      Logger::getLogger()->printProgramError("SIPContent",
                                       "There was no RTP num included in SDP media!");
       return "";
     }
@@ -948,7 +948,7 @@ void parseRTPMap(QString value, QString secondWord, QList<RTPMap>& codecs)
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, "SipContent", "RTPMap was not understood");
+    Logger::getLogger()->printError("SipContent", "RTPMap was not understood");
   }
 }
 
@@ -978,7 +978,7 @@ bool parseConnection(QStringListIterator& lineIterator, char& type, QStringList&
   {
     if(words.size() != 3)
     {
-      Logger::getLogger()->printDebug(DEBUG_ERROR, "SipContent",
+      Logger::getLogger()->printError("SipContent",
                                       "Wrong number of values in connection",
                                       {"values", "Expected"},
                                       {QString::number(words.size()), "3"});

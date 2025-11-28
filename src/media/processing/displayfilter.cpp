@@ -50,11 +50,10 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
   }
   else {
     Q_ASSERT(false);
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Display Filter",
-                                    "Gived nonexistant widget");
+    Logger::getLogger()->printProgramError("Display Filter", "Gived nonexistant widget");
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "DisplayFilter created",
+  Logger::getLogger()->printNormal(this, "DisplayFilter created",
                                   {"ID", "SessionID", "WidgetCount", "FirstWidgetPtr", "CName"},
                                   {id, QString::number(sessionID_), QString::number(widgets_.size()),
                                    QString::number((qintptr)widgets_.at(0)), cname});
@@ -86,9 +85,8 @@ void DisplayFilter::process()
       format = QImage::Format_Invalid;
       break;
     default:
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
-                                      "Wrong type of display input.", {"Type"}, 
-                                      {QString::number(input->type)});
+      Logger::getLogger()->printProgramError(this, "Wrong type of display input.", 
+                                             {"Type"}, {QString::number(input->type)});
       format = QImage::Format_Invalid;
       break;
     }

@@ -162,7 +162,7 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
   {
     if(previousSize_ != image.size())
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Video widget needs to update its target "
+      Logger::getLogger()->printNormal(this, "Video widget needs to update its target "
                                                           "rectangle because of resolution change",
                                       {"Previous size", "Current size"},
                                       {QString::number(previousSize_.width()) + "x" +
@@ -190,7 +190,7 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
 
       if (discardedFrames_%30 == 1)
       {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Buffer full when inputting image, discarding oldest frame",
+        Logger::getLogger()->printWarning(this, "Buffer full when inputting image, discarding oldest frame",
                                          {"Buffer", "Discarded so far"},
                                           {QString::number(frameBuffer_.size()) + "/" + QString::number(VIEWBUFFERSIZE),
                                           QString::number(discardedFrames_)});
@@ -314,8 +314,7 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     Q_ASSERT(lastFrame_.image.data_ptr());
     if(lastFrame_.image.data_ptr() == nullptr)
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                      "Null pointer in current image!");
+      Logger::getLogger()->printProgramError(this, "Null pointer in current image!");
       return;
     }
 

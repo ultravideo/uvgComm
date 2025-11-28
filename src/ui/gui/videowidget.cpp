@@ -29,7 +29,7 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID,
 {
   helper_.initWidget(this);
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "VideoWidget created",
+  Logger::getLogger()->printNormal(this, "VideoWidget created",
                                   {"SessionID", "LayoutID", "WidgetPtr"},
                                   {QString::number(sessionID_), QString::number(layoutID), QString::number((qintptr)this)});
 
@@ -111,7 +111,7 @@ void VideoWidget::setStats(StatisticsInterface* stats, QString cname)
   stats_ = stats;
   cname_ = cname;
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "VideoWidget::setStats",
+  Logger::getLogger()->printNormal(this, "VideoWidget::setStats",
                                   {"SessionID", "CName", "WidgetPtr"},
                                   {QString::number(sessionID_), cname_, QString::number((qintptr)this)});
 }

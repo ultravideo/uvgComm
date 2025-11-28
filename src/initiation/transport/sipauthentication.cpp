@@ -220,7 +220,7 @@ DigestResponse SIPAuthentication::generateAuthResponse(DigestChallenge& challeng
   hash.addData(dResponse.toLatin1());
   response.dresponse = hash.result().toHex();
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Calculated auth challenge response",
+  Logger::getLogger()->printNormal(this, "Calculated auth challenge response",
              {"ha1", "ha2"}, {QString(a1_), QString(ha2)});
 
   return response;

@@ -94,8 +94,7 @@ void ICE::startNomination(const uint32_t &ssrc, const MediaInfo &local, const Me
       role = "Controller";
     }
 
-    Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this,
-                                    "No previous matching ICE results, performing nomination",
+    Logger::getLogger()->printImportant(this, "No previous matching ICE results, performing nomination",
                                     {"Role", "Pairs", "Existing media nominations"}, {role,
                                     QString::number(mediaNominations_.back().candidatePairs.size()),
                                     QString::number(mediaNominations_.size())});
@@ -178,8 +177,7 @@ void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair>> &streams)
 
 void ICE::handleICEFailure(std::vector<std::shared_ptr<ICEPair> > &candidates)
 {
-  Logger::getLogger()->printDebug(DEBUG_ERROR, "ICE",
-                                  "Failed to nominate RTP/RTCP candidates!");
+  Logger::getLogger()->printError("ICE", "Failed to nominate RTP/RTCP candidates!");
 
   for (auto& media : mediaNominations_)
   {
@@ -209,7 +207,7 @@ void ICE::printSuccessICEPairs(std::vector<std::shared_ptr<ICEPair> > &streams) 
                   component->remote->address + ":" + QString::number(component->remote->port));
   }
 
-  Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this, "Nominated media ICE candidates", names, values);
+  Logger::getLogger()->printImportant( this, "Nominated media ICE candidates", names, values);
 }
 
 
@@ -303,7 +301,7 @@ void ICE::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, boo
 {
   if (mediaInfo == nullptr)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
+    Logger::getLogger()->printProgramError("SDPNegotiationHelper",
                                     "Null mediainfo in setMediaPair");
     return;
   }

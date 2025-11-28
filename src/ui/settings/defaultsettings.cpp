@@ -434,7 +434,7 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
   QString resolution = QString::number(bestOption.resolution.width()) + "x" +
                        QString::number(bestOption.resolution.height());
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Selected the best format",
+  Logger::getLogger()->printNormal(this, "Selected the best format",
                                   {"Points", "Device", "Format", "Resolution", "Framerate"},
                                    {QString::number(highestValue), bestOption.deviceName,
                                     bestOption.format, resolution, bestOption.framerate});

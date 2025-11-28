@@ -28,7 +28,7 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
   // check if the participant is already in the graph
   if (!peers_[sessionID]->videoSenders.empty())
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant video sender already exists");
+    Logger::getLogger()->printNormal(this, "Participant video sender already exists");
     return;
   }
 
@@ -43,7 +43,7 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
       // check if the other participant has a receiver (they should)
       if (!peer.second->videoReceivers.empty())
       {
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Connecting receiver to newly created sender",
+        Logger::getLogger()->printNormal(this, "Connecting receiver to newly created sender",
                                         {"Sender SSRC"},
                                         {QString::number(remoteSSRCs.at(0))});
 
@@ -63,14 +63,14 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
         {
           int idx = peer.second->videoReceivers.begin()->second->getOutConnectionIndex(sender);
           outConnectionIndexMap_[{publisherSsrc, remoteSSRCs.at(0)}] = idx;
-          Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded SFU out-connection mapping when adding a sender",
+          Logger::getLogger()->printNormal(this, "Recorded SFU out-connection mapping when adding a sender",
                                           {"publisher","target","outIndex"},
                                           {QString::number(publisherSsrc), QString::number(remoteSSRCs.at(0)), QString::number(idx)});
         }
       }
       else
       {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "No receiver found for participant",
+        Logger::getLogger()->printWarning(this, "No receiver found for participant",
                                         {"Participant"},
                                         {QString::number(peer.first)});
       }
@@ -95,7 +95,7 @@ void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
   // check if the participant is already in the graph
   if (!peers_[sessionID]->videoReceivers.empty())
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant receiver already exists");
+    Logger::getLogger()->printNormal(this, "Participant receiver already exists");
     return;
   }
 
@@ -116,7 +116,7 @@ void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
         uint32_t targetSsrc = peer.second->videoSenders.begin()->first;
         int idx = receiver->getOutConnectionIndex(sender);
         outConnectionIndexMap_[{remoteSSRC, targetSsrc}] = idx;
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded SFU out-connection mapping when adding a receiver",
+        Logger::getLogger()->printNormal(this, "Recorded SFU out-connection mapping when adding a receiver",
                                         {"publisher","target","outIndex"},
                                         {QString::number(remoteSSRC), QString::number(targetSsrc), QString::number(idx)});
       }
@@ -135,7 +135,7 @@ void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sen
   // check if the participant is already in the graph
   if (!peers_[sessionID]->audioSenders.empty())
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant audio sender already in graph");
+    Logger::getLogger()->printNormal(this, "Participant audio sender already in graph");
     return;
   }
 
@@ -150,7 +150,7 @@ void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sen
       // check if the other participant has a receiver (they should)
       if (!peer.second->audioReceivers.empty())
       {
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Connecting receiver to newly created sender",
+        Logger::getLogger()->printNormal(this, "Connecting receiver to newly created sender",
                                         {"Sender SSRC"},
                                         {QString::number(localSSRC)});
 
@@ -158,7 +158,7 @@ void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sen
       }
       else
       {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "No receiver found for participant",
+        Logger::getLogger()->printWarning(this, "No receiver found for participant",
                                         {"Participant"},
                                         {QString::number(peer.first)});
       }
@@ -179,7 +179,7 @@ void FilterGraphSFU::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter
   // check if the participant is already in the graph
   if (!peers_[sessionID]->audioReceivers.empty())
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Participant receiver already exists");
+    Logger::getLogger()->printNormal(this, "Participant receiver already exists");
     return;
   }
 
@@ -215,7 +215,7 @@ void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsr
 
   if (senderSsrc == targetSsrc)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "RTCP APP sender SSRC is the same as target SSRC, ignoring",
+    Logger::getLogger()->printWarning(this, "RTCP APP sender SSRC is the same as target SSRC, ignoring",
                                     {"SSRC"}, {QString::number(senderSsrc)});
     return;
   }
@@ -234,7 +234,7 @@ void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsr
 
   if (!receiver)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "RTCP APP for unknown sender SSRC",
+    Logger::getLogger()->printWarning(this, "RTCP APP for unknown sender SSRC",
                                     {"SenderSSRC"}, {QString::number(senderSsrc)});
     return;
   }
@@ -253,7 +253,7 @@ void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsr
 
   if (!senderFilter)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "RTCP APP for unknown target SSRC",
+    Logger::getLogger()->printWarning(this, "RTCP APP for unknown target SSRC",
                                     {"TargetSSRC"}, {QString::number(targetSsrc)});
     return;
   }
@@ -264,7 +264,7 @@ void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsr
   if (outConnectionIndexMap_.find(key) != outConnectionIndexMap_.end())
   {
     idx = outConnectionIndexMap_[key];
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found mapping for RTCP APP",
+    Logger::getLogger()->printNormal(this, "Found mapping for RTCP APP",
                                     {"publisher","target","outIndex"},
                                     {QString::number(senderSsrc), QString::number(targetSsrc), QString::number(idx)});
   }
@@ -274,7 +274,7 @@ void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsr
     idx = receiver->getOutConnectionIndex(senderFilter);
     if (idx >= 0)
     {
-      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Used fallback index lookup for RTCP APP",
+      Logger::getLogger()->printWarning(this, "Used fallback index lookup for RTCP APP",
                                       {"publisher","target","outIndex"},
                                       {QString::number(senderSsrc), QString::number(targetSsrc), QString::number(idx)});
     }
@@ -282,7 +282,7 @@ void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsr
 
   if (idx < 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Could not find connection from receiver to sender",
+    Logger::getLogger()->printWarning(this, "Could not find connection from receiver to sender",
                                     {"SenderSSRC", "TargetSSRC"}, {QString::number(senderSsrc), QString::number(targetSsrc)});
     return;
   }
@@ -291,26 +291,26 @@ void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsr
   UDPReceiver* rcv = dynamic_cast<UDPReceiver*>(receiver.get());
   if (!rcv)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Receiver is not a UDPReceiver when handling RTCP APP");
+    Logger::getLogger()->printWarning(this, "Receiver is not a UDPReceiver when handling RTCP APP");
     return;
   }
 
   if (appName == "STOP")
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "RTCP APP STOP received, scheduling stop-forwarding",
+    Logger::getLogger()->printNormal(this, "RTCP APP STOP received, scheduling stop-forwarding",
                                     {"sender","target","outIndex","rtpTimestamp"},
                                     {QString::number(senderSsrc), QString::number(targetSsrc), QString::number(idx), QString::number(rtpTimestamp)});
     rcv->requestStopForwardingForIndex(idx, rtpTimestamp);
   }
   else if (appName == "STRT")
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "RTCP APP STRT received, scheduling start-forwarding",
+    Logger::getLogger()->printNormal(this, "RTCP APP STRT received, scheduling start-forwarding",
                                     {"sender","target","outIndex","rtpTimestamp"},
                                     {QString::number(senderSsrc), QString::number(targetSsrc), QString::number(idx), QString::number(rtpTimestamp)});
     rcv->requestStartForwardingForIndex(idx, rtpTimestamp);
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Unknown RTCP APP name", {"app"}, {appName});
+    Logger::getLogger()->printWarning(this, "Unknown RTCP APP name", {"app"}, {appName});
   }
 }

@@ -175,7 +175,7 @@ QString responseTypeToPhrase(SIPResponseStatus response)
 {
   if(responsePhrases.find(response) == responsePhrases.end())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "SIPConversions",
+    Logger::getLogger()->printWarning("SIPConversions",
                                     "Did not find response in phrase map. "
                                     "Maybe it has not been added yet.");
 

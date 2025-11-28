@@ -71,14 +71,14 @@ bool StunMessageFactory::validateStunMessage(STUNMessage& message, int type)
 {
   if (message.getCookie() != STUN_MAGIC_COOKIE)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory", 
+    Logger::getLogger()->printWarning("StunMessageFactory", 
                                     "Magic cookie does not mathc, not a STUN Message");
     return false;
   }
 
   if (message.getType() != type)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory", 
+    Logger::getLogger()->printWarning("StunMessageFactory", 
                                     "Request/response type mismatch");
     return false;
   }
@@ -92,7 +92,7 @@ bool StunMessageFactory::sameTransactionID(uint8_t* expected, uint8_t* received)
   {
       if (expected[i] != received[i])
       {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
+        Logger::getLogger()->printWarning("StunMessageFactory",
                                         "Incorrect response transaction ID!",
                                         {"Expected", "Received"},
                                         {transactionIDtoString(expected),
@@ -134,7 +134,7 @@ bool StunMessageFactory::validateStunResponse(STUNMessage& response,
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory", 
+      Logger::getLogger()->printWarning("StunMessageFactory", 
                                       "Port not reported!");
     }
   }
@@ -213,7 +213,7 @@ bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN
 {
   if (message.size() < 20)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
+    Logger::getLogger()->printWarning("StunMessageFactory",
                                     "Received too small packet to be a STUN message",
                                     {"Size"}, {QString::number(message.size())});
     return false;
@@ -280,7 +280,7 @@ bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN
         }
         default:
         {
-          Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory", 
+          Logger::getLogger()->printWarning("StunMessageFactory", 
                                           "Could not determine attribute!");
           return false;
           break;
@@ -292,7 +292,7 @@ bool StunMessageFactory::networkToHost(QByteArray& message, STUNMessage& outSTUN
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "StunMessageFactory",
+    Logger::getLogger()->printWarning("StunMessageFactory",
                                     "STUN message length does not match packet size",
                                     {"Expected size", "Received size"},
                                     {QString::number(expectedLength),
@@ -319,7 +319,7 @@ std::pair<QHostAddress, uint16_t> StunMessageFactory::extractXorMappedAddress(
     }
     else if (payload[1] == 0x02) // IPv6
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_WARNING, "StunMessageFactory", 
+      Logger::getLogger()->printProgramWarning("StunMessageFactory", 
                                       "IPv6 Unimplemented");
     }
   }

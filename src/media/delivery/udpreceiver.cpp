@@ -48,7 +48,7 @@ void UDPReceiver::process()
           if (delta >= 0)
           {
             setOutputStatus(outIndex, false);
-            Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Applying STOP forwarding action for outIndex",
+            Logger::getLogger()->printNormal(this, "Applying STOP forwarding action for outIndex",
                                             {"outIndex","rtpTimestamp","packetTs","ssrc"},
                                             {QString::number(outIndex), QString::number(stopTs), QString::number(pkt_ts), QString::number(pkt_ssrc)});
             act.action = ForwardingStatus::PAUSED;
@@ -61,7 +61,7 @@ void UDPReceiver::process()
           if (delta >= 0)
           {
             setOutputStatus(outIndex, true);
-            Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Applying START forwarding action for outIndex",
+            Logger::getLogger()->printNormal(this, "Applying START forwarding action for outIndex",
                                             {"outIndex","rtpTimestamp","packetTs","ssrc"},
                                             {QString::number(outIndex), QString::number(startTs), QString::number(pkt_ts), QString::number(pkt_ssrc)});
             act.action = ForwardingStatus::FORWARDING;

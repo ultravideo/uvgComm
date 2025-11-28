@@ -240,7 +240,7 @@ QList<std::shared_ptr<ICEInfo>> SDPICE::generateICECandidates(
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > turnCandidates,
     int components)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start Generating ICE candidates", {
+  Logger::getLogger()->printNormal(this, "Start Generating ICE candidates", {
                "Local", "Global", "STUN", "STUN relays", "TURN"},
             {QString::number(localCandidates->size()),
              QString::number(globalCandidates->size()),
@@ -391,7 +391,7 @@ void SDPICE::printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates)
                                " Priority: " + QString::number(candidate->priority));
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Generated the following ICE candidates",
+  Logger::getLogger()->printNormal(this, "Generated the following ICE candidates",
                                   candidateNames, candidateStrings);
 }
 

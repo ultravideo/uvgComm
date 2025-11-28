@@ -159,7 +159,7 @@ void FilterGraphClient::updateConferenceSize()
 
   if (otherParticipants > 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+    Logger::getLogger()->printNormal(this,
                      "Updating conference size", {"Other Participants", "Conference resolution"},
                      {QString::number(otherParticipants),
                       QString("%1x%2").arg(resolution_.first).arg(resolution_.second)});
@@ -170,7 +170,7 @@ void FilterGraphClient::updateConferenceSize()
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+    Logger::getLogger()->printNormal(this,
                      "No other participants, setting conference size to 1");
     hwResources_->setParticipants(1);
   }
@@ -204,7 +204,7 @@ void FilterGraphClient::updateVideoSettings()
   QString wantedVideoFormat = settings.value(SettingsKey::videoInputFormat).toString();
   if(videoFormat_ != wantedVideoFormat)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
+    Logger::getLogger()->printNormal(this,
                                     "Video format changed. Reconstructing video send graph.",
                                     {"Previous format", "New format"},
                                     {videoFormat_, settings.value(SettingsKey::videoInputFormat).toString()});

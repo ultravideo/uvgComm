@@ -488,7 +488,7 @@ void SIPManager::transportRequest(SIPRequest &request, QVariant& content)
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_ERROR,  metaObject()->className(),
+    Logger::getLogger()->printError(metaObject()->className(),
                "Tried to send request when we are not connected to request-URI");
   }
 }
@@ -507,7 +507,7 @@ void SIPManager::transportResponse(SIPResponse &response, QVariant& content)
     transport->pipe.processOutgoingResponse(response, content);
   }
   else {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, metaObject()->className(),
+    Logger::getLogger()->printError(metaObject()->className(),
                                    "Tried to send response with invalid.");
   }
 }
@@ -625,7 +625,7 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content,
 
   if(!identifySession(response, sessionID) || sessionID == 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, this,
+    Logger::getLogger()->printPeerError(this,
                "Could not identify response session");
     return;
   }
@@ -761,12 +761,12 @@ std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) co
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Could not find transport",
+    Logger::getLogger()->printWarning(this, "Could not find transport",
                       {"Address", "Number of transports"}, {address, QString::number(transports_.size())});
 
     if (transports_.size() == 1)
     {
-      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Only existing transport address",
+      Logger::getLogger()->printWarning(this, "Only existing transport address",
                         {"Address"}, {transports_.begin()->first});
     }
 
@@ -788,7 +788,7 @@ std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) co
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_ERROR, this, "Different IP version was not successful either",
+      Logger::getLogger()->printError(this, "Different IP version was not successful either",
                         {"Different IP Address", }, {differentAddress.toString()});
     }
   }

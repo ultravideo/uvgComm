@@ -41,7 +41,7 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id,
   stream_(stream),
   lastSEITime_(0)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initializing uvgRTP receiver",
+  Logger::getLogger()->printNormal(this, "Initializing uvgRTP receiver",
                                   {"LocalSSRC", "Remote SSRC", "Receiver type"},
                                   {QString::number(localSSRC_),
                                    QString::number(remoteSSRC_),
@@ -92,7 +92,7 @@ void UvgRTPReceiver::uninit()
   // race with stream destruction.
   if (futureRes_.isRunning())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Waiting for ZRTP to finish in destructor");
+    Logger::getLogger()->printWarning(this, "Waiting for ZRTP to finish in destructor");
     futureRes_.waitForFinished();
   }
 
@@ -134,7 +134,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 
   if (frame->header.ssrc != remoteSSRC_)
   {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, this, "Got a packet with wrong SSRC",
+    Logger::getLogger()->printError(this, "Got a packet with wrong SSRC",
                                     {"Expected SSRC", "Packet SSRC", "Receiver Type"},
                                     {QString::number(remoteSSRC_),
                                      QString::number(frame->header.ssrc),

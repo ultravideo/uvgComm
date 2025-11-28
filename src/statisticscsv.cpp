@@ -46,7 +46,7 @@ void StatisticsCSV::addSession(uint32_t sessionID)
 void StatisticsCSV::removeSession(uint32_t sessionID)
 {
   // Write CSV files for all participants in this session
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "CSV Stats", "Removing session",
+  Logger::getLogger()->printNormal("CSV Stats", "Removing session",
                                   {"SessionID","Thread","Time"},
                                   {QString::number(sessionID), QString::number((quintptr)QThread::currentThreadId()), QDateTime::currentDateTime().toString()});
   if (sessionNames_.find(sessionID) == sessionNames_.end())
@@ -170,7 +170,7 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
   sessionNames_.clear();
   localInfo_ = {};
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "CSV Stats", "Result writing finished",
+  Logger::getLogger()->printNormal("CSV Stats", "Result writing finished",
                                   {"SessionID","Time"}, {QString::number(sessionID), QDateTime::currentDateTime().toString()});
 }
 
@@ -179,7 +179,7 @@ void StatisticsCSV::addParticipant(uint32_t sessionID, const QString& cname)
   sessionNames_[sessionID].append(cname);
 
   // Debug: log participant registration to help diagnose missing CSV entries
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "CSV Stats", "addParticipant",
+  Logger::getLogger()->printNormal("CSV Stats", "addParticipant",
                                   {"SessionID", "CName"},
                                   {QString::number(sessionID), cname});
 }

@@ -338,7 +338,7 @@ std::shared_ptr<RelayInterface> Delivery::getUDPRelay(QString localAddress, uint
       connect(tmp.get(), &UVGRelay::rtcpAppPacketReceived,
               this, &Delivery::rtcpAppPacketReceived);
       relays_[relayKey] = std::static_pointer_cast<RelayInterface>(tmp);
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Connected UVGRelay RTCP APP signal to Delivery",
+      Logger::getLogger()->printNormal(this, "Connected UVGRelay RTCP APP signal to Delivery",
                                       {"LocalSocket"}, {relayKey});
     }
     else
@@ -515,7 +515,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
       stream->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC);
     }
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created mediastream for receiving",
+    Logger::getLogger()->printNormal(this, "Created mediastream for receiving",
                                      {"SessionID","RemoteSSRC","IncomingCount"},
                                      {QString::number(sessionID), QString::number(remoteSSRC), QString::number(session.incomingStreams.size())});
   }
@@ -542,7 +542,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
       stream->configure_ctx(RCC_SSRC, localSSRC);
     }
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL,this, "Created mediastream for sending",
+    Logger::getLogger()->printNormal(this, "Created mediastream for sending",
                                      {"SessionID","LocalSSRC","OutgoingCount"},
                                      {QString::number(sessionID), QString::number(localSSRC), QString::number(session.outgoingStreams.size())});
   }
@@ -554,7 +554,7 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
 void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
                                 uint32_t localSSRC)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Removing send media",
+  Logger::getLogger()->printNormal(this, "Removing send media",
                                    {"LocalSSRC"},
                                    {QString::number(localSSRC)});
 
@@ -567,7 +567,7 @@ void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
       session.outgoingStreams[localSSRC]->sender != nullptr)
   {
     auto sender = session.outgoingStreams[localSSRC]->sender;
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found sender before removal",
+    Logger::getLogger()->printNormal(this, "Found sender before removal",
                                      {"SenderPtr"}, {QString::number((quintptr)sender.get())});
     // stop processing and drain buffers
     sender->stop();
@@ -582,7 +582,7 @@ void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
       waitMs += 1;
       if (waitMs % 100 == 0)
       {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Waiting for sender to stop",
+        Logger::getLogger()->printWarning(this, "Waiting for sender to stop",
                                           {"LocalSSRC","WaitMs"},
                                           {QString::number(localSSRC), QString::number(waitMs)});
       }
@@ -602,7 +602,7 @@ void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
   if (session.outgoingStreams.find(localSSRC) != session.outgoingStreams.end() &&
       session.outgoingStreams[localSSRC] != nullptr)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Destroying outgoing media_stream");
+    Logger::getLogger()->printNormal(this, "Destroying outgoing media_stream");
     session.session->destroy_stream(session.outgoingStreams[localSSRC]->ms);
     delete session.outgoingStreams[localSSRC];
     session.outgoingStreams[localSSRC] = nullptr;
@@ -614,7 +614,7 @@ void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
 void Delivery::removeRecvStream(uint32_t sessionID, DeliverySession& session,
                                 uint32_t remoteSSRC)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Removing receive stream",
+  Logger::getLogger()->printNormal(this, "Removing receive stream",
                                    {"RemoteSSRC"}, {QString::number(remoteSSRC)});
 
   // If a receiver filter exists, stop it and release it before destroying
@@ -627,7 +627,7 @@ void Delivery::removeRecvStream(uint32_t sessionID, DeliverySession& session,
     if (session.incomingStreams[remoteSSRC]->receiver != nullptr)
     {
       auto receiver = session.incomingStreams[remoteSSRC]->receiver;
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found receiver before removal");
+      Logger::getLogger()->printNormal(this, "Found receiver before removal");
       receiver->stop();
       receiver->emptyBuffer();
 
@@ -641,7 +641,7 @@ void Delivery::removeRecvStream(uint32_t sessionID, DeliverySession& session,
       receiver = nullptr;
     }
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Destroying incoming media_stream");
+    Logger::getLogger()->printNormal(this, "Destroying incoming media_stream");
     session.session->destroy_stream(session.incomingStreams[remoteSSRC]->ms);
     delete session.incomingStreams[remoteSSRC];
     session.incomingStreams[remoteSSRC] = nullptr;

@@ -23,7 +23,7 @@ ScriptMode commandLine(QApplication& app,
                        QString& outScriptfile, QString& outConfigfile,
                        QString& statsFolder,   QString& sipLogFile)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Parsing command line arguments");
+  Logger::getLogger()->printNormal("Main", "Parsing command line arguments");
 
   QCommandLineParser parser;
   parser.setApplicationDescription("Video conferencing app with optional scripting support");
@@ -85,7 +85,7 @@ ScriptMode commandLine(QApplication& app,
     sipLogFile = parser.value(sipOption);
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Command line parsing done",
+  Logger::getLogger()->printNormal("Main", "Command line parsing done",
                                   {"Script mode", "Script file", "Config file", "Stats folder", "SIP log file"},
                                   {QString::number(static_cast<int>(scriptMode)),
                                    outScriptfile, outConfigfile, statsFolder, sipLogFile});
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
   a.setApplicationName("uvgComm");
   //a.setQuitOnLastWindowClosed(false);
 
-  //Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Starting uvgComm",
+  //Logger::getLogger()->printNormal("Main", "Starting uvgComm",
   //                                {"Version"}, {QString::fromStdString(get_version())});
 
   int id = QFontDatabase::addApplicationFont(":/fonts/OpenSans-Regular.ttf");
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Main", 
+    Logger::getLogger()->printWarning("Main", 
                                     "Could not find default font. Is the file missing?");
   }
 

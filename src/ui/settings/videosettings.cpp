@@ -303,7 +303,7 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
     QString format = cam_->getFormat(currentDevice_, formatText);
     QSize res = cam_->getResolution(currentDevice_, format, videoSettingsUI_->resolution->currentText());
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Box status", {"Format", "Resolution"},
+    Logger::getLogger()->printNormal(this, "Box status", {"Format", "Resolution"},
                                     {format, QString::number(res.width()) + "x" + QString::number(res.height())});
 
     // since kvazaar requires resolution to be divisible by eight
@@ -328,7 +328,7 @@ void VideoSettings::saveCameraCapabilities(int deviceIndex, bool cameraEnabled)
 
     settings.setValue(SettingsKey::videoInputFormat,          format);
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Recorded following video settings.",
+    Logger::getLogger()->printNormal(this, "Recorded following video settings.",
                                     {"Resolution", "Format"},
                                     {QString::number(res.width()) + "x" +
                                      QString::number(res.height()), format});
@@ -492,7 +492,7 @@ void VideoSettings::restoreFormat()
       format = settings.value(SettingsKey::videoInputFormat).toString();
       int formatIndex = videoSettingsUI_->format_box->findText(format);
 
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Trying to find format for camera",
+      Logger::getLogger()->printNormal(this, "Trying to find format for camera",
                                       {"Format", "Format index"}, {format, QString::number(formatIndex)});
 
       if (0 <= formatIndex && formatIndex < videoSettingsUI_->format_box->count())
