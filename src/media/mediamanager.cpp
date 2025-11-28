@@ -446,6 +446,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
 
   for (size_t i = 0; i < remoteSSRCs.size(); ++i)
   {
+    // filter out our own cname unless it's the only one
     if (remoteCNAMEs.at(i) != ourCname || remoteSSRCs.size() == 1)
     {
       filteredSSRCs.push_back(remoteSSRCs.at(i));

@@ -84,9 +84,8 @@ void HybridFilter::addLink(LinkType type,
     }
     else
     {
-      Logger::getLogger()->printNormal(this, "Overwriting existing P2P link",
-                                      {"CNAME", "SSRC", "SenderPtr"},
-                                      {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
+      // TODO: The pointer that arrives here when adding new participants is for newest participant, which breasks existing connections
+      Logger::getLogger()->printUnimplemented(this, "We should update existing index in case participants have left, but the index is not correct");
 
       if (entry->p2pRTPSender != rtpSender)
       {
@@ -96,10 +95,8 @@ void HybridFilter::addLink(LinkType type,
       {
         Logger::getLogger()->printWarning(this, "P2P SSRC changed for existing link");
       }
-      if (entry->p2pOutIndex != outIdx)
-      {
-        Logger::getLogger()->printWarning(this, "P2P output index changed for existing link");
-      }
+      
+      return;
     }
 
     entry->p2pSSRC = ssrc;
