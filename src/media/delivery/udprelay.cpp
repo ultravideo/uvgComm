@@ -21,6 +21,10 @@ void UDPRelay::registerRTPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter
   receivers_[ssrc] = filter;
 }
 
+void UDPRelay::registerRTCPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter)
+{
+  // Not implemented
+}
 
 void UDPRelay::sendUDPData(std::string destinationAddress, uint16_t port,
                            std::unique_ptr<unsigned char[]> data, uint32_t size)

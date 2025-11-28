@@ -19,6 +19,7 @@ public:
   UDPRelay(std::string localAddress, uint16_t port);
 
   virtual void registerRTPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter);
+  virtual void registerRTCPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter);
 
   virtual void sendUDPData(std::string destinationAddress, uint16_t port,
                            std::unique_ptr<unsigned char[]> data, uint32_t size);

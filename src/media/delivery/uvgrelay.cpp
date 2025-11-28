@@ -1,8 +1,9 @@
 #include "uvgrelay.h"
 
+#include "src/media/processing/filter.h"
+
 #include "logger.h"
 
-#include "src/media/processing/filter.h"
 
 #include <QDateTime>
 #include <cstring>
@@ -69,7 +70,13 @@ UVGRelay::~UVGRelay()
 
 void UVGRelay::registerRTPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter)
 {
-  receivers_[ssrc] = filter;
+  rtpReceivers_[ssrc] = filter;
+}
+
+
+void UVGRelay::registerRTCPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter)
+{
+  rtcpReceivers_[ssrc] = filter;
 }
 
 
@@ -176,9 +183,9 @@ void UVGRelay::run()
           std::memcpy(&ssrc, buffer + 8, sizeof(ssrc));
           ssrc = ntohl(ssrc);
 
-          if (receivers_.find(ssrc) != receivers_.end())
+          if (rtpReceivers_.find(ssrc) != rtpReceivers_.end())
           {
-            std::shared_ptr<Filter> filter = receivers_[ssrc];
+            std::shared_ptr<Filter> filter = rtpReceivers_[ssrc];
 
             std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
             receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
@@ -205,9 +212,9 @@ void UVGRelay::run()
           std::memcpy(&ssrc, buffer + 4, sizeof(ssrc));
           ssrc = ntohl(ssrc);
 
-          if (receivers_.find(ssrc) != receivers_.end())
+          if (rtcpReceivers_.find(ssrc) != rtcpReceivers_.end())
           {
-            std::shared_ptr<Filter> filter = receivers_[ssrc];
+            std::shared_ptr<Filter> filter = rtcpReceivers_[ssrc];
 
             std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
             receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
@@ -285,9 +292,9 @@ void UVGRelay::handleRTCPCompound(const uint8_t* buffer, int length)
         {
           std::memcpy(&timestamp, buffer + offset + 16, sizeof(timestamp));
           timestamp = ntohl(timestamp);
-        }
 
-        emit rtcpAppPacketReceived(senderSsrc, targetSsrc, timestamp, appName, subtype);
+          emit rtcpAppPacketReceived(senderSsrc, targetSsrc, timestamp, appName, subtype);
+        }
       }
     }
 

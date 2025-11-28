@@ -13,6 +13,7 @@
 
 class Filter;
 
+
 class UVGRelay : public QThread, public RelayInterface
 {
   Q_OBJECT
@@ -21,6 +22,7 @@ public:
   ~UVGRelay();
 
   virtual void registerRTPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter);
+  virtual void registerRTCPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter);
 
   virtual void sendUDPData(std::string destinationAddress, uint16_t port,
                            std::unique_ptr<unsigned char[]> data, uint32_t size);
@@ -65,7 +67,8 @@ private:
 
   void handleRTCPCompound(const uint8_t* buffer, int length);
 
-  std::unordered_map<uint32_t, std::shared_ptr<Filter>> receivers_;
+  std::unordered_map<uint32_t, std::shared_ptr<Filter>> rtpReceivers_;
+  std::unordered_map<uint32_t, std::shared_ptr<Filter>> rtcpReceivers_;
 
   // this class is stolen from uvgRTP
   uvgrtp::socket socket_;

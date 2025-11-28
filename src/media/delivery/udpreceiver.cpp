@@ -76,6 +76,7 @@ void UDPReceiver::process()
   }
 }
 
+
 void UDPReceiver::requestStopForwardingForIndex(int outIndex, uint32_t rtpTimestamp)
 {
   std::lock_guard<std::mutex> g(pendingMutex_);
