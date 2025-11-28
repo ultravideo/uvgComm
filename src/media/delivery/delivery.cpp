@@ -319,6 +319,30 @@ std::shared_ptr<Filter> Delivery::addUDPReceiveStream(uint32_t sessionID,
 }
 
 
+std::shared_ptr<Filter> Delivery::addUDPReceiveRTCPStream(uint32_t sessionID,
+                                                          QString localAddress, uint16_t localPort,
+                                                          uint32_t remoteSSRC)
+{
+  if (udpRtcpReceivers_.find(remoteSSRC) == udpRtcpReceivers_.end())
+  {
+    Logger::getLogger()->printNormal(this, "Creating new RTCP-only UDP receiver", "Path",
+                                     localAddress + ":" + QString::number(localPort));
+
+    std::shared_ptr<RelayInterface> relay = getUDPRelay(localAddress, localPort);
+    QString id = localAddress + ":" + QString::number(localPort);
+    udpRtcpReceivers_[remoteSSRC] = std::shared_ptr<UDPReceiver>(new UDPReceiver(id, stats_, hwResources_));
+    // Register as RTCP receiver so RTCP-only flow is handled separately from RTP
+    relay->registerRTCPReceiver(remoteSSRC, udpRtcpReceivers_[remoteSSRC]);
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Using existing RTCP-only UDP receiver");
+  }
+
+  return udpRtcpReceivers_[remoteSSRC];
+}
+
+
 std::shared_ptr<RelayInterface> Delivery::getUDPRelay(QString localAddress, uint16_t localPort)
 {
   QString relayKey = localAddress + ":" + QString::number(localPort);

@@ -42,6 +42,9 @@ public:
                         uint32_t remoteSSRC,
                         QString cname) = 0;
 
+  virtual void receiveRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                               uint32_t remoteSSRC, QString cname) = 0;
+
   virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
                    uint32_t localSSRC) = 0;
 
@@ -70,6 +73,8 @@ protected:
     // key is remote SSRC
     std::map<uint32_t, std::shared_ptr<Filter>> audioReceivers; // receives audio
     std::map<uint32_t, std::shared_ptr<Filter>> videoReceivers; // receives video
+
+    std::map<uint32_t, std::shared_ptr<Filter>> rtcpReceivers;
 
     // key is remote CName
     std::map<QString, std::shared_ptr<GraphSegment>> videoViewFlow;

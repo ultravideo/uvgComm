@@ -569,6 +569,7 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID,
   }
 }
 
+
 void MediaManager::sfuMedia(uint32_t sessionID,
                             const MediaInfo& localMedia,
                             const MediaInfo& remoteMedia,
@@ -696,6 +697,19 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
                                                                    localMedia.connection_address,
                                                                    localMedia.receivePort,
                                                                    remoteSSRCs.at(0));
+
+  // Also request an RTCP-only receiver filter (always active) and hand it to
+  // the SFU so RTCP processing is separate from RTP. Delivery will register
+  // the RTCP receiver with the relay; SFU will treat it separately.
+  std::shared_ptr<Filter> rtcpReceive = streamer_->addUDPReceiveRTCPStream(sessionID,
+                                                                          localMedia.connection_address,
+                                                                          localMedia.receivePort,
+                                                                          remoteSSRCs.at(0));
+
+  if (rtcpReceive != nullptr)
+  {
+    sfuFg_->receiveRTCPFrom(sessionID, rtcpReceive, remoteSSRCs.at(0), remoteCNAME);
+  }
 
   if (enabled)
   {

@@ -67,6 +67,14 @@ void FilterGraphSFU::sendVideoto(uint32_t sessionID,
                                           {"publisher","target","outIndex"},
                                           {QString::number(publisherSsrc), QString::number(remoteSSRCs.at(0)), QString::number(idx)});
         }
+        // Also connect any RTCP-only receivers from this participant to the new sender
+        if (!peer.second->rtcpReceivers.empty())
+        {
+          for (auto &rr : peer.second->rtcpReceivers)
+          {
+            connectFilters(rr.second, sender);
+          }
+        }
       }
       else
       {
@@ -127,6 +135,40 @@ void FilterGraphSFU::receiveVideoFrom(uint32_t sessionID,
 }
 
 
+void FilterGraphSFU::receiveRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                     uint32_t remoteSSRC, QString cname)
+{
+  Q_UNUSED(cname);
+
+  checkParticipant(sessionID);
+
+  if (!peers_[sessionID]->rtcpReceivers.empty())
+  {
+    Logger::getLogger()->printNormal(this, "Participant RTCP receiver already exists");
+    return;
+  }
+
+  peers_.at(sessionID)->rtcpReceivers[remoteSSRC] = receiver;
+
+  // Connect this RTCP-only receiver to existing senders so it follows the
+  // same topology as the RTP receiver. Do not record outConnectionIndexMap_
+  // entries so APP control messages do not affect this receiver.
+  for (auto& peer : peers_)
+  {
+    if (peer.first != sessionID && peer.second != nullptr)
+    {
+      if (!peer.second->videoSenders.empty())
+      {
+        auto sender = peer.second->videoSenders.begin()->second;
+        connectFilters(receiver, sender);
+      }
+    }
+  }
+
+  receiver->start();
+}
+
+
 void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
                                  uint32_t localSSRC)
 {
@@ -155,6 +197,14 @@ void FilterGraphSFU::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sen
                                         {QString::number(localSSRC)});
 
         connectFilters(peer.second->audioReceivers.begin()->second, sender);
+        // Also connect any RTCP-only receivers from this participant to the new audio sender
+        if (!peer.second->rtcpReceivers.empty())
+        {
+          for (auto &rr : peer.second->rtcpReceivers)
+          {
+            connectFilters(rr.second, sender);
+          }
+        }
       }
       else
       {

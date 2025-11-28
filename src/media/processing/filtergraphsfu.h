@@ -24,6 +24,12 @@ public:
                                 uint32_t remoteSSRC,
                                 QString cname);
 
+  // Handle RTCP-only receivers (separate flow from RTP). The SFU will add
+  // the filter to its internal structures and connect it to senders similarly
+  // to RTP receivers, but control APP messages should not affect these.
+  virtual void receiveRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                               uint32_t remoteSSRC, QString cname);
+
   virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
                            uint32_t localSSRC);
   virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,

@@ -66,6 +66,10 @@ public:
                                                QString localAddress, uint16_t localPort,
                                                uint32_t remoteSSRC);
 
+  std::shared_ptr<Filter> addUDPReceiveRTCPStream(uint32_t sessionID,
+                                                  QString localAddress, uint16_t localPort,
+                                                  uint32_t remoteSSRC);
+
   // TODO: Add a way to remove individual streams
   //void removeSendStream(uint32_t sessionID, uint16_t localPort);
   //void removeReceiveStream(uint32_t sessionID, uint16_t localPort);
@@ -172,4 +176,8 @@ private:
   // key is
   std::map<uint32_t, std::shared_ptr<Filter>> udpSenders_;
   std::map<uint32_t, std::shared_ptr<Filter>> udpReceivers_;
+  // RTCP-only UDP receivers which receive RTCP flow independently from RTP
+  std::map<uint32_t, std::shared_ptr<Filter>> udpRtcpReceivers_;
+
+
 };
