@@ -34,22 +34,24 @@ public:
                            uint32_t localSSRC,
                            const std::vector<uint32_t>& remoteSSRCs,
                            const std::vector<QString>& remoteCNAMEs,
-                           bool isP2P,
-                           std::pair<uint16_t, uint16_t> resolution) = 0;
+                           bool isP2P, std::pair<uint16_t, uint16_t> resolution) = 0;
 
   virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
-                        VideoInterface *view,
-                        uint32_t remoteSSRC,
-                        QString cname) = 0;
+                                VideoInterface *view,
+                                uint32_t remoteSSRC,
+                                QString cname) = 0;
 
-  virtual void receiveRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
-                               uint32_t remoteSSRC, QString cname) = 0;
+  virtual void receiveVideoRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                    uint32_t remoteSSRC, QString cname) = 0;
 
   virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
-                   uint32_t localSSRC) = 0;
+                           uint32_t localSSRC) = 0;
 
   virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
-                        uint32_t remoteSSRC, QString cname) = 0;
+                                uint32_t remoteSSRC, QString cname) = 0;
+
+  virtual void receiveAudioRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                    uint32_t remoteSSRC, QString cname) = 0;
 
   // removes participant and all its associated filter from filter graph.
   void removeParticipant(uint32_t sessionID);
@@ -74,7 +76,8 @@ protected:
     std::map<uint32_t, std::shared_ptr<Filter>> audioReceivers; // receives audio
     std::map<uint32_t, std::shared_ptr<Filter>> videoReceivers; // receives video
 
-    std::map<uint32_t, std::shared_ptr<Filter>> rtcpReceivers;
+    std::map<uint32_t, std::shared_ptr<Filter>> audioRTCPReceivers;
+    std::map<uint32_t, std::shared_ptr<Filter>> videoRTCPReceivers;
 
     // key is remote CName
     std::map<QString, std::shared_ptr<GraphSegment>> videoViewFlow;

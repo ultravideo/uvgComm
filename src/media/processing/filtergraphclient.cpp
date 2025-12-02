@@ -836,8 +836,8 @@ void FilterGraphClient::selectVideoSource()
 }
 
 
-void FilterGraphClient::receiveRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
-                                       uint32_t remoteSSRC, QString cname)
+void FilterGraphClient::receiveVideoRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                             uint32_t remoteSSRC, QString cname)
 {
   Q_UNUSED(sessionID);
   Q_UNUSED(receiver);
@@ -845,6 +845,18 @@ void FilterGraphClient::receiveRTCPFrom(uint32_t sessionID, std::shared_ptr<Filt
   Q_UNUSED(cname);
 
   Logger::getLogger()->printWarning(this, "Client filter graph received an RTCP-only receiver; not handled yet");
+}
+
+
+void FilterGraphClient::receiveAudioRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                             uint32_t remoteSSRC, QString cname)
+{
+  Q_UNUSED(sessionID);
+  Q_UNUSED(receiver);
+  Q_UNUSED(remoteSSRC);
+  Q_UNUSED(cname);
+
+  Logger::getLogger()->printWarning(this, "Client filter graph received an RTCP-only audio receiver; not handled yet");
 }
 
 

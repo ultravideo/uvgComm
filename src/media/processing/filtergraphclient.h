@@ -33,22 +33,22 @@ public:
                            const std::vector<QString>& remoteCNAMEs,
                            bool isP2P, std::pair<uint16_t, uint16_t> resolution);
 
-  virtual void receiveVideoFrom(uint32_t sessionID,
-                                std::shared_ptr<Filter> receiver,
-                                VideoInterface* view,
+  virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                VideoInterface *view,
                                 uint32_t remoteSSRC,
                                 QString cname);
 
-  // RTCP-only receiver entry point for client-side graphs. Currently a
-  // no-op with a warning; clients do not process RTCP-only flows yet.
-  virtual void receiveRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
-                               uint32_t remoteSSRC, QString cname);
+  virtual void receiveVideoRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                    uint32_t remoteSSRC, QString cname);
 
-  virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender, uint32_t localSSRC);
-  virtual void receiveAudioFrom(uint32_t sessionID,
-                                std::shared_ptr<Filter> receiver,
-                                uint32_t remoteSSRC,
-                                QString cname);
+  virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
+                           uint32_t localSSRC);
+
+  virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                uint32_t remoteSSRC, QString cname);
+
+  virtual void receiveAudioRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                    uint32_t remoteSSRC, QString cname);
 
   virtual void running(bool state);
 

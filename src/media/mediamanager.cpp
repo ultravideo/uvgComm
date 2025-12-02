@@ -706,21 +706,18 @@ void MediaManager::sfuReceiveMedia(uint32_t sessionID,
                                                                           localMedia.receivePort,
                                                                           remoteSSRCs.at(0));
 
-  if (rtcpReceive != nullptr)
-  {
-    sfuFg_->receiveRTCPFrom(sessionID, rtcpReceive, remoteSSRCs.at(0), remoteCNAME);
-  }
-
   if (enabled)
   {
     if (localMedia.type == "audio")
     {
       sfuFg_->receiveAudioFrom(sessionID, receive, remoteSSRCs.at(0), remoteCNAME);
+      sfuFg_->receiveAudioRTCPFrom(sessionID, rtcpReceive, remoteSSRCs.at(0), remoteCNAME);
     }
     else if (localMedia.type == "video")
     {
       VideoInterface* videoView = nullptr; // SFU does not need a view for receiving
       sfuFg_->receiveVideoFrom(sessionID, receive, videoView, remoteSSRCs.at(0), remoteCNAME);
+      sfuFg_->receiveVideoRTCPFrom(sessionID, rtcpReceive, remoteSSRCs.at(0), remoteCNAME);
     }
     else
     {

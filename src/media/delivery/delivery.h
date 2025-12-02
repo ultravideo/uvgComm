@@ -176,8 +176,7 @@ private:
   // key is
   std::map<uint32_t, std::shared_ptr<Filter>> udpSenders_;
   std::map<uint32_t, std::shared_ptr<Filter>> udpReceivers_;
+
   // RTCP-only UDP receivers which receive RTCP flow independently from RTP
   std::map<uint32_t, std::shared_ptr<Filter>> udpRtcpReceivers_;
-
-
 };
