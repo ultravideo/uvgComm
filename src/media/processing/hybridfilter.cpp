@@ -470,12 +470,20 @@ void HybridFilter::fullBandwidthEvaluation()
     else if (hasP2P && hasSFU) // both available
     {
       // only switch if p2p link actually reduces latency
-      if (entry->latestsP2PRtt > 0.0 && entry->latestsSFURtt > 0.0 && entry->latestsP2PRtt < entry->latestsSFURtt)
+      if (entry->latestsP2PRtt <= 0.0 && entry->latestsSFURtt <= 0.0)
+      {
+        // no valid measurements, keep existing state
+        Logger::getLogger()->printWarning(this, "No valid RTT measurements for links, keeping existing state",
+                                         {"CNAME", "P2P RTT", "SFU RTT"}, {pair.first,
+                                          QString::number(entry->latestsP2PRtt) + " ms",
+                                          QString::number(entry->latestsSFURtt) + " ms"});
+      }
+      else if (entry->latestsP2PRtt < entry->latestsSFURtt)
       {
         ++p2pLinks;
         if (!entry->p2pActive)
         {
-          Logger::getLogger()->printNormal(this, "Switching to P2P connection",
+          Logger::getLogger()->printNormal(this, "Switch link to P2P",
                                           {"CNAME", "Expected latency reduction", "SSRC"},
                                           {pair.first, QString::number(entry->latestsSFURtt - entry->latestsP2PRtt) + " ms",
                                            QString::number(entry->p2pSSRC)});
@@ -484,12 +492,12 @@ void HybridFilter::fullBandwidthEvaluation()
       }
       else
       {
-        Logger::getLogger()->printNormal(this, "Switching to SFU connection",
-                                        {"CNAME", "Expected latency change", "SSRC"},
-                                        {pair.first, QString::number(entry->latestsP2PRtt - entry->latestsSFURtt) + " ms",
-                                         QString::number(entry->sfuSSRC)});
         if (entry->p2pActive)
         {
+          Logger::getLogger()->printNormal(this, "Switch link to SFU",
+                                           {"CNAME", "Expected latency increase", "SSRC"},
+                                           {pair.first, QString::number(entry->latestsSFURtt - entry->latestsP2PRtt) + " ms",
+                                            QString::number(entry->sfuSSRC)});
           delayedSwitchToSFU(entry);
         }
 

@@ -143,6 +143,8 @@ void UvgRTPSender::sendAPP(uint32_t remoteSSRC, int afterFrames, const char* nam
       Logger::getLogger()->printWarning(this, "Failed to send RTCP APP STOP packet");
     }
   }
+
+  Logger::getLogger()->printNormal(this, "Sent RTCP APP packet");
 }
 
 
