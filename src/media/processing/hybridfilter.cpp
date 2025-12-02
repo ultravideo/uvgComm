@@ -344,8 +344,6 @@ void HybridFilter::reEvaluateConnections()
     return;
   }
 
-  const int maxP2PConnections = networkBandwidth / linkBandwidth;
-
   // calculate the average RTT for each cname/link entry
   for (auto& pair : cnameToLinks_)
   {
@@ -358,11 +356,15 @@ void HybridFilter::reEvaluateConnections()
     entry->latestsSFURtt = averageRTT(entry->sfuRTT);
   }
 
+  int maxP2PConnections = networkBandwidth / linkBandwidth;
+
   // we can do all connections however we like
-  if (maxP2PConnections >= cnameToLinks_.size())
+  if (maxP2PConnections  >= cnameToLinks_.size())
   {
     return fullBandwidthEvaluation();
   }
+
+  maxP2PConnections -= 1; // reserve one link for SFU
 
   // Otherwise, use P2P where RTT benefit is biggest
   rankedBandwidthEvaluation(maxP2PConnections, linkBandwidth);
