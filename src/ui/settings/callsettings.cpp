@@ -1,9 +1,10 @@
 #include "callsettings.h"
 
-#include "common.h"
 #include "ui_callsettings.h"
-
 #include "settingshelper.h"
+
+#include "common.h"
+#include "global.h"
 #include "settingskeys.h"
 #include "logger.h"
 
@@ -26,8 +27,6 @@ const std::map<QString, ResolutionBitrate> RESOLUTIONS =
   {"QHD (1440p)",     {2560, 1440, 5000000}},
   {"4K UHD (2160p)",  {3840, 2160, 10000000}}
 };
-
-const float TRANSMISSION_OVERHEAD = 0.05f; // 5% overhead for transmission
 
 int CallSettings::getAudioBitrate(int totalBitrate) const
 {

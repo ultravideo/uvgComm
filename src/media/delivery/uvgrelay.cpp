@@ -281,14 +281,14 @@ void UVGRelay::handleRTCPCompound(const uint8_t* buffer, int length)
       name[4] = '\0';
       QString appName = QString::fromLatin1(name, 4);
 
-      if (packetSize >= 20)
+      if (packetSize >= 16)
       {
         uint32_t targetSsrc = 0;
         std::memcpy(&targetSsrc, buffer + offset + 12, sizeof(targetSsrc));
         targetSsrc = ntohl(targetSsrc);
 
         uint32_t timestamp = 0;
-        if (packetSize >= 24)
+        if (packetSize >= 20)
         {
           std::memcpy(&timestamp, buffer + offset + 16, sizeof(timestamp));
           timestamp = ntohl(timestamp);
@@ -297,8 +297,17 @@ void UVGRelay::handleRTCPCompound(const uint8_t* buffer, int length)
 
           emit rtcpAppPacketReceived(senderSsrc, targetSsrc, timestamp, appName, subtype);
         }
+        else
+        {
+          Logger::getLogger()->printWarning(this, "Received an RTCP APP packet without RTP timestamp");
+        }
+      }
+      else
+      {
+        Logger::getLogger()->printWarning(this, "Received an RTCP APP packet without target SSRC");
       }
     }
+
 
     offset += packetSize;
   }

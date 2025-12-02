@@ -65,3 +65,5 @@ struct MediaSource {
   std::set<uint32_t> audioSSRCs;
   std::set<uint32_t> videoSSRCs;
 };
+
+const float TRANSMISSION_OVERHEAD = 0.05f; // 5% overhead for RTP, UDP, IP headers etc.

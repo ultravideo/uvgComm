@@ -336,7 +336,7 @@ void HybridFilter::reEvaluateConnections()
     linkBandwidth += slave->getBitrate();;
   }
 
-  linkBandwidth = linkBandwidth/0.95; // reserve 5% for overhead
+  linkBandwidth = linkBandwidth/(1.0 - TRANSMISSION_OVERHEAD);
 
   if (linkBandwidth <= 0)
   {

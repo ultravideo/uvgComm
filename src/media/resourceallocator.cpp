@@ -299,7 +299,7 @@ void ResourceAllocator::limitBitrate(int& bitrate, DataType type)
   }
   else if (type == DT_HEVCVIDEO)
   {
-    int maxOverallBandwidth = uploadBandwidth_ * 0.95; // leave room for overhead
+    int maxOverallBandwidth = uploadBandwidth_ * (1.0 - TRANSMISSION_OVERHEAD); // leave room for overhead
     int maxVideoBitrate = maxOverallBandwidth - DEFAULT_OPUS_BITRATE_BITS; // reduce audio the get video
 
     if (bitrateMode_ == SINGLE_UPLINK_BITRATE)
