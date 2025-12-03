@@ -397,7 +397,7 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo)
     if (sfuRTPSender_)
     {
       // sync with sfu server
-      sfuRTPSender_->stopForwarding(linkInfo->sfuSSRC, nextSwitch_);
+      sfuRTPSender_->stopForwarding(linkInfo->sfuSSRC, nextSwitch_ + 1);
     }
     linksToSwitch_.push_back(linkInfo);
   }
@@ -472,7 +472,7 @@ void HybridFilter::fullBandwidthEvaluation()
     else if (hasP2P && hasSFU) // both available
     {
       // only switch if p2p link actually reduces latency
-      if (entry->latestsP2PRtt <= 0.0 && entry->latestsSFURtt <= 0.0)
+      if (entry->latestsP2PRtt <= 0.0 || entry->latestsSFURtt <= 0.0)
       {
         // no valid measurements, keep existing state
         Logger::getLogger()->printWarning(this, "No valid RTT measurements for links, keeping existing state",
