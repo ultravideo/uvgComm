@@ -9,6 +9,11 @@
 #include "logger.h"
 
 #include <QDateTime>
+#include <QNetworkInterface>
+#include <QHostAddress>
+#include <QAbstractSocket>
+
+static const QString NO_PRIVATE_ADDRESSES = QStringLiteral("No private addresses");
 
 
 struct ResolutionBitrate
@@ -60,6 +65,57 @@ QString CallSettings::bitrateString(int totalBitrate, int audioBitrate, int vide
       .arg(audioBitrate / 1000);
 }
 
+
+void CallSettings::populateAddressBox()
+{
+  if (!advancedUI_)
+    return;
+  advancedUI_->address_box->clear();
+
+  // First option: no explicit private address selected -> use any public address
+  advancedUI_->address_box->addItem(NO_PRIVATE_ADDRESSES);
+
+  // Then list only private/local IPv4 addresses for explicit selection.
+  QList<QHostAddress> addrs = QNetworkInterface::allAddresses();
+  QSet<QString> seen;
+
+  for (const QHostAddress& a : addrs)
+  {
+    if (a.protocol() != QAbstractSocket::IPv4Protocol)
+      continue;
+    if (a.isLoopback())
+      continue;
+    QString s = a.toString();
+    if (s.isEmpty() || s == "0.0.0.0")
+      continue;
+    if (seen.contains(s))
+      continue;
+    seen.insert(s);
+    if (isPrivateIPv4(a))
+    {
+      advancedUI_->address_box->addItem(s);
+    }
+  }
+}
+
+
+bool CallSettings::isPrivateIPv4(const QHostAddress& addr) const
+{
+  quint32 ip = addr.toIPv4Address();
+  if (ip == 0) return false;
+
+  // 10.0.0.0/8
+  if ((ip & 0xFF000000) == 0x0A000000) return true;
+  // 172.16.0.0/12
+  if ((ip & 0xFFF00000) == 0xAC100000) return true;
+  // 192.168.0.0/16
+  if ((ip & 0xFFFF0000) == 0xC0A80000) return true;
+  // link-local 169.254.0.0/16
+  if ((ip & 0xFFFF0000) == 0xA9FE0000) return true;
+
+  return false;
+}
+
 // if one of these is missing, we load the default setting for all of them (I was too lazy to do it individually)
 const QStringList neededSettings = {SettingsKey::localAutoAccept,
                                     SettingsKey::sipRole,
@@ -68,7 +124,6 @@ const QStringList neededSettings = {SettingsKey::localAutoAccept,
 #ifdef uvgComm_NO_RTP_MULTIPLEXING
                                     SettingsKey::sipICEEnabled,
 #endif
-                                    SettingsKey::privateAddresses,
                                     SettingsKey::sipSTUNEnabled,
                                     SettingsKey::sipSTUNAddress,
                                     SettingsKey::sipSTUNPort,
@@ -100,6 +155,9 @@ CallSettings::CallSettings(QWidget* parent):
 
   connect(advancedUI_->hybrid_slider, &QSlider::valueChanged,
           this, &CallSettings::updateHybridPrioritization);
+
+  // populate addresses early so UI shows choices right away
+  populateAddressBox();
 }
 
 
@@ -259,7 +317,7 @@ void CallSettings::saveAdvancedSettings()
 #ifdef uvgComm_NO_RTP_MULTIPLEXING
   saveCheckBox(SettingsKey::sipICEEnabled,      advancedUI_->ice_checkbox, settings);
 #endif
-  saveCheckBox(SettingsKey::privateAddresses,   advancedUI_->local_checkbox, settings);
+
   saveCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings);
 
   saveTextValue(SettingsKey::sipRole, advancedUI_->role_combo->currentText(), settings);
@@ -303,6 +361,18 @@ void CallSettings::saveAdvancedSettings()
 
   settings.setValue(SettingsKey::sipSIPPort, advancedUI_->sip_port->value());
   settings.setValue(SettingsKey::sipSIPProtocol, advancedUI_->protocol_box->currentText());
+
+  if (advancedUI_->address_box->currentText().size() > 0)
+  {
+    if (advancedUI_->address_box->currentText() == NO_PRIVATE_ADDRESSES)
+    {
+      settings.setValue(SettingsKey::sipLocalAddress, QString());
+    }
+    else
+    {
+      settings.setValue(SettingsKey::sipLocalAddress, advancedUI_->address_box->currentText());
+    }
+  }
 }
 
 
@@ -351,12 +421,12 @@ void CallSettings::restoreAdvancedSettings()
 
 // TODO: Remove this once ICE works with multiplexing
 #ifdef uvgComm_NO_RTP_MULTIPLEXING
-    restoreCheckBox(SettingsKey::sipICEEnabled,     advancedUI_->ice_checkbox, settings_);
+  restoreCheckBox(SettingsKey::sipICEEnabled,     advancedUI_->ice_checkbox, settings_);
 #else
-    advancedUI_->ice_label->hide();
-    advancedUI_->ice_checkbox->hide();
+  advancedUI_->ice_label->hide();
+  advancedUI_->ice_checkbox->hide();
 #endif
-    restoreCheckBox(SettingsKey::privateAddresses,     advancedUI_->local_checkbox, settings);
+
     restoreCheckBox(SettingsKey::sipSRTP,            advancedUI_->srtp_enabled, settings);
 
     QString type = settings.value(SettingsKey::sipRole).toString();
@@ -369,6 +439,31 @@ void CallSettings::restoreAdvancedSettings()
     advancedUI_->stun_port->setValue  (settings.value(SettingsKey::sipSTUNPort).toInt());
     advancedUI_->media_port->setValue (settings.value(SettingsKey::sipMediaPort).toInt());
 
+    // (Re)populate available local addresses and select sensible default
+    populateAddressBox();
+
+    QString storedAddr = settings.value(SettingsKey::sipLocalAddress).toString();
+
+    // If no stored address, select "Any public address" (index 0).
+    if (storedAddr.isEmpty())
+    {
+      if (advancedUI_->address_box->count() > 0)
+        advancedUI_->address_box->setCurrentIndex(0); // NO_PRIVATE_ADDRESSES is at index 0
+    }
+    else
+    {
+      int idx = advancedUI_->address_box->findText(storedAddr);
+      if (idx >= 0)
+      {
+        advancedUI_->address_box->setCurrentIndex(idx);
+      }
+      else
+      {
+        // If stored address not found, fall back to "Any public address".
+        if (advancedUI_->address_box->count() > 0)
+          advancedUI_->address_box->setCurrentIndex(0);
+      }
+    }
     advancedUI_->up_slider->setValue(settings.value(SettingsKey::sipUpBandwidth).toInt());
     advancedUI_->down_slider->setValue(settings.value(SettingsKey::sipDownBandwidth).toInt());
 

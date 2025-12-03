@@ -5,6 +5,8 @@
 #include <QDialog>
 #include <QSettings>
 
+#include <QHostAddress>
+
 
 
 namespace Ui {
@@ -59,6 +61,12 @@ public slots:
   void updateHybridPrioritization(int value);
 
 private:
+
+  // Populate the `address_box` combobox with available local IPv4 addresses.
+  void populateAddressBox();
+
+  // Return true if `addr` is in a private IPv4 range (RFC1918) or link-local.
+  bool isPrivateIPv4(const QHostAddress& addr) const;
 
   // QSettings -> GUI
   void restoreAdvancedSettings();

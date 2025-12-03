@@ -123,12 +123,13 @@ const QString sipMediaServerPort = "sip/MediaServerPort";
 const QString sipMediaPort = "sip/mediaport";
 const QString sipSTUNEnabled = "sip/stunEnabled";
 const QString sipICEEnabled = "sip/iceEnabled";
-const QString privateAddresses = "sip/localEnabled";
 const QString sipSTUNAddress = "sip/stunAddress";
 const QString sipSTUNPort = "sip/stunPort";
 const QString sipSRTP = "sip/srtpEnabled";
 
 const QString sipUUID = "sip/UUID";
+
+const QString sipLocalAddress = "sip/localAddress";
 
 const QString sipUpBandwidth = "sip/upBandwidth";
 const QString sipDownBandwidth = "sip/downBandwidth";

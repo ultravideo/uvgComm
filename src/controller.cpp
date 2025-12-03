@@ -197,24 +197,36 @@ SIPConfig uvgCommController::createSIPConfig()
     height = settingValue(SettingsKey::videoFileResolutionHeight);
   }
 
-  return {settingEnabled(SettingsKey::sipAutoConnect),
-          settingString(SettingsKey::sipServerAddress),
-          5060,
-          getMediaRole(settingString(SettingsKey::sipRole)),
-          getTopology(settingString(SettingsKey::sipTopology)),
-          (uint16_t)settingValue(SettingsKey::sipMediaPort),
+  SIPConfig cfg;
+  cfg.sendRegister = settingEnabled(SettingsKey::sipAutoConnect);
+  cfg.sipServerAddress = settingString(SettingsKey::sipServerAddress);
+  cfg.sipServerPort = 5060;
+  cfg.role = getMediaRole(settingString(SettingsKey::sipRole));
+  cfg.topology = getTopology(settingString(SettingsKey::sipTopology));
+  cfg.localMediaPort = (uint16_t)settingValue(SettingsKey::sipMediaPort);
 #ifdef uvgComm_NO_RTP_MULTIPLEXING
-          settingEnabled(SettingsKey::sipICEEnabled),
+  cfg.ice = settingEnabled(SettingsKey::sipICEEnabled);
 #else
-        false,
+  cfg.ice = false;
 #endif
-          settingEnabled(SettingsKey::privateAddresses),
-          settingEnabled(SettingsKey::sipSTUNEnabled),
-          settingString(SettingsKey::sipSTUNAddress),
-          (uint16_t)settingValue(SettingsKey::sipSTUNPort),
-          width, height,
-          (uint32_t)settingValue(SettingsKey::videoBitrate)/1000,
-          (uint32_t)settingValue(SettingsKey::audioBitrate)/1000};
+
+  QString storedLocal = settingString(SettingsKey::sipLocalAddress);
+  QHostAddress ha(storedLocal);
+  if (!storedLocal.isEmpty() && !ha.isNull())
+  {
+    cfg.localAddress = ha;
+  }
+
+  cfg.stun = settingEnabled(SettingsKey::sipSTUNEnabled);
+  cfg.stunServerAddress = settingString(SettingsKey::sipSTUNAddress);
+  cfg.stunServerPort = (uint16_t)settingValue(SettingsKey::sipSTUNPort);
+
+  cfg.videoWidth = width;
+  cfg.videoHeight = height;
+  cfg.videoKbps = (uint32_t)settingValue(SettingsKey::videoBitrate)/1000;
+  cfg.audioKbps = (uint32_t)settingValue(SettingsKey::audioBitrate)/1000;
+
+  return cfg;
 }
 
 

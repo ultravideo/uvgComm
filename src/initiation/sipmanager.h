@@ -8,6 +8,8 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QHostAddress>
+#include <QList>
 #include <map>
 
 #include <functional>
@@ -101,7 +103,8 @@ struct SIPConfig
   uint16_t localMediaPort;
 
   bool ice;
-  bool privateAddresses;
+
+  QHostAddress localAddress; // optional
 
   bool stun;
   QString stunServerAddress;

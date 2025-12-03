@@ -5,13 +5,13 @@
 #include <QTime>
 
 SDPICE::SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID,
-               bool useICE, bool localAddresses):
+               bool useICE, QHostAddress localAddress):
   sessionID_(sessionID),
   networkCandidates_(candidates),
   peerSupportsICE_(true), // we assume that peer suppports ICE unless proven otherwise
   mediaLimit_(-1),
   useICE_(useICE),
-  usePrivateAddresses_(localAddresses)
+  allowedLocalAddress_(localAddress)
 {}
 
 void SDPICE::uninit()
@@ -146,9 +146,20 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
   {
     existingLocalCandidates_.push_back(networkCandidates_->localCandidates(neededComponents, sessionID_));
 
-    if (!usePrivateAddresses_)
+    // If the caller provided an explicit allowed local address,
+    // filter local candidates down to only that address. If null,
+    // keep all local candidates as before.
+    if (!allowedLocalAddress_.isNull())
     {
-      existingLocalCandidates_.at(existingLocalCandidates_.size() - 1)->clear();
+      auto &listRef = *existingLocalCandidates_.at(existingLocalCandidates_.size() - 1);
+      for (int ii = listRef.size() - 1; ii >= 0; --ii)
+      {
+        const QHostAddress &candidateAddr = listRef[ii].first;
+        if (candidateAddr != allowedLocalAddress_)
+        {
+          listRef.removeAt(ii);
+        }
+      }
     }
   }
   if (existingGlobalCandidates_.size() <= mediaIndex)
@@ -186,9 +197,9 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
     // TODO: Fix STUN bindings and change this order
     Logger::getLogger()->printNormal(this, "Settings connection addresses directly instead of ICE candidates");
 
-    if (usePrivateAddresses_ && !existingLocalCandidates_[mediaIndex]->empty())
+    if (!allowedLocalAddress_.isNull() && !existingLocalCandidates_[mediaIndex]->empty())
     {
-      Logger::getLogger()->printNormal(this, "Using local IP addresses");
+      Logger::getLogger()->printNormal(this, "Using allowed local IP address");
       setMediaAddress(existingLocalCandidates_, media, mediaIndex);
     }
     else if (!existingGlobalCandidates_[mediaIndex]->empty())

@@ -981,7 +981,7 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   dialog->sdp->includeSSRC(config_.role != MEDIA_SERVER);
 
 
-  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID, config_.ice, config_.privateAddresses));
+  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID, config_.ice, config_.localAddress));
 
   // we need a way to get our final SDP to the SIP user
   QObject::connect(ice.get(), &SDPICE::localSDPWithCandidates,
