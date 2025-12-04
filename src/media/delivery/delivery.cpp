@@ -25,8 +25,10 @@ Delivery::Delivery():
 
 
 Delivery::~Delivery()
-{}
-
+{
+  // Ensure sessions, streams and relays are torn down
+  uninit();
+}
 
 void Delivery::init(StatisticsInterface *stats,
                     std::shared_ptr<ResourceAllocator> hwResources)
@@ -47,6 +49,13 @@ void Delivery::init(StatisticsInterface *stats,
 void Delivery::uninit()
 {
   removeAllPeers();
+
+  // Destroy the uvgRTP context so underlying sockets are closed
+  if (rtp_ctx_)
+  {
+    delete rtp_ctx_;
+    rtp_ctx_ = nullptr;
+  }
 }
 
 bool Delivery::addSession(uint32_t sessionID,
