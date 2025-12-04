@@ -99,9 +99,11 @@ void HybridFilter::addLink(LinkType type,
       return;
     }
 
-    entry->p2pSSRC = ssrc;
-    entry->p2pRTPSender = rtpSender;
-    entry->p2pOutIndex = outIdx;
+      entry->p2pSSRC = ssrc;
+      entry->p2pRTPSender = rtpSender;
+      entry->p2pOutIndex = outIdx;
+      // Track that we now have a P2P sender registered (used by evaluator)
+      ++p2pLinkCount_;
 
     QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
                      this, &HybridFilter::recordRTT);
@@ -217,8 +219,6 @@ void HybridFilter::process()
     if (count_ % EVALUATION_INTERVAL == 0)
     {
       triggerReEvaluation_ = true;
-      Logger::getLogger()->printNormal(this, "Evaluation triggered by frame count",
-                                      {"count","interval"}, {QString::number(count_), QString::number(EVALUATION_INTERVAL)});
     }
 
     if (count_ % DUMMY_INTERVAL == 0)
@@ -228,7 +228,15 @@ void HybridFilter::process()
 
     if (triggerReEvaluation_)
     {
-      reEvaluateConnections();
+      if (p2pLinkCount_ == 0 || sfuRTPSender_ == nullptr)
+      {
+        Logger::getLogger()->printNormal(this, "Skipping re-evaluation: not hybrid (no P2P or no SFU)");
+      }
+      else
+      {
+        reEvaluateConnections();
+      }
+
       triggerReEvaluation_ = false;
     }
 

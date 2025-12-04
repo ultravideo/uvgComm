@@ -78,6 +78,9 @@ private:
 
   bool triggerReEvaluation_;
 
+  // Number of registered P2P senders (maintained on add/remove).
+  unsigned int p2pLinkCount_ = 0;
+
   bool sfuActive_;
   unsigned int sfuOutIndex_;
   std::shared_ptr<UvgRTPSender> sfuRTPSender_;
