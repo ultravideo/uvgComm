@@ -61,7 +61,8 @@ void HybridFilter::addLink(LinkType type,
   if (!entry)
   {
     entry = std::make_shared<LinkInfo>();
-    entry->p2pActive = false;
+    // Start P2P active by default if there is no SFU present
+    entry->p2pActive = (sfuRTPSender_ == nullptr);
     entry->p2pOutIndex = -1;
     entry->p2pRTPSender = nullptr;
     entry->sfuSSRC = 0;
@@ -79,8 +80,7 @@ void HybridFilter::addLink(LinkType type,
                                       {"CNAME", "SSRC", "SenderPtr"},
                                       {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
 
-      entry->p2pActive = false; // we use SFU only at the start
-      setOutputStatus(outIdx, entry->p2pActive);
+      setConnection(outIdx, entry->p2pActive);
     }
     else
     {
@@ -121,6 +121,18 @@ void HybridFilter::addLink(LinkType type,
       sfuActive_ = true; // SFU link is active at the start
       sfuOutIndex_ = outIdx;
       setOutputStatus(outIdx, sfuActive_);
+
+      // Disable any already-active P2P links now that SFU is available, evaluation may enable them later
+      for (auto& kv : cnameToLinks_)
+      {
+        const std::shared_ptr<LinkInfo>& link = kv.second;
+
+        if (link && link->p2pActive && link->p2pOutIndex >= 0)
+        {
+          link->p2pActive = false;
+          setConnection(link->p2pOutIndex, link->p2pActive);
+        }
+      }
 
       QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
                        this, &HybridFilter::recordRTT);
