@@ -19,7 +19,7 @@ struct LinkInfo
 {
   uint32_t p2pSSRC;
   bool p2pActive;
-  unsigned int p2pOutIndex;
+  int p2pOutIndex;
   std::shared_ptr<UvgRTPSender> p2pRTPSender;
 
   std::deque<double> p2pRTT;
@@ -30,6 +30,9 @@ struct LinkInfo
   uint32_t sfuSSRC;
   std::deque<double> sfuRTT;
   double latestsSFURtt = 0.0;
+  // Pending switch requested for this link (used to schedule delayed, synchronized switches).
+  enum PendingSwitchType { PendingNone = 0, PendingToP2P = 1, PendingToSFU = 2 };
+  PendingSwitchType pendingSwitch = PendingNone;
 };
 
 class HybridFilter : public Filter

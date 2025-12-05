@@ -293,8 +293,6 @@ void UVGRelay::handleRTCPCompound(const uint8_t* buffer, int length)
           std::memcpy(&timestamp, buffer + offset + 16, sizeof(timestamp));
           timestamp = ntohl(timestamp);
 
-          Logger::getLogger()->printNormal(this, "Got an APP");
-
           emit rtcpAppPacketReceived(senderSsrc, targetSsrc, timestamp, appName, subtype);
         }
         else

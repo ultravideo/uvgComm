@@ -4,6 +4,8 @@
 #include "media/delivery/uvgrtpsender.h"
 #include "media/resourceallocator.h"
 
+#include <algorithm>
+
 #include "logger.h"
 
 #include "settingskeys.h"
@@ -282,24 +284,30 @@ void HybridFilter::executeSwitches()
     if (!link)
       continue;
 
-    if (link->p2pActive)
-    {
-      Logger::getLogger()->printNormal(this, "Switch from P2P to SFU for SSRC " +
-                                                 QString::number(link->p2pSSRC) + " to " + QString::number(link->sfuSSRC));
-
-      link->p2pActive = false; // turn P2P off
-      setConnection(link->p2pOutIndex, link->p2pActive);
-    }
-    else
+    // Use the explicitly scheduled action instead of toggling based on current state.
+    if (link->pendingSwitch == LinkInfo::PendingToP2P)
     {
       Logger::getLogger()->printNormal(this, "Switch from SFU to P2P for SSRC " +
-                                                 QString::number(link->sfuSSRC) + " to " + QString::number(link->p2pSSRC));
+                                         QString::number(link->sfuSSRC) + " to " + QString::number(link->p2pSSRC));
 
-      link->p2pActive = true; // turn P2P on
-      setConnection(link->p2pOutIndex, link->p2pActive);
-      // Note: SFU is disabled by bandwidth evaluation
+      link->p2pActive = true;
+      if (link->p2pOutIndex >= 0)
+        setConnection(link->p2pOutIndex, true);
     }
+    else if (link->pendingSwitch == LinkInfo::PendingToSFU)
+    {
+      Logger::getLogger()->printNormal(this, "Switch from P2P to SFU for SSRC " +
+                                         QString::number(link->p2pSSRC) + " to " + QString::number(link->sfuSSRC));
+
+      link->p2pActive = false;
+      if (link->p2pOutIndex >= 0)
+        setConnection(link->p2pOutIndex, false);
+    }
+
+    // Clear pending flag after execution
+    link->pendingSwitch = LinkInfo::PendingNone;
   }
+
   linksToSwitch_.clear();
 
   // Apply SFU state decision from evaluation
@@ -444,7 +452,16 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo)
       // sync with sfu server
       sfuRTPSender_->stopForwarding(linkInfo->sfuSSRC, nextSwitch_ + 1);
     }
-    linksToSwitch_.push_back(linkInfo);
+    // Record the explicit pending switch and avoid duplicate scheduling for the same link
+    linkInfo->pendingSwitch = LinkInfo::PendingToP2P;
+    if (std::find(linksToSwitch_.begin(), linksToSwitch_.end(), linkInfo) == linksToSwitch_.end())
+    {
+      linksToSwitch_.push_back(linkInfo);
+    }
+    else
+    {
+      Logger::getLogger()->printWarning(this, "Link is already scheduled for switch to P2P, skipping duplicate");
+    }
   }
   else
   {
@@ -481,7 +498,16 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo)
       nextSwitch_ = SYNC_PERIOD_IN_FRAMES; // wait frames until we switch to SFU
       // sync with sfu server
       sfuRTPSender_->startForwarding(linkInfo->sfuSSRC, nextSwitch_);
-      linksToSwitch_.push_back(linkInfo);
+      // Record the explicit pending switch and avoid duplicate scheduling for the same link
+      linkInfo->pendingSwitch = LinkInfo::PendingToSFU;
+      if (std::find(linksToSwitch_.begin(), linksToSwitch_.end(), linkInfo) == linksToSwitch_.end())
+      {
+        linksToSwitch_.push_back(linkInfo);
+      }
+      else
+      {
+        Logger::getLogger()->printWarning(this, "Link is already scheduled for switch to SFU, skipping duplicate");
+      }
     }
   }
   else
@@ -524,6 +550,11 @@ void HybridFilter::fullBandwidthEvaluation()
                                          {"CNAME", "P2P RTT", "SFU RTT"}, {pair.first,
                                           QString::number(entry->latestsP2PRtt) + " ms",
                                           QString::number(entry->latestsSFURtt) + " ms"});
+
+        if (!entry->p2pActive)
+        {
+          needSFU = true;
+        }
       }
       else if (entry->latestsP2PRtt < entry->latestsSFURtt)
       {

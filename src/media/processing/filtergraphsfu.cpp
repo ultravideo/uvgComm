@@ -348,9 +348,6 @@ void FilterGraphSFU::handleRtcpAppPacket(uint32_t senderSsrc, uint32_t targetSsr
   if (outConnectionIndexMap_.find(key) != outConnectionIndexMap_.end())
   {
     idx = outConnectionIndexMap_[key];
-    Logger::getLogger()->printNormal(this, "Found mapping for RTCP APP",
-                                    {"publisher","target","outIndex"},
-                                    {QString::number(senderSsrc), QString::number(targetSsrc), QString::number(idx)});
   }
   else
   {
