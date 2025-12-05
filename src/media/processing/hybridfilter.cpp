@@ -69,76 +69,95 @@ void HybridFilter::addLink(LinkType type,
     entry->latestsP2PRtt = 0.0;
     entry->latestsSFURtt = 0.0;
     Logger::getLogger()->printNormal(this, "Created new LinkInfo for cname",
-                                    {"CNAME","OutIndex"}, {cname, QString::number(outIdx)});
+                                    {"CNAME", "OutIndex"}, {cname, QString::number(outIdx)});
   }
 
   if (type == LINK_P2P)
   {
-    if (entry->p2pRTPSender == nullptr)
-    {
-      Logger::getLogger()->printNormal(this, "Adding P2P link",
-                                      {"CNAME", "SSRC", "SenderPtr"},
-                                      {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
-
-      setConnection(outIdx, entry->p2pActive);
-    }
-    else
-    {
-      // TODO: The pointer that arrives here when adding new participants is for newest participant, which breasks existing connections
-      Logger::getLogger()->printUnimplemented(this, "We should update existing index in case participants have left, but the index is not correct");
-
-      if (entry->p2pRTPSender != rtpSender)
-      {
-        Logger::getLogger()->printWarning(this, "P2P RTP sender pointer changed for existing link");
-      }
-      if (entry->p2pSSRC != ssrc)
-      {
-        Logger::getLogger()->printWarning(this, "P2P SSRC changed for existing link");
-      }
-      
-      return;
-    }
-
-      entry->p2pSSRC = ssrc;
-      entry->p2pRTPSender = rtpSender;
-      entry->p2pOutIndex = outIdx;
-      // Track that we now have a P2P sender registered (used by evaluator)
-      ++p2pLinkCount_;
-
-    QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
-                     this, &HybridFilter::recordRTT);
+    addP2PLink(entry, outIdx, ssrc, cname, rtpSender);
   }
   else if (type == LINK_SFU)
   {
-    Logger::getLogger()->printNormal(this, "Adding SFU link",
-                                    {"CNAME","SSRC","SenderPtr"},
-                                    {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
-    entry->sfuSSRC = ssrc;
+    addSFULink(entry, outIdx, ssrc, cname, rtpSender);
+  }
+}
 
-    // SFU sender is a shared sender
-    if (sfuRTPSender_ == nullptr)
+void HybridFilter::addP2PLink(std::shared_ptr<LinkInfo>& entry,
+                              int outIdx,
+                              uint32_t ssrc,
+                              const QString& cname,
+                              std::shared_ptr<UvgRTPSender> rtpSender)
+{
+  if (entry->p2pRTPSender == nullptr)
+  {
+    Logger::getLogger()->printNormal(this, "Adding P2P link",
+                                     {"CNAME", "SSRC", "SenderPtr"},
+                                     {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
+
+    setConnection(outIdx, entry->p2pActive);
+  }
+  else
+  {
+    // TODO: The pointer that arrives here when adding new participants is for newest participant, which breasks existing connections
+    Logger::getLogger()->printUnimplemented(this, "We should update existing index in case participants have left, but the index is not correct");
+
+    if (entry->p2pRTPSender != rtpSender)
     {
-      Logger::getLogger()->printNormal(this, "Setting RTP sender for SFU link (shared sender)");
-      sfuRTPSender_ = rtpSender;
-      sfuActive_ = true; // SFU link is active at the start
-      sfuOutIndex_ = outIdx;
-      setOutputStatus(outIdx, sfuActive_);
-
-      // Disable any already-active P2P links now that SFU is available, evaluation may enable them later
-      for (auto& kv : cnameToLinks_)
-      {
-        const std::shared_ptr<LinkInfo>& link = kv.second;
-
-        if (link && link->p2pActive && link->p2pOutIndex >= 0)
-        {
-          link->p2pActive = false;
-          setConnection(link->p2pOutIndex, link->p2pActive);
-        }
-      }
-
-      QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
-                       this, &HybridFilter::recordRTT);
+      Logger::getLogger()->printWarning(this, "P2P RTP sender pointer changed for existing link");
     }
+    if (entry->p2pSSRC != ssrc)
+    {
+      Logger::getLogger()->printWarning(this, "P2P SSRC changed for existing link");
+    }
+
+    return;
+  }
+
+  entry->p2pSSRC = ssrc;
+  entry->p2pRTPSender = rtpSender;
+  entry->p2pOutIndex = outIdx;
+  // Track that we now have a P2P sender registered (used by evaluator)
+  ++p2pLinkCount_;
+
+  QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
+                   this, &HybridFilter::recordRTT);
+}
+
+
+void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
+                              int outIdx,
+                              uint32_t ssrc,
+                              const QString& cname,
+                              std::shared_ptr<UvgRTPSender> rtpSender)
+{
+  Logger::getLogger()->printNormal(this, "Adding SFU link",
+                                   {"CNAME","SSRC","SenderPtr"},
+                                   {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
+  entry->sfuSSRC = ssrc;
+
+  // SFU sender is a shared sender
+  if (sfuRTPSender_ == nullptr)
+  {
+    Logger::getLogger()->printNormal(this, "Setting RTP sender for SFU link (shared sender)");
+    sfuRTPSender_ = rtpSender;
+    sfuActive_ = true; // SFU link is active at the start
+    sfuOutIndex_ = outIdx;
+    setOutputStatus(outIdx, sfuActive_);
+
+    // Disable any already-active P2P links now that SFU is available, evaluation may enable them later
+    for (auto& kv : cnameToLinks_)
+    {
+      const std::shared_ptr<LinkInfo>& link = kv.second;
+
+      if (link && link->p2pActive && link->p2pOutIndex >= 0)
+      {
+        link->p2pActive = false;
+        setConnection(link->p2pOutIndex, link->p2pActive);
+      }
+    }
+
+    QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
+                     this, &HybridFilter::recordRTT);
   }
 }
 
@@ -246,39 +265,45 @@ void HybridFilter::process()
     if (nextSwitch_ > 0)
     {
       --nextSwitch_;
-        if (nextSwitch_ == 0)
-        {
-          // Delayed switch of links, needs to be synchronized with sfu server
-          for (const auto& link : linksToSwitch_)
-          {
-            if (!link)
-              continue;
-
-            if (link->p2pActive)
-            {
-              Logger::getLogger()->printNormal(this, "Switch from P2P to SFU for SSRC " +
-                                              QString::number(link->p2pSSRC) + " to " + QString::number(link->sfuSSRC));
-
-              link->p2pActive = false; // turn P2P off
-              setConnection(link->p2pOutIndex, link->p2pActive);
-            }
-            else
-            {
-              Logger::getLogger()->printNormal(this, "Switch from SFU to P2P for SSRC " +
-                                                         QString::number(link->sfuSSRC) + " to " + QString::number(link->p2pSSRC));
-
-              link->p2pActive = true; // turn P2P on
-              setConnection(link->p2pOutIndex, link->p2pActive);
-              // Note: SFU is disabled by bandwidth evaluation
-            }
-          }
-          linksToSwitch_.clear();
-
-          // Apply SFU state decision from evaluation
-          applySfuState(pendingSfuActive_);
-        }
+      if (nextSwitch_ == 0)
+      {
+        executeSwitches();
+      }
     }
   }
+}
+
+
+void HybridFilter::executeSwitches()
+{
+  // Delayed switch of links, needs to be synchronized with sfu server
+  for (const auto& link : linksToSwitch_)
+  {
+    if (!link)
+      continue;
+
+    if (link->p2pActive)
+    {
+      Logger::getLogger()->printNormal(this, "Switch from P2P to SFU for SSRC " +
+                                                 QString::number(link->p2pSSRC) + " to " + QString::number(link->sfuSSRC));
+
+      link->p2pActive = false; // turn P2P off
+      setConnection(link->p2pOutIndex, link->p2pActive);
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Switch from SFU to P2P for SSRC " +
+                                                 QString::number(link->sfuSSRC) + " to " + QString::number(link->p2pSSRC));
+
+      link->p2pActive = true; // turn P2P on
+      setConnection(link->p2pOutIndex, link->p2pActive);
+      // Note: SFU is disabled by bandwidth evaluation
+    }
+  }
+  linksToSwitch_.clear();
+
+  // Apply SFU state decision from evaluation
+  applySfuState(pendingSfuActive_);
 }
 
 

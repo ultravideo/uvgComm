@@ -55,6 +55,19 @@ protected:
   virtual void process() override;
 
 private:
+  void addP2PLink(std::shared_ptr<LinkInfo>& entry,
+                  int outIdx,
+                  uint32_t ssrc,
+                  const QString& cname,
+                  std::shared_ptr<UvgRTPSender> rtpSender);
+
+  void addSFULink(std::shared_ptr<LinkInfo>& entry,
+                  int outIdx,
+                  uint32_t ssrc,
+                  const QString& cname,
+                  std::shared_ptr<UvgRTPSender> rtpSender);
+
+  void executeSwitches();
 
   void setConnection(int index, bool status);
 
