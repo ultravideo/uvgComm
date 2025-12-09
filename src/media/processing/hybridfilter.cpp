@@ -12,9 +12,9 @@
 #include "common.h"
 
 const uint8_t MAX_RTT_MEASUREMENTS = 64; // Maximum number of RTT samples to keep
-const int EVALUATION_INTERVAL = 640; // Number of frames between evaluations
+const int EVALUATION_INTERVAL = 320; // Number of frames between evaluations
 const int DUMMY_INTERVAL = 160; // Number of frames between dummy packets
-const int SYNC_PERIOD_IN_FRAMES = 60; // the period after which delayed switch is applied
+const int SYNC_PERIOD_IN_FRAMES = 120; // the period after which delayed switch is applied
 
 
 HybridFilter::HybridFilter(QString id, StatisticsInterface *stats,
@@ -29,6 +29,16 @@ Filter(id, "Hybrid", stats, hwResources, DT_HEVCVIDEO, DT_HEVCVIDEO),
     framerateDenominator_(0)
 {
   updateSettings();
+
+  // Randomize initial count to stagger evaluation timing across clients
+  uint16_t intraPeriod = (uint16_t)settingValue(SettingsKey::videoIntra);
+  uint16_t randomMultiple = QRandomGenerator::global()->bounded(5); // 0-4
+  count_ = randomMultiple * intraPeriod;
+
+  Logger::getLogger()->printNormal(this, "Randomized initial count for staggered evaluations",
+                                   {"IntraPeriod", "Multiplier", "InitialCount"},
+                                   {QString::number(intraPeriod), QString::number(randomMultiple),
+                                    QString::number(count_)});
 }
 
 
