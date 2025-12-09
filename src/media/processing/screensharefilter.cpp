@@ -11,10 +11,11 @@
 
 ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats,
                                      std::shared_ptr<ResourceAllocator> hwResources):
-  Filter(id, "Screen Sharing", stats, hwResources, DT_NONE, DT_RGB32VIDEO),
-  framerateNumerator_(10),
-  framerateDenominator_(1),
-screenID_(0)
+Filter(id, "Screen Sharing", stats, hwResources, DT_NONE, DT_RGB32VIDEO),
+framerateNumerator_(10),
+framerateDenominator_(1),
+screenID_(0),
+rtpTimestamp_(initializeRtpTimestamp())
 {}
 
 
@@ -113,6 +114,9 @@ void ScreenShareFilter::process()
   newImage->vInfo->height = currentResolution_.height();
   newImage->vInfo->framerateNumerator = framerateNumerator_;
   newImage->vInfo->framerateDenominator = framerateDenominator_;
+
+  rtpTimestamp_ = updateVideoRtpTimestamp(rtpTimestamp_, framerateNumerator_, framerateDenominator_);
+  newImage->rtpTimestamp = rtpTimestamp_;
 
 #ifdef _WIN32
   newImage->vInfo->flippedVertically = true;

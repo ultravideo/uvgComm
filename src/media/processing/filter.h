@@ -4,6 +4,7 @@
 #include <QWaitCondition>
 #include <QThread>
 #include <QMutex>
+#include <QRandomGenerator>
 
 #ifndef _MSC_VER
 #include <sys/time.h>
@@ -56,6 +57,25 @@ enum DataSource {DS_UNKNOWN, DS_LOCAL, DS_REMOTE};
 enum HEVC_NAL_UNIT_TYPE {TRAIL_R = 1, IDR_W_RADL = 19,
                          VPS_NUT = 32, SPS_NUT = 33, PPS_NUT = 34};
 
+// RTP timestamp rates as specified in RFCs
+// RFC 3551: video timestamp rate is 90000 Hz
+// RFC 7587: Opus uses 48000 Hz
+const int VIDEO_RTP_TIMESTAMP_RATE = 90000; // RTP timestamp rate in Hz
+const int OPUS_RTP_TIMESTAMP_RATE = 48000;  // RTP timestamp rate in Hz
+
+// Generate initial RTP timestamp using only lower 31 bits (RFC 3550)
+// This prevents issues with signed/unsigned comparisons while maintaining randomness
+uint32_t initializeRtpTimestamp();
+
+// Update video RTP timestamp for next frame with proper rollover handling (RFC 3550)
+// Calculates increment based on framerate and adds it to previous timestamp
+// RTP timestamps are 32-bit and wrap around naturally
+uint32_t updateVideoRtpTimestamp(uint32_t previousTimestamp, int framerateNumerator, int framerateDenominator);
+
+// Update audio RTP timestamp for next frame (RFC 3550)
+// Uses OPUS_RTP_TIMESTAMP_RATE / AUDIO_FRAMES_PER_SECOND as increment
+uint32_t updateAudioRtpTimestamp(uint32_t previousTimestamp);
+
 QString datatypeToString(const DataType type);
 
 struct VideoInfo
@@ -82,6 +102,8 @@ struct Data
   DataType type = DT_NONE;
   std::unique_ptr<uchar[]> data = nullptr;
   uint32_t data_size = 0;
+
+  uint32_t rtpTimestamp = 0;
 
   // indicate the moment of creation for this sample for latency calculations
   int64_t creationTimestamp = -1;

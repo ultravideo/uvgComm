@@ -42,6 +42,29 @@ QString datatypeToString(const DataType type)
   return typeString.at(type);
 }
 
+uint32_t initializeRtpTimestamp()
+{
+  return QRandomGenerator::global()->generate() & 0x7FFFFFFF;
+}
+
+uint32_t updateVideoRtpTimestamp(uint32_t previousTimestamp, int framerateNumerator, int framerateDenominator)
+{
+  // Calculate RTP timestamp ticks per video frame based on framerate
+  // Video uses 90 kHz clock rate (RFC 3551)
+  uint32_t increment = static_cast<uint32_t>((static_cast<uint64_t>(VIDEO_RTP_TIMESTAMP_RATE) * 
+                                              static_cast<uint64_t>(framerateDenominator)) /
+                                             static_cast<uint64_t>(framerateNumerator));
+  return previousTimestamp + increment;
+}
+
+uint32_t updateAudioRtpTimestamp(uint32_t previousTimestamp)
+{
+  // Audio uses 48 kHz clock rate (RFC 7587)
+  // Increment per frame = OPUS_RTP_TIMESTAMP_RATE / AUDIO_FRAMES_PER_SECOND
+  uint32_t increment = OPUS_RTP_TIMESTAMP_RATE / AUDIO_FRAMES_PER_SECOND;
+  return previousTimestamp + increment;
+}
+
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                std::shared_ptr<ResourceAllocator> hwResources,
                DataType input, DataType output, bool enforceFramerate):

@@ -149,6 +149,9 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   if (!received_picture)
     return;
 
+  // Extract RTP timestamp from packet header
+  received_picture->rtpTimestamp = frame->header.timestamp;
+
   //check if this is a SEI message
   if (output_ == DT_HEVCVIDEO &&
       frame->payload_len >= 33 &&

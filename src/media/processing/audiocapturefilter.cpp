@@ -27,7 +27,8 @@ AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format,
   wantedState_(QAudio::StoppedState),
   buffer_(nullptr),
   muteSamples_(0),
-  mutingPeriod_(0)
+  mutingPeriod_(0),
+  rtpTimestamp_(initializeRtpTimestamp())
 {}
 
 
@@ -219,6 +220,11 @@ void AudioCaptureFilter::readMore()
       audioFrame->data_size = buffer_->getDesiredSize();
       audioFrame->data = std::unique_ptr<uint8_t[]>(frame);
       audioFrame->aInfo->sampleRate = format_.sampleRate();
+
+      // Calculate RTP timestamp according to RFC 3550
+      // Opus uses 48 kHz clock rate (RFC 7587)
+      rtpTimestamp_ = updateAudioRtpTimestamp(rtpTimestamp_);
+      audioFrame->rtpTimestamp = rtpTimestamp_;
 
       if (muteSamples_ > 0)
       {

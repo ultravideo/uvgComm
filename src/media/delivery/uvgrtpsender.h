@@ -65,7 +65,6 @@ private:
 
   QFuture<rtp_error_t> futureRes_;
 
-  uint32_t previousTimestamp_;
-
-
+  // Track last sent timestamp for RTCP APP packet future timestamp calculations
+  uint32_t lastSentTimestamp_;
 };

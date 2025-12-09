@@ -67,4 +67,6 @@ private:
 
   std::unique_ptr<QMediaCaptureSession> capture_;
   std::unique_ptr<QVideoSink>  sink_;
+
+  uint32_t rtpTimestamp_;
 };

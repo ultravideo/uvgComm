@@ -16,7 +16,8 @@ Filter(id, "File Camera", stats, hwResources, DT_NONE, DT_YUV420VIDEO),
 file_(),
 resolution_(0, 0),
 framerate_(0),
-    running_(false)
+running_(false),
+rtpTimestamp_(initializeRtpTimestamp())
 {}
 
 
@@ -138,6 +139,10 @@ void FakeCamera::process()
     auto now = std::chrono::system_clock::now();
     newImage->creationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     newImage->presentationTimestamp = newImage->creationTimestamp;
+
+    // Calculate RTP timestamp according to RFC 3550
+    rtpTimestamp_ = updateVideoRtpTimestamp(rtpTimestamp_, framerate_, 1);
+    newImage->rtpTimestamp = rtpTimestamp_;
 
     sendOutput(std::move(newImage));
     frameIndex++;

@@ -11,18 +11,6 @@
 #include <QtConcurrent>
 #include <QFuture>
 
-const int VIDEO_RTP_TIMESTAMP_RATE = 90000; // RTP timestamp rate in Hz
-const int OPUS_RTP_TIMESTAMP_RATE = 48000; // RTP timestamp rate in Hz
-
-
-namespace {
-inline uint64_t rtpTicksPerFrame(int numerator, int denominator)
-{
-  return (static_cast<uint64_t>(VIDEO_RTP_TIMESTAMP_RATE) * static_cast<uint64_t>(denominator)) /
-         static_cast<uint64_t>(numerator);
-}
-} // namespace
-
 
 UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
                            StatisticsInterface *stats,
@@ -36,7 +24,7 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
   rtpFlags_(RTP_NO_FLAGS),
   framerateNumerator_(0),
   framerateDenominator_(0),
-  previousTimestamp_(static_cast<uint32_t>(QRandomGenerator::global()->generate()))
+  lastSentTimestamp_(initializeRtpTimestamp())
 {
   Q_ASSERT(stream_);
 
@@ -129,18 +117,19 @@ void UvgRTPSender::sendAPP(uint32_t remoteSSRC, int afterFrames, const char* nam
   }
 
   // Calculate the future RTP timestamp based on frame interval
-  // Use actual framerate (numerator/denominator). Fall back to 30 fps if unset.
+  // Use actual framerate (numerator/denominator).
   timestampMutex_.lock();
-  uint32_t timestampSnapshot = previousTimestamp_;
+  uint32_t timestampSnapshot = lastSentTimestamp_;
   int num = framerateNumerator_;
   int den = framerateDenominator_;
   timestampMutex_.unlock();
 
-  // rtp timestamp increment per frame = RTP_RATE / fps
-  // where fps = num/den -> increment = RTP_RATE * den / num
-  uint64_t perFrameIncrement = rtpTicksPerFrame(num, den);
-  uint64_t targetIncrement = perFrameIncrement * static_cast<uint64_t>(afterFrames);
-  uint32_t rtpTimestamp = timestampSnapshot + static_cast<uint32_t>(targetIncrement & 0xFFFFFFFFu);
+  // Calculate future timestamp by applying video timestamp update multiple times
+  uint32_t rtpTimestamp = timestampSnapshot;
+  for (int i = 0; i < afterFrames; ++i)
+  {
+    rtpTimestamp = updateVideoRtpTimestamp(rtpTimestamp, num, den);
+  }
 
   Logger::getLogger()->printNormal(this, "Scheduling RTCP APP packet",
                                   {"TS jump", "FutureFrames"},
@@ -240,29 +229,14 @@ void UvgRTPSender::process()
   // TODO: For HEVC, make sure that the first frame we send is intra
   while (input)
   {
-    uint32_t timestampValue = 0;
     timestampMutex_.lock();
-    if (input_ == DT_HEVCVIDEO)
-    {
-      // Increment previousTimestamp_ by RTP ticks per frame.
-      uint32_t inc = static_cast<uint32_t>(rtpTicksPerFrame(framerateNumerator_, framerateDenominator_));
-      previousTimestamp_ += inc;
-    }
-    else if (input_ == DT_OPUSAUDIO)
-    {
-      previousTimestamp_ += (OPUS_RTP_TIMESTAMP_RATE / 1000) * input->presentationTimestamp;
-    }
-    else
-    {
-      previousTimestamp_ += 90; // Default increment for other formats
-    }
-    timestampValue = previousTimestamp_;
+    lastSentTimestamp_ = input->rtpTimestamp;
     timestampMutex_.unlock();
 
     streamMutex_.lock();
     if (stream_)
     {
-      ret = stream_->push_frame(std::move(input->data), input->data_size, timestampValue, rtpFlags_);
+      ret = stream_->push_frame(std::move(input->data), input->data_size, input->rtpTimestamp, rtpFlags_);
     }
     streamMutex_.unlock();
 

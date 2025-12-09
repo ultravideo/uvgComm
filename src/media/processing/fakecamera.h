@@ -36,4 +36,6 @@ private:
   int framerate_;
 
   bool running_;
+
+  uint32_t rtpTimestamp_;
 };

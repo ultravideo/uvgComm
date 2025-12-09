@@ -26,7 +26,8 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
   resolutionHeight_(0),
   currentDeviceName_(""),
   currentDeviceID_(-1),
-  currentInputFormat_("")
+  currentInputFormat_(""),
+  rtpTimestamp_(initializeRtpTimestamp())
 {
   resolutionWidth_ = settingValue(SettingsKey::videoResolutionWidth);
   resolutionHeight_ = settingValue(SettingsKey::videoResolutionHeight);
@@ -334,6 +335,11 @@ void CameraFilter::process()
     auto now = std::chrono::system_clock::now();
     newImage->creationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     newImage->presentationTimestamp = newImage->creationTimestamp;
+
+    // Calculate RTP timestamp according to RFC 3550
+    // Video uses 90 kHz clock rate (RFC 3551)
+    rtpTimestamp_ = updateVideoRtpTimestamp(rtpTimestamp_, framerateNumerator_, framerateDenominator_);
+    newImage->rtpTimestamp = rtpTimestamp_;
 
     newImage->type = output_;
 
