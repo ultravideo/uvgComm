@@ -5,7 +5,6 @@
 #include "common.h"
 #include "logger.h"
 #include "settingskeys.h"
-#include "udprelay.h"
 #include "uvgrelay.h"
 #include "udpsender.h"
 #include "udpreceiver.h"
@@ -360,25 +359,14 @@ std::shared_ptr<RelayInterface> Delivery::getUDPRelay(QString localAddress, uint
   {
     Logger::getLogger()->printNormal(this, "Creating new UDP relay", "Local socket", relayKey);
 
-    bool customRelay = true;
-
-    if (customRelay)
-    {
-      Logger::getLogger()->printNormal(this, "Using custom UDP relay", "Local socket", relayKey);
-      // Create a UVGRelay shared_ptr first so we can connect its signal, then
-      // store it as a RelayInterface.
-      std::shared_ptr<UVGRelay> tmp = std::make_shared<UVGRelay>(localAddress.toStdString(), localPort);
-      connect(tmp.get(), &UVGRelay::rtcpAppPacketReceived,
-              this, &Delivery::rtcpAppPacketReceived);
-      relays_[relayKey] = std::static_pointer_cast<RelayInterface>(tmp);
-      Logger::getLogger()->printNormal(this, "Connected UVGRelay RTCP APP signal to Delivery",
-                                      {"LocalSocket"}, {relayKey});
-    }
-    else
-    {
-      Logger::getLogger()->printNormal(this, "Using Qts UDP relay", "Local socket", relayKey);
-      relays_[relayKey] = std::shared_ptr<RelayInterface>(new UDPRelay(localAddress.toStdString(), localPort));
-    }
+    // Create a UVGRelay shared_ptr first so we can connect its signal, then
+    // store it as a RelayInterface.
+    std::shared_ptr<UVGRelay> tmp = std::make_shared<UVGRelay>(localAddress.toStdString(), localPort);
+    connect(tmp.get(), &UVGRelay::rtcpAppPacketReceived,
+            this, &Delivery::rtcpAppPacketReceived);
+    relays_[relayKey] = std::static_pointer_cast<RelayInterface>(tmp);
+    Logger::getLogger()->printNormal(this, "Connected UVGRelay RTCP APP signal to Delivery",
+                                    {"LocalSocket"}, {relayKey});
 
     relays_[relayKey]->start();
   }

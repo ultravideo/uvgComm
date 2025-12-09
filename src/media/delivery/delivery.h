@@ -1,5 +1,4 @@
 #pragma once
-#include "media/delivery/udprelay.h"
 #include "media/processing/filter.h"
 
 #include <QMutex>
@@ -15,6 +14,7 @@ class StatisticsInterface;
 class UvgRTPSender;
 class UvgRTPReceiver;
 class Filter;
+class RelayInterface;
 
 class Delivery : public QObject
 {
