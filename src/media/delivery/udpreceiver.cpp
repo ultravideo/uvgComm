@@ -16,16 +16,10 @@ void UDPReceiver::process()
 
   while(input)
   {
-    // If this is an RTP packet, extract the RTP timestamp and check for
-    // any pending stop/start requests keyed by out-connection index. When
-    // a pending boundary is reached we toggle the corresponding out-connection.
-    if (input->type == DT_RTP && input->data && input->data_size >= 12)
+    // handle the APP forwarding stopping and starting for RTP packets
+    if (input->type == DT_RTP && input->data && input->data_size >= 12 && input->rtpTimestamp != 0)
     {
-      // RTP timestamp is at bytes 4..7 in network byte order
-      uint32_t net_ts = 0;
-      memcpy(&net_ts, input->data.get() + 4, sizeof(net_ts));
-      uint32_t pkt_ts = ntohl(net_ts);
-      uint32_t pkt_ssrc = 0;
+      uint32_t pkt_ssrc = 0; // get packet SSRC
       if (input->data_size >= 12)
       {
         uint32_t net_ssrc = 0;
@@ -44,26 +38,28 @@ void UDPReceiver::process()
           const uint32_t stopTs = act.rtpTimestamp;
           // Use signed arithmetic to decide whether pkt_ts has reached
           // or passed stopTs, while still handling wrap-around.
-          const int32_t delta = static_cast<int32_t>(pkt_ts - stopTs);
+          const int32_t delta = static_cast<int32_t>(input->rtpTimestamp - stopTs);
           if (delta >= 0)
           {
             setOutputStatus(outIndex, false);
             Logger::getLogger()->printNormal(this, "Applying STOP forwarding action for outIndex",
                                             {"outIndex","rtpTimestamp","packetTs","ssrc"},
-                                            {QString::number(outIndex), QString::number(stopTs), QString::number(pkt_ts), QString::number(pkt_ssrc)});
+                                            {QString::number(outIndex), QString::number(stopTs),
+                                             QString::number(input->rtpTimestamp), QString::number(pkt_ssrc)});
             act.action = ForwardingStatus::PAUSED;
           }
         }
         else if (act.action == ForwardingStatus::PENDING_START)
         {
           const uint32_t startTs = act.rtpTimestamp;
-          const int32_t delta = static_cast<int32_t>(pkt_ts - startTs);
+          const int32_t delta = static_cast<int32_t>(input->rtpTimestamp - startTs);
           if (delta >= 0)
           {
             setOutputStatus(outIndex, true);
             Logger::getLogger()->printNormal(this, "Applying START forwarding action for outIndex",
                                             {"outIndex","rtpTimestamp","packetTs","ssrc"},
-                                            {QString::number(outIndex), QString::number(startTs), QString::number(pkt_ts), QString::number(pkt_ssrc)});
+                                            {QString::number(outIndex), QString::number(startTs),
+                                             QString::number(input->rtpTimestamp), QString::number(pkt_ssrc)});
             act.action = ForwardingStatus::FORWARDING;
           }
         }

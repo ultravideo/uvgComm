@@ -109,6 +109,7 @@ void UVGRelay::sendUDPData(sockaddr_in& dest_addr, sockaddr_in6& dest_addr6,
   socket_.sendto(dest_addr, dest_addr6, data.get(), size, 0);
 }
 
+
 void UVGRelay::sendUDPData(sockaddr_in& dest_addr,
                            sockaddr_in6& dest_addr6,
                            std::vector<std::vector<std::pair<size_t, uint8_t*>>>& buffers)
@@ -191,6 +192,12 @@ void UVGRelay::run()
             receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
             receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
 
+            // Extract RTP timestamp from packet header (RFC 3550)
+            // RTP timestamp is at bytes 4-7 in network byte order
+            uint32_t net_ts = 0;
+            std::memcpy(&net_ts, buffer + 4, sizeof(net_ts));
+            receivedRTPFrame->rtpTimestamp = ntohl(net_ts);
+
             receivedRTPFrame->data = std::unique_ptr<uchar[]>(new uchar[read]);
             memcpy(receivedRTPFrame->data.get(), buffer, read);
             receivedRTPFrame->data_size = read;
@@ -219,6 +226,7 @@ void UVGRelay::run()
             std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
             receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
             receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
+            receivedRTPFrame->rtpTimestamp = 0; // RTCP has not RTP timestamp (expect SR for sync purposes)
 
             receivedRTPFrame->data = std::unique_ptr<uchar[]>(new uchar[read]);
             memcpy(receivedRTPFrame->data.get(), buffer, read);
