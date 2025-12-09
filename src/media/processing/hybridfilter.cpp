@@ -298,25 +298,26 @@ void HybridFilter::process()
       triggerReEvaluation_ = false;
     }
 
-    uint32_t currentTimestamp = input->rtpTimestamp;
-    sendOutput(std::move(input));
-    input = getInput();
-
-    if (nextSwitchTimestamp_ != 0)
+    // Check and execute switches BEFORE sending output to ensure connection state
+    // matches the SFU's forwarding state at the exact same timestamp
+    if (nextSwitchTimestamp_ != 0 && input->rtpTimestamp != 0)
     {
       // Use signed arithmetic to handle RTP timestamp rollover
-      int32_t delta = static_cast<int32_t>(currentTimestamp - nextSwitchTimestamp_);
+      int32_t delta = static_cast<int32_t>(input->rtpTimestamp - nextSwitchTimestamp_);
       if (delta >= 0)
       {
         Logger::getLogger()->printNormal(this, "Executing switches at RTP timestamp",
                                         {"Current", "Scheduled", "Delta"},
-                                        {QString::number(currentTimestamp), 
+                                        {QString::number(input->rtpTimestamp), 
                                          QString::number(nextSwitchTimestamp_),
                                          QString::number(delta)});
         executeSwitches();
         nextSwitchTimestamp_ = 0;
       }
     }
+
+    sendOutput(std::move(input));
+    input = getInput();
   }
 }
 
