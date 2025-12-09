@@ -23,8 +23,7 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
   sessionID_(sessionID),
   rtpFlags_(RTP_NO_FLAGS),
   framerateNumerator_(0),
-  framerateDenominator_(0),
-  lastSentTimestamp_(initializeRtpTimestamp())
+  framerateDenominator_(0)
 {
   Q_ASSERT(stream_);
 
@@ -94,19 +93,19 @@ void UvgRTPSender::uninit()
   }
 }
 
-void UvgRTPSender::startForwarding(uint32_t remoteSSRC, int afterFrames)
+void UvgRTPSender::startForwarding(uint32_t remoteSSRC, uint32_t futureTimestamp)
 {
-  sendAPP(remoteSSRC, afterFrames, "STRT", 0);
+  sendAPP(remoteSSRC, futureTimestamp, "STRT", 0);
 }
 
 
-void UvgRTPSender::stopForwarding(uint32_t remoteSSRC, int afterFrames)
+void UvgRTPSender::stopForwarding(uint32_t remoteSSRC, uint32_t futureTimestamp)
 {
-  sendAPP(remoteSSRC, afterFrames, "STOP", 1);
+  sendAPP(remoteSSRC, futureTimestamp, "STOP", 1);
 }
 
 
-void UvgRTPSender::sendAPP(uint32_t remoteSSRC, int afterFrames, const char* name, uint8_t subtype)
+void UvgRTPSender::sendAPP(uint32_t remoteSSRC, uint32_t futureTimestamp, const char* name, uint8_t subtype)
 {
   if (futureRes_.isRunning())
   {
@@ -116,29 +115,13 @@ void UvgRTPSender::sendAPP(uint32_t remoteSSRC, int afterFrames, const char* nam
     futureRes_.waitForFinished();
   }
 
-  // Calculate the future RTP timestamp based on frame interval
-  // Use actual framerate (numerator/denominator).
-  timestampMutex_.lock();
-  uint32_t timestampSnapshot = lastSentTimestamp_;
-  int num = framerateNumerator_;
-  int den = framerateDenominator_;
-  timestampMutex_.unlock();
-
-  // Calculate future timestamp by applying video timestamp update multiple times
-  uint32_t rtpTimestamp = timestampSnapshot;
-  for (int i = 0; i < afterFrames; ++i)
-  {
-    rtpTimestamp = updateVideoRtpTimestamp(rtpTimestamp, num, den);
-  }
-
   Logger::getLogger()->printNormal(this, "Scheduling RTCP APP packet",
-                                  {"TS jump", "FutureFrames"},
-                                  {QString::number(timestampSnapshot - rtpTimestamp),
-                                   QString::number(afterFrames)});
+                                  {"Future Timestamp", "Name"},
+                                  {QString::number(futureTimestamp), QString(name)});
 
   // Allocate and populate 8-byte payload: [SSRC (4 bytes)] [Timestamp (4 bytes)]
   uint32_t netSSRC = htonl(remoteSSRC);
-  uint32_t netTimestamp = htonl(rtpTimestamp);
+  uint32_t netTimestamp = htonl(futureTimestamp);
 
   uint8_t payload[8];
   memcpy(payload, &netSSRC, 4);
@@ -229,10 +212,6 @@ void UvgRTPSender::process()
   // TODO: For HEVC, make sure that the first frame we send is intra
   while (input)
   {
-    timestampMutex_.lock();
-    lastSentTimestamp_ = input->rtpTimestamp;
-    timestampMutex_.unlock();
-
     streamMutex_.lock();
     if (stream_)
     {

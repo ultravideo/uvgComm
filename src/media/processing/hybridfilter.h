@@ -50,6 +50,8 @@ public:
                const QString& cname,
                std::shared_ptr<UvgRTPSender> rtpSender);
 
+  void updateSettings() override;
+
 public slots:
 
   void recordRTT(uint32_t ssrc, double rtt);
@@ -76,16 +78,16 @@ private:
 
   double averageRTT(const std::deque<double>& samples) const;
 
-  void reEvaluateConnections();
+  void reEvaluateConnections(uint32_t currentTimestamp);
 
   void sendDummies();
 
-  void fullBandwidthEvaluation();
+  void fullBandwidthEvaluation(uint32_t currentTimestamp);
 
-  void rankedBandwidthEvaluation(const int maxP2PConnections, int connectionBandwidth);
+  void rankedBandwidthEvaluation(const int maxP2PConnections, int connectionBandwidth, uint32_t currentTimestamp);
 
-  void delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo);
-  void delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo);
+  void delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32_t currentTimestamp);
+  void delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32_t currentTimestamp);
 
   QMutex slaveMutex_;
   std::vector<std::shared_ptr<HybridSlaveFilter>> slaves_;
@@ -113,4 +115,8 @@ private:
 
   int nextSwitch_ = -1;
   std::vector<std::shared_ptr<LinkInfo>> linksToSwitch_;
+
+  // Framerate for calculating future RTP timestamps
+  int32_t framerateNumerator_;
+  int32_t framerateDenominator_;
 };

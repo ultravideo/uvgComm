@@ -70,7 +70,8 @@ uint32_t initializeRtpTimestamp();
 // Update video RTP timestamp for next frame with proper rollover handling (RFC 3550)
 // Calculates increment based on framerate and adds it to previous timestamp
 // RTP timestamps are 32-bit and wrap around naturally
-uint32_t updateVideoRtpTimestamp(uint32_t previousTimestamp, int framerateNumerator, int framerateDenominator);
+// frameCount: number of frames to advance (defaults to 1)
+uint32_t updateVideoRtpTimestamp(uint32_t previousTimestamp, int framerateNumerator, int framerateDenominator, int frameCount = 1);
 
 // Update audio RTP timestamp for next frame (RFC 3550)
 // Uses OPUS_RTP_TIMESTAMP_RATE / AUDIO_FRAMES_PER_SECOND as increment

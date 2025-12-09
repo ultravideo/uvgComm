@@ -25,8 +25,8 @@ public:
 
   void updateSettings();
 
-  void startForwarding(uint32_t remoteSSRC, int afterFrames);
-  void stopForwarding(uint32_t remoteSSRC, int afterFrames);
+  void startForwarding(uint32_t remoteSSRC, uint32_t futureTimestamp);
+  void stopForwarding(uint32_t remoteSSRC, uint32_t futureTimestamp);
 
   void rtt(uint32_t localSSRC, uint32_t remoteSSRC, double time);
 
@@ -43,13 +43,12 @@ private:
 
   void processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr);
 
-  void sendAPP(uint32_t remoteSSRC, int afterFrames, const char *name, uint8_t subtype);
+  void sendAPP(uint32_t remoteSSRC, uint32_t futureTimestamp, const char *name, uint8_t subtype);
 
   uvgrtp::media_stream* stream_;
 
   // Protects accesses to stream_. Acquire before reading or writing stream_.
   mutable std::mutex streamMutex_;
-  std::mutex timestampMutex_;
 
   // Guard used to indicate the filter is alive; set to false early during
   // teardown so callbacks and processing can bail out safely.
@@ -64,7 +63,4 @@ private:
   int32_t framerateDenominator_;
 
   QFuture<rtp_error_t> futureRes_;
-
-  // Track last sent timestamp for RTCP APP packet future timestamp calculations
-  uint32_t lastSentTimestamp_;
 };

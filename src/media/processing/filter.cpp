@@ -47,14 +47,14 @@ uint32_t initializeRtpTimestamp()
   return QRandomGenerator::global()->generate() & 0x7FFFFFFF;
 }
 
-uint32_t updateVideoRtpTimestamp(uint32_t previousTimestamp, int framerateNumerator, int framerateDenominator)
+uint32_t updateVideoRtpTimestamp(uint32_t previousTimestamp, int framerateNumerator, int framerateDenominator, int frameCount)
 {
   // Calculate RTP timestamp ticks per video frame based on framerate
   // Video uses 90 kHz clock rate (RFC 3551)
   uint32_t increment = static_cast<uint32_t>((static_cast<uint64_t>(VIDEO_RTP_TIMESTAMP_RATE) * 
                                               static_cast<uint64_t>(framerateDenominator)) /
                                              static_cast<uint64_t>(framerateNumerator));
-  return previousTimestamp + increment;
+  return previousTimestamp + (increment * frameCount);
 }
 
 uint32_t updateAudioRtpTimestamp(uint32_t previousTimestamp)

@@ -24,13 +24,38 @@ Filter(id, "Hybrid", stats, hwResources, DT_HEVCVIDEO, DT_HEVCVIDEO),
     sfuActive_(false),
     sfuOutIndex_(-1),
     sfuRTPSender_(nullptr),
-    count_(0)
-{}
+    count_(0),
+    framerateNumerator_(0),
+    framerateDenominator_(0)
+{
+  updateSettings();
+}
 
 
 HybridFilter::~HybridFilter()
 {
   cnameToLinks_.clear();
+}
+
+
+void HybridFilter::updateSettings()
+{
+  Filter::updateSettings();
+
+  if (settingValue(SettingsKey::videoFileEnabled))
+  {
+    framerateNumerator_ = settingValue(SettingsKey::videoFileFramerate);
+    framerateDenominator_ = 1;
+  }
+  else
+  {
+    framerateNumerator_ = settingValue(SettingsKey::videoFramerateNumerator);
+    framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
+  }
+
+  Logger::getLogger()->printNormal(this, "Updated framerate for timestamp calculation",
+                                  {"Numerator", "Denominator"},
+                                  {QString::number(framerateNumerator_), QString::number(framerateDenominator_)});
 }
 
 
@@ -236,6 +261,7 @@ void HybridFilter::process()
     //                                 {"Input size"},
     //                                 {QString::number(input->data_size)});
 
+
     ++count_;
     if (count_ % EVALUATION_INTERVAL == 0)
     {
@@ -255,7 +281,7 @@ void HybridFilter::process()
       }
       else
       {
-        reEvaluateConnections();
+        reEvaluateConnections(input->rtpTimestamp);
       }
 
       triggerReEvaluation_ = false;
@@ -379,7 +405,7 @@ double HybridFilter::averageRTT(const std::deque<double>& samples) const
 }
 
 
-void HybridFilter::reEvaluateConnections()
+void HybridFilter::reEvaluateConnections(uint32_t currentTimestamp)
 {
   const int networkBandwidth = settingValue(SettingsKey::sipUpBandwidth);
   int linkBandwidth = getHWManager()->getEncoderBitrate(output_);
@@ -414,18 +440,18 @@ void HybridFilter::reEvaluateConnections()
   // we can do all connections however we like
   if (maxP2PConnections  >= cnameToLinks_.size())
   {
-    return fullBandwidthEvaluation();
+    return fullBandwidthEvaluation(currentTimestamp);
   }
 
   maxP2PConnections -= 1; // reserve one link for SFU
 
   // Otherwise, use P2P where RTT benefit is biggest
-  rankedBandwidthEvaluation(maxP2PConnections, linkBandwidth);
+  rankedBandwidthEvaluation(maxP2PConnections, linkBandwidth, currentTimestamp);
   pendingSfuActive_ = true; // we need sfu if not all connections are P2P
 }
 
 
-void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo)
+void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32_t currentTimestamp)
 {
   if (!linkInfo)
     return;
@@ -449,8 +475,11 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo)
     nextSwitch_ = SYNC_PERIOD_IN_FRAMES; // wait frames until we switch to P2P
     if (sfuRTPSender_)
     {
+      // Calculate future timestamp for when the switch will occur (nextSwitch_ + 1 because switch executes after decrement to 0)
+      uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, nextSwitch_ + 1);
+
       // sync with sfu server
-      sfuRTPSender_->stopForwarding(linkInfo->sfuSSRC, nextSwitch_ + 1);
+      sfuRTPSender_->stopForwarding(linkInfo->sfuSSRC, futureTimestamp);
     }
     // Record the explicit pending switch and avoid duplicate scheduling for the same link
     linkInfo->pendingSwitch = LinkInfo::PendingToP2P;
@@ -470,7 +499,7 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo)
 }
 
 
-void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo)
+void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32_t currentTimestamp)
 {
   if (!linkInfo)
     return;
@@ -496,8 +525,12 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo)
                                       {"P2P SSRC","SFU SSRC"},
                                       {QString::number(linkInfo->p2pSSRC), QString::number(linkInfo->sfuSSRC)});
       nextSwitch_ = SYNC_PERIOD_IN_FRAMES; // wait frames until we switch to SFU
+
+      // Calculate future timestamp for when the switch will occur
+      uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, nextSwitch_);
+
       // sync with sfu server
-      sfuRTPSender_->startForwarding(linkInfo->sfuSSRC, nextSwitch_);
+      sfuRTPSender_->startForwarding(linkInfo->sfuSSRC, futureTimestamp);
       // Record the explicit pending switch and avoid duplicate scheduling for the same link
       linkInfo->pendingSwitch = LinkInfo::PendingToSFU;
       if (std::find(linksToSwitch_.begin(), linksToSwitch_.end(), linkInfo) == linksToSwitch_.end())
@@ -517,7 +550,7 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo)
 }
 
 
-void HybridFilter::fullBandwidthEvaluation()
+void HybridFilter::fullBandwidthEvaluation(uint32_t currentTimestamp)
 {
   bool needSFU = false;
   int p2pLinks = 0;
@@ -565,7 +598,7 @@ void HybridFilter::fullBandwidthEvaluation()
                                           {"CNAME", "Expected latency reduction", "SSRC"},
                                           {pair.first, QString::number(entry->latestsSFURtt - entry->latestsP2PRtt) + " ms",
                                            QString::number(entry->p2pSSRC)});
-          delayedSwitchToP2P(entry);
+          delayedSwitchToP2P(entry, currentTimestamp);
         }
       }
       else
@@ -576,7 +609,7 @@ void HybridFilter::fullBandwidthEvaluation()
                                            {"CNAME", "Expected latency increase", "SSRC"},
                                            {pair.first, QString::number(entry->latestsSFURtt - entry->latestsP2PRtt) + " ms",
                                             QString::number(entry->sfuSSRC)});
-          delayedSwitchToSFU(entry);
+          delayedSwitchToSFU(entry, currentTimestamp);
         }
 
         needSFU = true;
@@ -604,7 +637,7 @@ void HybridFilter::fullBandwidthEvaluation()
 }
 
 
-void HybridFilter::rankedBandwidthEvaluation(const int maxP2PConnections, int connectionBandwidth)
+void HybridFilter::rankedBandwidthEvaluation(const int maxP2PConnections, int connectionBandwidth, uint32_t currentTimestamp)
 {
   struct RankedConnection
   {
@@ -646,7 +679,7 @@ void HybridFilter::rankedBandwidthEvaluation(const int maxP2PConnections, int co
     {
       if (!rankedConnections[i].p2plink->p2pActive)
       {
-        delayedSwitchToP2P(rankedConnections[i].p2plink);
+        delayedSwitchToP2P(rankedConnections[i].p2plink, currentTimestamp);
       }
       ++p2pLinks;
     }
@@ -654,7 +687,7 @@ void HybridFilter::rankedBandwidthEvaluation(const int maxP2PConnections, int co
     {
       if (rankedConnections[i].p2plink->p2pActive)
       {
-        delayedSwitchToSFU(rankedConnections[i].p2plink);
+        delayedSwitchToSFU(rankedConnections[i].p2plink, currentTimestamp);
       }
     }
   }
