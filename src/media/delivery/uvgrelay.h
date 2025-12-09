@@ -7,6 +7,11 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <thread>
+#include <atomic>
 
 #include <QThread>
 #include <QString>
@@ -65,7 +70,14 @@ signals:
 
 private:
 
+  struct ReceivedPacket {
+    uint8_t buffer[1500];
+    int size;
+  };
+
   void handleRTCPCompound(const uint8_t* buffer, int length);
+  void processPackets(); // Worker thread function
+  void processReceivedPacket(const uint8_t* buffer, int size);
 
   std::unordered_map<uint32_t, std::shared_ptr<Filter>> rtpReceivers_;
   std::unordered_map<uint32_t, std::shared_ptr<Filter>> rtcpReceivers_;
@@ -74,6 +86,12 @@ private:
   uvgrtp::socket socket_;
 
   bool running_;
-
   bool ipv6_;
+
+  // Packet queue for decoupling reception from processing
+  std::queue<ReceivedPacket> packetQueue_;
+  std::mutex queueMutex_;
+  std::condition_variable queueCV_;
+  std::thread processingThread_;
+  std::atomic<bool> processingRunning_;
 };

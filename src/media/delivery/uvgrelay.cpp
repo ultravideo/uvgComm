@@ -22,8 +22,9 @@ const int BUFFER_SIZE = 1500;
 
 UVGRelay::UVGRelay(std::string localAddress, uint16_t port):
   socket_(0),
-running_(false),
-    ipv6_(false)
+  running_(false),
+  ipv6_(false),
+  processingRunning_(false)
 {
   // check if the local address is IPv4 or IPv6
   if (localAddress.find(':') != std::string::npos)
@@ -65,7 +66,18 @@ running_(false),
 
 
 UVGRelay::~UVGRelay()
-{}
+{
+  // Stop the processing thread if it's running
+  if (processingRunning_)
+  {
+    processingRunning_ = false;
+    queueCV_.notify_all();
+    if (processingThread_.joinable())
+    {
+      processingThread_.join();
+    }
+  }
+}
 
 
 void UVGRelay::registerRTPReceiver(uint32_t ssrc, std::shared_ptr<Filter> filter)
@@ -123,7 +135,11 @@ void UVGRelay::run()
 {
   setPriority(QThread::TimeCriticalPriority);
 
-   // poll from socket
+  // Start the processing thread
+  processingRunning_ = true;
+  processingThread_ = std::thread(&UVGRelay::processPackets, this);
+
+  // poll from socket
 #ifdef _WIN32
   LPWSAPOLLFD pfds = new pollfd();
 #else
@@ -134,7 +150,7 @@ void UVGRelay::run()
   pfds->fd = read_fds;
   pfds->events = POLLIN;
 
- uint8_t buffer[BUFFER_SIZE];
+  uint8_t buffer[BUFFER_SIZE];
 
   while (running_)
   {
@@ -168,89 +184,136 @@ void UVGRelay::run()
 
         if (read < 12)
         {
-          //Logger::getLogger()->printNormal(this, "Received a packet which is too small to be an RTP packet",
-          //                                {"Packet size"}, {QString::number(read)});
           continue;
         }
 
-        // check if this is an RTP or RTCP packet
-        uint8_t rtcp_pt = buffer[1];
-        uint8_t rtp_pt = rtcp_pt & 0x7F;
+        // Queue the packet for processing - this is fast and doesn't block
+        ReceivedPacket packet;
+        packet.size = read;
+        std::memcpy(packet.buffer, buffer, read);
 
-        if (rtp_pt <= 34 || 96 <= rtp_pt)
         {
-          // RTP
-          uint32_t ssrc = 0;
-          std::memcpy(&ssrc, buffer + 8, sizeof(ssrc));
-          ssrc = ntohl(ssrc);
-
-          if (rtpReceivers_.find(ssrc) != rtpReceivers_.end())
-          {
-            std::shared_ptr<Filter> filter = rtpReceivers_[ssrc];
-
-            std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
-            receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
-            receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
-
-            // Extract RTP timestamp from packet header (RFC 3550)
-            // RTP timestamp is at bytes 4-7 in network byte order
-            uint32_t net_ts = 0;
-            std::memcpy(&net_ts, buffer + 4, sizeof(net_ts));
-            receivedRTPFrame->rtpTimestamp = ntohl(net_ts);
-
-            receivedRTPFrame->data = std::unique_ptr<uchar[]>(new uchar[read]);
-            memcpy(receivedRTPFrame->data.get(), buffer, read);
-            receivedRTPFrame->data_size = read;
-
-            filter->putInput(std::move(receivedRTPFrame));
-          }
-          else
-          {
-            Logger::getLogger()->printWarning(this, "Received an RTP packet for which we have no receiver",
-                                            {"SSRC"}, {QString::number(ssrc)});
-          }
+          std::lock_guard<std::mutex> lock(queueMutex_);
+          packetQueue_.push(packet);
         }
-        else if (rtcp_pt == 200 || rtcp_pt == 201 || rtcp_pt == 202)
-        {
-          handleRTCPCompound(buffer, read);
-
-          // RTCP
-          uint32_t ssrc = 0;
-          std::memcpy(&ssrc, buffer + 4, sizeof(ssrc));
-          ssrc = ntohl(ssrc);
-
-          if (rtcpReceivers_.find(ssrc) != rtcpReceivers_.end())
-          {
-            std::shared_ptr<Filter> filter = rtcpReceivers_[ssrc];
-
-            std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
-            receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
-            receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
-            receivedRTPFrame->rtpTimestamp = 0; // RTCP has not RTP timestamp (expect SR for sync purposes)
-
-            receivedRTPFrame->data = std::unique_ptr<uchar[]>(new uchar[read]);
-            memcpy(receivedRTPFrame->data.get(), buffer, read);
-            receivedRTPFrame->data_size = read;
-
-            filter->putInput(std::move(receivedRTPFrame));
-          }
-          else
-          {
-            Logger::getLogger()->printWarning(this, "Received an RTCP packet for which we have no receiver",
-                                            {"SSRC"}, {QString::number(ssrc)});
-          }
-        }
-        else
-        {
-          Logger::getLogger()->printWarning(this, "Received a packet which does not follow RTP specifications",
-                                          {"Payload type"},
-                                          {QString::number(rtp_pt)});
-        }
+        queueCV_.notify_one();
       }
     }
   }
 
+  // Stop the processing thread
+  processingRunning_ = false;
+  queueCV_.notify_all();
+  if (processingThread_.joinable())
+  {
+    processingThread_.join();
+  }
+
   delete pfds;
+}
+
+void UVGRelay::processPackets()
+{
+  while (processingRunning_)
+  {
+    std::unique_lock<std::mutex> lock(queueMutex_);
+    
+    // Wait for packets or stop signal
+    queueCV_.wait(lock, [this] { 
+      return !packetQueue_.empty() || !processingRunning_; 
+    });
+
+    // Process all available packets
+    while (!packetQueue_.empty() && processingRunning_)
+    {
+      ReceivedPacket packet = packetQueue_.front();
+      packetQueue_.pop();
+      
+      // Unlock while processing to allow reception to continue
+      lock.unlock();
+      
+      processReceivedPacket(packet.buffer, packet.size);
+      
+      lock.lock();
+    }
+  }
+}
+
+void UVGRelay::processReceivedPacket(const uint8_t* buffer, int read)
+{
+  // check if this is an RTP or RTCP packet
+  uint8_t rtcp_pt = buffer[1];
+  uint8_t rtp_pt = rtcp_pt & 0x7F;
+
+  if (rtp_pt <= 34 || 96 <= rtp_pt)
+  {
+    // RTP
+    uint32_t ssrc = 0;
+    std::memcpy(&ssrc, buffer + 8, sizeof(ssrc));
+    ssrc = ntohl(ssrc);
+
+    if (rtpReceivers_.find(ssrc) != rtpReceivers_.end())
+    {
+      std::shared_ptr<Filter> filter = rtpReceivers_[ssrc];
+
+      std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
+      receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+      receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
+
+      // Extract RTP timestamp from packet header (RFC 3550)
+      // RTP timestamp is at bytes 4-7 in network byte order
+      uint32_t net_ts = 0;
+      std::memcpy(&net_ts, buffer + 4, sizeof(net_ts));
+      receivedRTPFrame->rtpTimestamp = ntohl(net_ts);
+
+      receivedRTPFrame->data = std::unique_ptr<uchar[]>(new uchar[read]);
+      memcpy(receivedRTPFrame->data.get(), buffer, read);
+      receivedRTPFrame->data_size = read;
+
+      filter->putInput(std::move(receivedRTPFrame));
+    }
+    else
+    {
+      Logger::getLogger()->printWarning(this, "Received an RTP packet for which we have no receiver",
+                                      {"SSRC"}, {QString::number(ssrc)});
+    }
+  }
+  else if (rtcp_pt == 200 || rtcp_pt == 201 || rtcp_pt == 202)
+  {
+    handleRTCPCompound(buffer, read);
+
+    // RTCP
+    uint32_t ssrc = 0;
+    std::memcpy(&ssrc, buffer + 4, sizeof(ssrc));
+    ssrc = ntohl(ssrc);
+
+    if (rtcpReceivers_.find(ssrc) != rtcpReceivers_.end())
+    {
+      std::shared_ptr<Filter> filter = rtcpReceivers_[ssrc];
+
+      std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
+      receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+      receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
+      receivedRTPFrame->rtpTimestamp = 0; // RTCP has not RTP timestamp (expect SR for sync purposes)
+
+      receivedRTPFrame->data = std::unique_ptr<uchar[]>(new uchar[read]);
+      memcpy(receivedRTPFrame->data.get(), buffer, read);
+      receivedRTPFrame->data_size = read;
+
+      filter->putInput(std::move(receivedRTPFrame));
+    }
+    else
+    {
+      Logger::getLogger()->printWarning(this, "Received an RTCP packet for which we have no receiver",
+                                      {"SSRC"}, {QString::number(ssrc)});
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "Received a packet which does not follow RTP specifications",
+                                    {"Payload type"},
+                                    {QString::number(rtp_pt)});
+  }
 }
 
 void UVGRelay::handleRTCPCompound(const uint8_t* buffer, int length)
