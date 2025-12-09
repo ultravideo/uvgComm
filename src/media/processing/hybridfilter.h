@@ -113,7 +113,7 @@ private:
 
   uint64_t count_;
 
-  int nextSwitch_ = -1;
+  uint32_t nextSwitchTimestamp_ = 0;
   std::vector<std::shared_ptr<LinkInfo>> linksToSwitch_;
 
   // Framerate for calculating future RTP timestamps

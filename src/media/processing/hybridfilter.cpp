@@ -26,7 +26,8 @@ Filter(id, "Hybrid", stats, hwResources, DT_HEVCVIDEO, DT_HEVCVIDEO),
     sfuRTPSender_(nullptr),
     count_(0),
     framerateNumerator_(0),
-    framerateDenominator_(0)
+    framerateDenominator_(0),
+    nextSwitchTimestamp_(0)
 {
   updateSettings();
 
@@ -297,15 +298,23 @@ void HybridFilter::process()
       triggerReEvaluation_ = false;
     }
 
+    uint32_t currentTimestamp = input->rtpTimestamp;
     sendOutput(std::move(input));
     input = getInput();
 
-    if (nextSwitch_ > 0)
+    if (nextSwitchTimestamp_ != 0)
     {
-      --nextSwitch_;
-      if (nextSwitch_ == 0)
+      // Use signed arithmetic to handle RTP timestamp rollover
+      int32_t delta = static_cast<int32_t>(currentTimestamp - nextSwitchTimestamp_);
+      if (delta >= 0)
       {
+        Logger::getLogger()->printNormal(this, "Executing switches at RTP timestamp",
+                                        {"Current", "Scheduled", "Delta"},
+                                        {QString::number(currentTimestamp), 
+                                         QString::number(nextSwitchTimestamp_),
+                                         QString::number(delta)});
         executeSwitches();
+        nextSwitchTimestamp_ = 0;
       }
     }
   }
@@ -479,15 +488,16 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32
   }
   else if (!linkInfo->p2pActive) // delayed switch
   {
-    Logger::getLogger()->printNormal(this, "Scheduling delayed switch to P2P connection",
-                                    {"SFU SSRC","P2P SSRC"},
-                                    {QString::number(linkInfo->sfuSSRC), QString::number(linkInfo->p2pSSRC)});
-
-    nextSwitch_ = SYNC_PERIOD_IN_FRAMES; // wait frames until we switch to P2P
     if (sfuRTPSender_)
     {
-      // Calculate future timestamp for when the switch will occur (nextSwitch_ + 1 because switch executes after decrement to 0)
-      uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, nextSwitch_ + 1);
+      // Calculate future timestamp for when the switch will occur
+      uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, SYNC_PERIOD_IN_FRAMES);
+      nextSwitchTimestamp_ = futureTimestamp;
+
+      Logger::getLogger()->printNormal(this, "Scheduling delayed switch to P2P connection",
+                                      {"SFU SSRC","P2P SSRC", "Current TS", "Future TS"},
+                                      {QString::number(linkInfo->sfuSSRC), QString::number(linkInfo->p2pSSRC),
+                                       QString::number(currentTimestamp), QString::number(futureTimestamp)});
 
       // sync with sfu server
       sfuRTPSender_->stopForwarding(linkInfo->sfuSSRC, futureTimestamp);
@@ -532,13 +542,14 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
   {
     if (sfuRTPSender_)
     {
-      Logger::getLogger()->printNormal(this, "Scheduling delayed switch to SFU connection",
-                                      {"P2P SSRC","SFU SSRC"},
-                                      {QString::number(linkInfo->p2pSSRC), QString::number(linkInfo->sfuSSRC)});
-      nextSwitch_ = SYNC_PERIOD_IN_FRAMES; // wait frames until we switch to SFU
-
       // Calculate future timestamp for when the switch will occur
-      uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, nextSwitch_);
+      uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, SYNC_PERIOD_IN_FRAMES);
+      nextSwitchTimestamp_ = futureTimestamp;
+
+      Logger::getLogger()->printNormal(this, "Scheduling delayed switch to SFU connection",
+                                      {"P2P SSRC","SFU SSRC", "Current TS", "Future TS"},
+                                      {QString::number(linkInfo->p2pSSRC), QString::number(linkInfo->sfuSSRC),
+                                       QString::number(currentTimestamp), QString::number(futureTimestamp)});
 
       // sync with sfu server
       sfuRTPSender_->startForwarding(linkInfo->sfuSSRC, futureTimestamp);
