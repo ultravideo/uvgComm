@@ -215,7 +215,15 @@ void UvgRTPSender::process()
     streamMutex_.lock();
     if (stream_)
     {
-      ret = stream_->push_frame(std::move(input->data), input->data_size, input->rtpTimestamp, rtpFlags_);
+      if (input->rtpTimestamp != 0)
+      {
+        ret = stream_->push_frame(std::move(input->data), input->data_size, input->rtpTimestamp, rtpFlags_);
+      }
+      else
+      {
+        Logger::getLogger()->printWarning(this, "No RTP timestamp available");
+        ret = stream_->push_frame(std::move(input->data), input->data_size, rtpFlags_);
+      }
     }
     streamMutex_.unlock();
 

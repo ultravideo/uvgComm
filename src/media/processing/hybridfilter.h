@@ -80,7 +80,7 @@ private:
 
   void reEvaluateConnections(uint32_t currentTimestamp);
 
-  void sendDummies();
+  void sendDummies(uint32_t currentTimestamp);
 
   void fullBandwidthEvaluation(uint32_t currentTimestamp);
 

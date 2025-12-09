@@ -270,7 +270,7 @@ void HybridFilter::process()
 
     if (count_ % DUMMY_INTERVAL == 0)
     {
-      sendDummies(); // to get latency measurements for inactive connections
+      sendDummies(input->rtpTimestamp); // to get latency measurements for inactive connections
     }
 
     if (triggerReEvaluation_)
@@ -279,7 +279,7 @@ void HybridFilter::process()
       {
         Logger::getLogger()->printNormal(this, "Skipping re-evaluation: not hybrid (no P2P or no SFU)");
       }
-      else
+      else if (input->rtpTimestamp != 0)
       {
         reEvaluateConnections(input->rtpTimestamp);
       }
@@ -341,7 +341,7 @@ void HybridFilter::executeSwitches()
 }
 
 
-void HybridFilter::sendDummies()
+void HybridFilter::sendDummies(uint32_t currentTimestamp)
 {
   // the point of dummy is to send a harmless packet via all inactive media paths so they send RTCP SR
   uint8_t dummy_packet[] = {
@@ -356,6 +356,7 @@ void HybridFilter::sendDummies()
   auto now = std::chrono::system_clock::now();
   newDummy->creationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
   newDummy->presentationTimestamp = newDummy->creationTimestamp;
+  newDummy->rtpTimestamp = currentTimestamp;
 
   newDummy->type = output_;
   newDummy->data_size = sizeof(dummy_packet);

@@ -267,6 +267,7 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source)
   data->data_size = 0;
   data->creationTimestamp = 0;
   data->presentationTimestamp = 0;
+  data->rtpTimestamp = 0;
 
   if (isVideo(type))
   {
@@ -499,6 +500,7 @@ Data* Filter::shallowDataCopy(Data* original) const
 
     copy->creationTimestamp = original->creationTimestamp;
     copy->presentationTimestamp = original->presentationTimestamp;
+    copy->rtpTimestamp = original->rtpTimestamp;
 
     copy->data_size = 0; // no data in shallow copy
 
