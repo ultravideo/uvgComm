@@ -46,10 +46,19 @@ void RTPBuffer::process()
       reorderBuffer_.push_back(std::move(input));
     }
     
-    if (reorderBuffer_.size() >= BUFFER_SIZE) // output oldest
+    // Output oldest timestamp packets when buffer is full
+    // Don't output if first and last packet have same timestamp (incomplete frame)
+    if (reorderBuffer_.size() >= BUFFER_SIZE &&
+        reorderBuffer_.front()->rtpTimestamp != reorderBuffer_.back()->rtpTimestamp)
     {
-      sendOutput(std::move(reorderBuffer_.front()));
-      reorderBuffer_.pop_front();
+      uint32_t oldestTimestamp = reorderBuffer_.front()->rtpTimestamp;
+      
+      while (!reorderBuffer_.empty() && 
+             reorderBuffer_.front()->rtpTimestamp == oldestTimestamp)
+      {
+        sendOutput(std::move(reorderBuffer_.front()));
+        reorderBuffer_.pop_front();
+      }
     }
 
     input = getInput();

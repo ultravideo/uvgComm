@@ -143,6 +143,8 @@ void OpenHEVCFilter::process()
       pendingParamSetBytes_ += input->data_size;
     }
 
+    //Logger::getLogger()->printNormal(this, cname_ + " RTP timestamp: " + QString::number(input->rtpTimestamp) + ", NAL type: " + QString::number(nalType));
+
     if((vpsReceived_ && spsReceived_ && ppsReceived_) || !vcl)
     {
       if (discardedFrames_ != 0)

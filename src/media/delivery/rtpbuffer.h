@@ -15,5 +15,5 @@ protected:
 
 private:
   std::deque<std::unique_ptr<Data>> reorderBuffer_;
-  const size_t BUFFER_SIZE = 2; // 2-frame buffer for reordering
+  const size_t BUFFER_SIZE = 3; // buffer for reordering
 };
