@@ -140,7 +140,7 @@ void KvazaarFilter::reInitializeKvazaar()
   while(isRunning())
   {
     Logger::getLogger()->printNormal(this, "Waiting for Kvazaar to stop...");
-    sleep(1);
+    msleep(5);
   }
 
   settingsMutex_.lock();
