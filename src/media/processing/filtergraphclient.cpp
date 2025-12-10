@@ -10,6 +10,7 @@
 
 #include "media/processing/openhevcfilter.h"
 
+#include "media/delivery/rtpbuffer.h"
 
 #include "media/processing/halfrgbfilter.h"
 #include "media/processing/libyuvconverter.h"
@@ -597,13 +598,22 @@ void FilterGraphClient::receiveVideoFrom(uint32_t sessionID,
       std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
       peers_[sessionID]->videoViewFlow[cname] = graph;
 
-      addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, cname, stats_, hwResources_)), *graph, 0);
+      addToGraph(std::shared_ptr<Filter>(new RTPBuffer(QString::number(sessionID), stats_, hwResources_, receiver->outputType())), *graph, 0);
+      if (receiver->outputType() == DT_HEVCVIDEO)
+      {
+        addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, cname, stats_, hwResources_)), *graph, (unsigned int)graph->size() - 1);
+      }
+      else
+      {
+        Logger::getLogger()->printProgramError(this, "Unsupported video format received",
+                                               "Format", QString::number(receiver->outputType()));
+      }
 
       std::shared_ptr<DisplayFilter> displayFilter =
       std::shared_ptr<DisplayFilter>(new DisplayFilter(QString::number(sessionID),
                                                          stats_, hwResources_, {view}, sessionID, cname));
 
-      addToGraph(displayFilter, *graph, 0);
+      addToGraph(displayFilter, *graph, (unsigned int)graph->size() - 1);
     }
 
     peers_[sessionID]->videoReceivers[remoteSSRC] = receiver;
@@ -669,6 +679,8 @@ void FilterGraphClient::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Fil
     {
       std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
       peers_[sessionID]->audioViewFlow[cname] = graph;
+
+      addToGraph(std::shared_ptr<Filter>(new RTPBuffer(QString::number(sessionID), stats_, hwResources_, receiver->outputType())), *graph, (unsigned int)graph->size());
 
       if (receiver->outputType() == DT_OPUSAUDIO)
       {
