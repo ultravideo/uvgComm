@@ -1,6 +1,5 @@
 #include "rtpbuffer.h"
 #include "logger.h"
-#include <algorithm>
 
 RTPBuffer::RTPBuffer(QString id, StatisticsInterface* stats,
                      std::shared_ptr<ResourceAllocator> hwResources,
@@ -13,52 +12,67 @@ void RTPBuffer::process()
   std::unique_ptr<Data> input = getInput();
 
   while (input)
-  {
-    bool processed = false;
-    for (auto insertPos = reorderBuffer_.begin(); insertPos != reorderBuffer_.end(); ++insertPos)
+  { 
+    // Find or create frame for this timestamp
+    Frame* targetFrame = nullptr;
+    bool isDuplicate = false;
+    
+    for (auto it = frameBuffer_.begin(); it != frameBuffer_.end(); ++it)
     {
-      int32_t diff = (int32_t)(input->rtpTimestamp - (*insertPos)->rtpTimestamp);
+      int32_t diff = (int32_t)(input->rtpTimestamp - it->timestamp);
       
-      if (diff == 0 && input->data_size == (*insertPos)->data_size)
+      if (diff == 0) // we have these timestamps already
       {
-        Logger::getLogger()->printWarning(this, "Duplicate RTP packet detected and discarded",
-                                         {"RTP Timestamp", "Size"},
-                                         {QString::number(input->rtpTimestamp), 
-                                          QString::number(input->data_size)});
-        processed = true; // discard duplicate
+        for (const auto& packet : it->nalUnits)
+        {
+          if (packet->data_size == input->data_size) // duplicate
+          {
+            Logger::getLogger()->printWarning(this, "Duplicate RTP packet detected and discarded",
+                                             {"RTP Timestamp", "Size"},
+                                             {QString::number(input->rtpTimestamp),
+                                              QString::number(input->data_size)});
+            isDuplicate = true;
+            break;
+          }
+        }
+        targetFrame = &(*it);
         break;
       }
-      
-      if (diff < 0) // earlier packet than buffered one
+      else if (diff < 0) // wrong timestamp order
       {
-        Logger::getLogger()->printWarning(this, "Out-of-order RTP packet reordered",
+        // Earlier timestamp - insert new frame before this one
+        Logger::getLogger()->printWarning(this, "Out-of-order frame reordered",
                                          {"RTP Timestamp", "Expected after"},
-                                         {QString::number(input->rtpTimestamp), 
-                                          QString::number((*insertPos)->rtpTimestamp)});
-        reorderBuffer_.insert(insertPos, std::move(input));
-        processed = true;
+                                         {QString::number(input->rtpTimestamp),
+                                          QString::number(it->timestamp)});
+        targetFrame = &(*frameBuffer_.insert(it, {input->rtpTimestamp, {}}));
         break;
       }
     }
     
-    if (!processed) // newest packet to end
+    // If not found, add new frame at end
+    if (!targetFrame)
     {
-      reorderBuffer_.push_back(std::move(input));
+      frameBuffer_.push_back({input->rtpTimestamp, {}});
+      targetFrame = &frameBuffer_.back();
     }
     
-    // Output oldest timestamp packets when buffer is full
-    // Don't output if first and last packet have same timestamp (incomplete frame)
-    if (reorderBuffer_.size() >= BUFFER_SIZE &&
-        reorderBuffer_.front()->rtpTimestamp != reorderBuffer_.back()->rtpTimestamp)
+    if (!isDuplicate) // multiple NAL units with same timestamp
     {
-      uint32_t oldestTimestamp = reorderBuffer_.front()->rtpTimestamp;
+      targetFrame->nalUnits.push_back(std::move(input));
+    }
+    
+    // Output oldest frame
+    if (frameBuffer_.size() >= BUFFER_SIZE)
+    {
+      Frame& oldestFrame = frameBuffer_.front();
       
-      while (!reorderBuffer_.empty() && 
-             reorderBuffer_.front()->rtpTimestamp == oldestTimestamp)
+      for (auto& packet : oldestFrame.nalUnits)
       {
-        sendOutput(std::move(reorderBuffer_.front()));
-        reorderBuffer_.pop_front();
+        sendOutput(std::move(packet));
       }
+      
+      frameBuffer_.pop_front();
     }
 
     input = getInput();

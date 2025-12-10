@@ -2,6 +2,13 @@
 
 #include "media/processing/filter.h"
 #include <deque>
+#include <vector>
+
+struct Frame
+{
+  uint32_t timestamp;
+  std::vector<std::unique_ptr<Data>> nalUnits;
+};
 
 class RTPBuffer : public Filter
 {
@@ -14,6 +21,6 @@ protected:
   virtual void process() override;
 
 private:
-  std::deque<std::unique_ptr<Data>> reorderBuffer_;
-  const size_t BUFFER_SIZE = 3; // buffer for reordering
+  std::deque<Frame> frameBuffer_;
+  const size_t BUFFER_SIZE = 3; // number of complete frames to buffer
 };
