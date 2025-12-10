@@ -1,6 +1,7 @@
 #pragma once
 
 #include "filtergraph.h"
+#include <QSize>
 
 class ScreenShareFilter;
 class DisplayFilter;
@@ -125,4 +126,7 @@ private:
   QAudioFormat format_;
 
   std::pair<uint16_t, uint16_t> resolution_;
+  // Last applied resolution/bitrate to avoid unnecessary restarts
+  QSize lastAppliedResolution_;
+  int lastAppliedBitrate_;
 };

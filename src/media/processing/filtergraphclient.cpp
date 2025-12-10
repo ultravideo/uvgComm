@@ -78,7 +78,10 @@ FilterGraphClient::FilterGraphClient()
     mixer_(),
     audioInputInitialized_(false),
     audioOutputInitialized_(false),
-    format_()
+    format_(),
+    resolution_({0,0}),
+    lastAppliedResolution_(QSize(0,0)),
+    lastAppliedBitrate_(-1)
 {
   // TODO negotiate these values with all included filters and SDP
   // TODO move these to settings and manage them automatically
@@ -112,9 +115,38 @@ void FilterGraphClient::setSelfViews(QList<VideoInterface*> selfViews)
 
 void FilterGraphClient::refreshResolutions()
 {
+  // Only restart the encoder / reconfigure converters if the effective
+  // resolution or encoder bitrate actually changed. Restarting Kvazaar is
+  // expensive and seems to be the root cause of delays when participants
+  // increase.
+
+  QSize hwRes = hwResources_->getVideoResolution();
+  int hwBitrate = hwResources_->getEncoderBitrate(DT_HEVCVIDEO);
+
+  bool resolutionChanged = (lastAppliedResolution_.isEmpty() || lastAppliedResolution_ != hwRes);
+  bool bitrateChanged = (lastAppliedBitrate_ == -1 || lastAppliedBitrate_ != hwBitrate);
+
   if (kvazaar_)
   {
-    kvazaar_->restartEncoder();
+    if (resolutionChanged || bitrateChanged)
+    {
+      Logger::getLogger()->printNormal(this, "Applying new encoder parameters",
+                                       {"Resolution", "Bitrate"},
+                                       {QString("%1x%2").arg(hwRes.width()).arg(hwRes.height()),
+                                        QString::number(hwBitrate)});
+
+      kvazaar_->restartEncoder();
+
+      lastAppliedResolution_ = hwRes;
+      lastAppliedBitrate_ = hwBitrate;
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Encoder parameters unchanged, skipping restart",
+                                       {"Resolution", "Bitrate"},
+                                       {QString("%1x%2").arg(hwRes.width()).arg(hwRes.height()),
+                                        QString::number(hwBitrate)});
+    }
   }
   else
   {
@@ -124,17 +156,18 @@ void FilterGraphClient::refreshResolutions()
   // Make sure libyuv uses the same resolution the encoder will use. Force the
   // target before asking the filter to change so there is no race where
   // changeResolution() reads an outdated HW manager value and applies it.
-  QSize hwRes = hwResources_->getVideoResolution();
   if (libyuv_)
   {
     libyuv_->setTargetResolution(hwRes);
-    libyuv_->changeResolution();
+    if (resolutionChanged)
+      libyuv_->changeResolution();
   }
 
   if (libyuv2_)
   {
     libyuv2_->setTargetResolution(hwRes);
-    libyuv2_->changeResolution();
+    if (resolutionChanged)
+      libyuv2_->changeResolution();
   }
 }
 
