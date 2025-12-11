@@ -978,6 +978,11 @@ void FilterGraphClient::lastPeerRemoved()
     initCameraSelfView();
     mic(settingEnabled(SettingsKey::micStatus));
   }
+
+  // Clear cached encoder parameters - graph reset means parameters must be
+  // re-applied when sending starts again.
+  lastAppliedResolution_ = QSize(0,0);
+  lastAppliedBitrate_ = -1;
 }
 
 
