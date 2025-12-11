@@ -13,6 +13,8 @@
 #include <QTime>
 #include <QSize>
 
+#include <QThread>
+
 enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
 
 const int CU_MIN_SIZE_PIXELS = 8;
@@ -502,6 +504,12 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
     inputPic->roi.roi_array = input->vInfo->roi.data.release();
   }
 
+  if (initialDelayMs_ > 0)
+  {
+    QThread::msleep((unsigned long)initialDelayMs_);
+    initialDelayMs_ = 0;
+  }
+
   encodingFrames_.push_front({std::move(input), inputPic, inputPic->roi.roi_array});
 
   api_->encoder_encode(encoders_[currentResolution_], inputPic,
@@ -511,7 +519,7 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 
   while(data_out != nullptr)
   {
-    parseEncodedFrame(data_out, len_out, recon_pic);
+    parseEncodedFrame(data_out, len_out, recon_pic, frame_info);
 
     // see if there is more output ready
     api_->encoder_encode(encoders_[currentResolution_], nullptr,
@@ -523,7 +531,8 @@ void KvazaarFilter::feedInput(std::unique_ptr<Data> input)
 
 
 void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
-                                      uint32_t len_out, kvz_picture *recon_pic)
+                                      uint32_t len_out, kvz_picture *recon_pic,
+                                      const kvz_frame_info &frame_info)
 {
   FrameInfo info = std::move(encodingFrames_.back());
   encodingFrames_.pop_back();
@@ -620,6 +629,18 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
                                 psnr_y, psnr_u, psnr_v, info.data->creationTimestamp);
 
   // send last packet reusing input structure
+  if (info.data && info.data->vInfo)
+  {
+    bool isKey = false;
+    // Treat BLA, IDR and CRA NAL types as keyframes / random access points
+    // (KVZ_NAL_BLA_W_LP .. KVZ_NAL_CRA_NUT == 16..21)
+    if (frame_info.nal_unit_type >= KVZ_NAL_BLA_W_LP &&
+        frame_info.nal_unit_type <= KVZ_NAL_CRA_NUT)
+    {
+      info.data->vInfo->keyframe = true;
+    }
+  }
+
   sendEncodedFrame(std::move(info.data), std::move(hevc_frame), dataWritten);
 }
 

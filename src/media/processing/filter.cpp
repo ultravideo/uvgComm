@@ -278,6 +278,7 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source)
     data->vInfo->framerateDenominator = 0;
     data->vInfo->flippedVertically = false;
     data->vInfo->flippedHorizontally = false;
+    data->vInfo->keyframe = false;
 
     data->vInfo->roi.width = 0;
     data->vInfo->roi.height = 0;
@@ -514,6 +515,7 @@ Data* Filter::shallowDataCopy(Data* original) const
       copy->vInfo->framerateDenominator  = original->vInfo->framerateDenominator;
       copy->vInfo->flippedHorizontally = original->vInfo->flippedHorizontally;
       copy->vInfo->flippedVertically   = original->vInfo->flippedVertically;
+      copy->vInfo->keyframe            = original->vInfo->keyframe;
     }
 
     if (original->aInfo != nullptr)

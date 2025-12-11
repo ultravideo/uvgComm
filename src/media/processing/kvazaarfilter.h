@@ -9,6 +9,7 @@ struct kvz_config;
 struct kvz_encoder;
 struct kvz_picture;
 struct kvz_data_chunk;
+struct kvz_frame_info;
 
 class KvazaarFilter : public Filter
 {
@@ -37,7 +38,8 @@ private:
 
   // parse the encoded frame and send it forward.
   void parseEncodedFrame(kvz_data_chunk *data_out, uint32_t len_out,
-                         kvz_picture *recon_pic);
+                         kvz_picture *recon_pic,
+                         const kvz_frame_info &frame_info);
 
   void sendEncodedFrame(std::unique_ptr<Data> input,
                         std::unique_ptr<uchar[]> hevc_frame,
@@ -82,4 +84,5 @@ private:
   uint64_t currentFrame_;
 
   bool initialized_;
+  int initialDelayMs_ = 200;
 };

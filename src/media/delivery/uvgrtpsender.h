@@ -63,4 +63,5 @@ private:
   int32_t framerateDenominator_;
 
   QFuture<rtp_error_t> futureRes_;
+  bool awaitingKeyframe_ = false;
 };

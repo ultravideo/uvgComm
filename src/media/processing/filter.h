@@ -89,6 +89,9 @@ struct VideoInfo
   bool flippedVertically = false;
   bool flippedHorizontally = false;
 
+  // Indicates whether this video sample contains a keyframe (IDR/ intra)
+  bool keyframe = false;
+
   RoiMap roi;
 };
 

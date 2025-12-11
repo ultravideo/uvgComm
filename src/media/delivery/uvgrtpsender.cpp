@@ -35,6 +35,9 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
 
   UvgRTPSender::updateSettings();
 
+  if (input_ == DT_HEVCVIDEO)
+    awaitingKeyframe_ = true;
+
   std::function<void(uint32_t, uint32_t, double)> f = std::bind(&UvgRTPSender::rtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
   {
@@ -215,6 +218,22 @@ void UvgRTPSender::process()
     streamMutex_.lock();
     if (stream_)
     {
+      if (input->type == DT_HEVCVIDEO && awaitingKeyframe_)
+      {
+        if (input->vInfo && input->vInfo->keyframe)
+        {
+          awaitingKeyframe_ = false;
+          // Forward the keyframe below
+        }
+        else
+        {
+          // Drop this frame; wait for keyframe
+          input = getInput();
+          streamMutex_.unlock();
+          continue;
+        }
+      }
+
       if (input->rtpTimestamp != 0)
       {
         ret = stream_->push_frame(std::move(input->data), input->data_size, input->rtpTimestamp, rtpFlags_);
