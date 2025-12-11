@@ -20,6 +20,11 @@ if [ "$USE_VIRTUAL_SCREEN" = true ]; then
 fi
 
 echo "Display: $DISPLAY"
+if [ -z "$KV_HEADLESS_FORCE_OFFSCREEN" ]; then
+    echo "KV_HEADLESS_FORCE_OFFSCREEN: <unset>"
+else
+    echo "KV_HEADLESS_FORCE_OFFSCREEN=$KV_HEADLESS_FORCE_OFFSCREEN"
+fi
 echo "Contents of /uvgcomm:"
 ls -l /uvgcomm
 
