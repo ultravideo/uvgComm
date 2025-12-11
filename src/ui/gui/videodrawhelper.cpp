@@ -201,8 +201,6 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
     }
     else if (discardedFrames_ > 0)
     {
-      Logger::getLogger()->printWarning(this, "Space in image buffer again after discarding frames",
-                                        {"Amount discarded"}, QString::number(discardedFrames_));
       discardedFrames_ = 0;
     }
   }
