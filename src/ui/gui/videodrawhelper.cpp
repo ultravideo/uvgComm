@@ -8,6 +8,7 @@
 #include <QKeyEvent>
 #include <QPainter>
 #include <QDateTime>
+#include <QProcessEnvironment>
 
 const uint16_t VIEWBUFFERSIZE = 5;
 const QImage::Format IMAGE_FORMAT = QImage::Format_ARGB32;
@@ -140,9 +141,12 @@ bool VideoDrawHelper::readyToDraw()
 void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data, QImage &image,
                                  double framerate, int64_t creationTimestamp, int64_t displayTimestamp)
 {
-  if (!widget->isVisible() ||
-      widget->isHidden() ||
-      widget->isMinimized())
+  // Respect the widget visibility by default to avoid unnecessary drawing.
+  // Allow overriding in headless experimental runs by setting KV_HEADLESS_FORCE_OFFSCREEN=1
+  QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+  bool forceOffscreen = !env.value("KV_HEADLESS_FORCE_OFFSCREEN").isEmpty();
+
+  if ((!widget->isVisible() || widget->isHidden() || widget->isMinimized()) && !forceOffscreen)
   {
     return;
   }

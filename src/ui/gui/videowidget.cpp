@@ -29,6 +29,15 @@ VideoWidget::VideoWidget(QWidget* parent, uint32_t sessionID,
 {
   helper_.initWidget(this);
 
+  // One-off informational log if headless forced offscreen mode is enabled
+  QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+  QString headlessVal = env.value("KV_HEADLESS_FORCE_OFFSCREEN");
+  if (!headlessVal.isEmpty())
+  {
+    Logger::getLogger()->printNormal(this, "KV_HEADLESS_FORCE_OFFSCREEN enabled",
+                                     {"Value"}, {headlessVal});
+  }
+
   Logger::getLogger()->printNormal(this, "VideoWidget created",
                                   {"SessionID", "LayoutID", "WidgetPtr"},
                                   {QString::number(sessionID_), QString::number(layoutID), QString::number((qintptr)this)});
@@ -226,8 +235,58 @@ void VideoWidget::mouseDoubleClickEvent(QMouseEvent *e) {
 
 void VideoWidget::paintTimer()
 {
-  if (helper_.haveFrames())
+  if (!helper_.haveFrames())
+  {
+    return;
+  }
+
+  // If a DISPLAY is set (local or X-forwarded) and the user did not request forced offscreen,
+  // use normal repaint to show frames on that display. Otherwise, fall back to offscreen rendering
+  // when running experiments with KV_HEADLESS_FORCE_OFFSCREEN=1.
+  QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+  bool forceOffscreen = !env.value("KV_HEADLESS_FORCE_OFFSCREEN").isEmpty();
+  QString display = env.value("DISPLAY");
+
+  // On Windows (and other non-X platforms) there is no DISPLAY env var — assume a display exists
+  // and use the normal repaint path unless the user explicitly forced offscreen mode.
+#if defined(Q_OS_WIN) || defined(Q_OS_WIN32) || defined(Q_OS_WIN64) || defined(Q_OS_MAC)
+  bool hasDisplay = true;
+#else
+  bool hasDisplay = !display.isEmpty();
+#endif
+
+  if (hasDisplay && !forceOffscreen)
   {
     repaint();
+    return;
   }
+
+  // Headless / offscreen path: render the next frame into an offscreen QImage
+  QImage frame;
+  int64_t latency = 0;
+  int64_t timestamp = 0;
+  bool showLatency = false;
+
+  drawMutex_.lock();
+  if (helper_.getRecentImage(frame, timestamp, latency, showLatency))
+  {
+    // sessionID 0 is the self display and we are not interested
+    if (stats_ && sessionID_ != 0)
+    {
+      stats_->videoLatency(sessionID_, cname_, timestamp, latency);
+    }
+  }
+  drawMutex_.unlock();
+
+  // Render overlays and other decorations into an offscreen image sized like the widget
+  QImage offscreen(size(), QImage::Format_ARGB32);
+  offscreen.fill(QColor(0,0,0));
+  QPainter painter(&offscreen);
+  painter.setRenderHint(QPainter::SmoothPixmapTransform, false);
+  painter.setRenderHint(QPainter::Antialiasing, false);
+
+  QRect target = helper_.getTargetRect();
+  painter.drawImage(target, frame);
+  helper_.draw(painter);
+  painter.end();
 }
