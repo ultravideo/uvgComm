@@ -15,6 +15,7 @@ const uint8_t MAX_RTT_MEASUREMENTS = 64; // Maximum number of RTT samples to kee
 const int EVALUATION_INTERVAL = 320; // Number of frames between evaluations
 const int DUMMY_INTERVAL = 160; // Number of frames between dummy packets
 const int SYNC_PERIOD_IN_FRAMES = 120; // the period after which delayed switch is applied
+const int P2P_RTT_THRESHOLD_MS = 10; // Minimum RTT improvement to consider P2P switch
 
 
 HybridFilter::HybridFilter(QString id, StatisticsInterface *stats,
@@ -612,7 +613,7 @@ void HybridFilter::fullBandwidthEvaluation(uint32_t currentTimestamp)
           needSFU = true;
         }
       }
-      else if (entry->latestsP2PRtt < entry->latestsSFURtt)
+      else if (entry->latestsP2PRtt + P2P_RTT_THRESHOLD_MS < entry->latestsSFURtt)
       {
         ++p2pLinks;
         if (!entry->p2pActive)
@@ -696,7 +697,7 @@ void HybridFilter::rankedBandwidthEvaluation(const int maxP2PConnections, int co
   // Enable P2P connections until we reach the limit
   for (int i = 0; i < rankedConnections.size(); ++i)
   {
-    bool shouldBeP2P = (i < maxP2PConnections) && (rankedConnections[i].rttBenefit > 0);
+    bool shouldBeP2P = (i < maxP2PConnections) && (rankedConnections[i].rttBenefit > P2P_RTT_THRESHOLD_MS);
 
     if (shouldBeP2P)
     {
