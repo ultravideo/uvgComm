@@ -23,6 +23,7 @@ ResourceAllocator::ResourceAllocator():
   backgroundQp_(0),
   roiObject_(0),
   otherParticipants_(1),
+  visibleParticipants_(9),
   bitrateMode_(SINGLE_UPLINK_BITRATE),
   isSpeaker_(false),
   uploadBandwidth_(0),
@@ -40,21 +41,20 @@ void ResourceAllocator::setArchitectureBitrate(ArchitectureBitrate bitrate)
 
 void ResourceAllocator::setParticipants(int otherParticipants)
 {
-  otherParticipants_ = otherParticipants;
-
+  int actualParticipants = std::min(otherParticipants, visibleParticipants_);
   if (conferenceViewMode_ == "Gallery")
   {
-    videoResolution_ = galleryResolution(conferenceResolution_, otherParticipants_);
+    videoResolution_ = galleryResolution(conferenceResolution_, actualParticipants);
   }
   else if (conferenceViewMode_ == "Speaker")
   {
     if (isSpeaker_)
     {
-      videoResolution_ = speakerResolution(conferenceResolution_, otherParticipants_);
+      videoResolution_ = speakerResolution(conferenceResolution_, actualParticipants);
     }
     else
     {
-      videoResolution_ = listenerResolution(conferenceResolution_, otherParticipants_);
+      videoResolution_ = listenerResolution(conferenceResolution_, actualParticipants);
     }
   }
   else
@@ -87,6 +87,7 @@ void ResourceAllocator::updateSettings()
   conferenceViewMode_ = settingString(SettingsKey::sipConferenceMode);
   isSpeaker_ = settingBool(SettingsKey::sipSpeakerMode);
   uploadBandwidth_ = settingValue(SettingsKey::sipUpBandwidth);
+  visibleParticipants_ = settingValue(SettingsKey::sipVisibleParticipants);
 
   if (settingEnabled(SettingsKey::videoFileEnabled))
   {
@@ -221,6 +222,8 @@ int ResourceAllocator::getEncoderBitrate(DataType type)
 {
   int bitrate = 0;
 
+  int actualParticipants = std::min(otherParticipants_, visibleParticipants_);
+
   bitrateMutex_.lock();
   if (type == DT_OPUSAUDIO)
   {
@@ -232,17 +235,17 @@ int ResourceAllocator::getEncoderBitrate(DataType type)
 
     if (conferenceViewMode_ == "Gallery")
     {
-      bitrate = galleryBitrate(conferenceResolution_, bitrate, otherParticipants_);
+      bitrate = galleryBitrate(conferenceResolution_, bitrate, actualParticipants);
     }
     else if (conferenceViewMode_ == "Speaker")
     {
       if (isSpeaker_)
       {
-        bitrate = speakerBitrate(conferenceResolution_, bitrate, otherParticipants_);
+        bitrate = speakerBitrate(conferenceResolution_, bitrate, actualParticipants);
       }
       else
       {
-        bitrate = listenerBitrate(conferenceResolution_, bitrate, otherParticipants_);
+        bitrate = listenerBitrate(conferenceResolution_, bitrate, actualParticipants);
       }
     }
     else

@@ -87,6 +87,7 @@ private:
   uint16_t roiObject_;
 
   int otherParticipants_;
+  int visibleParticipants_;
 
   ArchitectureBitrate bitrateMode_;
   QString conferenceViewMode_;
