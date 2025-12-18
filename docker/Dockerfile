@@ -33,6 +33,9 @@ RUN apt install -y \
   libxcb-xinerama0-dev \
   libxkbcommon-x11-0 \
   libx11-6 libxext6 libxrender1 libxfixes3
+  
+# optional package for evaluation
+RUN apt install -y iproute2
 
 RUN apt clean
 
