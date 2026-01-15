@@ -136,8 +136,10 @@ void OpenHEVCFilter::process()
     }
 
     bool vcl = nalType <= 31; // 31 is highest vlc nal_type
+    // HEVC SEI NAL unit types are typically 39 (prefix SEI) and 40 (suffix SEI).
+    bool sei = (nalType == 39 || nalType == 40);
 
-    if (!vcl)
+    if (!vcl && !sei)
     {
       // needed for accurate frame sizes
       pendingParamSetBytes_ += input->data_size;
