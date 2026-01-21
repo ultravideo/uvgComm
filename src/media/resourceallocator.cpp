@@ -41,6 +41,10 @@ void ResourceAllocator::setArchitectureBitrate(ArchitectureBitrate bitrate)
 
 void ResourceAllocator::setParticipants(int otherParticipants)
 {
+  bitrateMutex_.lock();
+  otherParticipants_ = otherParticipants;
+  bitrateMutex_.unlock();
+
   int actualParticipants = std::min(otherParticipants, visibleParticipants_);
   if (conferenceViewMode_ == "Gallery")
   {
