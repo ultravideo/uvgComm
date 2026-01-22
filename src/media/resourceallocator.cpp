@@ -5,6 +5,7 @@
 #include "settingskeys.h"
 #include "logger.h"
 #include "common.h"
+#include <algorithm>
 
 
 const int DEFAULT_OPUS_BITRATE_BITS = 24000; // 24 kbps
@@ -316,13 +317,16 @@ void ResourceAllocator::limitBitrate(int& bitrate, DataType type)
     }
     else if (bitrateMode_ == MULTI_UPLINK_BITRATE)
     {
-      // limit bandwidth if we cannot send the selected bit rate to all other participants
-      bitrate = std::min(bitrate, maxVideoBitrate/otherParticipants_);
+      int participants = std::max(1, std::min(otherParticipants_, visibleParticipants_));
+      // limit bandwidth if we cannot send the selected bit rate to all visible participants
+      bitrate = std::min(bitrate, maxVideoBitrate / participants);
     }
     else if (bitrateMode_ == HYBRID_UPLINK_BITRATE)
     {
-      int weightedBitrate = (maxVideoBitrate - maxVideoBitrate/otherParticipants_)*(hybridPrioritization_/100) +
-                            maxVideoBitrate/otherParticipants_;
+      int participants = std::max(1, std::min(otherParticipants_, visibleParticipants_));
+      int perParticipant = maxVideoBitrate / participants;
+      int weightedBitrate = (maxVideoBitrate - perParticipant) * (hybridPrioritization_/100) +
+                            perParticipant;
       bitrate = std::min(bitrate, weightedBitrate);
     }
     else
