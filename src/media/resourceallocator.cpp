@@ -317,13 +317,13 @@ void ResourceAllocator::limitBitrate(int& bitrate, DataType type)
     }
     else if (bitrateMode_ == MULTI_UPLINK_BITRATE)
     {
-      int participants = std::max(1, std::min(otherParticipants_, visibleParticipants_));
-      // limit bandwidth if we cannot send the selected bit rate to all visible participants
+      int participants = std::max(1, otherParticipants_); // we send to all other participants
+      // limit bandwidth if we cannot send the selected bit rate to all sending targets
       bitrate = std::min(bitrate, maxVideoBitrate / participants);
     }
     else if (bitrateMode_ == HYBRID_UPLINK_BITRATE)
     {
-      int participants = std::max(1, std::min(otherParticipants_, visibleParticipants_));
+      int participants = std::max(1, otherParticipants_); // use actual send count, not visible-only
       int perParticipant = maxVideoBitrate / participants;
       int weightedBitrate = (maxVideoBitrate - perParticipant) * (hybridPrioritization_/100) +
                             perParticipant;
