@@ -65,7 +65,9 @@ private:
 
   std::shared_ptr<StreamInfo> getStreamInfo(uint32_t sessionID, DataType type);
 
-  void limitBitrate(int &bitrate, DataType type);
+  int conferenceBitratePortion(DataType type);
+
+  void limitUploadBitrate(int &bitrate, DataType type);
 
   bool avx2_ = false;
   bool sse41_ = false;

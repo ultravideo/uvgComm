@@ -225,43 +225,9 @@ void ResourceAllocator::setConferenceBitrate(DataType type, int bitrate)
 
 int ResourceAllocator::getEncoderBitrate(DataType type)
 {
-  int bitrate = 0;
-
-  int actualParticipants = std::min(otherParticipants_, visibleParticipants_);
-
   bitrateMutex_.lock();
-  if (type == DT_OPUSAUDIO)
-  {
-    bitrate = conferenceAudioBitrate_;
-  }
-  else if (type == DT_HEVCVIDEO)
-  {
-    bitrate = conferenceVideoBitrate_;
-
-    if (conferenceViewMode_ == "Gallery")
-    {
-      bitrate = galleryBitrate(conferenceResolution_, bitrate, actualParticipants);
-    }
-    else if (conferenceViewMode_ == "Speaker")
-    {
-      if (isSpeaker_)
-      {
-        bitrate = speakerBitrate(conferenceResolution_, bitrate, actualParticipants);
-      }
-      else
-      {
-        bitrate = listenerBitrate(conferenceResolution_, bitrate, actualParticipants);
-      }
-    }
-    else
-    {
-      Logger::getLogger()->printProgramError(this, "Unknown conference mode: " + conferenceViewMode_);
-      bitrate = conferenceVideoBitrate_;
-    }
-  }
-
-  limitBitrate(bitrate, type);
-
+  int bitrate = conferenceBitratePortion(type);
+  limitUploadBitrate(bitrate, type);
   bitrateMutex_.unlock();
 
   return bitrate;
@@ -299,7 +265,45 @@ std::shared_ptr<StreamInfo> ResourceAllocator::getStreamInfo(uint32_t sessionID,
 }
 
 
-void ResourceAllocator::limitBitrate(int& bitrate, DataType type)
+int ResourceAllocator::conferenceBitratePortion(DataType type)
+{
+  int bitrate = 0;
+  int actualParticipants = std::min(otherParticipants_, visibleParticipants_);
+  
+  if (type == DT_OPUSAUDIO)
+  {
+    bitrate = conferenceAudioBitrate_;
+  }
+  else if (type == DT_HEVCVIDEO)
+  {
+    bitrate = conferenceVideoBitrate_;
+
+    if (conferenceViewMode_ == "Gallery")
+    {
+      bitrate = galleryBitrate(conferenceResolution_, bitrate, actualParticipants);
+    }
+    else if (conferenceViewMode_ == "Speaker")
+    {
+      if (isSpeaker_)
+      {
+        bitrate = speakerBitrate(conferenceResolution_, bitrate, actualParticipants);
+      }
+      else
+      {
+        bitrate = listenerBitrate(conferenceResolution_, bitrate, actualParticipants);
+      }
+    }
+    else
+    {
+      Logger::getLogger()->printProgramError(this, "Unknown conference mode: " + conferenceViewMode_);
+      bitrate = conferenceVideoBitrate_;
+    }
+  }
+
+  return bitrate;
+}
+
+void ResourceAllocator::limitUploadBitrate(int& bitrate, DataType type)
 {
   if (type == DT_OPUSAUDIO)
   {
