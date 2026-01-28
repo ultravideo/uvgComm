@@ -27,7 +27,8 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
   currentDeviceName_(""),
   currentDeviceID_(-1),
   currentInputFormat_(""),
-  rtpTimestamp_(initializeRtpTimestamp())
+  rtpTimestamp_(initializeRtpTimestamp()),
+  wantedRunning_(false)
 {
   resolutionWidth_ = settingValue(SettingsKey::videoResolutionWidth);
   resolutionHeight_ = settingValue(SettingsKey::videoResolutionHeight);
@@ -67,6 +68,8 @@ void CameraFilter::updateSettings()
   {
     Logger::getLogger()->printNormal(this, "Updating camera settings since they have changed");
 
+    const bool wasRunning = wantedRunning_;
+
     resolutionWidth_ = resolutionWidth;
     resolutionHeight_ = resolutionHeight;
 
@@ -76,7 +79,11 @@ void CameraFilter::updateSettings()
     stop();
     uninit();
     init();
-    start();
+
+    if (wasRunning)
+    {
+      start();
+    }
   }
 
   Filter::updateSettings();
@@ -92,6 +99,8 @@ void CameraFilter::setResolution(std::pair<uint16_t, uint16_t> resolution)
                                      QString::number(resolution.first) + "x" +
                                      QString::number(resolution.second));
 
+  const bool wasRunning = wantedRunning_;
+
     resolutionWidth_ = resolution.first;
     resolutionHeight_ = resolution.second;
 
@@ -100,7 +109,11 @@ void CameraFilter::setResolution(std::pair<uint16_t, uint16_t> resolution)
     stop();
     uninit();
     init();
-    start();
+
+    if (wasRunning)
+    {
+      start();
+    }
   }
 }
 
@@ -258,11 +271,6 @@ bool CameraFilter::cameraSetup()
       Logger::getLogger()->printError(this, "Did not find camera option");
       return false;
     }
-    if (!camera_->isActive())
-    {
-      camera_->start();
-    }
-    Logger::getLogger()->printImportant(this, "Starting camera.");
   }
   else
   {
@@ -274,6 +282,7 @@ bool CameraFilter::cameraSetup()
 
 void CameraFilter::start()
 {
+  wantedRunning_ = true;
   Filter::start();
   if(camera_)
   {
@@ -284,6 +293,7 @@ void CameraFilter::start()
 
 void CameraFilter::stop()
 {
+  wantedRunning_ = false;
   if(camera_)
   {
     camera_->stop();

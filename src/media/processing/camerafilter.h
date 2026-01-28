@@ -65,6 +65,8 @@ private:
   int currentDeviceID_;
   QString currentInputFormat_;
 
+  bool wantedRunning_;
+
   std::unique_ptr<QMediaCaptureSession> capture_;
   std::unique_ptr<QVideoSink>  sink_;
 
