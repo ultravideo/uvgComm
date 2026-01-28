@@ -429,15 +429,17 @@ double HybridFilter::averageRTT(const std::deque<double>& samples) const
 
 void HybridFilter::reEvaluateConnections(uint32_t currentTimestamp)
 {
-  const int networkBandwidth = settingValue(SettingsKey::sipUpBandwidth);
+  const int availableBandwidth = settingValue(SettingsKey::sipUpBandwidth);
   int linkBandwidth = getHWManager()->getEncoderBitrate(output_);
 
   for (auto& slave : slaves_)
   {
-    linkBandwidth += slave->getBitrate();;
+    // add audio bitrate
+    linkBandwidth += slave->getBitrate();
   }
 
-  linkBandwidth = linkBandwidth/(1.0 - TRANSMISSION_OVERHEAD);
+  // add transmission overhead
+  linkBandwidth = linkBandwidth * (1.0 + TRANSMISSION_OVERHEAD);
 
   if (linkBandwidth <= 0)
   {
@@ -457,7 +459,7 @@ void HybridFilter::reEvaluateConnections(uint32_t currentTimestamp)
     entry->latestsSFURtt = averageRTT(entry->sfuRTT);
   }
 
-  int maxP2PConnections = networkBandwidth / linkBandwidth;
+  int maxP2PConnections = availableBandwidth / linkBandwidth;
 
   // we can do all connections however we like
   if (maxP2PConnections  >= cnameToLinks_.size())

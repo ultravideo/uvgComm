@@ -377,7 +377,19 @@ bool KvazaarFilter::init()
     return false;
   }
 
-  Logger::getLogger()->printNormal(this, "Kvazaar iniation succeeded", "Resolution", resolutionStr);
+  double fps = 0.0;
+  if (config_->framerate_denom != 0)
+  {
+    fps = config_->framerate_num / (double)config_->framerate_denom;
+  }
+
+  QString bitrateStr = QString::number(config_->target_bitrate) + " bps (" +
+                       QString::number(config_->target_bitrate / 1000.0, 'f', 1) + " kbps)";
+  QString fpsStr = QString::number(fps, 'f', 3);
+
+  Logger::getLogger()->printNormal(this, "Kvazaar initiation succeeded",
+                                   {"Resolution", "Bitrate", "Frame rate"},
+                                   {resolutionStr, bitrateStr, fpsStr});
   initialized_ = true;
   return true;
 }
