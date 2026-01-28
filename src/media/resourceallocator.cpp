@@ -5,6 +5,7 @@
 #include "settingskeys.h"
 #include "logger.h"
 #include "common.h"
+
 #include <algorithm>
 
 
@@ -42,6 +43,12 @@ void ResourceAllocator::setArchitectureBitrate(ArchitectureBitrate bitrate)
 
 void ResourceAllocator::setParticipants(int otherParticipants)
 {
+  if (otherParticipants < 1)
+  {
+    Logger::getLogger()->printProgramWarning(this, "setParticipants called with less than 1 participant, using 1");
+    otherParticipants = 1;
+  }
+
   bitrateMutex_.lock();
   otherParticipants_ = otherParticipants;
   bitrateMutex_.unlock();
@@ -300,6 +307,10 @@ int ResourceAllocator::conferenceBitratePortion(DataType type)
     }
   }
 
+  Logger::getLogger()->printNormal(this, "Calculated conference bitrate portion",
+                                  {"Type", "Bitrate"},
+                                  {datatypeToString(type), QString::number(bitrate)});
+
   return bitrate;
 }
 
@@ -321,9 +332,8 @@ void ResourceAllocator::limitUploadBitrate(int& bitrate, DataType type)
     }
     else if (bitrateMode_ == MULTI_UPLINK_BITRATE)
     {
-      int participants = std::max(1, otherParticipants_); // we send to all other participants
       // limit bandwidth if we cannot send the selected bit rate to all sending targets
-      bitrate = std::min(bitrate, maxVideoBitrate / participants);
+      bitrate = std::min(bitrate, maxVideoBitrate / otherParticipants_);
     }
     else if (bitrateMode_ == HYBRID_UPLINK_BITRATE)
     {
@@ -343,6 +353,10 @@ void ResourceAllocator::limitUploadBitrate(int& bitrate, DataType type)
   {
     Logger::getLogger()->printUnimplemented(this, "Resource allocator tries to adjust unimplemented bit rate");
   }
+
+  Logger::getLogger()->printNormal(this, "Limited upload bitrate",
+                                  {"Type", "Limited Bitrate"},
+                                  {datatypeToString(type), QString::number(bitrate)});
 }
 
 
