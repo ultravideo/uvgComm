@@ -282,7 +282,10 @@ void HybridFilter::process()
 
     if (count_ % DUMMY_INTERVAL == 0)
     {
-      sendDummies(input->rtpTimestamp); // to get latency measurements for inactive connections
+      if (p2pLinkCount_ > 0 && sfuRTPSender_ != nullptr)
+      {
+        sendDummies(input->rtpTimestamp); // to get latency measurements for inactive connections
+      }
     }
 
     if (triggerReEvaluation_)
