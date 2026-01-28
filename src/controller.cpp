@@ -211,10 +211,13 @@ SIPConfig uvgCommController::createSIPConfig()
 #endif
 
   QString storedLocal = settingString(SettingsKey::sipLocalAddress);
-  QHostAddress ha(storedLocal);
-  if (!storedLocal.isEmpty() && !ha.isNull())
+  if (storedLocal != "None")
   {
-    cfg.localAddress = ha;
+    QHostAddress ha(storedLocal);
+    if (!storedLocal.isEmpty() && !ha.isNull())
+    {
+      cfg.localAddress = ha;
+    }
   }
 
   cfg.stun = settingEnabled(SettingsKey::sipSTUNEnabled);

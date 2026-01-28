@@ -366,7 +366,7 @@ void CallSettings::saveAdvancedSettings()
   {
     if (advancedUI_->address_box->currentText() == NO_PRIVATE_ADDRESSES)
     {
-      settings.setValue(SettingsKey::sipLocalAddress, QString());
+      settings.setValue(SettingsKey::sipLocalAddress, QString("None"));
     }
     else
     {
