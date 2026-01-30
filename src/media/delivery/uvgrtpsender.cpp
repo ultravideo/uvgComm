@@ -35,6 +35,18 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
 
   UvgRTPSender::updateSettings();
 
+  // Update uvgRTP session bandwidth whenever participant count changes.
+  // This ensures RTCP intervals track allocation changes immediately.
+  if (getHWManager())
+  {
+    QObject::connect(getHWManager().get(), &ResourceAllocator::participantsChanged,
+                     this, [this](int)
+                     {
+                       updateSessionBandwidth();
+                     },
+                     Qt::QueuedConnection);
+  }
+
   if (input_ == DT_HEVCVIDEO)
     awaitingKeyframe_ = true;
 
@@ -54,6 +66,29 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
                             return ms->start_zrtp();
                           }, stream_);
   }
+}
+
+
+void UvgRTPSender::updateSessionBandwidth()
+{
+  if (!alive_.load())
+    return;
+
+  // ResourceAllocator returns bitrate in bits/sec; uvgRTP expects session bandwidth in kbps.
+  int targetBitrateBps = 0;
+  if (getHWManager())
+    targetBitrateBps = getHWManager()->getEncoderBitrate(inputType());
+
+  int targetKbps = std::max(10, targetBitrateBps / 1000);
+  if (targetKbps == lastSessionBandwidthKbps_)
+    return;
+
+  std::lock_guard<std::mutex> g(streamMutex_);
+  if (!stream_)
+    return;
+
+  stream_->configure_ctx(RCC_SESSION_BANDWIDTH, targetKbps);
+  lastSessionBandwidthKbps_ = targetKbps;
 }
 
 
@@ -162,6 +197,9 @@ void UvgRTPSender::updateSettings()
 {
   // called in case we later decide to add some settings to filter
   Filter::updateSettings();
+
+  // Also refresh uvgRTP session bandwidth so RTCP intervals track current allocation.
+  updateSessionBandwidth();
 
   if (input_ == DT_HEVCVIDEO)
   {

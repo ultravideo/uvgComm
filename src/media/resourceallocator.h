@@ -58,6 +58,9 @@ public:
   uint8_t getRoiQp() const;
   uint8_t getBackgroundQp() const;
 
+signals:
+  void participantsChanged(int otherParticipants);
+
 private:
 
   void updateGlobalBitrate(int& bitrate,

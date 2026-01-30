@@ -41,6 +41,8 @@ private:
 
   void uninit();
 
+  void updateSessionBandwidth();
+
   void processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr);
 
   void sendAPP(uint32_t remoteSSRC, uint32_t futureTimestamp, const char *name, uint8_t subtype);
@@ -64,4 +66,5 @@ private:
 
   QFuture<rtp_error_t> futureRes_;
   bool awaitingKeyframe_ = false;
+  int lastSessionBandwidthKbps_ = -1;
 };
