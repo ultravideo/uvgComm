@@ -7,15 +7,15 @@
 #include <QString>
 
 #include <set>
+#include <memory>
 
 const QString APPLICATIONNAME = "uvgComm";
-
 const QString LOG_FILE_NAME = "uvgComm.log";
 
 // how often registrations are sent in seconds
-const int REGISTER_INTERVAL = 600;
+constexpr int REGISTER_INTERVAL = 600;
 
-const unsigned int INVITE_TIMEOUT = 60000;
+constexpr unsigned int INVITE_TIMEOUT = 60000;
 
 // this affects latency of audio. We have to wait until this much audio
 // has arrived before sending the packet. If packet is too small,
@@ -33,15 +33,15 @@ const uint16_t AUDIO_FRAMES_PER_SECOND = 50;
 const uint16_t AUDIO_FRAMES_PER_SECOND = 100;
 #endif
 
-const uint16_t MIN_ICE_PORT   = 23000;
-const uint16_t MAX_ICE_PORT   = 24000;
+constexpr uint16_t MIN_ICE_PORT   = 23000;
+constexpr uint16_t MAX_ICE_PORT   = 24000;
 
 // this macro checks the condition and quits in debug mode and exits the current function in
 #define CHECKERROR(condition, errorString, errorReturnValue) \
   Q_ASSERT(condition); \
   if(!condition) \
   { \
-    qCritical().noSpace() << __FILE__ << ":" __LINE__ << "ERROR:" << errorstring;\
+    qCritical().noSpace() << __FILE__ << ":" __LINE__ << "ERROR:" << errorString;\
     return errorReturnValue; \
   }
 
@@ -66,4 +66,10 @@ struct MediaSource {
   std::set<uint32_t> videoSSRCs;
 };
 
-const float TRANSMISSION_OVERHEAD = 0.05f; // 5% overhead for RTP, UDP, IP headers etc.
+// this is a guess, we could measure this my analyzing each frame size to get accurate value
+constexpr float RTP_OVERHEAD = 0.05f;
+
+// RFC 3550 recommeds RTCP take max 5% of bandwidth
+constexpr float RTCP_OVERHEAD = 0.05f;
+
+constexpr float TRANSMISSION_OVERHEAD = RTP_OVERHEAD + RTCP_OVERHEAD;

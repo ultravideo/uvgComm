@@ -74,21 +74,20 @@ void UvgRTPSender::updateSessionBandwidth()
   if (!alive_.load())
     return;
 
-  // ResourceAllocator returns bitrate in bits/sec; uvgRTP expects session bandwidth in kbps.
-  int targetBitrateBps = 0;
+  int payloadBitrateBps = 0;
   if (getHWManager())
-    targetBitrateBps = getHWManager()->getEncoderBitrate(inputType());
+    payloadBitrateBps = getHWManager()->getEncoderBitrate(inputType());
 
-  int targetKbps = std::max(10, targetBitrateBps / 1000);
-  if (targetKbps == lastSessionBandwidthKbps_)
+  const int totalSessionBitrateKbps = std::max(10, (int)(payloadBitrateBps / (1.0 - TRANSMISSION_OVERHEAD))/1000);
+  if (totalSessionBitrateKbps == lastSessionBandwidthKbps_)
     return;
 
   std::lock_guard<std::mutex> g(streamMutex_);
   if (!stream_)
     return;
 
-  stream_->configure_ctx(RCC_SESSION_BANDWIDTH, targetKbps);
-  lastSessionBandwidthKbps_ = targetKbps;
+  stream_->configure_ctx(RCC_SESSION_BANDWIDTH, totalSessionBitrateKbps);
+  lastSessionBandwidthKbps_ = totalSessionBitrateKbps;
 }
 
 
