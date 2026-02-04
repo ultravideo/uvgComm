@@ -241,10 +241,14 @@ int ResourceAllocator::getEncoderBitrate(DataType type)
 {
   bitrateMutex_.lock();
   int bitrate = conferenceBitratePortion(type);
-  limitUploadBitrate(bitrate, type);
+  int limitedBitrate = limitUploadBitrate(bitrate, type);
   bitrateMutex_.unlock();
 
-  return bitrate;
+  Logger::getLogger()->printNormal(this, "Calculated conference bitrate portion",
+                                {"Type", "Bitrate", "Limited Bitrate"},
+                                {datatypeToString(type), QString::number(bitrate), QString::number(limitedBitrate)});
+
+  return limitedBitrate;
 }
 
 
@@ -314,14 +318,10 @@ int ResourceAllocator::conferenceBitratePortion(DataType type)
     }
   }
 
-  Logger::getLogger()->printNormal(this, "Calculated conference bitrate portion",
-                                  {"Type", "Bitrate"},
-                                  {datatypeToString(type), QString::number(bitrate)});
-
   return bitrate;
 }
 
-void ResourceAllocator::limitUploadBitrate(int& bitrate, DataType type)
+int ResourceAllocator::limitUploadBitrate(int bitrate, DataType type)
 {
   if (type == DT_OPUSAUDIO)
   {
@@ -361,9 +361,7 @@ void ResourceAllocator::limitUploadBitrate(int& bitrate, DataType type)
     Logger::getLogger()->printUnimplemented(this, "Resource allocator tries to adjust unimplemented bit rate");
   }
 
-  Logger::getLogger()->printNormal(this, "Limited upload bitrate",
-                                  {"Type", "Limited Bitrate"},
-                                  {datatypeToString(type), QString::number(bitrate)});
+  return bitrate;
 }
 
 

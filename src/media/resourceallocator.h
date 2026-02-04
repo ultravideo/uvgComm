@@ -70,7 +70,7 @@ private:
 
   int conferenceBitratePortion(DataType type);
 
-  void limitUploadBitrate(int &bitrate, DataType type);
+  int limitUploadBitrate(int bitrate, DataType type);
 
   bool avx2_ = false;
   bool sse41_ = false;
