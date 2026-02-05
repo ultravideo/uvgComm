@@ -213,17 +213,30 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
 
     if (entry->p2pSSRC == ssrc)
     {
+      if (entry->p2pRTT.empty())
+      {
+        Logger::getLogger()->printNormal(this, "First RTT sample received",
+                                         {"CNAME","Type","RTT"}, {pair.first, "P2P", QString::number(rtt)});
+      }
+
       entry->p2pRTT.push_back(rtt);
       if (entry->p2pRTT.size() > MAX_RTT_MEASUREMENTS)
       {
         entry->p2pRTT.pop_front();
       }
+
       foundSSRC = true;
       break;
     }
 
     if (entry->sfuSSRC == ssrc)
     {
+      if (entry->sfuRTT.empty())
+      {
+        Logger::getLogger()->printNormal(this, "First RTT sample received",
+                                         {"CNAME","Type","RTT"}, {pair.first, "SFU", QString::number(rtt)});
+      }
+
       entry->sfuRTT.push_back(rtt);
       if (entry->sfuRTT.size() > MAX_RTT_MEASUREMENTS)
       {
@@ -285,6 +298,10 @@ void HybridFilter::process()
       if (p2pLinkCount_ > 0 && sfuRTPSender_ != nullptr)
       {
         sendDummies(input->rtpTimestamp); // to get latency measurements for inactive connections
+      }
+      else
+      {
+        Logger::getLogger()->printNormal(this, "Skipping dummy packet: not hybrid (no P2P or no SFU)");
       }
     }
 
@@ -385,6 +402,12 @@ void HybridFilter::sendDummies(uint32_t currentTimestamp)
   newDummy->type = output_;
   newDummy->data_size = sizeof(dummy_packet);
   newDummy->data = std::unique_ptr<uchar[]>(new uchar[sizeof(dummy_packet)]);
+
+  if (newDummy->vInfo)
+  {
+    newDummy->vInfo->keyframe = true;
+  }
+
   memcpy(newDummy->data.get(), dummy_packet, sizeof(dummy_packet));
   sendOutput(std::move(newDummy), true); // inverse = true to send data to inactive paths
 }
