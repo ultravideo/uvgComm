@@ -152,28 +152,26 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   // Extract RTP timestamp from packet header
   received_picture->rtpTimestamp = frame->header.timestamp;
 
-  //check if this is a SEI message
-  if (output_ == DT_HEVCVIDEO &&
-      frame->payload_len >= 33 &&
-      frame->payload[0] == 0x00 &&
-      frame->payload[1] == 0x00 &&
-      frame->payload[2] == 0x00 &&
-      frame->payload[3] == 0x01)
+  // Check for SEI NAL anywhere in the RTP payload (handles co-packed NALs)
+  if (output_ == DT_HEVCVIDEO && frame->payload_len >= 33)
   {
-    uint8_t nalType = (frame->payload[4] >> 1) & 0x3F;
-
-    // check if this is a SEI message
-    if (nalType == 39 || nalType == 40)
+    for (size_t pos = 0; pos + 33 <= (size_t)frame->payload_len; ++pos)
     {
-      int64_t creationTimestamp = 0;
-
-      for (int i = 32; i >= 25; i--)
+      if (frame->payload[pos] == 0x00 && frame->payload[pos+1] == 0x00 &&
+          frame->payload[pos+2] == 0x00 && frame->payload[pos+3] == 0x01)
       {
-        creationTimestamp = creationTimestamp << 8 | frame->payload[i];
+        uint8_t nalType = (frame->payload[pos+4] >> 1) & 0x3F;
+        if (nalType == 39 || nalType == 40)
+        {
+          int64_t creationTimestamp = 0;
+          for (int i = (int)(pos + 32); i >= (int)(pos + 25); --i)
+          {
+            creationTimestamp = (creationTimestamp << 8) | (frame->payload[i] & 0xFF);
+          }
+          lastSEITime_ = creationTimestamp;
+          return;
+        }
       }
-
-      lastSEITime_ = creationTimestamp;
-      return;
     }
   }
 
