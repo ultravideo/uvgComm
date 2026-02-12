@@ -107,6 +107,9 @@ struct Data
   std::unique_ptr<uchar[]> data = nullptr;
   uint32_t data_size = 0;
 
+  // SSRC of the RTP stream that produced this packet (0 = unknown)
+  uint32_t ssrc = 0;
+
   uint32_t rtpTimestamp = 0;
 
   // indicate the moment of creation for this sample for latency calculations

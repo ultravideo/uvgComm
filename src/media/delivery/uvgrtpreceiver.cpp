@@ -152,6 +152,9 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
   // Extract RTP timestamp from packet header
   received_picture->rtpTimestamp = frame->header.timestamp;
 
+  // Record SSRC so downstream filters can identify the packet source
+  received_picture->ssrc = frame->header.ssrc;
+
   // Check for SEI NAL anywhere in the RTP payload (handles co-packed NALs)
   if (output_ == DT_HEVCVIDEO && frame->payload_len >= 33)
   {
