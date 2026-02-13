@@ -145,19 +145,13 @@ void VideoWidget::paintEvent(QPaintEvent *event)
   {
     QImage frame;
     int64_t latency = 0;
-    int64_t timestamp = 0;
+    int64_t presentationTimestamp = 0;
     bool showLatency = false;
     drawMutex_.lock();
-    if(helper_.getRecentImage(frame, timestamp, latency, showLatency))
-    {
-      // sessionID 0 is the self display and we are not interested
-      // update stats only for each new image.
-      if(stats_ && sessionID_ != 0)
-      {
-        stats_->videoLatency(sessionID_, cname_, timestamp, latency);
-      }
-    }
+    (void)helper_.getRecentImage(frame, presentationTimestamp, latency, showLatency);
     drawMutex_.unlock();
+
+    (void)presentationTimestamp;
 
     painter.drawImage(helper_.getTargetRect(), frame);
 
@@ -264,19 +258,16 @@ void VideoWidget::paintTimer()
   // Headless / offscreen path: render the next frame into an offscreen QImage
   QImage frame;
   int64_t latency = 0;
-  int64_t timestamp = 0;
+  int64_t presentationTimestamp = 0;
   bool showLatency = false;
 
   drawMutex_.lock();
-  if (helper_.getRecentImage(frame, timestamp, latency, showLatency))
-  {
-    // sessionID 0 is the self display and we are not interested
-    if (stats_ && sessionID_ != 0)
-    {
-      stats_->videoLatency(sessionID_, cname_, timestamp, latency);
-    }
-  }
+  (void)helper_.getRecentImage(frame, presentationTimestamp, latency, showLatency);
   drawMutex_.unlock();
+
+  (void)latency;
+  (void)presentationTimestamp;
+  (void)showLatency;
 
   // Render overlays and other decorations into an offscreen image sized like the widget
   QImage offscreen(size(), QImage::Format_ARGB32);

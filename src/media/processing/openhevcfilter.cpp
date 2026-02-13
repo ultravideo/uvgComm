@@ -221,6 +221,17 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
     auto now = std::chrono::system_clock::now();
     int64_t since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
     int64_t decoding_delay = since_epoch - decodedFrame->presentationTimestamp;
+
+    // Report end-to-end video latency as early as possible (after decode) for reliability.
+    // Mirrors the previous semantics from the render path:
+    // - key by presentationTimestamp
+    // - delay computed from creationTimestamp when sender-provided timing exists
+    if (sessionID_ != 0 && decodedFrame->creationTimestamp > 0)
+    {
+      int64_t endToEndDelay = since_epoch - decodedFrame->creationTimestamp;
+      getStats()->videoLatency(sessionID_, cname_, decodedFrame->presentationTimestamp, endToEndDelay);
+    }
+
     uint32_t reportedCompressedSize = decodedFrame->data_size + extraBytesForStats;
     getStats()->decodedVideoFrame(cname_, since_epoch, reportedCompressedSize, decoding_delay,
                                   QSize(openHevcFrame.frameInfo.nWidth, openHevcFrame.frameInfo.nHeight));
