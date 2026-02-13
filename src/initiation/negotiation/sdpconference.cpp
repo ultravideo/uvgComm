@@ -560,12 +560,12 @@ QString SDPConference::generateSFUMID(const MediaInfo& media)
 
 void SDPConference::removeMID(MediaInfo& media)
 {
-  for (int i = 0;  i < media.valueAttributes.size(); ++i)
+  // Remove all MID attributes to avoid leaving duplicates behind.
+  for (int i = media.valueAttributes.size() - 1; i >= 0; --i)
   {
     if (media.valueAttributes[i].type == A_MID)
     {
       media.valueAttributes.erase(media.valueAttributes.begin() + i);
-      break;
     }
   }
 }
@@ -573,6 +573,12 @@ void SDPConference::removeMID(MediaInfo& media)
 
 void SDPConference::updateMediaState(MediaInfo& currentState, const MediaInfo& newState)
 {
+  // MID is a conference-owned identifier for cached/forwarded media.
+  // Never overwrite an existing MID with an incoming one (re-INVITE can carry
+  // the peer's own MID scheme and would corrupt MIDs for other participants).
+  QString existingMid;
+  const bool hasExistingMid = findMID(currentState, existingMid);
+
   if (currentState.title != newState.title)
   {
     Logger::getLogger()->printNormal("SDPMeshConference", "Session title changed");
@@ -615,6 +621,12 @@ void SDPConference::updateMediaState(MediaInfo& currentState, const MediaInfo& n
   // update the attributes
   currentState.flagAttributes = newState.flagAttributes;
   currentState.valueAttributes = newState.valueAttributes;
+
+  if (hasExistingMid)
+  {
+    removeMID(currentState);
+    currentState.valueAttributes.push_back({A_MID, existingMid});
+  }
 
   handleSSRCUpdate(currentState.multiAttributes, newState.multiAttributes);
 }
