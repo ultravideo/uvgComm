@@ -8,7 +8,6 @@
 #include "global.h"
 #include "logger.h"
 
-#include <QDateTime>
 #include <QSettings>
 
 
@@ -133,7 +132,9 @@ void OpusEncoderFilter::process()
 
     if(len > 0)
     {
-      uint32_t delay = QDateTime::currentMSecsSinceEpoch() - input->creationTimestamp;
+      const int64_t since_epoch = clockNowMs();
+      const int64_t delay64 = since_epoch - input->creationTimestamp;
+      const uint32_t delay = delay64 > 0 ? static_cast<uint32_t>(delay64) : 0;
       
       getStats()->encodedAudioFrame(len, delay);
     }

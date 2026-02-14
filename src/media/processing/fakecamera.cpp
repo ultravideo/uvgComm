@@ -104,7 +104,6 @@ void FakeCamera::process()
 
   const int frameSize = resolution_.width() * resolution_.height() * 3 / 2;
   int64_t frameIndex = 0;
-  auto startTime = std::chrono::system_clock::now();
   auto startTimeSteady = std::chrono::steady_clock::now();
 
   while (running_)
@@ -136,8 +135,7 @@ void FakeCamera::process()
     newImage->data = std::make_unique<uchar[]>(frameSize);
     memcpy(newImage->data.get(), buffer.data(), frameSize);
 
-    auto now = std::chrono::system_clock::now();
-    newImage->creationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    newImage->creationTimestamp = clockNowMs();
     newImage->presentationTimestamp = newImage->creationTimestamp;
 
     // Calculate RTP timestamp according to RFC 3550

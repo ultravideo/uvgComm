@@ -2,10 +2,9 @@
 
 #include "src/media/processing/filter.h"
 
+#include "common.h"
 #include "logger.h"
 
-
-#include <QDateTime>
 #include <cstring>
 
 #ifndef _WIN32
@@ -257,7 +256,7 @@ void UVGRelay::processReceivedPacket(const uint8_t* buffer, int read)
       std::shared_ptr<Filter> filter = rtpReceivers_[ssrc];
 
       std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
-      receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+      receivedRTPFrame->creationTimestamp = clockNowMs();
       receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
 
       // Extract RTP timestamp from packet header (RFC 3550)
@@ -292,7 +291,7 @@ void UVGRelay::processReceivedPacket(const uint8_t* buffer, int read)
       std::shared_ptr<Filter> filter = rtcpReceivers_[ssrc];
 
       std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
-      receivedRTPFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+      receivedRTPFrame->creationTimestamp = clockNowMs();
       receivedRTPFrame->presentationTimestamp = receivedRTPFrame->creationTimestamp;
       receivedRTPFrame->rtpTimestamp = 0; // RTCP has not RTP timestamp (expect SR for sync purposes)
 

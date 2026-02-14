@@ -7,7 +7,6 @@
 #include "logger.h"
 
 #include <QSettings>
-#include <qdatetime.h>
 
 enum OHThreadType {OH_THREAD_FRAME  = 1, OH_THREAD_SLICE = 2, OH_THREAD_FRAMESLICE  = 3};
 
@@ -218,9 +217,8 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
     libOpenHevcGetPictureInfo(handle_, &openHevcFrame.frameInfo);
 
     // we take the size from compressed frame because that is more interesting.
-    auto now = std::chrono::system_clock::now();
-    int64_t since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-    int64_t decoding_delay = since_epoch - decodedFrame->presentationTimestamp;
+    const int64_t since_epoch = clockNowMs();
+    const int64_t decoding_delay = since_epoch - decodedFrame->presentationTimestamp;
 
     // Report end-to-end video latency as early as possible (after decode) for reliability.
     // Mirrors the previous semantics from the render path:

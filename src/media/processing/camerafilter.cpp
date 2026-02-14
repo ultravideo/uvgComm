@@ -342,8 +342,7 @@ void CameraFilter::process()
     // capture the frame data
     std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
 
-    auto now = std::chrono::system_clock::now();
-    newImage->creationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    newImage->creationTimestamp = clockNowMs();
     newImage->presentationTimestamp = newImage->creationTimestamp;
 
     // Calculate RTP timestamp according to RFC 3550

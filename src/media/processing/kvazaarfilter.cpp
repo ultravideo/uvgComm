@@ -15,6 +15,20 @@
 
 #include <QThread>
 
+namespace {
+inline void write_u64_be(uint8_t* dst, uint64_t value)
+{
+  dst[0] = static_cast<uint8_t>((value >> 56) & 0xFF);
+  dst[1] = static_cast<uint8_t>((value >> 48) & 0xFF);
+  dst[2] = static_cast<uint8_t>((value >> 40) & 0xFF);
+  dst[3] = static_cast<uint8_t>((value >> 32) & 0xFF);
+  dst[4] = static_cast<uint8_t>((value >> 24) & 0xFF);
+  dst[5] = static_cast<uint8_t>((value >> 16) & 0xFF);
+  dst[6] = static_cast<uint8_t>((value >> 8) & 0xFF);
+  dst[7] = static_cast<uint8_t>((value >> 0) & 0xFF);
+}
+} // namespace
+
 enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
 
 const int CU_MIN_SIZE_PIXELS = 8;
@@ -607,9 +621,10 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
     }
     writer += 16;
 
-    int64_t timestamp = info.data->creationTimestamp;
-    memcpy(writer, &timestamp, sizeof(int64_t));
-    writer += sizeof(int64_t);
+    // Serialize the sender creation timestamp as big-endian to avoid host-endianness issues.
+    const int64_t timestamp = info.data ? info.data->creationTimestamp : 0;
+    write_u64_be(writer, static_cast<uint64_t>(timestamp));
+    writer += sizeof(uint64_t);
 
     dataWritten += timestampSize;
   }
@@ -633,9 +648,9 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   api_->chunk_free(data_out);
   api_->picture_free(recon_pic);
   
-  auto now = std::chrono::system_clock::now();
-  int64_t since_epoch = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-  uint32_t delay = since_epoch - info.data->creationTimestamp;
+  const int64_t since_epoch = clockNowMs();
+  const int64_t delay64 = since_epoch - (info.data ? info.data->creationTimestamp : 0);
+  const uint32_t delay = delay64 > 0 ? static_cast<uint32_t>(delay64) : 0;
 
   getStats()->encodedVideoFrame(len_out, delay, QSize(currentResolution_.first, currentResolution_.second),
                                 psnr_y, psnr_u, psnr_v, info.data->creationTimestamp);

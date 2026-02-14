@@ -8,10 +8,20 @@
 
 #include <stdint.h>
 
+#include <chrono>
+
 #include <memory>
 #include <vector>
 
 struct MediaInfo;
+
+// Returns a monotonically increasing timestamp in milliseconds.
+// Used for latency measurements; implementation can be swapped centrally.
+inline int64_t clockNowMs()
+{
+    const auto now = std::chrono::system_clock::now();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+}
 
 // A module for functions used multiple times across the whole program.
 // Try to keep printing of same information consequatively to a minimum and

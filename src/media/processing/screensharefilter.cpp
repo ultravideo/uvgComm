@@ -3,7 +3,8 @@
 #include <QWindow>
 #include <QScreen>
 #include <QGuiApplication>
-#include <QDateTime>
+
+
 
 #include "common.h"
 #include "settingskeys.h"
@@ -99,7 +100,7 @@ void ScreenShareFilter::process()
 
   // capture the frame data
   std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
-  newImage->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+  newImage->creationTimestamp = clockNowMs();
   newImage->presentationTimestamp = newImage->creationTimestamp;
   newImage->data = std::unique_ptr<uchar[]>(new uchar[image.sizeInBytes()]);
 

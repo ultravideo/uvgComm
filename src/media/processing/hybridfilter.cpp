@@ -394,8 +394,7 @@ void HybridFilter::sendDummies(uint32_t currentTimestamp)
   };
 
   std::unique_ptr<Data> newDummy = initializeData(output_, DS_LOCAL);
-  auto now = std::chrono::system_clock::now();
-  newDummy->creationTimestamp = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+  newDummy->creationTimestamp = clockNowMs();
   newDummy->presentationTimestamp = newDummy->creationTimestamp;
   newDummy->rtpTimestamp = currentTimestamp;
 
