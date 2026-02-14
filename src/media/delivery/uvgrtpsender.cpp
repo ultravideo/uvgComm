@@ -74,11 +74,23 @@ void UvgRTPSender::updateSessionBandwidth()
   if (!alive_.load())
     return;
 
-  int payloadBitrateBps = 0;
-  if (getHWManager())
-    payloadBitrateBps = getHWManager()->getEncoderBitrate(inputType());
+  const int overrideKbps = overrideSessionBandwidthKbps_.load();
 
-  const int totalSessionBitrateKbps = std::max(10, (int)(payloadBitrateBps / (1.0 - TRANSMISSION_OVERHEAD))/1000);
+  int totalSessionBitrateKbps = 0;
+  if (overrideKbps > 0)
+  {
+    // Keep non-zero so RTCP is still sent (needed for RTT / latency probing).
+    totalSessionBitrateKbps = std::max(10, overrideKbps);
+  }
+  else
+  {
+    int payloadBitrateBps = 0;
+    if (getHWManager())
+      payloadBitrateBps = getHWManager()->getEncoderBitrate(inputType());
+
+    totalSessionBitrateKbps = std::max(10, (int)(payloadBitrateBps / (1.0 - TRANSMISSION_OVERHEAD))/1000);
+  }
+
   if (totalSessionBitrateKbps == lastSessionBandwidthKbps_)
     return;
 
@@ -88,6 +100,21 @@ void UvgRTPSender::updateSessionBandwidth()
 
   stream_->configure_ctx(RCC_SESSION_BANDWIDTH, totalSessionBitrateKbps);
   lastSessionBandwidthKbps_ = totalSessionBitrateKbps;
+}
+
+
+void UvgRTPSender::setTemporarySessionBandwidthKbps(int kbps)
+{
+  // Clamp: RTCP must not be zero.
+  overrideSessionBandwidthKbps_.store(std::max(10, kbps));
+  updateSessionBandwidth();
+}
+
+
+void UvgRTPSender::clearTemporarySessionBandwidth()
+{
+  overrideSessionBandwidthKbps_.store(0);
+  updateSessionBandwidth();
 }
 
 

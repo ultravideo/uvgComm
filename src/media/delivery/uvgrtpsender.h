@@ -28,6 +28,12 @@ public:
   void startForwarding(uint32_t remoteSSRC, uint32_t futureTimestamp);
   void stopForwarding(uint32_t remoteSSRC, uint32_t futureTimestamp);
 
+  // Temporarily override uvgRTP session bandwidth (RCC_SESSION_BANDWIDTH).
+  // Useful for reducing RTCP traffic when a connection is only used for
+  // occasional dummy packets / RTT probing.
+  void setTemporarySessionBandwidthKbps(int kbps);
+  void clearTemporarySessionBandwidth();
+
   void rtt(uint32_t localSSRC, uint32_t remoteSSRC, double time);
 
 signals:
@@ -67,4 +73,9 @@ private:
   QFuture<rtp_error_t> futureRes_;
   bool awaitingKeyframe_ = false;
   int lastSessionBandwidthKbps_ = -1;
+
+  // If > 0, forces session bandwidth to this value instead of the computed one.
+  // Kept atomic so other threads can toggle it safely; updateSessionBandwidth()
+  // will apply it under streamMutex_.
+  std::atomic<int> overrideSessionBandwidthKbps_{0};
 };

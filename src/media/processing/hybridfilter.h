@@ -60,6 +60,8 @@ protected:
   virtual void process() override;
 
 private:
+  void setLowRtcpMode(const std::shared_ptr<UvgRTPSender>& sender, bool enabled);
+
   void addP2PLink(std::shared_ptr<LinkInfo>& entry,
                   int outIdx,
                   uint32_t ssrc,
@@ -74,7 +76,7 @@ private:
 
   void executeSwitches();
 
-  void setConnection(int index, bool status);
+  void setConnection(int index, bool status, const std::shared_ptr<UvgRTPSender>& sender = nullptr);
 
   double averageRTT(const std::deque<double>& samples) const;
 

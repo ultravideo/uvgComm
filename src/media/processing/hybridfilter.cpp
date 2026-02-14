@@ -16,6 +16,7 @@ const int EVALUATION_INTERVAL = 320; // Number of frames between evaluations
 const int DUMMY_INTERVAL = 160; // Number of frames between dummy packets
 const int SYNC_PERIOD_IN_FRAMES = 120; // the period after which delayed switch is applied
 const int P2P_RTT_THRESHOLD_MS = 10; // Minimum RTT improvement to consider P2P switch
+const int DUMMY_SESSION_BANDWIDTH_KBPS = 64; // low but non-zero; used to reduce RTCP traffic on inactive links
 
 
 HybridFilter::HybridFilter(QString id, StatisticsInterface *stats,
@@ -133,7 +134,7 @@ void HybridFilter::addP2PLink(std::shared_ptr<LinkInfo>& entry,
                                      {"CNAME", "SSRC", "SenderPtr"},
                                      {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
 
-    setConnection(outIdx, entry->p2pActive);
+    setConnection(outIdx, entry->p2pActive, rtpSender);
   }
   else
   {
@@ -181,7 +182,7 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
     sfuRTPSender_ = rtpSender;
     sfuActive_ = true; // SFU link is active at the start
     sfuOutIndex_ = outIdx;
-    setOutputStatus(outIdx, sfuActive_);
+    setConnection(outIdx, sfuActive_, sfuRTPSender_);
 
     // Disable any already-active P2P links now that SFU is available, evaluation may enable them later
     for (auto& kv : cnameToLinks_)
@@ -191,13 +192,25 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
       if (link && link->p2pActive && link->p2pOutIndex >= 0)
       {
         link->p2pActive = false;
-        setConnection(link->p2pOutIndex, link->p2pActive);
+        setConnection(link->p2pOutIndex, link->p2pActive, link->p2pRTPSender);
       }
     }
 
     QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
                      this, &HybridFilter::recordRTT);
   }
+}
+
+
+void HybridFilter::setLowRtcpMode(const std::shared_ptr<UvgRTPSender>& sender, bool enabled)
+{
+  if (!sender)
+    return;
+
+  if (enabled)
+    sender->setTemporarySessionBandwidthKbps(DUMMY_SESSION_BANDWIDTH_KBPS);
+  else
+    sender->clearTemporarySessionBandwidth();
 }
 
 
@@ -359,7 +372,7 @@ void HybridFilter::executeSwitches()
 
       link->p2pActive = true;
       if (link->p2pOutIndex >= 0)
-        setConnection(link->p2pOutIndex, true);
+        setConnection(link->p2pOutIndex, true, link->p2pRTPSender);
     }
     else if (link->pendingSwitch == LinkInfo::PendingToSFU)
     {
@@ -368,7 +381,7 @@ void HybridFilter::executeSwitches()
 
       link->p2pActive = false;
       if (link->p2pOutIndex >= 0)
-        setConnection(link->p2pOutIndex, false);
+        setConnection(link->p2pOutIndex, false, link->p2pRTPSender);
     }
 
     // Clear pending flag after execution
@@ -412,9 +425,14 @@ void HybridFilter::sendDummies(uint32_t currentTimestamp)
 }
 
 
-void HybridFilter::setConnection(int index, bool status)
+void HybridFilter::setConnection(int index, bool status, const std::shared_ptr<UvgRTPSender>& sender)
 {
   setOutputStatus(index, status);
+
+  // Reduce RTCP traffic on inactive (dummy-only) connections by temporarily
+  // lowering uvgRTP session bandwidth. Keep it non-zero for RTT probing.
+  if (sender)
+    setLowRtcpMode(sender, !status);
 
   slaveMutex_.lock();
   for (auto& slave : slaves_)
@@ -431,7 +449,7 @@ void HybridFilter::applySfuState(bool needSFU)
     return;
 
   sfuActive_ = needSFU;
-  setConnection(sfuOutIndex_, sfuActive_);
+  setConnection(sfuOutIndex_, sfuActive_, sfuRTPSender_);
   Logger::getLogger()->printNormal(this, "Applying SFU state",
                                   "SFU State", sfuActive_ ? "enabled" : "disabled");
 }
@@ -511,7 +529,7 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32
                                      "P2P SSRC", QString::number(linkInfo->p2pSSRC));
 
     linkInfo->p2pActive = true;
-    setConnection(linkInfo->p2pOutIndex, true);
+    setConnection(linkInfo->p2pOutIndex, true, linkInfo->p2pRTPSender);
 
     applySfuState(false);
   }
@@ -564,7 +582,7 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
       applySfuState(true);
 
       linkInfo->p2pActive = false;
-      setConnection(linkInfo->p2pOutIndex, false);
+      setConnection(linkInfo->p2pOutIndex, false, linkInfo->p2pRTPSender);
     }
   }
   else if (!sfuActive_) // delayed switch
@@ -616,12 +634,12 @@ void HybridFilter::fullBandwidthEvaluation(uint32_t currentTimestamp)
 
     if (hasP2P && !hasSFU) // only P2P link
     {
-      setConnection(entry->p2pOutIndex, true);
+      setConnection(entry->p2pOutIndex, true, entry->p2pRTPSender);
       ++p2pLinks;
     }
     else if (!hasP2P && hasSFU) // only SFU link
     {
-      setConnection(sfuOutIndex_, true);
+      setConnection(sfuOutIndex_, true, sfuRTPSender_);
       needSFU = true;
     }
     else if (hasP2P && hasSFU) // both available
