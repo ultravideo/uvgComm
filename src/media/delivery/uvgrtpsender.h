@@ -73,6 +73,7 @@ private:
   QFuture<rtp_error_t> futureRes_;
   bool awaitingKeyframe_ = false;
   int lastSessionBandwidthKbps_ = -1;
+  std::atomic<bool> loggedNoStreamForBandwidth_ {false};
 
   // If > 0, forces session bandwidth to this value instead of the computed one.
   // Kept atomic so other threads can toggle it safely; updateSessionBandwidth()

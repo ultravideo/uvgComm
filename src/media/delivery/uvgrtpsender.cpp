@@ -23,7 +23,9 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
   sessionID_(sessionID),
   rtpFlags_(RTP_NO_FLAGS),
   framerateNumerator_(0),
-  framerateDenominator_(0)
+  framerateDenominator_(0),
+  lastSessionBandwidthKbps_(-1),
+  overrideSessionBandwidthKbps_(10)
 {
   Q_ASSERT(stream_);
 
@@ -32,8 +34,6 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
                                   {QString::number(localSSRC),
                                    QString::number(remoteSSRC),
                                    datatypeToString(input_)});
-
-  UvgRTPSender::updateSettings();
 
   // Update uvgRTP session bandwidth whenever participant count changes.
   // This ensures RTCP intervals track allocation changes immediately.
@@ -58,6 +58,8 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
       stream_->get_rtcp()->install_roundtrip_time_hook(f);
   }
 
+  UvgRTPSender::updateSettings();
+
   if (runZRTP)
   {
     futureRes_ =
@@ -73,6 +75,21 @@ void UvgRTPSender::updateSessionBandwidth()
 {
   if (!alive_.load())
     return;
+
+  std::lock_guard<std::mutex> g(streamMutex_);
+
+  if (!stream_)
+  {
+    if (!loggedNoStreamForBandwidth_.exchange(true))
+    {
+      Logger::getLogger()->printWarning(this, "Skipping RCC_SESSION_BANDWIDTH: no stream",
+                                       {"SessionID", "Type"},
+                                       {QString::number(sessionID_), datatypeToString(inputType())});
+    }
+    return;
+  }
+
+  loggedNoStreamForBandwidth_.store(false);
 
   const int overrideKbps = overrideSessionBandwidthKbps_.load();
 
@@ -94,9 +111,13 @@ void UvgRTPSender::updateSessionBandwidth()
   if (totalSessionBitrateKbps == lastSessionBandwidthKbps_)
     return;
 
-  std::lock_guard<std::mutex> g(streamMutex_);
-  if (!stream_)
-    return;
+  Logger::getLogger()->printNormal(this, "Applying RCC_SESSION_BANDWIDTH",
+                                  {"SessionID", "SSRC", "Kbps", "OverrideKbps", "Type"},
+                                  {QString::number(sessionID_),
+                                   QString::number(stream_->get_ssrc()),
+                                   QString::number(totalSessionBitrateKbps),
+                                   QString::number(overrideKbps),
+                                   datatypeToString(inputType())});
 
   stream_->configure_ctx(RCC_SESSION_BANDWIDTH, totalSessionBitrateKbps);
   lastSessionBandwidthKbps_ = totalSessionBitrateKbps;
@@ -200,7 +221,6 @@ void UvgRTPSender::sendAPP(uint32_t remoteSSRC, uint32_t futureTimestamp, const 
       Logger::getLogger()->printWarning(this, "Failed to send RTCP APP STOP packet");
     }
   }
-
 }
 
 
@@ -223,9 +243,6 @@ void UvgRTPSender::updateSettings()
 {
   // called in case we later decide to add some settings to filter
   Filter::updateSettings();
-
-  // Also refresh uvgRTP session bandwidth so RTCP intervals track current allocation.
-  updateSessionBandwidth();
 
   if (input_ == DT_HEVCVIDEO)
   {
@@ -256,6 +273,9 @@ void UvgRTPSender::updateSettings()
       stream_->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
     }
   }
+
+  // Also refresh uvgRTP session bandwidth so RTCP intervals track current allocation.
+  updateSessionBandwidth();
 }
 
 

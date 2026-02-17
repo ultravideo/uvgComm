@@ -51,14 +51,10 @@ void ResourceAllocator::setParticipants(int otherParticipants)
 
   bool changed = false;
   bitrateMutex_.lock();
-  changed = (otherParticipants_ != otherParticipants);
   otherParticipants_ = otherParticipants;
   bitrateMutex_.unlock();
-
-  if (changed)
-  {
-    emit participantsChanged(otherParticipants);
-  }
+  
+  emit participantsChanged(otherParticipants);
 
   int actualParticipants = std::min(otherParticipants, visibleParticipants_);
   if (conferenceViewMode_ == "Gallery")

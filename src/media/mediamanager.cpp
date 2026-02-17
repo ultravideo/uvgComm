@@ -384,7 +384,7 @@ void MediaManager::clientMedia(uint32_t sessionID,
       return;
     }
 
-    // This is a hack. Only send video if we are within sensible amount of participants.
+    // TODO: This is only for experiments, we should instead detect speakers and use that to determine sending both media
     if (localInitialIndex_ < settingValue(SettingsKey::sipVisibleParticipants) || localMedia.type != "video")
     {
       clientSendMedia(sessionID, localMedia, remoteMedia, send, codec,

@@ -38,6 +38,8 @@ private:
 
   void uninit();
 
+  void updateSessionBandwidth();
+
   void processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr);
 
   bool discardUntilIntra_;
@@ -55,6 +57,9 @@ private:
   // Guard used to indicate the filter is alive; set to false early during
   // teardown so callbacks and processing can bail out safely.
   std::atomic<bool> alive_{true};
+
+  int lastSessionBandwidthKbps_ = -1;
+  std::atomic<bool> loggedNoStreamForBandwidth_ {false};
 
   int64_t lastSEITime_;
 

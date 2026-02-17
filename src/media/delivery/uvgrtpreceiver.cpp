@@ -58,6 +58,21 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id,
     }
   }
 
+  // Apply session bandwidth after RTCP has been initialized so RTCP scheduling
+  // (both SR and RR/SDES) uses the intended value even for recv-only sessions.
+  updateSessionBandwidth();
+
+  // Keep uvgRTP session bandwidth in sync when participant count changes.
+  if (getHWManager())
+  {
+    QObject::connect(getHWManager().get(), &ResourceAllocator::participantsChanged,
+                     this, [this](int)
+                     {
+                       updateSessionBandwidth();
+                     },
+                     Qt::QueuedConnection);
+  }
+
   if (runZRTP)
   {
     futureRes_ =
@@ -67,6 +82,48 @@ UvgRTPReceiver::UvgRTPReceiver(uint32_t sessionID, QString id,
                           },
                           stream_);
   }
+}
+
+
+void UvgRTPReceiver::updateSessionBandwidth()
+{
+  if (!alive_.load())
+    return;
+
+  int payloadBitrateBps = 0;
+  if (getHWManager())
+    payloadBitrateBps = getHWManager()->getEncoderBitrate(outputType());
+
+  // Convert to total session bandwidth (kbps) and leave room for overhead.
+  const int totalSessionBitrateKbps =
+      std::max(10, static_cast<int>((payloadBitrateBps / (1.0 - TRANSMISSION_OVERHEAD)) / 1000));
+
+  if (totalSessionBitrateKbps == lastSessionBandwidthKbps_)
+    return;
+
+  std::lock_guard<std::mutex> g(streamMutex_);
+  if (!stream_)
+  {
+    if (!loggedNoStreamForBandwidth_.exchange(true))
+    {
+      Logger::getLogger()->printWarning(this, "Skipping RCC_SESSION_BANDWIDTH: no stream",
+                                       {"SessionID", "Type"},
+                                       {QString::number(sessionID_), datatypeToString(outputType())});
+    }
+    return;
+  }
+
+  loggedNoStreamForBandwidth_.store(false);
+
+  Logger::getLogger()->printNormal(this, "Applying RCC_SESSION_BANDWIDTH",
+                                  {"SessionID", "SSRC", "Kbps", "Type"},
+                                  {QString::number(sessionID_),
+                                   QString::number(stream_->get_ssrc()),
+                                   QString::number(totalSessionBitrateKbps),
+                                   datatypeToString(outputType())});
+
+  stream_->configure_ctx(RCC_SESSION_BANDWIDTH, totalSessionBitrateKbps);
+  lastSessionBandwidthKbps_ = totalSessionBitrateKbps;
 }
 
 
