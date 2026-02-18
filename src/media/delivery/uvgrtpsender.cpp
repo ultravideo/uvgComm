@@ -25,7 +25,7 @@ UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
   framerateNumerator_(0),
   framerateDenominator_(0),
   lastSessionBandwidthKbps_(-1),
-  overrideSessionBandwidthKbps_(10)
+  overrideSessionBandwidthKbps_(0)
 {
   Q_ASSERT(stream_);
 
