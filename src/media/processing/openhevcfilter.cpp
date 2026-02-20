@@ -220,19 +220,23 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
     const int64_t since_epoch = clockNowMs();
     const int64_t decoding_delay = since_epoch - decodedFrame->presentationTimestamp;
 
+    int64_t endToEndDelay = since_epoch - decodedFrame->creationTimestamp;
+
+    if (decodedFrame->creationTimestamp == 0)
+      endToEndDelay = -1;
+
     // Report end-to-end video latency as early as possible (after decode) for reliability.
     // Mirrors the previous semantics from the render path:
     // - key by presentationTimestamp
     // - delay computed from creationTimestamp when sender-provided timing exists
     if (sessionID_ != 0 && decodedFrame->creationTimestamp > 0)
     {
-      int64_t endToEndDelay = since_epoch - decodedFrame->creationTimestamp;
-      getStats()->videoLatency(sessionID_, cname_, decodedFrame->presentationTimestamp, endToEndDelay);
+      //getStats()->videoLatency(sessionID_, cname_, decodedFrame->presentationTimestamp, endToEndDelay);
     }
 
     uint32_t reportedCompressedSize = decodedFrame->data_size + extraBytesForStats;
     getStats()->decodedVideoFrame(cname_, since_epoch, reportedCompressedSize, decoding_delay,
-                                  QSize(openHevcFrame.frameInfo.nWidth, openHevcFrame.frameInfo.nHeight));
+                                  QSize(openHevcFrame.frameInfo.nWidth, openHevcFrame.frameInfo.nHeight), endToEndDelay);
 
     decodedFrame->vInfo->width = openHevcFrame.frameInfo.nWidth;
     decodedFrame->vInfo->height = openHevcFrame.frameInfo.nHeight;

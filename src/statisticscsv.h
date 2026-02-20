@@ -42,7 +42,7 @@ public:
                                  float psnrV = -1.0,
                                  int64_t creationTimestamp = 0.0) override;
   virtual void decodedAudioFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime) override;
-  virtual void decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution) override;
+  virtual void decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution, int64_t e2eLatency) override;
 
   // ignored
   virtual void addSendPacket(uint32_t size) override;
@@ -91,6 +91,7 @@ private:
     QSize resolution;
 
     int64_t timestamp = -1;
+    int64_t latency = -1;
   };
 
   struct LocalInfo

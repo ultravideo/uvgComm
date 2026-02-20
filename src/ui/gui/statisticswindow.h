@@ -53,7 +53,7 @@ public:
                                  int64_t creationTimestamp = 0.0);
 
   virtual void decodedAudioFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime);
-  virtual void decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution);
+  virtual void decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution, int64_t e2eLatency);
 
   virtual void audioLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t latency);
   virtual void videoLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t latency);

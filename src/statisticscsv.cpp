@@ -62,7 +62,14 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
   QDir dir;
   if (!dir.exists(sessionFolder))
   {
-    dir.mkpath(sessionFolder);
+    if (!dir.mkpath(sessionFolder))
+    {
+      Logger::getLogger()->printWarning(
+          "CSV Stats",
+          QString("Failed to create statistics output folder: %1").arg(sessionFolder));
+      qWarning() << "Failed to create statistics output folder:" << sessionFolder;
+      return;
+    }
   }
 
   QStringList names = sessionNames_.at(sessionID);
@@ -88,6 +95,7 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
     for (int i = 0; i < info.decodedVideoFrames.size(); ++i)
     {
       const auto& frame = info.decodedVideoFrames[i];
+      /*
       QString latencyString = "N/A";
       if (info.videoLatencies.find(frame.timestamp) != info.videoLatencies.end())
       {
@@ -99,20 +107,26 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
         {
           latencyString = "-1";
         }
+      }*/
+
+      if (frame.timestamp >= 0 && frame.latency >= 0)
+      {
+        int width = frame.resolution.width();
+        int height = frame.resolution.height();
+        int pixels = width * height;
+
+        out << QString::number(frame.timestamp) << ";Video;"
+            << frame.size << ";"
+            << frame.decodingTime << ";"
+            << QString::number(frame.latency) << ";"
+            << QString("%1x%2").arg(width).arg(height) << ";"
+            << width << ";"
+            << height << ";"
+            << pixels << "\n";
       }
-
-      int width = frame.resolution.width();
-      int height = frame.resolution.height();
-      int pixels = width * height;
-
-      out << QString::number(frame.timestamp) << ";Video;"
-          << frame.size << ";"
-          << frame.decodingTime << ";"
-          << latencyString << ";"
-          << QString("%1x%2").arg(width).arg(height) << ";"
-          << width << ";"
-          << height << ";"
-          << pixels << "\n";
+      else {
+        Logger::getLogger()->printWarning("StatisticsCSV", "Trying to write negative timestamps or latencies to CSV");
+      }
     }
 
     // Audio frames
@@ -234,13 +248,14 @@ void StatisticsCSV::decodedAudioFrame(QString cname, int64_t timestamp, uint32_t
   sessionInfo_[cname].decodedAudioFrames.push_back(frame);
 }
 
-void StatisticsCSV::decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution)
+void StatisticsCSV::decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution, int64_t e2eLatency)
 {
   DecodedFrame frame;
   frame.size = size;
   frame.decodingTime = decodingTime;
   frame.resolution = resolution;
   frame.timestamp = timestamp;
+  frame.latency = e2eLatency;
   sessionInfo_[cname].decodedVideoFrames.push_back(frame);
 }
 

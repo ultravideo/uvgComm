@@ -15,20 +15,6 @@
 
 #include <QThread>
 
-namespace {
-inline void write_u64_be(uint8_t* dst, uint64_t value)
-{
-  dst[0] = static_cast<uint8_t>((value >> 56) & 0xFF);
-  dst[1] = static_cast<uint8_t>((value >> 48) & 0xFF);
-  dst[2] = static_cast<uint8_t>((value >> 40) & 0xFF);
-  dst[3] = static_cast<uint8_t>((value >> 32) & 0xFF);
-  dst[4] = static_cast<uint8_t>((value >> 24) & 0xFF);
-  dst[5] = static_cast<uint8_t>((value >> 16) & 0xFF);
-  dst[6] = static_cast<uint8_t>((value >> 8) & 0xFF);
-  dst[7] = static_cast<uint8_t>((value >> 0) & 0xFF);
-}
-} // namespace
-
 enum RETURN_STATUS {C_SUCCESS = 0, C_FAILURE = -1};
 
 const int CU_MIN_SIZE_PIXELS = 8;
@@ -621,10 +607,10 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
     }
     writer += 16;
 
-    // Serialize the sender creation timestamp as big-endian to avoid host-endianness issues.
+    // Serialize timestamp as raw bytes (no endianness conversion) for debugging.
     const int64_t timestamp = info.data ? info.data->creationTimestamp : 0;
-    write_u64_be(writer, static_cast<uint64_t>(timestamp));
-    writer += sizeof(uint64_t);
+    memcpy(writer, &timestamp, sizeof(timestamp));
+    writer += sizeof(timestamp);
 
     dataWritten += timestampSize;
   }

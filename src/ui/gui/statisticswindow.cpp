@@ -442,7 +442,7 @@ void StatisticsWindow::decodedAudioFrame(QString cname, int64_t timestamp, uint3
 }
 
 
-void StatisticsWindow::decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution)
+void StatisticsWindow::decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution, int64_t e2eLatency)
 {
   if(sessions_.find(cname) != sessions_.end())
   {
