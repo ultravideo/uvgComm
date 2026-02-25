@@ -235,7 +235,7 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
     }
 
     uint32_t reportedCompressedSize = decodedFrame->data_size + extraBytesForStats;
-    getStats()->decodedVideoFrame(cname_, since_epoch, reportedCompressedSize, decoding_delay,
+    getStats()->decodedVideoFrame(cname_, decodedFrame->creationTimestamp, reportedCompressedSize, decoding_delay,
                                   QSize(openHevcFrame.frameInfo.nWidth, openHevcFrame.frameInfo.nHeight), endToEndDelay);
 
     decodedFrame->vInfo->width = openHevcFrame.frameInfo.nWidth;

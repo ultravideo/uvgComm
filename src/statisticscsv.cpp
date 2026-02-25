@@ -9,6 +9,7 @@
 #include <QDateTime>
 #include <QThread>
 #include <QDebug>
+#include <algorithm>
 
 StatisticsCSV::StatisticsCSV(const QString folder, const QString sipLogFile)
     : folder_(folder), sipLogFile_(sipLogFile)
@@ -91,10 +92,14 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
 
     const auto& info = sessionInfo_[cname];
 
-    // Video frames
-    for (int i = 0; i < info.decodedVideoFrames.size(); ++i)
+    // Video frames - write in timestamp order
+    auto videoFrames = info.decodedVideoFrames; // copy
+    std::sort(videoFrames.begin(), videoFrames.end(), [](const auto& a, const auto& b) {
+      return a.timestamp < b.timestamp;
+    });
+
+    for (const auto& frame : videoFrames)
     {
-      const auto& frame = info.decodedVideoFrames[i];
       /*
       QString latencyString = "N/A";
       if (info.videoLatencies.find(frame.timestamp) != info.videoLatencies.end())
@@ -129,10 +134,14 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
       }
     }
 
-    // Audio frames
-    for (int i = 0; i < info.decodedAudioFrames.size(); ++i)
+    // Audio frames - write in timestamp order
+    auto audioFrames = info.decodedAudioFrames; // copy
+    std::sort(audioFrames.begin(), audioFrames.end(), [](const auto& a, const auto& b) {
+      return a.timestamp < b.timestamp;
+    });
+
+    for (const auto& frame : audioFrames)
     {
-      const auto& frame = info.decodedAudioFrames[i];
       QString latencyString = "";
       if (info.audioLatencies.find(frame.timestamp) != info.audioLatencies.end())
       {
@@ -164,7 +173,13 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
     QTextStream out(&file);
     out << "Timestamp;Size(Bytes);EncodeTime(ms);PSNR_Y;PSNR_U;PSNR_V;Resolution;Width;Height;Pixels\n";
 
-    for (const auto& frame : localInfo_.encodedVideoFrames)
+    // Write local encoded video frames in timestamp order
+    auto encoded = localInfo_.encodedVideoFrames; // copy
+    std::sort(encoded.begin(), encoded.end(), [](const auto& a, const auto& b) {
+      return a.creationTimestamp < b.creationTimestamp;
+    });
+
+    for (const auto& frame : encoded)
     {
       out << frame.creationTimestamp << ";"
           << frame.size << ";"
