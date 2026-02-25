@@ -114,8 +114,15 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
         }
       }*/
 
-      if (frame.timestamp >= 0 && frame.latency >= 0)
+      if (frame.timestamp >= 0)
       {
+        if (frame.latency < 0)
+        {
+          //Logger::getLogger()->printWarning("StatisticsCSV", "Negative latency for video frame",
+          //                           {"CName", "Timestamp", "Latency"},
+          //                            {cname, QString::number(frame.timestamp), QString::number(frame.latency)});
+        }
+
         int width = frame.resolution.width();
         int height = frame.resolution.height();
         int pixels = width * height;
@@ -130,7 +137,7 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
             << pixels << "\n";
       }
       else {
-        Logger::getLogger()->printWarning("StatisticsCSV", "Trying to write negative timestamps or latencies to CSV");
+        Logger::getLogger()->printWarning("StatisticsCSV", "Trying to write negative timestamps to CSV");
       }
     }
 

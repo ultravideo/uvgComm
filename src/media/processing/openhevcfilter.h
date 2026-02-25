@@ -43,4 +43,6 @@ private:
   uint32_t discardedFrames_;
   // accumulator for non-VCL bytes seen between VCL frames
   uint32_t pendingParamSetBytes_;
+
+  int64_t last_timestamp_ = 0;
 };

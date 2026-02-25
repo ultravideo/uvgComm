@@ -24,7 +24,8 @@ OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID,
     , threads_(-1)
     , parallelizationMode_("Slice")
   , discardedFrames_(0)
-  , pendingParamSetBytes_(0)
+  , pendingParamSetBytes_(0),
+    last_timestamp_(0)
 {}
 
 
@@ -217,13 +218,15 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
     libOpenHevcGetPictureInfo(handle_, &openHevcFrame.frameInfo);
 
     // we take the size from compressed frame because that is more interesting.
-    const int64_t since_epoch = clockNowMs();
-    const int64_t decoding_delay = since_epoch - decodedFrame->presentationTimestamp;
+    int64_t timestamp = clockNowMs();
+    const int64_t decoding_delay = timestamp - decodedFrame->presentationTimestamp;
 
-    int64_t endToEndDelay = since_epoch - decodedFrame->creationTimestamp;
+    int64_t endToEndDelay = timestamp - decodedFrame->creationTimestamp;
 
     if (decodedFrame->creationTimestamp == 0)
       endToEndDelay = -1;
+    else
+      timestamp = decodedFrame->creationTimestamp;
 
     // Report end-to-end video latency as early as possible (after decode) for reliability.
     // Mirrors the previous semantics from the render path:
@@ -234,9 +237,14 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
       //getStats()->videoLatency(sessionID_, cname_, decodedFrame->presentationTimestamp, endToEndDelay);
     }
 
+    if (last_timestamp_ >= timestamp)
+      timestamp = last_timestamp_ + 1;
+
     uint32_t reportedCompressedSize = decodedFrame->data_size + extraBytesForStats;
-    getStats()->decodedVideoFrame(cname_, decodedFrame->creationTimestamp, reportedCompressedSize, decoding_delay,
+    getStats()->decodedVideoFrame(cname_, timestamp, reportedCompressedSize, decoding_delay,
                                   QSize(openHevcFrame.frameInfo.nWidth, openHevcFrame.frameInfo.nHeight), endToEndDelay);
+
+    last_timestamp_ = timestamp;
 
     decodedFrame->vInfo->width = openHevcFrame.frameInfo.nWidth;
     decodedFrame->vInfo->height = openHevcFrame.frameInfo.nHeight;
