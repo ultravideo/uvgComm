@@ -10,6 +10,9 @@
 
 #include "settingskeys.h"
 #include "common.h"
+#include "statisticsinterface.h"
+
+#include <QSize>
 
 const uint8_t MAX_RTT_MEASUREMENTS = 64; // Maximum number of RTT samples to keep
 const int EVALUATION_INTERVAL = 320; // Number of frames between evaluations
@@ -348,6 +351,81 @@ void HybridFilter::process()
         executeSwitches();
         nextSwitchTimestamp_ = 0;
       }
+    }
+
+    // Report encoded frame statistics: size, aggregate bandwidth (size * active connections),
+    // encoding time (ms), resolution and PSNRs (if available).
+    if (input)
+    {
+      uint32_t frameSize = input->data_size;
+
+      // Count active outgoing connections: active P2P links + SFU (if enabled)
+      int activeConnections = 0;
+      for (const auto& kv : cnameToLinks_)
+      {
+        const std::shared_ptr<LinkInfo>& e = kv.second;
+        if (!e) continue;
+        if (e->p2pRTPSender && e->p2pActive && e->p2pOutIndex >= 0)
+          ++activeConnections;
+      }
+      if (sfuRTPSender_ && sfuActive_)
+        ++activeConnections;
+
+      uint64_t bw64 = static_cast<uint64_t>(frameSize) * static_cast<uint64_t>(activeConnections);
+      // Account for extra bandwidth overhead (RTP/RTCP headers etc.) of 10  %
+      double adjusted = static_cast<double>(bw64) / 0.9;
+      uint64_t bwAdj64 = adjusted > static_cast<double>(UINT64_MAX) ? UINT64_MAX : static_cast<uint64_t>(adjusted);
+      uint32_t bandwidth = bwAdj64 > UINT32_MAX ? UINT32_MAX : static_cast<uint32_t>(bwAdj64);
+
+      int64_t now = clockNowMs();
+      int64_t encTime64 = (input->creationTimestamp >= 0) ? (now - input->creationTimestamp) : 0;
+      uint32_t encodingTime = encTime64 > 0 ? static_cast<uint32_t>(encTime64) : 0;
+
+      QSize resolution(0,0);
+      float psnrY = -1.0f, psnrU = -1.0f, psnrV = -1.0f;
+      if (input->vInfo)
+      {
+        resolution.setWidth(input->vInfo->width);
+        resolution.setHeight(input->vInfo->height);
+        psnrY = input->vInfo->psnrY;
+        psnrU = input->vInfo->psnrU;
+        psnrV = input->vInfo->psnrV;
+      }
+
+      // Compute average latest RTT (divide by two to approximate one-way network latency)
+      double sumRtt = 0.0;
+      int rttCount = 0;
+      for (const auto& kv : cnameToLinks_)
+      {
+        const std::shared_ptr<LinkInfo>& e = kv.second;
+        if (!e) continue;
+
+        // P2P active for this participant
+        if (e->p2pRTPSender && e->p2pActive)
+        {
+          if (e->latestsP2PRtt > 0.0)
+          {
+            sumRtt += (e->latestsP2PRtt / 2.0);
+            ++rttCount;
+          }
+        }
+        else if (e->sfuSSRC != 0 && sfuActive_ && !e->p2pActive)
+        {
+          // Participant is served via SFU and SFU is active
+          if (e->latestsSFURtt > 0.0)
+          {
+            sumRtt += (e->latestsSFURtt / 2.0);
+            ++rttCount;
+          }
+        }
+      }
+
+      float networkLatencyMs = -1.0f;
+      if (rttCount > 0)
+        networkLatencyMs = static_cast<float>(sumRtt / static_cast<double>(rttCount));
+
+      getStats()->encodedVideoFrame(frameSize, bandwidth, encodingTime, resolution,
+                                    psnrY, psnrU, psnrV, networkLatencyMs, input->creationTimestamp);
     }
 
     sendOutput(std::move(input));

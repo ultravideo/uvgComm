@@ -211,7 +211,7 @@ void UvgRTPReceiver::receiveHook(uvg_rtp::frame::rtp_frame *frame)
 
   // Record SSRC so downstream filters can identify the packet source
   received_picture->ssrc = frame->header.ssrc;
-/*
+  /*
   // Check for SEI NAL anywhere in the RTP payload (handles co-packed NALs)
   if (output_ == DT_HEVCVIDEO && frame->payload_len >= 33)
   {

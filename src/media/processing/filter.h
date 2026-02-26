@@ -92,6 +92,10 @@ struct VideoInfo
   // Indicates whether this video sample contains a keyframe (IDR/ intra)
   bool keyframe = false;
 
+  float psnrY = -1.0;
+  float psnrU = -1.0;
+  float psnrV = -1.0;
+
   RoiMap roi;
 };
 

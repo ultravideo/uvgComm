@@ -629,6 +629,9 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   if (info.inputPic && recon_pic)
   {
     calculate_psnr(info.inputPic, recon_pic, psnr_y, psnr_u, psnr_v);
+    info.data->vInfo->psnrY = static_cast<float>(psnr_y);
+    info.data->vInfo->psnrU = static_cast<float>(psnr_u);
+    info.data->vInfo->psnrV = static_cast<float>(psnr_v);
   }
 
   api_->chunk_free(data_out);
@@ -638,8 +641,8 @@ void KvazaarFilter::parseEncodedFrame(kvz_data_chunk *data_out,
   const int64_t delay64 = since_epoch - (info.data ? info.data->creationTimestamp : 0);
   const uint32_t delay = delay64 > 0 ? static_cast<uint32_t>(delay64) : 0;
 
-  getStats()->encodedVideoFrame(len_out, delay, QSize(currentResolution_.first, currentResolution_.second),
-                                psnr_y, psnr_u, psnr_v, info.data->creationTimestamp);
+  //getStats()->encodedVideoFrame(len_out, delay, QSize(currentResolution_.first, currentResolution_.second),
+  //                              psnr_y, psnr_u, psnr_v, info.data->creationTimestamp);
 
   // send last packet reusing input structure
   if (info.data && info.data->vInfo)

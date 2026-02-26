@@ -88,7 +88,7 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
     }
 
     QTextStream out(&file);
-    out << "Timestamp;Type;Size(Bytes);DecodeTime(ms);Latency(ms);Resolution;Width;Height;Pixels\n";
+    out << "Timestamp;Type;Size(Bytes);BandwidthCost(Bytes);DecodeTime(ms);Latency(ms);Resolution;Width;Height;Pixels\n";
 
     const auto& info = sessionInfo_[cname];
 
@@ -127,14 +127,19 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
         int height = frame.resolution.height();
         int pixels = width * height;
 
+        // Bandwidth cost estimate for participant-side entry: size divided by 0.9
+        double bwd = static_cast<double>(frame.size) / 0.9;
+        uint64_t bwCost = bwd > static_cast<double>(UINT64_MAX) ? UINT64_MAX : static_cast<uint64_t>(bwd + 0.5);
+
         out << QString::number(frame.timestamp) << ";Video;"
-            << frame.size << ";"
-            << frame.decodingTime << ";"
-            << QString::number(frame.latency) << ";"
-            << QString("%1x%2").arg(width).arg(height) << ";"
-            << width << ";"
-            << height << ";"
-            << pixels << "\n";
+          << frame.size << ";"
+          << QString::number(bwCost) << ";"
+          << frame.decodingTime << ";"
+          << QString::number(frame.latency) << ";"
+          << QString("%1x%2").arg(width).arg(height) << ";"
+          << width << ";"
+          << height << ";"
+          << pixels << "\n";
       }
       else {
         Logger::getLogger()->printWarning("StatisticsCSV", "Trying to write negative timestamps to CSV");
@@ -178,7 +183,7 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
   if (file.open(QIODevice::WriteOnly | QIODevice::Text))
   {
     QTextStream out(&file);
-    out << "Timestamp;Size(Bytes);EncodeTime(ms);PSNR_Y;PSNR_U;PSNR_V;Resolution;Width;Height;Pixels\n";
+    out << "Timestamp;Size(Bytes);BandwidthCost(Bytes);EncodeTime(ms);NetworkLatency(ms);PSNR_Y;PSNR_U;PSNR_V;Resolution;Width;Height;Pixels\n";
 
     // Write local encoded video frames in timestamp order
     auto encoded = localInfo_.encodedVideoFrames; // copy
@@ -190,7 +195,9 @@ void StatisticsCSV::removeSession(uint32_t sessionID)
     {
       out << frame.creationTimestamp << ";"
           << frame.size << ";"
+          << frame.bandwidthCost << ";"
           << frame.encodingTime << ";"
+          << frame.networkLatencyMs << ";"
           << frame.psnrY << ";"
           << frame.psnrU << ";"
           << frame.psnrV << ";"
@@ -243,20 +250,24 @@ void StatisticsCSV::encodedAudioFrame(uint32_t size, uint32_t encodingTime)
 }
 
 void StatisticsCSV::encodedVideoFrame(uint32_t size,
+                                      uint32_t bandwidth_cost,
                                       uint32_t encodingTime,
                                       QSize resolution,
                                       float psnrY,
                                       float psnrU,
                                       float psnrV,
+                                      float networkLatencyMs,
                                       int64_t creationTimestamp)
 {
   EncodedFrame frame;
   frame.size = size;
   frame.encodingTime = encodingTime;
+  frame.bandwidthCost = bandwidth_cost;
   frame.resolution = resolution;
   frame.psnrY = psnrY;
   frame.psnrU = psnrU;
   frame.psnrV = psnrV;
+  frame.networkLatencyMs = networkLatencyMs;
   frame.creationTimestamp = creationTimestamp;
   localInfo_.encodedVideoFrames.push_back(frame);
 }
