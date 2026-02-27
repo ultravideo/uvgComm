@@ -650,49 +650,54 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
   if (!linkInfo)
     return;
 
+  if (!sfuRTPSender_ || linkInfo->sfuSSRC == 0)
+  {
+    Logger::getLogger()->printWarning(this, "Cannot switch to SFU: SFU RTP sender not available");
+    return;
+  }
+
   if (cnameToLinks_.size() == 1) // immediate switch
   {
-    if (sfuRTPSender_)
-    {
-      Logger::getLogger()->printNormal(this, "Switching to SFU connection immediately for single connection",
-                                       "SFU SSRC", QString::number(linkInfo->sfuSSRC));
+    Logger::getLogger()->printNormal(this, "Switching to SFU connection immediately for single connection",
+                                     "SFU SSRC", QString::number(linkInfo->sfuSSRC));
 
-      applySfuState(true);
+    applySfuState(true);
 
-      linkInfo->p2pActive = false;
-      setConnection(linkInfo->p2pOutIndex, false, linkInfo->p2pRTPSender);
-    }
+    linkInfo->p2pActive = false;
+    setConnection(linkInfo->p2pOutIndex, false, linkInfo->p2pRTPSender);
   }
-  else if (!sfuActive_) // delayed switch
+  else if (linkInfo->p2pActive) // delayed switch
   {
-    if (sfuRTPSender_)
+    // Calculate future timestamp for when the switch will occur
+    uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, SYNC_PERIOD_IN_FRAMES);
+    nextSwitchTimestamp_ = futureTimestamp;
+
+    Logger::getLogger()->printNormal(this, "Scheduling delayed switch to SFU connection",
+                                    {"P2P SSRC","SFU SSRC", "Current TS", "Future TS", "SFU Active"},
+                                    {QString::number(linkInfo->p2pSSRC), QString::number(linkInfo->sfuSSRC),
+                                     QString::number(currentTimestamp), QString::number(futureTimestamp),
+                                     sfuActive_ ? "true" : "false"});
+
+    // Ensure SFU stays enabled while we are switching participants back to it.
+    pendingSfuActive_ = true;
+
+    // sync with sfu server
+    sfuRTPSender_->startForwarding(linkInfo->sfuSSRC, futureTimestamp);
+
+    // Record the explicit pending switch and avoid duplicate scheduling for the same link
+    linkInfo->pendingSwitch = LinkInfo::PendingToSFU;
+    if (std::find(linksToSwitch_.begin(), linksToSwitch_.end(), linkInfo) == linksToSwitch_.end())
     {
-      // Calculate future timestamp for when the switch will occur
-      uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, SYNC_PERIOD_IN_FRAMES);
-      nextSwitchTimestamp_ = futureTimestamp;
-
-      Logger::getLogger()->printNormal(this, "Scheduling delayed switch to SFU connection",
-                                      {"P2P SSRC","SFU SSRC", "Current TS", "Future TS"},
-                                      {QString::number(linkInfo->p2pSSRC), QString::number(linkInfo->sfuSSRC),
-                                       QString::number(currentTimestamp), QString::number(futureTimestamp)});
-
-      // sync with sfu server
-      sfuRTPSender_->startForwarding(linkInfo->sfuSSRC, futureTimestamp);
-      // Record the explicit pending switch and avoid duplicate scheduling for the same link
-      linkInfo->pendingSwitch = LinkInfo::PendingToSFU;
-      if (std::find(linksToSwitch_.begin(), linksToSwitch_.end(), linkInfo) == linksToSwitch_.end())
-      {
-        linksToSwitch_.push_back(linkInfo);
-      }
-      else
-      {
-        Logger::getLogger()->printWarning(this, "Link is already scheduled for switch to SFU, skipping duplicate");
-      }
+      linksToSwitch_.push_back(linkInfo);
+    }
+    else
+    {
+      Logger::getLogger()->printWarning(this, "Link is already scheduled for switch to SFU, skipping duplicate");
     }
   }
   else
   {
-    Logger::getLogger()->printWarning(this, "SFU connection is already active, no need to switch");
+    Logger::getLogger()->printWarning(this, "Link is already on SFU (P2P not active), no need to switch");
   }
 }
 
