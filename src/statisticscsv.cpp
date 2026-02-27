@@ -256,7 +256,7 @@ void StatisticsCSV::encodedVideoFrame(uint32_t size,
                                       float psnrY,
                                       float psnrU,
                                       float psnrV,
-                                      float networkLatencyMs,
+                                      int64_t networkLatencyMs,
                                       int64_t creationTimestamp)
 {
   EncodedFrame frame;

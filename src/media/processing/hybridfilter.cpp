@@ -440,9 +440,12 @@ void HybridFilter::process()
         }
       }
 
-      float networkLatencyMs = -1.0f;
+      int64_t networkLatencyMs = -1;
       if (rttCount > 0)
-        networkLatencyMs = static_cast<float>(sumRtt / static_cast<double>(rttCount));
+      {
+        // Round to nearest integer millisecond
+        networkLatencyMs = static_cast<int64_t>(sumRtt / static_cast<double>(rttCount) + 0.5);
+      }
 
       getStats()->encodedVideoFrame(frameSize, bandwidth, encodingTime, resolution,
                                     psnrY, psnrU, psnrV, networkLatencyMs, input->creationTimestamp);

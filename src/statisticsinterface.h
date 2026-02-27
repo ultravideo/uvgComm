@@ -41,7 +41,7 @@ public:
                                  float psnrY = -1.0,
                                  float psnrU = -1.0,
                                  float psnrV = -1.0,
-                                 float networkLatencyMs = -1.0,
+                                 int64_t networkLatencyMs = -1,
                                  int64_t creationTimestamp = 0.0) = 0;
 
   virtual void decodedAudioFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime) = 0;
