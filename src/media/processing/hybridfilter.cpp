@@ -241,6 +241,10 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
         entry->p2pRTT.pop_front();
       }
 
+      // Keep cached RTT up-to-date even when we are not running hybrid re-evaluations
+      // (pure P2P mesh case). Use average to smooth jitter.
+      entry->latestsP2PRtt = averageRTT(entry->p2pRTT);
+
       foundSSRC = true;
       break;
     }
@@ -258,6 +262,10 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
       {
         entry->sfuRTT.pop_front();
       }
+
+      // Keep cached RTT up-to-date even when we are not running hybrid re-evaluations
+      // (pure SFU case).
+      entry->latestsSFURtt = averageRTT(entry->sfuRTT);
       foundSSRC = true;
       break;
     }
