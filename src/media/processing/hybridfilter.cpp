@@ -58,6 +58,8 @@ void HybridFilter::updateSettings()
 {
   Filter::updateSettings();
 
+  sipTimestampInterval_ = settingValue(SettingsKey::sipTimestampInterval);
+
   if (settingValue(SettingsKey::videoFileEnabled))
   {
     framerateNumerator_ = settingValue(SettingsKey::videoFileFramerate);
@@ -366,6 +368,16 @@ void HybridFilter::process()
     if (input)
     {
       uint32_t frameSize = input->data_size;
+
+      // Some timestamp interval modes add extra bytes that should not be counted as encoded frame payload.
+      // If sipTimestampInterval == 1, subtract the known overhead (33 bytes) from the reported frame size.
+      if (sipTimestampInterval_ == 1)
+      {
+        constexpr uint32_t kTimestampIntervalOverheadBytes = 33;
+        frameSize = (frameSize >= kTimestampIntervalOverheadBytes)
+                      ? (frameSize - kTimestampIntervalOverheadBytes)
+                      : 0;
+      }
 
       // Count active outgoing connections: active P2P links + SFU (if enabled)
       int activeConnections = 0;

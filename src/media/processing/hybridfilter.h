@@ -121,4 +121,7 @@ private:
   // Framerate for calculating future RTP timestamps
   int32_t framerateNumerator_;
   int32_t framerateDenominator_;
+
+  // Cached setting value; refreshed in updateSettings() to avoid per-frame lookups.
+  int32_t sipTimestampInterval_ = 0;
 };
