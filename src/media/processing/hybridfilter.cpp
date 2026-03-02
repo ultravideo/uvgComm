@@ -106,8 +106,8 @@ void HybridFilter::addLink(LinkType type,
   if (!entry)
   {
     entry = std::make_shared<LinkInfo>();
-    // Start P2P active by default if there is no SFU present
-    entry->p2pActive = (sfuRTPSender_ == nullptr);
+
+    entry->p2pActive = false;
     entry->p2pOutIndex = -1;
     entry->p2pRTPSender = nullptr;
     entry->sfuSSRC = 0;
@@ -139,6 +139,9 @@ void HybridFilter::addP2PLink(std::shared_ptr<LinkInfo>& entry,
                                      {"CNAME", "SSRC", "SenderPtr"},
                                      {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
 
+    // Enable P2P by default only if there is no SFU present.
+    entry->p2pActive = (sfuRTPSender_ == nullptr);
+
     setConnection(outIdx, entry->p2pActive, rtpSender);
   }
   else
@@ -165,7 +168,8 @@ void HybridFilter::addP2PLink(std::shared_ptr<LinkInfo>& entry,
   ++p2pLinkCount_;
 
   QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
-                   this, &HybridFilter::recordRTT);
+                   this, &HybridFilter::recordRTT,
+                   Qt::UniqueConnection);
 }
 
 
@@ -179,6 +183,21 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
                                    {"CNAME","SSRC","SenderPtr"},
                                    {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
   entry->sfuSSRC = ssrc;
+
+
+  if (!entry->p2pRTPSender)
+  {
+    entry->p2pActive = false;
+  }
+
+  // Always ensure RTT signal is connected for the SFU sender instance.
+  // (UniqueConnection prevents duplicates.)
+  if (rtpSender)
+  {
+    QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
+                     this, &HybridFilter::recordRTT,
+                     Qt::UniqueConnection);
+  }
 
   // SFU sender is a shared sender
   if (sfuRTPSender_ == nullptr)
@@ -201,8 +220,6 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
       }
     }
 
-    QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
-                     this, &HybridFilter::recordRTT);
   }
 }
 
@@ -421,7 +438,10 @@ void HybridFilter::process()
         if (!e) continue;
 
         // P2P active for this participant
-        if (e->p2pRTPSender && e->p2pActive)
+        const bool hasUsableP2P = (e->p2pRTPSender && e->p2pActive);
+        const bool shouldUseSFU = (e->sfuSSRC != 0 && sfuActive_ && (!e->p2pActive || !e->p2pRTPSender));
+
+        if (hasUsableP2P)
         {
           if (e->latestsP2PRtt > 0.0)
           {
@@ -429,7 +449,7 @@ void HybridFilter::process()
             ++rttCount;
           }
         }
-        else if (e->sfuSSRC != 0 && sfuActive_ && !e->p2pActive)
+        else if (shouldUseSFU)
         {
           // Participant is served via SFU and SFU is active
           if (e->latestsSFURtt > 0.0)
