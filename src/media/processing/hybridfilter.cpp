@@ -429,7 +429,9 @@ void HybridFilter::process()
         psnrV = input->vInfo->psnrV;
       }
 
-      // Compute average latest RTT (divide by two to approximate one-way network latency)
+      // Compute network latency from the latest RTT sample per link (divide by two to approximate
+      // one-way network latency). Using the latest sample is preferable for per-frame reporting
+      // over a smoothed/moving average.
       double sumRtt = 0.0;
       int rttCount = 0;
       for (const auto& kv : cnameToLinks_)
@@ -443,18 +445,18 @@ void HybridFilter::process()
 
         if (hasUsableP2P)
         {
-          if (e->latestsP2PRtt > 0.0)
+          if (!e->p2pRTT.empty() && e->p2pRTT.back() > 0.0)
           {
-            sumRtt += (e->latestsP2PRtt / 2.0);
+            sumRtt += (e->p2pRTT.back() / 2.0);
             ++rttCount;
           }
         }
         else if (shouldUseSFU)
         {
           // Participant is served via SFU and SFU is active
-          if (e->latestsSFURtt > 0.0)
+          if (!e->sfuRTT.empty() && e->sfuRTT.back() > 0.0)
           {
-            sumRtt += (e->latestsSFURtt / 2.0);
+            sumRtt += (e->sfuRTT.back() / 2.0);
             ++rttCount;
           }
         }
