@@ -7,9 +7,11 @@
 #include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
+#include "cname.h"
 
 #include <QSettings>
 #include <QHostAddress>
+#include <QString>
 
 #include <thread>
 #include <chrono>
@@ -33,20 +35,30 @@ uvgCommController::uvgCommController():
 {}
 
 
-void uvgCommController::init()
+void uvgCommController::init(bool useStdin, QString& scriptFilename, QString& configFilename, QString& statsFolder, QString& sipLogFile)
 {
   Logger::getLogger()->printImportant(this, "uvgComm initiation Started");
 
+  if (!configFilename.isEmpty())
+  {
+    Logger::getLogger()->printNormal(this, "Using custom settings file",
+                                        {"Config file"}, {configFilename});
+    setSettingsFile(configFilename);
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Using default settings file");
+  }
+
   userInterface_.init(this, viewFactory_);
 
-  stats_ = userInterface_.createStatsWindow();
+  stats_ = userInterface_.createStats(statsFolder, sipLogFile);
 
   QObject::connect(&sip_, &SIPManager::finalLocalSDP,
                    this, &uvgCommController::inputLocalSDP);
 
   QObject::connect(&sip_, &SIPManager::connectionEstablished,
                    this, &uvgCommController::connectionEstablished);
-
 
   sip_.installSIPRequestCallback(std::bind(&uvgCommController::SIPRequestCallback, this,
                                            std::placeholders::_1,
@@ -66,6 +78,8 @@ void uvgCommController::init()
                                             std::placeholders::_2,
                                             std::placeholders::_3));
 
+  sip_.init(createSIPConfig(), stats_);
+
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
 
@@ -74,8 +88,24 @@ void uvgCommController::init()
 
   sip_.setSDP(sdp);
 
-  sip_.init(createSIPConfig(), stats_);
-  sip_.listenToAny(SIP_TCP, 5060);
+  uint16_t sipPort = settingValue(SettingsKey::sipSIPPort);
+  QString sipProtocol = settingString(SettingsKey::sipSIPProtocol);
+  if (sipProtocol == "TCP")
+  {
+    sip_.listenToAny(SIP_TCP, sipPort);
+  }
+  else if (sipProtocol == "UDP")
+  {
+    sip_.listenToAny(SIP_UDP, sipPort);
+  }
+  else if (sipProtocol == "TLS")
+  {
+    sip_.listenToAny(SIP_TLS, sipPort);
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Unknown SIP protocol type");
+  }
 
   updateCallSettings();
 
@@ -117,6 +147,32 @@ void uvgCommController::init()
   // lastly, show the window when our signals are ready
   userInterface_.showMainWindow();
 
+  // test all resolutions
+  /*
+  for (int i = 1; i < 200; i++)
+  {
+    QSize baseResolution = QSize(1280, 720);
+    int32_t baseBitrate = 1000000;
+    QSize resolution = participantsToResolution(baseResolution, i);
+    int32_t bitrate = participantsToBitrate(baseResolution, baseBitrate, i);
+    Logger::getLogger()->printNormal(this, "Resolution",
+                                    {"Participants", "Width", "Height", "Bitrate"},
+                                    {QString::number(i),
+                                     QString::number(resolution.width()),
+                                     QString::number(resolution.height()),
+                                     QString::number(bitrate)});
+  }
+*/
+
+  if (useStdin)
+  {
+    userInterface_.runScriptFromStdin();
+  }
+  else if (!scriptFilename.isEmpty())
+  {
+    userInterface_.runScriptFromFile(scriptFilename);
+  }
+
   Logger::getLogger()->printImportant(this, "uvgComm initiation finished");
 }
 
@@ -132,20 +188,48 @@ void uvgCommController::uninit()
 
 SIPConfig uvgCommController::createSIPConfig()
 {
-  return {settingEnabled(SettingsKey::sipAutoConnect),
-          settingString(SettingsKey::sipServerAddress),
-          5060,
-          settingEnabled(SettingsKey::sipP2PConferencing),
-          (uint16_t)settingValue(SettingsKey::sipMediaPort),
+  uint16_t width = settingValue(SettingsKey::videoResolutionWidth);
+  uint16_t height = settingValue(SettingsKey::videoResolutionHeight);
+
+  if (settingEnabled(SettingsKey::videoFileEnabled))
+  {
+    width = settingValue(SettingsKey::videoFileResolutionWidth);
+    height = settingValue(SettingsKey::videoFileResolutionHeight);
+  }
+
+  SIPConfig cfg;
+  cfg.sendRegister = settingEnabled(SettingsKey::sipAutoConnect);
+  cfg.sipServerAddress = settingString(SettingsKey::sipServerAddress);
+  cfg.sipServerPort = 5060;
+  cfg.role = getMediaRole(settingString(SettingsKey::sipRole));
+  cfg.topology = getTopology(settingString(SettingsKey::sipTopology));
+  cfg.localMediaPort = (uint16_t)settingValue(SettingsKey::sipMediaPort);
 #ifdef uvgComm_NO_RTP_MULTIPLEXING
-          settingEnabled(SettingsKey::sipICEEnabled),
+  cfg.ice = settingEnabled(SettingsKey::sipICEEnabled);
 #else
-        false,
+  cfg.ice = false;
 #endif
-          settingEnabled(SettingsKey::privateAddresses),
-          settingEnabled(SettingsKey::sipSTUNEnabled),
-          settingString(SettingsKey::sipSTUNAddress),
-          (uint16_t)settingValue(SettingsKey::sipSTUNPort)};
+
+  QString storedLocal = settingString(SettingsKey::sipLocalAddress);
+  if (storedLocal != "None")
+  {
+    QHostAddress ha(storedLocal);
+    if (!storedLocal.isEmpty() && !ha.isNull())
+    {
+      cfg.localAddress = ha;
+    }
+  }
+
+  cfg.stun = settingEnabled(SettingsKey::sipSTUNEnabled);
+  cfg.stunServerAddress = settingString(SettingsKey::sipSTUNAddress);
+  cfg.stunServerPort = (uint16_t)settingValue(SettingsKey::sipSTUNPort);
+
+  cfg.videoWidth = width;
+  cfg.videoHeight = height;
+  cfg.videoKbps = (uint32_t)settingValue(SettingsKey::videoBitrate)/1000;
+  cfg.audioKbps = (uint32_t)settingValue(SettingsKey::audioBitrate)/1000;
+
+  return cfg;
 }
 
 
@@ -205,7 +289,7 @@ void uvgCommController::createSIPDialog(QString name, QString username, QString 
   // first we must renegotiates this call, so we get all their media parameters
   renegotiateCall(sessionID);
 
-  if (settingEnabled(SettingsKey::sipP2PConferencing))
+  if (settingString(SettingsKey::sipTopology) != "No Conference")
   {
     // then we renegotiates rest of the calls with the previous calls parameters included
     for (auto& state : states_)
@@ -227,7 +311,7 @@ void uvgCommController::createSIPDialog(QString name, QString username, QString 
 uint32_t uvgCommController::chatWithParticipant(QString name, QString username,
                                                 QString ip)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Starting a chat with contact",
+  Logger::getLogger()->printNormal(this, "Starting a chat with contact",
             {"ip", "Name", "Username"}, {ip, name, username});
   return 0;
 }
@@ -276,6 +360,9 @@ void uvgCommController::delayedAutoAccept()
 
 void uvgCommController::updateAudioSettings()
 {
+  SIPConfig config = createSIPConfig();
+  sip_.setConfig(config);
+
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
   updateSDPVideoStatus(sdp);
@@ -294,6 +381,9 @@ void uvgCommController::updateAudioSettings()
 
 void uvgCommController::updateVideoSettings()
 {
+  SIPConfig config = createSIPConfig();
+  sip_.setConfig(config);
+
   std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
                                                          {"opus"}, {"H265"}, {0}, {});
 
@@ -316,6 +406,14 @@ void uvgCommController::updateVideoSettings()
 void uvgCommController::updateCallSettings()
 {
   SIPConfig config = createSIPConfig();
+  sip_.setConfig(config);
+
+  std::shared_ptr<SDPMessageInfo> sdp = sip_.generateSDP(getLocalUsername(), 1, 1,
+                                                         {"opus"}, {"H265"}, {0}, {});
+
+  updateSDPVideoStatus(sdp);
+  updateSDPAudioStatus(sdp);
+  sip_.setSDP(sdp);
 
   bool autoConnect = config.sendRegister;
   if(autoConnect)
@@ -329,19 +427,19 @@ void uvgCommController::updateCallSettings()
       sip_.bindingAtRegistrar(serverAddress);
     }
   }
-
-  sip_.setConfig(config);
 }
 
 
 void uvgCommController::updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp)
 {
-  if (!settingEnabled(SettingsKey::micStatus))
+  if (!settingEnabled(SettingsKey::micStatus) ||
+      settingString(SettingsKey::sipRole)  == "Server")
   {
     for (auto& media : sdp->media)
     {
       if (media.type == "audio")
       {
+        Logger::getLogger()->printNormal(this, "Disabling our audio in SDP");
         media.flagAttributes = {A_RECVONLY};
       }
     }
@@ -351,13 +449,16 @@ void uvgCommController::updateSDPAudioStatus(std::shared_ptr<SDPMessageInfo> sdp
 
 void uvgCommController::updateSDPVideoStatus(std::shared_ptr<SDPMessageInfo> sdp)
 {
-  if (!settingEnabled(SettingsKey::screenShareStatus) &&
-      !settingEnabled(SettingsKey::cameraStatus))
+  if ((getMediaRole(settingString(SettingsKey::sipRole)) != MediaRole::MEDIA_SERVER) &&
+      !settingEnabled(SettingsKey::screenShareStatus) &&
+      !settingEnabled(SettingsKey::cameraStatus) &&
+      !settingEnabled(SettingsKey::videoFileEnabled))
   {
     for (auto& media : sdp->media)
     {
       if (media.type == "video")
       {
+        Logger::getLogger()->printNormal(this, "Disabling our video in SDP");
         media.flagAttributes = {A_RECVONLY};
       }
     }
@@ -517,11 +618,8 @@ void uvgCommController::createCall(uint32_t sessionID)
     remoteSDP->media.erase(remoteSDP->media.begin() + index);
   }
 
-  QList<std::pair<MediaID, MediaID>> audioVideoIDs;
-  QList<MediaID> allIDs;
-
-  updateMediaIDs(sessionID, localSDP->media, remoteSDP->media,
-                 states_[sessionID].followOurSDP, audioVideoIDs, allIDs);
+  std::map<QString, MediaSource> cnameToSource;
+  groupSSRCsByCNAME(remoteSDP->media, cnameToSource);
 
   QStringList names;
 
@@ -532,26 +630,30 @@ void uvgCommController::createCall(uint32_t sessionID)
     names.push_back(states_[sessionID].name);
   }
 
-  userInterface_.callStarted(viewFactory_, sessionID, names, audioVideoIDs);
+  userInterface_.callStarted(viewFactory_, sessionID, names, cnameToSource);
 
-  if (!states_[sessionID].sessionRunning)
+  // no need to do anything with media if none of it goes through us
+  if (!localSDP->media.empty() && !remoteSDP->media.empty())
   {
-    if (stats_)
+    if (!states_[sessionID].sessionRunning)
     {
-      stats_->addSession(sessionID);
+      if (stats_)
+      {
+        stats_->addSession(sessionID);
+      }
+
+      media_.newSession(sessionID, remoteSDP, localSDP,
+                            states_[sessionID].iceController,
+                            states_[sessionID].followOurSDP);
+
+      states_[sessionID].sessionRunning = true;
+     }
+    else
+    {
+      media_.modifySession(sessionID, remoteSDP, localSDP,
+                               states_[sessionID].iceController,
+                               states_[sessionID].followOurSDP);
     }
-
-    media_.addParticipant(sessionID, remoteSDP, localSDP, allIDs,
-                          states_[sessionID].iceController,
-                          states_[sessionID].followOurSDP);
-
-    states_[sessionID].sessionRunning = true;
-   }
-  else
-  {
-    media_.modifyParticipant(sessionID, remoteSDP, localSDP, allIDs,
-                             states_[sessionID].iceController,
-                             states_[sessionID].followOurSDP);
   }
 
   // lastly we delete our saved SDP messages when they are no longer needed
@@ -560,115 +662,37 @@ void uvgCommController::createCall(uint32_t sessionID)
 }
 
 
-void uvgCommController::updateMediaIDs(uint32_t sessionID,
-                                       QList<MediaInfo>& localMedia,
-                                       QList<MediaInfo>& remoteMedia,
-                                       bool followOurSDP,
-                                       QList<std::pair<MediaID, MediaID>> &audioVideoIDs,
-                                       QList<MediaID>& allIDs)
+void uvgCommController::groupSSRCsByCNAME(
+    const QList<MediaInfo>& remoteMedia,
+    std::map<QString, MediaSource>& cnameToSource)
 {
-  Q_ASSERT(localMedia.size() == remoteMedia.size());
-
-  QStringList medias = {"SessionID"};
-  QStringList ssrcs = {QString::number(sessionID)};
-
-  for (auto& media : localMedia)
+  for (const auto& media : remoteMedia)
   {
-    medias.push_back(media.type + " ssrc");
-    ssrcs.push_back(QString::number(findSSRC(media)));
-  }
-
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Getting mediaIDs for " +
-                                                        QString::number(localMedia.size()) + " medias",
-                                  {medias}, {ssrcs});
-
-  // first we set correct attributes
-  for (int i = 0; i < localMedia.size(); i += 1)
-  {
-    bool send = false;
-    bool receive = false;
-
-    if (!localMedia.at(i).candidates.empty())
+    for (const auto& attributeGroup : media.multiAttributes)
     {
-      if (isLocalCandidate(localMedia.at(i).candidates.first())) // if we are using ICE
+      if (attributeGroup.size() == 2 &&
+          attributeGroup.at(0).type == A_SSRC &&
+          attributeGroup.at(1).type == A_CNAME)
       {
-        getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
+        uint32_t ssrc = attributeGroup.at(0).value.toUInt();
+        QString cname = attributeGroup.at(1).value;
 
-        allIDs.push_back(getMediaID(sessionID, localMedia.at(i)));
+        if (cname != CName::cname() || media.multiAttributes.size() == 1)
+        {
+          MediaSource& source = cnameToSource[cname];
 
-        allIDs.back().setReceive(receive);
-        allIDs.back().setSend(send);
-      }
-    }
-    else if (isLocalAddress(localMedia.at(i).connection_address)) // if we are not using ICE
-    {
-      getMediaAttributes(localMedia.at(i), remoteMedia.at(i), followOurSDP, send, receive);
-
-      allIDs.push_back(getMediaID(sessionID, localMedia.at(i)));
-
-      allIDs.back().setReceive(receive);
-      allIDs.back().setSend(send);
-    }
-    else
-    {
-      Logger::getLogger()->printNormal(this, "Remote candidate, not processing. Happens when we are the conference host",
-                                       "Address", localMedia.at(i).connection_address);
-    }
-  }
-
-  // TODO: Use lipsync to determine pairs
-  for (int i = 0; i < allIDs.size(); i +=2)
-  {
-    audioVideoIDs.push_back({allIDs.at(i), allIDs.at(i + 1)});
-  }
-}
-
-
-void uvgCommController::getMediaAttributes(const MediaInfo &local, const MediaInfo &remote,
-                                           bool followOurSDP,
-                                           bool& send, bool& receive)
-{
-  if (followOurSDP)
-  {
-    receive = getReceiveAttribute(local, followOurSDP);
-    send =    getSendAttribute(local, followOurSDP);
-  }
-  else
-  {
-    receive = getReceiveAttribute(remote, followOurSDP);
-    send =    getSendAttribute(remote, followOurSDP);
-  }
-}
-
-
-MediaID uvgCommController::getMediaID(uint32_t sessionID, const MediaInfo &media)
-{
-
-  if (sessionMedias_.find(sessionID) != sessionMedias_.end())
-  {
-    // try to see if this is an old media
-    for (auto& sMedia : *sessionMedias_[sessionID])
-    {
-      if (sMedia == media)
-      {
-        Logger::getLogger()->printNormal(this, "Using existing MediaID",
-                                         "Media type", media.type);
-        return sMedia;
+          if (media.type == "audio")
+          {
+            source.audioSSRCs.insert(ssrc);
+          }
+          else if (media.type == "video")
+          {
+            source.videoSSRCs.insert(ssrc);
+          }
+        }
       }
     }
   }
-  else
-  {
-    sessionMedias_[sessionID] =
-      std::shared_ptr<std::vector<MediaID>>(new std::vector<MediaID>());
-  }
-
-  Logger::getLogger()->printNormal(this, "Creating a new MediaID",
-                                   "SSRC", QString::number(findSSRC(media)));
-
-  // create a new ID for this media
-  sessionMedias_[sessionID]->push_back(MediaID(media));
-  return sessionMedias_[sessionID]->back();
 }
 
 
@@ -748,6 +772,9 @@ void uvgCommController::endTheCall()
 void uvgCommController::removeSession(uint32_t sessionID, QString message,
                                       bool temporaryMessage)
 {
+  Logger::getLogger()->printNormal(this, "Removing session",
+                                   {"SessionID"}, {QString::number(sessionID)});
+
   if (message == "" || message.isEmpty())
   {
     userInterface_.removeParticipant(sessionID);
@@ -775,6 +802,8 @@ void uvgCommController::removeSession(uint32_t sessionID, QString message,
   {
     stats_->removeSession(sessionID);
   }
+
+  Logger::getLogger()->printNormal(this, "Removed session", {"Remaining states"}, {QString::number(states_.size())});
 }
 
 
@@ -1021,9 +1050,16 @@ void uvgCommController::negotiateNextCall()
 {
   if (!pendingRenegotiations_.empty() && ongoingNegotiations_ == 0)
   {
-    ++ongoingNegotiations_;
     uint32_t sessionID = pendingRenegotiations_.front();
     pendingRenegotiations_.pop_front();
+
+    if (states_.find(sessionID) == states_.end())
+    {
+      Logger::getLogger()->printProgramWarning(this, "Negotiating a call which does not exist");
+      return;
+    }
+    ++ongoingNegotiations_;
+
     states_[sessionID].localSDP = nullptr;
     states_[sessionID].remoteSDP = nullptr;
 
@@ -1063,7 +1099,7 @@ bool uvgCommController::areWeICEController(bool initialAgent, uint32_t sessionID
   if (states_.at(sessionID).remoteSDP &&
       states_.at(sessionID).remoteSDP->media.size() == 2)
   {
-    Logger::getLogger()->printNormal(this, "One-to-one call so we follow specification");
+    Logger::getLogger()->printNormal(this, "One-to-one call so we follow specification when selecting ICE controller");
     return initialAgent;
   }
 
@@ -1111,4 +1147,46 @@ void uvgCommController::getStunBindings(uint32_t sessionID, MediaInfo& media)
       }
     }
   }
+}
+
+
+MediaRole uvgCommController::getMediaRole(QString role) const
+{
+  if (role == "Client")
+  {
+    return MediaRole::MEDIA_CLIENT;
+  }
+  else if (role == "Server")
+  {
+    return MediaRole::MEDIA_SERVER;
+  }
+
+  return MediaRole::MEDIA_BOTH;
+}
+
+
+ConferenceTopology uvgCommController::getTopology(QString topology) const
+{
+  if (topology == "P2P_Mesh")
+  {
+    return ConferenceTopology::P2P_MESH;
+  }
+  else if (topology == "Relay")
+  {
+    return ConferenceTopology::RELAY;
+  }
+  else if (topology == "SFU")
+  {
+    return ConferenceTopology::SFU;
+  }
+  else if (topology == "MCU")
+  {
+    return ConferenceTopology::MCU;
+  }
+  else if (topology == "Hybrid")
+  {
+    return ConferenceTopology::HYBRID;
+  }
+
+  return ConferenceTopology::P2P;
 }

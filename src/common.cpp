@@ -17,11 +17,28 @@
 #include <QNetworkInterface>
 
 #include <cstdlib>
+#include <cmath>
 
 
 const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                          "abcdefghijklmnopqrstuvwxyz"
                          "0123456789";
+
+constexpr float SPEAKER_PORTION = 0.80f;
+
+
+static QString settingsFile = "uvgComm.ini";
+
+QString getSettingsFile()
+{
+  return settingsFile;
+}
+
+
+void setSettingsFile(QString filename)
+{
+  settingsFile = filename;
+}
 
 
 QString generateRandomString(uint32_t length)
@@ -48,8 +65,7 @@ int settingValue(QString key)
 
   if (!settings.value(key).isValid())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Found faulty setting", 
-                                    {"Key"}, {key});
+    Logger::getLogger()->printWarning("Common", "Found faulty setting", {"Key"}, {key});
     return 0;
   }
 
@@ -63,12 +79,26 @@ QString settingString(QString key)
 
   if (!settings.value(key).isValid())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Common", "Found faulty setting", 
-                                   {"Key"}, {key});
+    Logger::getLogger()->printWarning("Common", "Found faulty setting", {"Key"}, {key});
     return "";
   }
 
   return settings.value(key).toString();
+}
+
+
+bool settingBool(QString key)
+{
+  QSettings settings(settingsFile, settingsFileFormat);
+
+  if (!settings.value(key).isValid())
+  {
+    Logger::getLogger()->printWarning("Common", "Found faulty setting",
+                                    {"Key"}, {key});
+    return "";
+  }
+
+  return settings.value(key).toBool();
 }
 
 
@@ -148,6 +178,23 @@ bool getReceiveAttribute(const MediaInfo &media, bool local)
   }
 
   return receive;
+}
+
+
+void getMediaAttributes(const MediaInfo &local, const MediaInfo &remote,
+                                           bool followOurSDP,
+                                           bool& send, bool& receive)
+{
+  if (followOurSDP)
+  {
+    receive = getReceiveAttribute(local, followOurSDP);
+    send =    getSendAttribute(local, followOurSDP);
+  }
+  else
+  {
+    receive = getReceiveAttribute(remote, followOurSDP);
+    send =    getSendAttribute(remote, followOurSDP);
+  }
 }
 
 
@@ -257,7 +304,7 @@ void printIceCandidates(QString text, QList<std::shared_ptr<ICEInfo>> candidates
     }
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Common", text, names, values);
+  Logger::getLogger()->printNormal("Common", text, names, values);
 }
 
 
@@ -283,6 +330,137 @@ int64_t NTPToMsec(uint64_t ntp)
   uint32_t lsw_ms = double(1/lsw)*1000;
 
   return msw_ms + lsw_ms;
+}
+
+
+QSize galleryResolution(QSize baseResolution, uint32_t otherParticipants)
+{
+  if (otherParticipants == 0)
+  {
+    Logger::getLogger()->printError("Common", "Zero participants is not legal");
+    return QSize(0,0);
+  }
+
+  int cols = std::ceil(std::sqrt(otherParticipants));
+  int rows = std::ceil(float(otherParticipants)/cols);
+
+  int width = baseResolution.width()/cols - (baseResolution.width()/cols)%8;
+  int height = baseResolution.height()/rows - (baseResolution.height()/rows)%2;
+
+  QSize resolution = QSize(width, height);
+
+  if ((baseResolution.width()/cols)%8 != 0 || (baseResolution.height()/rows)%2 != 0)
+  {
+    Logger::getLogger()->printWarning("Common", "Target resolution not divisible by 8 or 2",
+                                    {"Resolution reduction"},
+                                    {QString::number((baseResolution.width()/cols)%8) + "x" +
+                                     QString::number((baseResolution.height()/rows)%2)});
+  }
+
+  // the encoder only supports resolutions larger than or equal to 64x64
+  if (resolution.width() < 64)
+  {
+    Logger::getLogger()->printWarning("Common", "Resolution too small",
+                                    {"Width"}, {QString::number(resolution.width())});
+    resolution.setWidth(64);
+  }
+  if (resolution.height() < 64)
+  {
+    Logger::getLogger()->printWarning("Common", "Resolution too small",
+                                    {"Height"}, {QString::number(resolution.height())});
+    resolution.setHeight(64);
+  }
+
+  return resolution;
+}
+
+
+QSize speakerResolution(QSize baseResolution, uint32_t otherParticipants)
+{
+  if (otherParticipants == 1)
+  {
+    // no listeners, only speaker
+    return baseResolution;
+  }
+
+  return QSize(baseResolution.width(), baseResolution.height()* SPEAKER_PORTION);
+}
+
+
+QSize listenerResolution(QSize baseResolution, uint32_t otherParticipants)
+{
+  if (otherParticipants == 0)
+  {
+    Logger::getLogger()->printError("Common", "Zero participants is not legal");
+    return QSize(0, 0);
+  }
+  if (otherParticipants == 1)
+  {
+    // no listeners, only speaker
+    return speakerResolution(baseResolution, otherParticipants);
+  }
+
+  uint32_t otherListeners = otherParticipants - 1; // exclude speaker
+
+  constexpr float LISTENER_PORTION = 1.0f - SPEAKER_PORTION;
+  constexpr float TARGET_ASPECT_RATIO = 16.0f / 9.0f;
+
+  int listenerRowHeight = baseResolution.height() * LISTENER_PORTION;
+  int maxTileWidth = listenerRowHeight * TARGET_ASPECT_RATIO;
+
+  // Total required width to fit all listeners side by side
+  int listenerWidth = baseResolution.width()/otherListeners;
+
+  if (listenerWidth > maxTileWidth)
+  {
+    // No cropping needed
+    listenerWidth = maxTileWidth;
+  }
+
+  // Align to encoder constraints (multiples of 8/2)
+  listenerWidth -= listenerWidth % 8;
+  listenerRowHeight -= listenerRowHeight % 2;
+
+  // Avoid too-small tiles as encoder cannot handle these
+  if (listenerWidth < 64)
+  {
+    Logger::getLogger()->printWarning("Common", "Listener resolution too small",
+                                    {"Width"}, {QString::number(listenerWidth)});
+    listenerWidth = 64;
+  }
+  if (listenerRowHeight < 64)
+  {
+    Logger::getLogger()->printWarning("Common", "Listener resolution too small",
+                                    {"Height"}, {QString::number(listenerRowHeight)});
+    listenerRowHeight = 64;
+  }
+
+  return QSize(listenerWidth, listenerRowHeight);
+}
+
+
+int32_t galleryBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants)
+{
+  QSize resolution = galleryResolution(baseResolution, otherParticipants);
+
+  double bitsPerPixel = (double)baseBitrate/(baseResolution.width()*baseResolution.height());
+  return resolution.width()*resolution.height()*bitsPerPixel;
+}
+
+int32_t speakerBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants)
+{
+  QSize resolution = speakerResolution(baseResolution, otherParticipants);
+
+  double bitsPerPixel = (double)baseBitrate/(baseResolution.width()*baseResolution.height());
+  return resolution.width()*resolution.height()*bitsPerPixel;
+}
+
+int32_t listenerBitrate(QSize baseResolution, int baseBitrate, uint32_t otherParticipants)
+{
+  QSize resolution = listenerResolution(baseResolution, otherParticipants);
+
+  double bitsPerPixel = (double)baseBitrate/(baseResolution.width()*baseResolution.height());
+  return resolution.width()*resolution.height()*bitsPerPixel;
 }
 
 
@@ -329,15 +507,52 @@ uint32_t findSSRC(const MediaInfo &media)
   return 0;
 }
 
-uint32_t findMID(const MediaInfo &media)
+
+bool findSSRCs(const MediaInfo &media, std::vector<uint32_t> &ssrc)
+{
+  for (auto& attributeList : media.multiAttributes)
+  {
+    for (auto& attribute : attributeList)
+    {
+      if (attribute.type == A_SSRC)
+      {
+        ssrc.push_back(attribute.value.toUInt());
+      }
+    }
+  }
+
+  return !ssrc.empty();
+}
+
+
+bool findCNAMEs(const MediaInfo &media, std::vector<QString> &cnames)
+{
+  QSet<QString> uniqueCnames;
+
+  for (const auto &attributeList : media.multiAttributes)
+  {
+    for (const auto &attribute : attributeList)
+    {
+      if (attribute.type == A_CNAME && uniqueCnames.find(attribute.value) == uniqueCnames.end())
+      {
+        cnames.push_back(attribute.value);
+      }
+    }
+  }
+
+  return !cnames.empty();
+}
+
+
+QString findMID(const MediaInfo &media)
 {
   for (auto& attribute : media.valueAttributes)
   {
     if (attribute.type == A_MID)
     {
-      return attribute.value.toULong();
+      return attribute.value;
     }
   }
 
-  return 0;
+  return "";
 }

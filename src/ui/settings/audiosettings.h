@@ -74,8 +74,6 @@ private:
 
   std::shared_ptr<MicrophoneInfo> mic_;
 
-  QSettings settings_;
-
   QList<std::pair<QString, QSlider*>> sliders_;
 
   QList<std::pair<QString, QCheckBox*>> boxes_;

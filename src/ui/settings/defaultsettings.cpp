@@ -1,41 +1,43 @@
 #include "defaultsettings.h"
 
-#include "settingshelper.h"
+#include "common.h"
 #include "microphoneinfo.h"
+#include "settingshelper.h"
 
 #include "logger.h"
 #include "settingskeys.h"
 
 #include <thread>
 
-DefaultSettings::DefaultSettings():
-  settings_(settingsFile, settingsFileFormat)
+DefaultSettings::DefaultSettings()
 {}
 
 
 void DefaultSettings::validateSettings(std::shared_ptr<MicrophoneInfo> mic,
                                        std::shared_ptr<CameraInfo> cam)
 {
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
   if (mic->getDeviceList().empty())
   {
     Logger::getLogger()->printWarning(this, "No mic found");
-    settings_.setValue(SettingsKey::audioDevice,        "No microphone");
-    settings_.setValue(SettingsKey::audioDeviceID,      -1);
-    setDefaultAudioSettings(mic);
-  }
-  else if (!validateAudioSettings() || settings_.value(SettingsKey::audioDeviceID).toInt() == -1)
-  {
-    Logger::getLogger()->printWarning(this, "Did not find valid audio settings, using defaults");
-    setDefaultAudioSettings(mic);
+    settings.setValue(SettingsKey::audioDevice,        "No microphone");
+    settings.setValue(SettingsKey::audioDeviceID,      -1);
   }
 
   if (cam->getDeviceList().empty())
   {
     Logger::getLogger()->printWarning(this, "No cam found");
-    settings_.setValue(SettingsKey::videoDevice,        "No Camera");
-    settings_.setValue(SettingsKey::videoDeviceID,      -1);
+    settings.setValue(SettingsKey::videoDevice,        "No Camera");
+    settings.setValue(SettingsKey::videoDeviceID,      -1);
   }
-  else  if (!validateVideoSettings() || settings_.value(SettingsKey::videoDeviceID).toInt() == -1)
+
+  if (!validateAudioSettings())
+  {
+    Logger::getLogger()->printWarning(this, "Did not find valid audio settings, using defaults");
+    setDefaultAudioSettings(mic);
+  }
+
+  if (!validateVideoSettings())
   {
     Logger::getLogger()->printWarning(this, "Did not find valid video settings, using defaults");
     setDefaultVideoSettings(cam);
@@ -66,7 +68,9 @@ bool DefaultSettings::validateAudioSettings()
                                 SettingsKey::audioDereverb,
                                 SettingsKey::audioAGC};
 
-  return checkSettingsList(settings_, neededSettings);
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
+  return checkSettingsList(settings, neededSettings);
 }
 
 
@@ -102,9 +106,15 @@ bool DefaultSettings::validateVideoSettings()
                                       SettingsKey::videoMVConstraint,
                                       SettingsKey::videoQPInCU,
                                       SettingsKey::videoVAQ,
-                                      SettingsKey::videoPreset};
+                                      SettingsKey::videoPreset,
 
-  return checkSettingsList(settings_, neededSettings);
+                                      SettingsKey::videoFileEnabled,
+                                      SettingsKey::videoFileResolutionWidth,
+                                      SettingsKey::videoFileResolutionHeight,
+                                      SettingsKey::videoFileFramerate};
+
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+  return checkSettingsList(settings, neededSettings);
 }
 
 
@@ -128,9 +138,11 @@ void DefaultSettings::selectDefaultCamera(std::shared_ptr<MicrophoneInfo> mic)
   int deviceID = -1;
   QString deviceName = "Error";
 
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
   // choose something in case nothing has been chosen
-  if (settings_.value(SettingsKey::audioDevice).isNull() ||
-      settings_.value(SettingsKey::audioDeviceID).isNull())
+  if (settings.value(SettingsKey::audioDevice).isNull() ||
+      settings.value(SettingsKey::audioDeviceID).isNull())
   {
     // TODO: Choose device based on which supports sample rate of 48000
     deviceID = 0;
@@ -140,16 +152,16 @@ void DefaultSettings::selectDefaultCamera(std::shared_ptr<MicrophoneInfo> mic)
   {
     /* Here we try to improve our deviceID based on deviceName in case
      * the devices have changed */
-    deviceID = settings_.value(SettingsKey::audioDeviceID).toInt();
-    deviceName = settings_.value(SettingsKey::audioDevice).toString();
+    deviceID = settings.value(SettingsKey::audioDeviceID).toInt();
+    deviceName = settings.value(SettingsKey::audioDevice).toString();
 
     deviceID = getMostMatchingDeviceID(devices, deviceName, deviceID);
 
     deviceName = devices.at(deviceID);
   }
 
-  settings_.setValue(SettingsKey::audioDevice,        deviceName);
-  settings_.setValue(SettingsKey::audioDeviceID,      deviceID);
+  settings.setValue(SettingsKey::audioDevice,        deviceName);
+  settings.setValue(SettingsKey::audioDeviceID,      deviceID);
 }
 
 
@@ -161,27 +173,30 @@ void DefaultSettings::setDefaultAudioSettings(std::shared_ptr<MicrophoneInfo> mi
   }
 
   // TODO: Choose rest of the audio parameters such as samplerate (and maybe codec)
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
 
-  settings_.setValue(SettingsKey::audioBitrate,         24000);
-  settings_.setValue(SettingsKey::audioComplexity,      10);
-  settings_.setValue(SettingsKey::audioSignalType,      "Auto");
-  settings_.setValue(SettingsKey::audioAEC,             1);
-  settings_.setValue(SettingsKey::audioAECDelay,        120);
-  settings_.setValue(SettingsKey::audioAECFilterLength, 250);
-  settings_.setValue(SettingsKey::audioMutingPeriod,    350);
-  settings_.setValue(SettingsKey::audioMutingThreshold, 15);
-  settings_.setValue(SettingsKey::audioCompressionThreshold, -6);
-  settings_.setValue(SettingsKey::audioCompressionRatio, 5);
-  settings_.setValue(SettingsKey::audioSelectiveMuting, 1);
+  settings.setValue(SettingsKey::audioBitrate,         24000);
+  settings.setValue(SettingsKey::audioComplexity,      10);
+  settings.setValue(SettingsKey::audioSignalType,      "Auto");
+  settings.setValue(SettingsKey::audioAEC,             1);
+  settings.setValue(SettingsKey::audioAECDelay,        120);
+  settings.setValue(SettingsKey::audioAECFilterLength, 250);
+  settings.setValue(SettingsKey::audioMutingPeriod,    350);
+  settings.setValue(SettingsKey::audioMutingThreshold, 15);
+  settings.setValue(SettingsKey::audioCompressionThreshold, -6);
+  settings.setValue(SettingsKey::audioCompressionRatio, 5);
+  settings.setValue(SettingsKey::audioSelectiveMuting, 1);
 
-  settings_.setValue(SettingsKey::audioDenoise,         1);
-  settings_.setValue(SettingsKey::audioDereverb,        1);
-  settings_.setValue(SettingsKey::audioAGC,             0);
+  settings.setValue(SettingsKey::audioDenoise,         1);
+  settings.setValue(SettingsKey::audioDereverb,        1);
+  settings.setValue(SettingsKey::audioAGC,             0);
 }
 
 
 void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 {
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
   // Try to guess best resolution and thread distribution based on available threads
   unsigned int threads = std::thread::hardware_concurrency();
   if (threads <= 4)
@@ -196,48 +211,48 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
      * (TODO: mode selection should be done based on received resolution to minimize latency).
      *
      * YUV and RGB conversions should be able to handle everything expect 4K with one thread. */
-    settings_.setValue(SettingsKey::videoKvzThreads, threads);
-    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 1);
-    settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
-    settings_.setValue(SettingsKey::videoYUVThreads, 1);
-    settings_.setValue(SettingsKey::videoRGBThreads, 1);
-    settings_.setValue(SettingsKey::videoOWF, 0);
+    settings.setValue(SettingsKey::videoKvzThreads, threads);
+    settings.setValue(SettingsKey::videoOpenHEVCThreads, 1);
+    settings.setValue(SettingsKey::videoOHParallelization, "Slice");
+    settings.setValue(SettingsKey::videoYUVThreads, 1);
+    settings.setValue(SettingsKey::videoRGBThreads, 1);
+    settings.setValue(SettingsKey::videoOWF, 0);
   }
   else if (threads <= 8)
   {
-    settings_.setValue(SettingsKey::videoKvzThreads, threads - 1);
-    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 2);
-    settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
-    settings_.setValue(SettingsKey::videoYUVThreads, 1);
-    settings_.setValue(SettingsKey::videoRGBThreads, 1);
-    settings_.setValue(SettingsKey::videoOWF, 0);
+    settings.setValue(SettingsKey::videoKvzThreads, threads - 1);
+    settings.setValue(SettingsKey::videoOpenHEVCThreads, 2);
+    settings.setValue(SettingsKey::videoOHParallelization, "Slice");
+    settings.setValue(SettingsKey::videoYUVThreads, 1);
+    settings.setValue(SettingsKey::videoRGBThreads, 1);
+    settings.setValue(SettingsKey::videoOWF, 0);
   }
   else if (threads <= 16)
   {
-    settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
-    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 4);
-    settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
-    settings_.setValue(SettingsKey::videoYUVThreads, 1);
-    settings_.setValue(SettingsKey::videoRGBThreads, 1);
-    settings_.setValue(SettingsKey::videoOWF, 0);
+    settings.setValue(SettingsKey::videoKvzThreads, threads - 2);
+    settings.setValue(SettingsKey::videoOpenHEVCThreads, 4);
+    settings.setValue(SettingsKey::videoOHParallelization, "Slice");
+    settings.setValue(SettingsKey::videoYUVThreads, 1);
+    settings.setValue(SettingsKey::videoRGBThreads, 1);
+    settings.setValue(SettingsKey::videoOWF, 0);
   }
   else if (threads <= 24)
   {
-    settings_.setValue(SettingsKey::videoKvzThreads, threads - 2);
-    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 6);
-    settings_.setValue(SettingsKey::videoOHParallelization, "Slice");
-    settings_.setValue(SettingsKey::videoYUVThreads, 1);
-    settings_.setValue(SettingsKey::videoRGBThreads, 1);
-    settings_.setValue(SettingsKey::videoOWF, 1);
+    settings.setValue(SettingsKey::videoKvzThreads, threads - 2);
+    settings.setValue(SettingsKey::videoOpenHEVCThreads, 6);
+    settings.setValue(SettingsKey::videoOHParallelization, "Slice");
+    settings.setValue(SettingsKey::videoYUVThreads, 1);
+    settings.setValue(SettingsKey::videoRGBThreads, 1);
+    settings.setValue(SettingsKey::videoOWF, 1);
   }
   else
   {
-    settings_.setValue(SettingsKey::videoKvzThreads, threads - 3);
-    settings_.setValue(SettingsKey::videoOpenHEVCThreads, 8);
-    settings_.setValue(SettingsKey::videoOHParallelization, "Frame and Slice");
-    settings_.setValue(SettingsKey::videoYUVThreads, 2);
-    settings_.setValue(SettingsKey::videoRGBThreads, 2);
-    settings_.setValue(SettingsKey::videoOWF, 2);
+    settings.setValue(SettingsKey::videoKvzThreads, threads - 3);
+    settings.setValue(SettingsKey::videoOpenHEVCThreads, 8);
+    settings.setValue(SettingsKey::videoOHParallelization, "Frame and Slice");
+    settings.setValue(SettingsKey::videoYUVThreads, 2);
+    settings.setValue(SettingsKey::videoRGBThreads, 2);
+    settings.setValue(SettingsKey::videoOWF, 2);
   }
 
 #ifdef NDEBUG
@@ -250,39 +265,45 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 
   SettingsCameraFormat format = selectBestCameraFormat(cam, cpuPower);
 
-  settings_.setValue(SettingsKey::videoDevice,          format.deviceName);
-  settings_.setValue(SettingsKey::videoDeviceID,        format.deviceID);
+  settings.setValue(SettingsKey::videoDevice,          format.deviceName);
+  settings.setValue(SettingsKey::videoDeviceID,        format.deviceID);
 
   // select best camera/format here
-  settings_.setValue(SettingsKey::videoInputFormat,     format.format);
-  settings_.setValue(SettingsKey::videoResolutionWidth,  format.resolution.width());
-  settings_.setValue(SettingsKey::videoResolutionHeight, format.resolution.height());
+  settings.setValue(SettingsKey::videoInputFormat,     format.format);
+  settings.setValue(SettingsKey::videoResolutionWidth,  format.resolution.width());
+  settings.setValue(SettingsKey::videoResolutionHeight, format.resolution.height());
 
   int32_t numerator = 0;
   int32_t denominator = 0;
 
   convertFramerate(format.framerate, numerator, denominator);
 
-  settings_.setValue(SettingsKey::videoFramerateNumerator,       numerator);
-  settings_.setValue(SettingsKey::videoFramerateDenominator,     denominator);
+  settings.setValue(SettingsKey::videoFramerateNumerator,       numerator);
+  settings.setValue(SettingsKey::videoFramerateDenominator,     denominator);
 
-  settings_.setValue(SettingsKey::videoOpenGL, 0); // TODO: When can we enable this?
-  settings_.setValue(SettingsKey::videoQP, 32);
+  settings.setValue(SettingsKey::videoOpenGL, 0); // TODO: When can we enable this?
+  settings.setValue(SettingsKey::videoQP, 32);
 
   // video calls work better with high intra period
-  settings_.setValue(SettingsKey::videoIntra, 64); // TODO: Fix faster intra, so this can be increased
-  settings_.setValue(SettingsKey::videoTiles, 0);
-  settings_.setValue(SettingsKey::videoSlices, 0); // TODO: Fix slices and enable tiles
-  settings_.setValue(SettingsKey::videoWPP, 1);
-  settings_.setValue(SettingsKey::videoVPS, 1);
-  settings_.setValue(SettingsKey::videoOBAClipNeighbours, 0);
-  settings_.setValue(SettingsKey::videoScalingList, 0);
-  settings_.setValue(SettingsKey::videoLossless, 0); // very CPU intensive
-  settings_.setValue(SettingsKey::videoMVConstraint, "none");
-  settings_.setValue(SettingsKey::videoQPInCU, 0);
-  settings_.setValue(SettingsKey::videoVAQ, "disabled");
+  settings.setValue(SettingsKey::videoIntra, 64); // TODO: Fix faster intra, so this can be increased
+  settings.setValue(SettingsKey::videoTiles, 0);
+  settings.setValue(SettingsKey::videoSlices, 0); // TODO: Fix slices and enable tiles
+  settings.setValue(SettingsKey::videoWPP, 1);
+  settings.setValue(SettingsKey::videoVPS, 1);
+  settings.setValue(SettingsKey::videoOBAClipNeighbours, 0);
+  settings.setValue(SettingsKey::videoScalingList, 0);
+  settings.setValue(SettingsKey::videoLossless, 0); // very CPU intensive
+  settings.setValue(SettingsKey::videoMVConstraint, "none");
+  settings.setValue(SettingsKey::videoQPInCU, 0);
+  settings.setValue(SettingsKey::videoVAQ, "disabled");
 
-  settings_.setValue(SettingsKey::videoRCAlgorithm, "lambda");
+  settings.setValue(SettingsKey::videoRCAlgorithm, "lambda");
+
+  settings.setValue(SettingsKey::videoFileEnabled, 0);
+  settings.setValue(SettingsKey::videoFilename, "input.yuv");
+  settings.setValue(SettingsKey::videoFileResolutionWidth,  1920);
+  settings.setValue(SettingsKey::videoFileResolutionHeight, 1080);
+  settings.setValue(SettingsKey::videoFileFramerate, 30);
 
   // use resolution and framerate to determine the best bit rate
   uint64_t formatComplexity = calculateComplexity(format.resolution,
@@ -290,46 +311,48 @@ void DefaultSettings::setDefaultVideoSettings(std::shared_ptr<CameraInfo> cam)
 
   if (formatComplexity < CC_TRIVIAL)
   {
-    settings_.setValue(SettingsKey::videoTileDimensions, "2x2");
-    settings_.setValue(SettingsKey::videoBitrate, 250000); // 250 kbit/s
-#ifdef NDEBUG
-    settings_.setValue(SettingsKey::videoPreset, "fast");
-#else
-     settings_.setValue(SettingsKey::videoPreset, "ultrafast");
-#endif
+    settings.setValue(SettingsKey::videoTileDimensions, "2x2");
+    settings.setValue(SettingsKey::videoBitrate, 250000); // 250 kbit/s
+    settings.setValue(SettingsKey::videoPreset, "fast");
   }
   else if (formatComplexity < CC_EASY)
   {
-    //settings_.setValue(SettingsKey::videoTiles, 0);
-    settings_.setValue(SettingsKey::videoTileDimensions, "2x2");
-    settings_.setValue(SettingsKey::videoBitrate, 500000); // 500 kbit/s
-    settings_.setValue(SettingsKey::videoPreset, "faster");
+    //settings.setValue(SettingsKey::videoTiles, 0);
+    settings.setValue(SettingsKey::videoTileDimensions, "2x2");
+    settings.setValue(SettingsKey::videoBitrate, 500000); // 500 kbit/s
+    settings.setValue(SettingsKey::videoPreset, "faster");
   }
   else if (formatComplexity < CC_MEDIUM)
   {
-    //settings_.setValue(SettingsKey::videoTiles, 1);
-    settings_.setValue(SettingsKey::videoTileDimensions, "4x4");
-    settings_.setValue(SettingsKey::videoBitrate, 1000000); // 1 mbit/s
-    settings_.setValue(SettingsKey::videoPreset, "veryfast");
+    //settings.setValue(SettingsKey::videoTiles, 1);
+    settings.setValue(SettingsKey::videoTileDimensions, "4x4");
+    settings.setValue(SettingsKey::videoBitrate, 1000000); // 1 mbit/s
+    settings.setValue(SettingsKey::videoPreset, "veryfast");
   }
   else if (formatComplexity < CC_COMPLEX)
   {
-    //settings_.setValue(SettingsKey::videoTiles, 1);
-    settings_.setValue(SettingsKey::videoTileDimensions, "8x8");
-    settings_.setValue(SettingsKey::videoBitrate, 3000000); // 3 mbit/s
-    settings_.setValue(SettingsKey::videoPreset, "superfast");
+    //settings.setValue(SettingsKey::videoTiles, 1);
+    settings.setValue(SettingsKey::videoTileDimensions, "8x8");
+    settings.setValue(SettingsKey::videoBitrate, 3000000); // 3 mbit/s
+    settings.setValue(SettingsKey::videoPreset, "superfast");
   }
   else
   {
-    //settings_.setValue(SettingsKey::videoTiles, 1);
-    settings_.setValue(SettingsKey::videoTileDimensions, "16x16");
-    settings_.setValue(SettingsKey::videoBitrate, 6000000); // 6 mbit/s
-    settings_.setValue(SettingsKey::videoPreset, "ultrafast");
+    //settings.setValue(SettingsKey::videoTiles, 1);
+    settings.setValue(SettingsKey::videoTileDimensions, "16x16");
+    settings.setValue(SettingsKey::videoBitrate, 6000000); // 6 mbit/s
+    settings.setValue(SettingsKey::videoPreset, "ultrafast");
   }
 
 #ifndef NDEBUG
-  settings_.setValue(SettingsKey::videoPreset, "ultrafast");
+  settings.setValue(SettingsKey::videoPreset, "ultrafast");
 #endif
+
+  settings.setValue(SettingsKey::videoFileEnabled, 0);
+  settings.setValue(SettingsKey::videoFilename, "input.yuv");
+  settings.setValue(SettingsKey::videoFileResolutionWidth,  1920);
+  settings.setValue(SettingsKey::videoFileResolutionHeight, 1080);
+  settings.setValue(SettingsKey::videoFileFramerate, 30);
 }
 
 
@@ -340,14 +363,16 @@ void DefaultSettings::setDefaultCallSettings()
 SettingsCameraFormat DefaultSettings::selectBestCameraFormat(std::shared_ptr<CameraInfo> cam,
                                                              uint32_t complexity)
 {
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
   // Note: the current implementation does not go through all the devices to
   // find the best format, just the first one
-  if (!settings_.value(SettingsKey::videoDeviceID).isNull() &&
-      settings_.value(SettingsKey::videoDeviceID) != "")
+  if (!settings.value(SettingsKey::videoDeviceID).isNull() &&
+      settings.value(SettingsKey::videoDeviceID) != "")
   {
-    int deviceID = settings_.value(SettingsKey::videoDeviceID).toInt();
+    int deviceID = settings.value(SettingsKey::videoDeviceID).toInt();
     deviceID = getMostMatchingDeviceID(cam->getDeviceList(),
-                                       settings_.value(SettingsKey::videoDevice).toString(),
+                                       settings.value(SettingsKey::videoDevice).toString(),
                                        deviceID);
 
     return selectBestDeviceFormat(cam, deviceID, complexity);
@@ -409,7 +434,7 @@ SettingsCameraFormat DefaultSettings::selectBestDeviceFormat(std::shared_ptr<Cam
   QString resolution = QString::number(bestOption.resolution.width()) + "x" +
                        QString::number(bestOption.resolution.height());
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Selected the best format",
+  Logger::getLogger()->printNormal(this, "Selected the best format",
                                   {"Points", "Device", "Format", "Resolution", "Framerate"},
                                    {QString::number(highestValue), bestOption.deviceName,
                                     bestOption.format, resolution, bestOption.framerate});

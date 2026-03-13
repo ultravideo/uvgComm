@@ -3,7 +3,8 @@
 #include <QWindow>
 #include <QScreen>
 #include <QGuiApplication>
-#include <QDateTime>
+
+
 
 #include "common.h"
 #include "settingskeys.h"
@@ -11,10 +12,11 @@
 
 ScreenShareFilter::ScreenShareFilter(QString id, StatisticsInterface *stats,
                                      std::shared_ptr<ResourceAllocator> hwResources):
-  Filter(id, "Screen Sharing", stats, hwResources, DT_NONE, DT_RGB32VIDEO),
-  framerateNumerator_(10),
-  framerateDenominator_(1),
-screenID_(0)
+Filter(id, "Screen Sharing", stats, hwResources, DT_NONE, DT_RGB32VIDEO),
+framerateNumerator_(10),
+framerateDenominator_(1),
+screenID_(0),
+rtpTimestamp_(initializeRtpTimestamp())
 {}
 
 
@@ -77,8 +79,8 @@ void ScreenShareFilter::process()
     return;
   }
 
-  if (currentResolution_.width() != screen->size().width() - screen->size().width()%8 ||
-      currentResolution_.height() != screen->size().height() - screen->size().height()%8)
+  if (currentResolution_.width() != screen->size().width() ||
+      currentResolution_.height() != screen->size().height())
   {
     QString currentResolution = QString::number(currentResolution_.width()) + "x" +
         QString::number(currentResolution_.height());
@@ -86,7 +88,7 @@ void ScreenShareFilter::process()
     QString screenResolution = QString::number(screen->size().width()) + "x" +
         QString::number(screen->size().height());
 
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
+    Logger::getLogger()->printProgramError(this, 
                                     "Current resolution differs from screen size",
                                     {"Current", "Screen resolution"}, {currentResolution,
                                                                        screenResolution});
@@ -98,7 +100,7 @@ void ScreenShareFilter::process()
 
   // capture the frame data
   std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
-  newImage->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+  newImage->creationTimestamp = clockNowMs();
   newImage->presentationTimestamp = newImage->creationTimestamp;
   newImage->data = std::unique_ptr<uchar[]>(new uchar[image.sizeInBytes()]);
 
@@ -113,6 +115,9 @@ void ScreenShareFilter::process()
   newImage->vInfo->height = currentResolution_.height();
   newImage->vInfo->framerateNumerator = framerateNumerator_;
   newImage->vInfo->framerateDenominator = framerateDenominator_;
+
+  rtpTimestamp_ = updateVideoRtpTimestamp(rtpTimestamp_, framerateNumerator_, framerateDenominator_);
+  newImage->rtpTimestamp = rtpTimestamp_;
 
 #ifdef _WIN32
   newImage->vInfo->flippedVertically = true;

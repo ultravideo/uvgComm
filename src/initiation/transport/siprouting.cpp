@@ -318,7 +318,7 @@ void SIPRouting::addREGISTERContactParameters(std::shared_ptr<SIPMessageHeader> 
                                              "Please add contact field before adding parameters");
   }
 
-  QSettings settings("uvgComm.ini", QSettings::IniFormat);
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
   message->contact.back().parameters.push_back({"reg-id", "1"});
   message->contact.back().parameters.push_back({"+sip.instance", "\"<urn:uuid:" +
                                                 settings.value(SettingsKey::sipUUID).toString() + ">\""});

@@ -5,13 +5,13 @@
 #include <QTime>
 
 SDPICE::SDPICE(std::shared_ptr<NetworkCandidates> candidates, uint32_t sessionID,
-               bool useICE, bool localAddresses):
+               bool useICE, QHostAddress localAddress):
   sessionID_(sessionID),
   networkCandidates_(candidates),
   peerSupportsICE_(true), // we assume that peer suppports ICE unless proven otherwise
   mediaLimit_(-1),
   useICE_(useICE),
-  usePrivateAddresses_(localAddresses)
+  allowedLocalAddress_(localAddress)
 {}
 
 void SDPICE::uninit()
@@ -146,9 +146,20 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
   {
     existingLocalCandidates_.push_back(networkCandidates_->localCandidates(neededComponents, sessionID_));
 
-    if (!usePrivateAddresses_)
+    // If the caller provided an explicit allowed local address,
+    // filter local candidates down to only that address. If null,
+    // keep all local candidates as before.
+    if (!allowedLocalAddress_.isNull())
     {
-      existingLocalCandidates_.at(existingLocalCandidates_.size() - 1)->clear();
+      auto &listRef = *existingLocalCandidates_.at(existingLocalCandidates_.size() - 1);
+      for (int ii = listRef.size() - 1; ii >= 0; --ii)
+      {
+        const QHostAddress &candidateAddr = listRef[ii].first;
+        if (candidateAddr != allowedLocalAddress_)
+        {
+          listRef.removeAt(ii);
+        }
+      }
     }
   }
   if (existingGlobalCandidates_.size() <= mediaIndex)
@@ -186,19 +197,19 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
     // TODO: Fix STUN bindings and change this order
     Logger::getLogger()->printNormal(this, "Settings connection addresses directly instead of ICE candidates");
 
-    if (usePrivateAddresses_ && !existingLocalCandidates_[mediaIndex]->empty())
+    if (!allowedLocalAddress_.isNull() && !existingLocalCandidates_[mediaIndex]->empty())
     {
-      Logger::getLogger()->printNormal(this, "Using local IP address");
+      Logger::getLogger()->printNormal(this, "Using allowed local IP address");
       setMediaAddress(existingLocalCandidates_, media, mediaIndex);
     }
     else if (!existingGlobalCandidates_[mediaIndex]->empty())
     {
-      Logger::getLogger()->printNormal(this, "Using Global IP address");
+      Logger::getLogger()->printNormal(this, "Using Global IP addresses");
       setMediaAddress(existingGlobalCandidates_, media, mediaIndex);
     }
     else if (!existingStunCandidates_[mediaIndex]->empty())
     {
-      Logger::getLogger()->printNormal(this, "Using STUN address");
+      Logger::getLogger()->printNormal(this, "Using STUN addresses");
       setMediaAddress(existingStunCandidates_, media, mediaIndex);
     }
     else
@@ -249,7 +260,7 @@ QList<std::shared_ptr<ICEInfo>> SDPICE::generateICECandidates(
     std::shared_ptr<QList<std::pair<QHostAddress, uint16_t> > > turnCandidates,
     int components)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Start Generating ICE candidates", {
+  Logger::getLogger()->printNormal(this, "Start Generating ICE candidates", {
                "Local", "Global", "STUN", "STUN relays", "TURN"},
             {QString::number(localCandidates->size()),
              QString::number(globalCandidates->size()),
@@ -264,20 +275,20 @@ QList<std::shared_ptr<ICEInfo>> SDPICE::generateICECandidates(
 
   quint32 foundation = 1;
 
-  addCandidates(localCandidates, nullptr, foundation, HOST, 65535, iceCandidates, components);
-  addCandidates(globalCandidates, nullptr, foundation, HOST, 65535 - localCandidates->size()/components,
+  addCandidates(localCandidates, nullptr, foundation, ICE_HOST, 65535, iceCandidates, components);
+  addCandidates(globalCandidates, nullptr, foundation, ICE_HOST, 65535 - localCandidates->size()/components,
                 iceCandidates, components);
 
   if (stunCandidates->size() == stunBindings->size())
   {
-    addCandidates(stunCandidates, stunBindings, foundation, SERVER_REFLEXIVE,
+    addCandidates(stunCandidates, stunBindings, foundation, ICE_SERVER_REFLEXIVE,
                   65535, iceCandidates, components);
   }
   else
   {
     Logger::getLogger()->printProgramError(this, "STUN bindings don't match");
   }
-  addCandidates(turnCandidates, nullptr, foundation, RELAY, 0, iceCandidates, components);
+  addCandidates(turnCandidates, nullptr, foundation, ICE_RELAY, 0, iceCandidates, components);
 
   return iceCandidates;
 }
@@ -291,7 +302,7 @@ void SDPICE::addCandidates(std::shared_ptr<QList<std::pair<QHostAddress, uint16_
 {
   bool includeRelayAddress = relayAddresses != nullptr && addresses->size() == relayAddresses->size();
 
-  if (!includeRelayAddress && type != HOST && !addresses->empty())
+  if (!includeRelayAddress && type != ICE_HOST && !addresses->empty())
   {
     Logger::getLogger()->printProgramError(this, "Bindings not given for non host cadidate!");
     return;
@@ -358,21 +369,21 @@ std::shared_ptr<ICEInfo> SDPICE::makeCandidate(uint32_t foundation,
   candidate->rel_address = "";
   candidate->rel_port = 0;
 
-  if (type != HOST && !relayAddress.isNull() && relayPort != 0)
+  if (type != ICE_HOST && !relayAddress.isNull() && relayPort != 0)
   {
     candidate->rel_address = relayAddress.toString();
     candidate->rel_port = relayPort;
   }
 
-  if (type == HOST)
+  if (type == ICE_HOST)
   {
     typeString = "host";
   }
-  else if (type == SERVER_REFLEXIVE)
+  else if (type == ICE_SERVER_REFLEXIVE)
   {
     typeString = "srflx";
   }
-  else if (type == RELAY)
+  else if (type == ICE_RELAY)
   {
     typeString = "relay";
   }
@@ -400,7 +411,7 @@ void SDPICE::printCandidates(QList<std::shared_ptr<ICEInfo>>& candidates)
                                " Priority: " + QString::number(candidate->priority));
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Generated the following ICE candidates",
+  Logger::getLogger()->printNormal(this, "Generated the following ICE candidates",
                                   candidateNames, candidateStrings);
 }
 

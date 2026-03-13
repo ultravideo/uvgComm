@@ -147,13 +147,12 @@ const std::map<QString, uint32_t> DYNAMIC_AUDIO_PAYLOADTYPES = {
 const QString SESSION_NAME = "-";
 const QString SESSION_DESCRIPTION = "A uvgComm initiated communication";
 
-
-
 void generateMedia(QString type,
                    QList<MediaInfo>& medias,
                    QList<QString>& dynamicSubtypes,
                    QList<uint8_t>& staticPayloadTypes,
-                   const std::map<QString, uint32_t> &clockFrequencies);
+                   const std::map<QString, uint32_t>& clockFrequencies,
+                   uint32_t bandwidthKbps);
 
 RTPMap createMapping(uint8_t& dynamicNumber, const QString subtype,
                      const std::map<QString, uint32_t> &clockFrequencies);
@@ -163,7 +162,11 @@ std::shared_ptr<SDPMessageInfo> generateDefaultSDP(QString username, QString loc
                                                    QList<QString> dynamicAudioSubtypes,
                                                    QList<QString> dynamicVideoSubtypes,
                                                    QList<uint8_t> staticAudioPayloadTypes,
-                                                   QList<uint8_t> staticVideoPayloadTypes)
+                                                   QList<uint8_t> staticVideoPayloadTypes,
+                                                   uint16_t videoWidth,
+                                                   uint16_t videoHeight,
+                                                   uint32_t videoKbps,
+                                                   uint32_t audioKbps)
 {
   Logger::getLogger()->printNormal("SDPNegotiationHelper",
                                    "Generating new SDP message with our address",
@@ -189,8 +192,6 @@ std::shared_ptr<SDPMessageInfo> generateDefaultSDP(QString username, QString loc
                   newInfo->connection_nettype, newInfo->connection_addrtype);
   }
 
-
-
   newInfo->sessionName = SESSION_NAME;
   newInfo->sessionDescription = SESSION_DESCRIPTION;
 
@@ -200,14 +201,33 @@ std::shared_ptr<SDPMessageInfo> generateDefaultSDP(QString username, QString loc
   {
     generateMedia("audio", newInfo->media, dynamicAudioSubtypes,
                   staticAudioPayloadTypes,
-                  DYNAMIC_AUDIO_PAYLOADTYPES);
+                  DYNAMIC_AUDIO_PAYLOADTYPES, audioKbps);
   }
 
   for (int i = 0; i < videoStreams; ++i)
   {
     generateMedia("video", newInfo->media, dynamicVideoSubtypes,
                   staticVideoPayloadTypes,
-                  DYNAMIC_VIDEO_PAYLOADTYPES);
+                  DYNAMIC_VIDEO_PAYLOADTYPES, videoKbps);
+
+    if (videoWidth != 0 && videoHeight != 0)
+    {
+      MediaInfo& lastMedia = newInfo->media.back();
+
+      for (uint8_t pt : newInfo->media.back().rtpNums)
+      {
+        ImageAttribute& ia = lastMedia.imgAttributes[pt];
+        ia.sendResolution = ImageResolution{videoWidth, videoHeight};
+        ia.recvResolution = ImageResolution{videoWidth, videoHeight};
+      }
+
+      for (const RTPMap& rtp : newInfo->media.back().rtpMaps)
+      {
+        ImageAttribute& ia = lastMedia.imgAttributes[rtp.rtpNum];
+        ia.sendResolution = ImageResolution{videoWidth, videoHeight};
+        ia.recvResolution = ImageResolution{videoWidth, videoHeight};
+      }
+    }
   }
 
   return newInfo;
@@ -231,7 +251,8 @@ void generateOrigin(std::shared_ptr<SDPMessageInfo> sdp,
 void generateMedia(QString type, QList<MediaInfo>& medias,
                    QList<QString> &dynamicSubtypes,
                    QList<uint8_t> &staticPayloadTypes,
-                   const std::map<QString, uint32_t> &clockFrequencies)
+                   const std::map<QString, uint32_t> &clockFrequencies,
+                   uint32_t bandwidthKbps)
 {
 
   // we ignore nettype, addrtype and address, because we use a global c=
@@ -252,6 +273,13 @@ void generateMedia(QString type, QList<MediaInfo>& medias,
 
   // just for completeness, we will probably never support any of the pre-set video types.
   media.rtpNums += staticPayloadTypes;
+
+  if (bandwidthKbps != 0)
+  {
+    // RFC 4566 section 6.3
+    media.bandwidth.push_back({BandwidthType::AS, bandwidthKbps});
+  }
+
   medias.push_back(media);
 }
 

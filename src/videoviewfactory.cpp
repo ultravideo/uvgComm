@@ -10,17 +10,19 @@
 #include <QSettings>
 
 VideoviewFactory::VideoviewFactory():
-    mediaIDtoWidgetlist_(),
-    mediaIDtoVideolist_(),
+    viewIDToWidgetlist_(),
+    viewIDToVideolist_(),
   selfViews_(),
-  opengl_(false)
+  opengl_(false),
+    nextViewID_(1)
 {}
 
 
 VideoviewFactory::~VideoviewFactory()
 {
-    mediaIDtoWidgetlist_.clear(); // these are the same pointers as in videolist
-    mediaIDtoVideolist_.clear();
+  viewIDToWidgetlist_.clear(); // these are the same pointers as in videolist
+  viewIDToVideolist_.clear();
+  ssrcToViewID_.clear();
 }
 
 
@@ -56,47 +58,82 @@ QList<VideoInterface*> VideoviewFactory::getSelfVideos()
 }
 
 
-QWidget* VideoviewFactory::getView(MediaID& id)
+QWidget* VideoviewFactory::getView(uint32_t remoteSSRC)
 {
-  return mediaIDtoWidgetlist_[id];
+  if (ssrcToViewID_.find(remoteSSRC) == ssrcToViewID_.end())
+  {
+    Logger::getLogger()->printProgramError("VideoviewFactory",
+                                    "Failed to find widget", {"Remote SSRC"},
+                                    {QString::number(remoteSSRC)});
+    return nullptr;
+  }
+
+  return viewIDToWidgetlist_[ssrcToViewID_[remoteSSRC]];
 }
 
 
-VideoInterface* VideoviewFactory::getVideo(const MediaID &id)
+VideoInterface* VideoviewFactory::getVideo(const uint32_t remoteSSRC)
 {
-  return mediaIDtoVideolist_[id];
+  if (ssrcToViewID_.find(remoteSSRC) == ssrcToViewID_.end())
+  {
+    Logger::getLogger()->printProgramError("VideoviewFactory",
+                                    "Failed to find video interface", {"Remote SSRC"},
+                                    {QString::number(remoteSSRC)});
+    return nullptr;
+  }
+
+  return viewIDToVideolist_[ssrcToViewID_[remoteSSRC]];
 }
 
 
-void VideoviewFactory::clearWidgets(MediaID &id)
+void VideoviewFactory::clearWidgets(uint32_t remoteSSRC)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "VideoviewFactory",  "Clearing widgets",
-                                  {"videoID"}, {id.toString()});
+  Logger::getLogger()->printNormal("VideoviewFactory",  "Clearing widgets",
+                                  {"videoID"}, {QString::number(remoteSSRC)});
 
   QWidget* widget = nullptr;
 
-  if (mediaIDtoWidgetlist_.find(id) != mediaIDtoWidgetlist_.end())
+  bool multipleReferences = false;
+  if (ssrcToViewID_.find(remoteSSRC) != ssrcToViewID_.end())
   {
-    widget = mediaIDtoWidgetlist_.at(id);
-    mediaIDtoWidgetlist_.erase(id);
+    uint32_t viewID = ssrcToViewID_[remoteSSRC];
+
+    for (auto& otherViewID : ssrcToViewID_)
+    {
+      if (otherViewID.second == viewID &&
+          otherViewID.first != remoteSSRC)
+      {
+        multipleReferences = true;
+        break;
+      }
+    }
+
+    ssrcToViewID_.erase(remoteSSRC);
+
+    // if this was the last reference to the widgets, we can delete them
+    if (!multipleReferences)
+    {
+      if (viewIDToWidgetlist_.find(viewID) != viewIDToWidgetlist_.end())
+      {
+        widget = viewIDToWidgetlist_.at(viewID);
+        viewIDToWidgetlist_.erase(viewID);
+      }
+
+      if (viewIDToVideolist_.find(viewID) != viewIDToVideolist_.end())
+      {
+        viewIDToVideolist_.erase(viewID);
+      }
+    }
   }
 
-  if (mediaIDtoVideolist_.find(id) != mediaIDtoVideolist_.end())
-  {
-    mediaIDtoVideolist_.erase(id);
-  }
+
 
   delete widget;
 }
 
 
-void VideoviewFactory::createWidget(uint32_t sessionID, LayoutID layoutID, const MediaID& id)
+void VideoviewFactory::createWidget(uint32_t sessionID, LayoutID layoutID, const std::set<uint32_t>& remoteSSRCs)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "View Factory",
-                                  "Creating videoWidget", {"videoID"}, {id.toString()});
-
-  bool openGLEnabled = settingEnabled(SettingsKey::videoOpenGL);
-
   QWidget* vw = nullptr;
   VideoInterface* video = nullptr;
 
@@ -111,14 +148,23 @@ void VideoviewFactory::createWidget(uint32_t sessionID, LayoutID layoutID, const
 
   if (vw != nullptr && video != nullptr)
   {
-    mediaIDtoWidgetlist_[id] = vw;
-    mediaIDtoVideolist_[id]  = video;
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, "VideoviewFactory",
-                                    "Created video widget.", {"videoID"},
-                                    {id.toString()});
+    uint32_t viewID = nextViewID_;
+    nextViewID_++;
+
+    viewIDToWidgetlist_[viewID] = vw;
+    viewIDToVideolist_[viewID]  = video;
+
+    for (const auto& remoteSSRC : remoteSSRCs)
+    {
+      ssrcToViewID_[remoteSSRC] = viewID;
+    }
+
+    Logger::getLogger()->printNormal("VideoviewFactory",
+                                    "Created video widget.", {"Remote SSRCs", "ViewID"},
+                                    {QString::number(remoteSSRCs.size()), QString::number(viewID)});
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "VideoviewFactory", "Failed to create view widget.");
+    Logger::getLogger()->printProgramError("VideoviewFactory", "Failed to create view widget.");
   }
 }

@@ -1,8 +1,8 @@
 #include "openhevcfilter.h"
 
+#include "common.h"
 #include "statisticsinterface.h"
 
-#include "common.h"
 #include "settingskeys.h"
 #include "logger.h"
 
@@ -10,25 +10,29 @@
 
 enum OHThreadType {OH_THREAD_FRAME  = 1, OH_THREAD_SLICE = 2, OH_THREAD_FRAMESLICE  = 3};
 
-
-OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID, StatisticsInterface *stats,
-                               std::shared_ptr<ResourceAllocator> hwResources):
-  Filter(QString::number(sessionID), "OpenHEVC", stats, hwResources, DT_HEVCVIDEO, DT_YUV420VIDEO),
-  handle_(),
-  vpsReceived_(false),
-  spsReceived_(false),
-  ppsReceived_(false),
-  sessionID_(sessionID),
-  threads_(-1),
-  parallelizationMode_("Slice"),
-  discardedFrames_(0)
+OpenHEVCFilter::OpenHEVCFilter(uint32_t sessionID,
+                               QString cname,
+                               StatisticsInterface *stats,
+                               std::shared_ptr<ResourceAllocator> hwResources)
+    : Filter(QString::number(sessionID), "OpenHEVC", stats, hwResources, DT_HEVCVIDEO, DT_YUV420VIDEO)
+    , handle_()
+    , vpsReceived_(false)
+    , spsReceived_(false)
+    , ppsReceived_(false)
+    , sessionID_(sessionID)
+    , cname_(cname)
+    , threads_(-1)
+    , parallelizationMode_("Slice")
+  , discardedFrames_(0)
+  , pendingParamSetBytes_(0),
+    last_timestamp_(0)
 {}
 
 
 bool OpenHEVCFilter::init()
 {
   Logger::getLogger()->printNormal(this, "Starting to initiate OpenHEVC");
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
 
   threads_ = settings.value(SettingsKey::videoOpenHEVCThreads).toInt();
   parallelizationMode_ = settings.value(SettingsKey::videoOHParallelization).toString();
@@ -48,7 +52,7 @@ bool OpenHEVCFilter::init()
 
   if(libOpenHevcStartDecoder(handle_) == -1)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Failed to start decoder.");
+    Logger::getLogger()->printProgramError(this, "Failed to start decoder.");
     return false;
   }
   libOpenHevcSetTemporalLayer_id(handle_, 0);
@@ -59,7 +63,7 @@ bool OpenHEVCFilter::init()
 
   // libOpenHevcSetDebugMode(handle_, OHEVC_LOG_DEBUG);
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "OpenHEVC initiation successful.",
+  Logger::getLogger()->printNormal(this, "OpenHEVC initiation successful.",
                                    {"Version", "Threads", "Parallelization"},
                                   {libOpenHevcVersion(handle_), QString::number(threads_),
                                   parallelizationMode_});
@@ -85,7 +89,7 @@ void OpenHEVCFilter::uninit()
 
 void OpenHEVCFilter::updateSettings()
 {
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
 
   if (settings.value(SettingsKey::videoOpenHEVCThreads).toInt() != threads_ ||
       settings.value(SettingsKey::videoOHParallelization).toString() != parallelizationMode_)
@@ -106,7 +110,7 @@ void OpenHEVCFilter::process()
 
   while(input)
   {
-    getStats()->addReceivePacket(sessionID_, "Video", input->data_size);
+    getStats()->addReceivePacket(sessionID_, cname_, "Video", input->data_size);
     settingsMutex_.lock();
 
     const unsigned char *buff = input->data.get();
@@ -115,23 +119,33 @@ void OpenHEVCFilter::process()
 
     if (!vpsReceived_ && nalType == VPS_NUT)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "VPS found");
+      Logger::getLogger()->printNormal(this,  "VPS found");
       vpsReceived_ = true;
     }
 
     if (!spsReceived_ && nalType == SPS_NUT)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "SPS found");
+      Logger::getLogger()->printNormal(this,  "SPS found");
       spsReceived_ = true;
     }
 
     if (!ppsReceived_ && nalType == PPS_NUT)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "PPS found");
+      Logger::getLogger()->printNormal(this,  "PPS found");
       ppsReceived_ = true;
     }
 
     bool vcl = nalType <= 31; // 31 is highest vlc nal_type
+    // HEVC SEI NAL unit types are typically 39 (prefix SEI) and 40 (suffix SEI).
+    bool sei = (nalType == 39 || nalType == 40);
+
+    if (!vcl && !sei)
+    {
+      // needed for accurate frame sizes
+      pendingParamSetBytes_ += input->data_size;
+    }
+
+    //Logger::getLogger()->printNormal(this, cname_ + " RTP timestamp: " + QString::number(input->rtpTimestamp) + ", NAL type: " + QString::number(nalType));
 
     if((vpsReceived_ && spsReceived_ && ppsReceived_) || !vcl)
     {
@@ -148,7 +162,10 @@ void OpenHEVCFilter::process()
       // only VCL frames result in output from decoder (at least I think so)
       if (vcl)
       {
-        decodingFrames_.push_front(std::move(input));
+        // Push a pair of (Data, extraBytes) so the extra non-VCL bytes are
+        // associated with this queued frame without modifying Data.
+        decodingFrames_.push_front(std::make_pair(std::move(input), pendingParamSetBytes_));
+        pendingParamSetBytes_ = 0;
       }
 
       if (gotPicture <= -1)
@@ -185,7 +202,6 @@ void OpenHEVCFilter::process()
 
     input = getInput();
   }
-
 }
 
 
@@ -194,9 +210,41 @@ void OpenHEVCFilter::sendDecodedOutput(int& gotPicture)
   OpenHevc_Frame openHevcFrame;
   if ((gotPicture = libOpenHevcGetOutput(handle_, gotPicture, &openHevcFrame)) > 0)
   {
-    std::unique_ptr<Data> decodedFrame = std::move(decodingFrames_.back());
+    // Pop the queued pair (Data, extraBytes) and separate them.
+    auto queued = std::move(decodingFrames_.back());
+    std::unique_ptr<Data> decodedFrame = std::move(queued.first);
+    uint32_t extraBytesForStats = queued.second;
     decodingFrames_.pop_back();
     libOpenHevcGetPictureInfo(handle_, &openHevcFrame.frameInfo);
+
+    // we take the size from compressed frame because that is more interesting.
+    int64_t timestamp = clockNowMs();
+    const int64_t decoding_delay = timestamp - decodedFrame->presentationTimestamp;
+
+    int64_t endToEndDelay = timestamp - decodedFrame->creationTimestamp;
+
+    if (decodedFrame->creationTimestamp == 0)
+      endToEndDelay = -1;
+    else
+      timestamp = decodedFrame->creationTimestamp;
+
+    // Report end-to-end video latency as early as possible (after decode) for reliability.
+    // Mirrors the previous semantics from the render path:
+    // - key by presentationTimestamp
+    // - delay computed from creationTimestamp when sender-provided timing exists
+    if (sessionID_ != 0 && decodedFrame->creationTimestamp > 0)
+    {
+      //getStats()->videoLatency(sessionID_, cname_, decodedFrame->presentationTimestamp, endToEndDelay);
+    }
+
+    if (last_timestamp_ >= timestamp)
+      timestamp = last_timestamp_ + 1;
+
+    uint32_t reportedCompressedSize = decodedFrame->data_size + extraBytesForStats;
+    getStats()->decodedVideoFrame(cname_, timestamp, reportedCompressedSize, decoding_delay,
+                                  QSize(openHevcFrame.frameInfo.nWidth, openHevcFrame.frameInfo.nHeight), endToEndDelay);
+
+    last_timestamp_ = timestamp;
 
     decodedFrame->vInfo->width = openHevcFrame.frameInfo.nWidth;
     decodedFrame->vInfo->height = openHevcFrame.frameInfo.nHeight;

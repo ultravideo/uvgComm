@@ -1,16 +1,20 @@
 #include "mediaid.h"
 
-#include "common.h"
-
 uint64_t MediaID::nextID_ = 1;
 
 
-MediaID::MediaID(const MediaInfo &media):
-    id_(++nextID_),
-    send_(true),
-    receive_(true),
-    media_(media)
-{}
+MediaID::MediaID(uint32_t localSSRC, uint32_t remoteSSRC):
+  send_(true),
+  receive_(true),
+  localSSRC_(localSSRC),
+  remoteSSRC_(remoteSSRC)
+{
+  if (localSSRC_ == 0)
+  {
+    localSSRC_ = nextID_;
+    nextID_++;
+  }
+}
 
 
 MediaID::~MediaID()
@@ -43,54 +47,37 @@ bool MediaID::getSend() const
 
 QString MediaID::toString() const
 {
-  return QString::number(id_);
+  return "L: " + QString::number(localSSRC_) + " R: " + QString::number(remoteSSRC_);
 }
 
 
-uint32_t MediaID::getID() const
+bool MediaID::isLocal(uint32_t ssrc) const
 {
-  return (uint32_t)id_;
+  return localSSRC_ == ssrc;
 }
 
 
-bool MediaID::operator==(const MediaInfo& media) const
+bool MediaID::isRemote(uint32_t ssrc) const
 {
-  return areMediasEqual(media, media_);
-}
-
-
-bool MediaID::operator!=(const MediaInfo& media) const
-{
-  return !areMediasEqual(media, media_);
+  return remoteSSRC_ == ssrc;
 }
 
 
 bool operator==(const MediaID& l, const MediaID& r)
 {
-  return l.id_ == r.id_;
+  return l.localSSRC_ == r.localSSRC_ && l.remoteSSRC_ == r.remoteSSRC_;
 }
 
 
 bool operator!=(const MediaID& l, const MediaID& r)
 {
-  return l.id_ != r.id_;
+  return l.localSSRC_ != r.localSSRC_ || l.remoteSSRC_ != r.remoteSSRC_;
 }
 
 
 bool operator<(const MediaID& l, const MediaID& r)
 {
-  return l.id_ < r.id_;
-}
-
-
-bool MediaID::areMediasEqual(const MediaInfo& first, const MediaInfo& second) const
-{
-  return findMID(first) == findMID(second) &&
-         findSSRC(first) == findSSRC(second) &&
-         first.type == second.type &&
-         first.receivePort == second.receivePort &&
-         first.proto == second.proto &&
-         first.connection_nettype == second.connection_nettype &&
-         first.connection_addrtype == second.connection_addrtype &&
-         first.connection_address == second.connection_address;
+  uint64_t totalSSRC = l.localSSRC_ + l.remoteSSRC_;
+  uint64_t totalSSRC2 = r.localSSRC_ + r.remoteSSRC_;
+  return totalSSRC < totalSSRC2;
 }

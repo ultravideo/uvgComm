@@ -1,6 +1,5 @@
 #include "chartpainter.h"
 
-#include "common.h"
 #include "logger.h"
 
 #include <QPainter>
@@ -32,6 +31,9 @@ const int MARGIN = 5;
 const int NUMBERMARGIN = 6;
 const int TITLEMARGIN = 15;
 
+const int MIN_MAX_Y = 10;
+
+
 ChartPainter::ChartPainter(QWidget* parent)
   : QFrame (parent),
   maxY_(0),
@@ -57,15 +59,14 @@ ChartPainter::~ChartPainter()
 
 int ChartPainter::getDrawMinX() const
 {
-  return MARGIN + maxYSize_.width() + NUMBERMARGIN;
+  return MARGIN;
 }
 
 
 int ChartPainter::getDrawMaxX() const
 {
-  return rect().size().width() - MARGIN - NUMBERMARGIN;
+  return rect().size().width() - MARGIN - NUMBERMARGIN - maxYSize_.width();
 }
-
 
 int ChartPainter::getDrawMinY() const
 {
@@ -89,7 +90,7 @@ void ChartPainter::clearPoints()
   }
 }
 
-void ChartPainter::init(int maxY, int yLines, bool adaptive, int xWindowSize,
+void ChartPainter::init(unsigned int maxY, int yLines, bool adaptive, int xWindowSize,
                         QString chartTitle)
 {
   Q_ASSERT(maxY >= 1);
@@ -110,16 +111,18 @@ void ChartPainter::init(int maxY, int yLines, bool adaptive, int xWindowSize,
 // return line ID
 int ChartPainter::addLine(QString name)
 {
-  Q_ASSERT(name != "" && !name.isNull());
+  Q_ASSERT(!name.isNull());
+
+  QString trimmedName = name.left(8); // trim to 8 characters for legends
 
   lineMutex_.lock();
   // lineID should refer to position in both arrays
-  legends_.push_back(name);
+  legends_.push_back(trimmedName);
   points_.push_back(std::make_shared<std::deque<float>>());
   int lineID = (int)points_.size();
 
   // check if this is the widest name of all for drawing the legends
-  QSize newSize = QFontMetrics(font_).size(Qt::TextSingleLine, name);
+  QSize newSize = QFontMetrics(font_).size(Qt::TextSingleLine, trimmedName);
   if (newSize.width() > legendSize_.width())
   {
     legendSize_ = newSize;
@@ -200,7 +203,13 @@ void ChartPainter::addPoint(int lineID, float y)
         // overLines_ variable.
         while (largest < maxY_/2 && yLines_ > 5)
         {
+          if (maxY_ <= 1)
+          {
+            break; // prevent going below 1
+          }
+
           maxY_ /= 2;
+          Logger::getLogger()->printNormal(this, "Reducing max Y", "New Max Y", QString::number(maxY_));
 
           if (overLines_ == 0)
           {
@@ -211,6 +220,11 @@ void ChartPainter::addPoint(int lineID, float y)
             --overLines_;
           }
         }
+
+        if (maxY_ < MIN_MAX_Y)
+        {
+          maxY_ = MIN_MAX_Y;
+        }
       }
     }
     else
@@ -218,7 +232,15 @@ void ChartPainter::addPoint(int lineID, float y)
       // if y is larger than maximum, then double the maxY and yLines
       while (y > maxY_)
       {
-        maxY_ *= 2;
+        if (maxY_ <= 0)
+        {
+          Logger::getLogger()->printProgramWarning(this, "Invalid max Y", "Max Y", QString::number(maxY_));
+          maxY_ = 1;
+        }
+        else
+        {
+          maxY_ *= 2;
+        }
 
         // only double until 10
         if (yLines_*2 <= 10)
@@ -339,7 +361,8 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID,
   for (unsigned int i = 0; i < points_.at(lineID - 1)->size(); ++i)
   {
     // get points position
-    int xPoint = getDrawMaxX() - float(i)/(xWindowCount_ - 1)*drawLength;
+    //int xPoint = getDrawMinX() + float(i)/(xWindowCount_ - 1)*drawLength; // left to right
+    int xPoint = getDrawMaxX() - float(i)/(xWindowCount_ - 1)*drawLength; // right to left
     int yPoint = getDrawMaxY() - points_.at(lineID - 1)->at(i)/maxY_*drawHeight;
 
     drawMark(painter, lineID, xPoint, yPoint);
@@ -362,9 +385,11 @@ void ChartPainter::drawPoints(QPainter& painter, int lineID,
       QSize numberSize = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
                                                            number);
 
-      //painter.drawText(getDrawMinX() - numberSize.width() - NUMBERMARGIN,
-      //                 yPoint + maxYSize_.height()/4, number);
-
+      // Draw to the right of the chart
+      painter.setPen(appearances.at(appearanceIndex).color);
+      painter.drawText(getDrawMaxX() + NUMBERMARGIN,
+                       yPoint + maxYSize_.height()/4,
+                       number);
     }
     else // draw line if we have at least two points
     {
@@ -382,35 +407,30 @@ void ChartPainter::drawForeground(QPainter& painter, bool drawZero, bool drawMax
 {
   painter.setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::FlatCap));
 
-  // draw x-axis
-  painter.drawLine(getDrawMinX(),      getDrawMinY(),
-                   getDrawMinX(),      getDrawMaxY());
-
   // draw y-axis
+  //painter.drawLine(getDrawMinX(),      getDrawMinY(),
+  //                 getDrawMinX(),      getDrawMaxY());
+
+  // draw x-axis
   painter.drawLine(getDrawMinX(),      getDrawMaxY(),
                    getDrawMaxX(),      getDrawMaxY());
 
   // max number
   if (drawMax)
   {
-    // max x
-    painter.drawText(getDrawMinX() - maxYSize_.width() - NUMBERMARGIN,
+    painter.drawText(getDrawMaxX() + NUMBERMARGIN,
                      getDrawMinY() + maxYSize_.height()/4 + 1,
                      QString::number(maxY_));
 
-    // small nod for max x
-    painter.drawLine(getDrawMinX(),           getDrawMinY(),
-                     getDrawMinX() + 3,       getDrawMinY());
+    painter.drawLine(getDrawMinX(), getDrawMinY(),
+                     getDrawMinX() + 3, getDrawMinY());
   }
 
   // min number
   if (drawZero)
   {
-    // mix x
-    QSize zeroSize = QFontMetrics(painter.font()).size(Qt::TextSingleLine,
-                                                       QString::number(0));
-    painter.drawText(getDrawMinX() - zeroSize.width() - NUMBERMARGIN,
-                     getDrawMaxY() + zeroSize.height()/4 + 1,
+    painter.drawText(getDrawMaxX() + NUMBERMARGIN,
+                     getDrawMaxY() + maxYSize_.height()/4 + 1,
                      QString::number(0));
   }
 

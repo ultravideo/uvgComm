@@ -11,7 +11,7 @@
 #include <memory>
 
 /* This class generates the SDP messages and is capable of checking if proposed
- * SDP is suitable.
+ * SDP is suitable. Only responsible for local SDP.
 
  * SDP in SIP is based on offer/answer model where one side sends an offer to
  * which the other side responds with an answer.
@@ -19,7 +19,7 @@
  * See RFC 3264 for details.
  */
 
-class SDPMeshConference;
+class SDPConference;
 
 // State tells what is the next step for this sessionID.
 // State is needed to accomidate software with different
@@ -37,9 +37,11 @@ class SDPNegotiation : public SIPMessageProcessor
 public:
   SDPNegotiation(uint32_t sessionID, QString localAddress, QString cname,
                  std::shared_ptr<SDPMessageInfo> localSDP,
-                 std::shared_ptr<SDPMeshConference> sdpConf);
+                 std::shared_ptr<SDPConference> sdpConf, bool ishost);
 
   void setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP);
+
+  void includeSSRC(bool setSSRC);
 
   // frees the ports when they are not needed in rest of the program
   virtual void uninit();
@@ -87,10 +89,11 @@ private:
 
   SDPAttributeType findStatusAttribute(const QList<SDPAttributeType>& attributes) const;
 
-  void setSSRC(unsigned int mediaIndex, MediaInfo& media);
+  void setSSRC(MediaInfo& media);
   void setMID(unsigned int mediaIndex, MediaInfo& media);
 
   void copyMID(MediaInfo& target, const MediaInfo &source);
+  void copyLabel(MediaInfo& target, const MediaInfo &source);
 
   uint32_t sessionID_;
 
@@ -105,9 +108,13 @@ private:
 
   QString localAddress_;
 
-  std::shared_ptr<SDPMeshConference> sdpConf_;
+  std::shared_ptr<SDPConference> sdpConf_;
 
   QString cname_;
 
-  std::unordered_map<unsigned int, uint32_t> mediaSSRCs_;
+  std::unordered_map<QString, uint32_t> mediaSSRCs_;
+
+  bool setSSRC_;
+
+  bool isHost_;
 };

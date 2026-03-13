@@ -6,7 +6,7 @@
 #include "common.h"
 #include "logger.h"
 
-#include <QDateTime>
+#include <chrono>
 
 
 AudioMixerFilter::AudioMixerFilter(QString id, StatisticsInterface* stats,
@@ -49,11 +49,16 @@ void AudioMixerFilter::process()
 
   while(input)
   {
-    // Add audio delay to statistics
-    int64_t delay = QDateTime::currentMSecsSinceEpoch() - input->creationTimestamp;
-    
-    stats_->totalDelay(sessionID_, "Audio", delay);
-    //stats_->decodingDelay("Audio", delay);
+    if (input->creationTimestamp > 0)
+    {
+      // Add audio delay to statistics
+      int64_t delay = clockNowMs() - input->creationTimestamp;
+      stats_->audioLatency(sessionID_, "", input->presentationTimestamp, delay);
+    }
+    else
+    {
+      stats_->audioLatency(sessionID_, "", input->presentationTimestamp, -1);
+    }
 
     if (mixer_)
     {

@@ -1,6 +1,5 @@
 #pragma once
 #include "media/processing/filter.h"
-#include "mediaid.h"
 
 #include <QMutex>
 #include <QHostAddress>
@@ -15,6 +14,7 @@ class StatisticsInterface;
 class UvgRTPSender;
 class UvgRTPReceiver;
 class Filter;
+class RelayInterface;
 
 class Delivery : public QObject
 {
@@ -35,17 +35,40 @@ public:
 
   // Returns filter to be attached to filter graph. ownership is not transferred.
   // removing the peer or stopping the streamer destroys these filters.
-  std::shared_ptr<Filter> addSendStream(uint32_t sessionID,
-                                        QString localAddress, QString remoteAddress,
-                                        uint16_t localPort, uint16_t peerPort,
-                                        QString codec, uint8_t rtpNum, MediaID id,
-                                         uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
+   std::shared_ptr<Filter> addRTPSendStream(uint32_t sessionID,
+                                            QString localAddress,
+                                            QString remoteAddress,
+                                            uint16_t localPort,
+                                            uint16_t peerPort,
+                                            QString codec,
+                                            uint8_t rtpNum,
+                                            uint32_t localSSRC = 0,
+                                            uint32_t remoteSSRC = 0);
 
-  std::shared_ptr<Filter> addReceiveStream(uint32_t sessionID,
-                                           QString localAddress, QString remoteAddress,
-                                           uint16_t localPort, uint16_t peerPort,
-                                           QString codec, uint8_t rtpNum, MediaID id,
-                                           uint32_t localSSRC = 0, uint32_t remoteSSRC = 0);
+   std::shared_ptr<Filter> addUDPSendStream(uint32_t sessionID,
+                                            QString localAddress,
+                                            QString remoteAddress,
+                                            uint16_t localPort,
+                                            uint16_t peerPort,
+                                            uint32_t remoteSSRC);
+
+   std::shared_ptr<Filter> addRTPReceiveStream(uint32_t sessionID,
+                                               QString localAddress,
+                                               QString remoteAddress,
+                                               uint16_t localPort,
+                                               uint16_t peerPort,
+                                               QString codec,
+                                               uint8_t rtpNum,
+                                               uint32_t localSSRC = 0,
+                                               uint32_t remoteSSRC = 0);
+
+   std::shared_ptr<Filter> addUDPReceiveStream(uint32_t sessionID,
+                                               QString localAddress, uint16_t localPort,
+                                               uint32_t remoteSSRC);
+
+  std::shared_ptr<Filter> addUDPReceiveRTCPStream(uint32_t sessionID,
+                                                  QString localAddress, uint16_t localPort,
+                                                  uint32_t remoteSSRC);
 
   // TODO: Add a way to remove individual streams
   //void removeSendStream(uint32_t sessionID, uint16_t localPort);
@@ -59,25 +82,41 @@ public:
 signals:
   void handleZRTPFailure(uint32_t sessionID);
   void handleNoEncryption();
+  void rtcpAppPacketReceived(uint32_t senderSsrc, uint32_t targetSsrc, uint32_t rtpTimestamp, QString appName, uint8_t subtype);
 
 private:
 
-  struct MediaStream
+  struct SendStream
   {
-    std::shared_ptr<UvgRTPStream> stream;
+    uvgrtp::media_stream *ms;
+    bool runZRTP;
 
     std::shared_ptr<UvgRTPSender> sender;
+  };
+
+
+  struct RecvStream
+  {
+    uvgrtp::media_stream *ms;
+    bool runZRTP;
+
+    // key is remote SSRC
     std::shared_ptr<UvgRTPReceiver> receiver;
   };
 
+
   struct DeliverySession
   {
-    uvg_rtp::session *session;
+    uvgrtp::session *session;
 
     QString localAddress;
     QString peerAddress;
 
-    std::map<MediaID, MediaStream*> streams;
+    // key is local SSRC
+    std::map<uint32_t, SendStream*> outgoingStreams;
+
+    // key is remote SSRC
+    std::map<uint32_t, RecvStream*> incomingStreams;
     bool dhSelected;
   };
 
@@ -87,21 +126,37 @@ private:
   };
 
   bool initializeStream(uint32_t sessionID,
-                        DeliverySession& session,
-                        uint16_t localPort, uint16_t peerPort, MediaID id,
-                        rtp_format_t fmt, uint32_t localSSRC, uint32_t remoteSSRC);
+                        DeliverySession &session,
+                        uint16_t localPort,
+                        uint16_t peerPort,
+                        rtp_format_t fmt,
+                        uint32_t localSSRC,
+                        uint32_t remoteSSRC,
+                        bool recv);
 
   bool addMediaStream(uint32_t sessionID,
-                      DeliverySession& session,
-                      uint16_t localPort, uint16_t peerPort,
-                      rtp_format_t fmt, bool dhSelected, MediaID &id, uint32_t localSSRC, uint32_t remoteSSRC);
-  void removeMediaStream(uint32_t sessionID, DeliverySession& session, MediaID &id);
+                      DeliverySession &session,
+                      uint16_t localPort,
+                      uint16_t peerPort,
+                      rtp_format_t fmt,
+                      bool dhSelected,
+                      uint32_t localSSRC,
+                      uint32_t remoteSSRC,
+                      bool recv);
+
+  void removeSendStream(uint32_t sessionID, DeliverySession& session,
+                         uint32_t localSSRC);
+
+  void removeRecvStream(uint32_t sessionID, DeliverySession& session,
+                         uint32_t remoteSSRC);
 
   void parseCodecString(QString codec, rtp_format_t& fmt,
                         DataType& type, QString& mediaName);
 
   bool findSession(uint32_t sessionID, uint32_t& outIndex,
                    QString localAddress, QString remoteAddress);
+
+  std::shared_ptr<RelayInterface> getUDPRelay(QString localAddress, uint16_t localPort);
 
   // key is sessionID
   std::map<uint32_t, std::shared_ptr<Peer>> peers_;
@@ -115,5 +170,13 @@ private:
 
   std::shared_ptr<ResourceAllocator> hwResources_;
 
+  // the key is address:port as a string
+  std::map<QString, std::shared_ptr<RelayInterface>> relays_;
 
+  // key is
+  std::map<uint32_t, std::shared_ptr<Filter>> udpSenders_;
+  std::map<uint32_t, std::shared_ptr<Filter>> udpReceivers_;
+
+  // RTCP-only UDP receivers which receive RTCP flow independently from RTP
+  std::map<uint32_t, std::shared_ptr<Filter>> udpRtcpReceivers_;
 };

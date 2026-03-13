@@ -187,7 +187,7 @@ void SIPTransport::networkPackage(QString package)
       // Something is wrong if it matches both
       if (request_match.hasMatch() && response_match.hasMatch())
       {
-        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+        Logger::getLogger()->printProgramError(this,
                    "Both the request and response matched, which should not be possible!");
         --processingInProgress_;
         return;
@@ -222,7 +222,7 @@ void SIPTransport::networkPackage(QString package)
       }
       else
       {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Failed to parse first line of SIP message",
+        Logger::getLogger()->printWarning(this, "Failed to parse first line of SIP message",
                                           {"First Line", "RequestIndex", "ResponseIndex"},
                                           {firstLine,
                                            QString::number(request_match.lastCapturedIndex()),
@@ -255,7 +255,7 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
   // read maximum of 20 SIP messages. 3 is -1 + 4
   for (int i = 0; i < 20 && headerEndIndex != 3; ++i)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Parsing package to header and body",
+    Logger::getLogger()->printNormal(this,  "Parsing package to header and body",
                 {"Messages parsed so far", "Header end index", "content-length index"},
     {QString::number(i), QString::number(headerEndIndex), QString::number(contentLengthIndex)});
 
@@ -272,8 +272,7 @@ bool SIPTransport::parsePackage(QString package, QStringList& headers, QStringLi
       if (contentLength < 0)
       {
         // TODO: Warn the user maybe. Maybe also ban the peer at least temporarily.
-        Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, this,
-                   "Got negative content-length! Peer is doing something very strange.");
+        Logger::getLogger()->printPeerError(this, "Got negative content-length! Peer is doing something very strange.");
         return false;
       }
     }

@@ -26,8 +26,7 @@ AudioSettings::AudioSettings(QWidget* parent,
   QDialog(parent),
   currentDevice_(0),
   audioSettingsUI_(new Ui::AudioSettings),
-  mic_(info),
-  settings_(settingsFile, settingsFileFormat)
+  mic_(info)
 {
   audioSettingsUI_->setupUi(this);
 
@@ -160,18 +159,20 @@ void AudioSettings::restoreSettings()
   //restoreComboBoxValue("audio/channels",
   // audioSettingsUI_->channel_combo, QString::number(1), settings_);
 
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
   for (auto& slider : sliders_)
   {
-    int bitrate = settings_.value(slider.first).toInt();
+    int bitrate = settings.value(slider.first).toInt();
     slider.second->setValue(bitrate);
   }
 
-  QString type = settings_.value(SettingsKey::audioSignalType).toString();
+  QString type = settings.value(SettingsKey::audioSignalType).toString();
   audioSettingsUI_->signal_combo->setCurrentText(type);
 
   for (auto& box : boxes_)
   {
-    restoreCheckBox(box.first, box.second, settings_);
+    restoreCheckBox(box.first, box.second, settings);
   }
 }
 
@@ -182,21 +183,23 @@ void AudioSettings::saveSettings()
 
   audioSettingsUI_->audio_ok->hide();
 
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
   //saveTextValue(SettingsKey::audioChannels,
   //              audioSettingsUI_->channel_combo->currentText(), settings_);
 
   for (auto& slider : sliders_)
   {
-    saveTextValue(slider.first, {QString::number(slider.second->value())}, settings_);
+    saveTextValue(slider.first, {QString::number(slider.second->value())}, settings);
   }
 
   for (auto& box : boxes_)
   {
-    saveCheckBox(box.first, box.second, settings_);
+    saveCheckBox(box.first, box.second, settings);
   }
 
   saveTextValue(SettingsKey::audioSignalType,
-                audioSettingsUI_->signal_combo->currentText(), settings_);
+                audioSettingsUI_->signal_combo->currentText(), settings);
 }
 
 

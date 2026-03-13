@@ -188,8 +188,7 @@ void ConferenceView::attachAvatarWidget(LayoutID layoutID, QString name)
 // if our call is accepted or we accepted their call
 void ConferenceView::attachVideoWidget(LayoutID layoutID, QWidget* widget)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                  "Adding Videostream.", {"layoutID"}, {QString::number(layoutID)});
+  Logger::getLogger()->printNormal(this, "Adding Videostream.", {"layoutID"}, {QString::number(layoutID)});
 
   checkLayout(layoutID);
 
@@ -208,8 +207,7 @@ void ConferenceView::attachVideoWidget(LayoutID layoutID, QWidget* widget)
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                    "Video view not provided");
+    Logger::getLogger()->printProgramError(this, "Video view not provided");
     return;
   }
 }
@@ -467,8 +465,7 @@ void ConferenceView::accept()
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
-                                    "Couldn't find the invoker for accept.");
+    Logger::getLogger()->printProgramError(this, "Couldn't find the invoker for accept.");
   }
 }
 
@@ -488,8 +485,7 @@ void ConferenceView::reject()
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                    "Couldn't find the invoker for reject.");
+    Logger::getLogger()->printProgramError(this, "Couldn't find the invoker for reject.");
   }
 }
 
@@ -523,7 +519,7 @@ void ConferenceView::updateTimes()
 
 void ConferenceView::initializeLayout(LayoutID layoutID)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
+  Logger::getLogger()->printNormal(this, 
                                   "Initializing session", {"layoutID"},
                                   {QString::number(layoutID)});
 

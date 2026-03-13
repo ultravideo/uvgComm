@@ -5,6 +5,8 @@
 #include <QDialog>
 #include <QSettings>
 
+#include <QHostAddress>
+
 
 
 namespace Ui {
@@ -14,11 +16,11 @@ class StunMessage;
 
 class QCheckBox;
 
-class SIPSettings : public QDialog
+class CallSettings : public QDialog
 {
   Q_OBJECT
 public:
-  SIPSettings(QWidget* parent);
+  CallSettings(QWidget* parent);
 
   // initializes the custom view with values from settings.
   void init();
@@ -49,7 +51,22 @@ public slots:
   void acceptSTUN();
   void declineSTUN();
 
+  void showOkButton();
+
+  void resolutionComboChanged(const QString& text);
+
+  void updateBitrateUp(int value);
+  void updateBitrateDown(int value);
+
+  void updateHybridPrioritization(int value);
+
 private:
+
+  // Populate the `address_box` combobox with available local IPv4 addresses.
+  void populateAddressBox();
+
+  // Return true if `addr` is in a private IPv4 range (RFC1918) or link-local.
+  bool isPrivateIPv4(const QHostAddress& addr) const;
 
   // QSettings -> GUI
   void restoreAdvancedSettings();
@@ -59,9 +76,14 @@ private:
 
   void addUsernameToList(QString username, QString date);
 
+  int getAudioBitrate(int totalBitrate) const;
+  int getVideoBitrate(int totalBitrate) const;
+
+  int getTotalBitrate(int audioBitrate, int videoBitrate) const;
+
+  QString bitrateString(int totalBitrate, int audioBitrate, int videoBitrate) const;
+
   Ui::AdvancedSettings *advancedUI_;
   Ui::StunMessage stunQuestion_;
   QWidget stun_;
-
-  QSettings settings_;
 };

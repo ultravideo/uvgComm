@@ -1,6 +1,6 @@
 #include "sipmanager.h"
 
-#include "initiation/negotiation/sdpmeshconference.h"
+#include "initiation/negotiation/sdpconference.h"
 #include "initiation/negotiation/sdpnegotiation.h"
 #include "initiation/negotiation/networkcandidates.h"
 #include "initiation/negotiation/sdpice.h"
@@ -18,11 +18,12 @@
 #include "initiation/negotiation/sdpdefault.h"
 
 #include "siphelper.h"
+#include "settingskeys.h"
 
 #include "common.h"
 #include "global.h"
-#include "settingskeys.h"
 #include "logger.h"
+#include "cname.h"
 
 #include <QNetworkProxy>
 
@@ -37,14 +38,6 @@ const int REGISTER_SEND_PERIOD = (REGISTER_INTERVAL - 5)*1000;
 const int MIN_RANDOM_DELAY_MS = 25;
 const int MAX_RANDOM_DELAY_MS = 75;
 
-// default for SIP, use 5061 for tls encrypted
-const uint16_t SIP_PORT = 5060;
-
-#ifndef uvgComm_NO_RTP_MULTIPLEXING
-const MeshType CONFERENCE_MODE = MESH_WITH_RTP_MULTIPLEXING;
-#else
-const MeshType CONFERENCE_MODE = MESH_WITHOUT_RTP_MULTIPLEXING;
-#endif
 
 SIPManager::SIPManager():
   tcpServer_(),
@@ -53,17 +46,14 @@ SIPManager::SIPManager():
   dialogs_(),
   ourSDP_(nullptr),
   delayTimer_(),
-  sdpConf_(std::shared_ptr<SDPMeshConference>(new SDPMeshConference())),
+  sdpConf_(std::shared_ptr<SDPConference>(new SDPConference())),
   config_()
 {
   delayTimer_.setSingleShot(true);
   QObject::connect(&delayTimer_, &QTimer::timeout,
                    this, &SIPManager::delayedMessage);
 
-  QSettings settings("uvgComm.ini", QSettings::IniFormat);
-
-  cname_ = settings.value(SettingsKey::sipUUID).toString()+ "@" +
-           QString::number(std::chrono::system_clock::now().time_since_epoch().count());;
+  cname_ = CName::cname();
 }
 
 
@@ -86,7 +76,8 @@ std::shared_ptr<SDPMessageInfo> SIPManager::generateSDP(QString username,
 
   return generateDefaultSDP(username, "", audioStreams, videoStreams,
                             dynamicAudioSubtypes, dynamicVideoSubtypes,
-                            staticAudioPayloadTypes, staticVideoPayloadTypes);
+                            staticAudioPayloadTypes, staticVideoPayloadTypes,
+                            config_.videoWidth, config_.videoHeight, config_.videoKbps, config_.audioKbps);
 }
 
 
@@ -184,15 +175,61 @@ void SIPManager::setConfig(const SIPConfig& config)
   {
     nCandidates_ = std::shared_ptr<NetworkCandidates> (new NetworkCandidates);
   }
-  nCandidates_->init(config_.mediaPort, config_.stun, config_.stunServerAddress, config_.stunServerPort);
+  nCandidates_->init(config_.localMediaPort, config_.stun, config_.stunServerAddress, config_.stunServerPort);
 
-  if (config.conferencing)
+  if (config.role == MEDIA_CLIENT)
   {
-    sdpConf_->setConferenceMode(CONFERENCE_MODE);
+    if (config.topology == P2P)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_NONE);
+    }
+    else if (config.topology == P2P_MESH)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_LOCAL_MESH);
+    }
+    else if (config.topology == SFU)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_SFU);
+
+      // TODO: Set server address
+    }
+    else if (config.topology == MCU)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_MCU);
+      // TODO: Set server address
+    }
+    else if (config.topology == RELAY)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_RELAY);
+      // TODO: Set server address
+    }
   }
   else
   {
-    sdpConf_->setConferenceMode(MESH_NO_CONFERENCE);
+    if (config.topology == P2P)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_NONE);
+    }
+    else if (config.topology == P2P_MESH)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_MESH);
+    }
+    else if (config.topology == SFU)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_LOCAL_SFU);
+    }
+    else if (config.topology == MCU)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_LOCAL_MCU);
+    }
+    else if (config.topology == RELAY)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_LOCAL_RELAY);
+    }
+    else if (config.topology == HYBRID)
+    {
+      sdpConf_->setConferenceMode(SDP_CONF_HYBRID);
+    }
   }
 }
 
@@ -220,8 +257,7 @@ bool SIPManager::listenToAny(SIPConnectionType type, uint16_t port)
   }
   else
   {
-    Logger::getLogger()->printProgramError(this, "Listening to SIP TCP connections",
-                                           "Port", QString::number(port));
+    Logger::getLogger()->printUnimplemented(this, "Unimplemented SIP connection type");
   }
 
   return false;
@@ -255,6 +291,12 @@ uint32_t SIPManager::reserveSessionID()
 
 void SIPManager::bindingAtRegistrar(QString serverAddress)
 {
+  if (serverAddress == "")
+  {
+    Logger::getLogger()->printError(this, "Cannot bind to empty address");
+    return;
+  }
+
   if (transports_.find(serverAddress) == transports_.end())
   {
     Logger::getLogger()->printError(this, "No connection found when binding");
@@ -266,7 +308,12 @@ void SIPManager::bindingAtRegistrar(QString serverAddress)
     NameAddr local = localInfo();
     createRegistration(local);
 
-    getRegistration(serverAddress)->client->sendREGISTER(REGISTER_INTERVAL);
+    std::shared_ptr<RegistrationInstance> registration = getRegistration(serverAddress);
+
+    if (registration)
+    {
+      registration->client->sendREGISTER(REGISTER_INTERVAL);
+    }
   }
   else
   {
@@ -313,13 +360,20 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &remote, QString remo
 
 void SIPManager::sendINVITE(uint32_t sessionID)
 {
-  Q_ASSERT(dialogs_.find(sessionID) != dialogs_.end());
+  if (dialogs_.find(sessionID) != dialogs_.end())
+  {
+    Logger::getLogger()->printNormal(this,
+                                     "Sending Re-INVITE",
+                                     {"SessionID"},
+                                     {QString::number(sessionID)});
 
-  Logger::getLogger()->printNormal(this, "Sending Re-INVITE", {"SessionID"},
-                                   {QString::number(sessionID)});
-
-  std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
-  dialog->client->sendINVITE(INVITE_TIMEOUT);
+    std::shared_ptr<DialogInstance> dialog = getDialog(sessionID);
+    dialog->client->sendINVITE(INVITE_TIMEOUT);
+  }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "Tried to send INVITE to non-existing dialog");
+  }
 }
 
 
@@ -434,7 +488,7 @@ void SIPManager::transportRequest(SIPRequest &request, QVariant& content)
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_ERROR,  metaObject()->className(),
+    Logger::getLogger()->printError(metaObject()->className(),
                "Tried to send request when we are not connected to request-URI");
   }
 }
@@ -453,7 +507,7 @@ void SIPManager::transportResponse(SIPResponse &response, QVariant& content)
     transport->pipe.processOutgoingResponse(response, content);
   }
   else {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, metaObject()->className(),
+    Logger::getLogger()->printError(metaObject()->className(),
                                    "Tried to send response with invalid.");
   }
 }
@@ -571,7 +625,7 @@ void SIPManager::processSIPResponse(SIPResponse &response, QVariant& content,
 
   if(!identifySession(response, sessionID) || sessionID == 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, this,
+    Logger::getLogger()->printPeerError(this,
                "Could not identify response session");
     return;
   }
@@ -690,7 +744,7 @@ std::shared_ptr<RegistrationInstance> SIPManager::getRegistration(QString& addre
   }
   else
   {
-    Logger::getLogger()->printProgramError(this, "Could not find registration",
+    Logger::getLogger()->printError(this, "Could not find registration",
                       "Address", address);
   }
 
@@ -707,12 +761,12 @@ std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) co
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Could not find transport",
+    Logger::getLogger()->printWarning(this, "Could not find transport",
                       {"Address", "Number of transports"}, {address, QString::number(transports_.size())});
 
     if (transports_.size() == 1)
     {
-      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Only existing transport address",
+      Logger::getLogger()->printWarning(this, "Only existing transport address",
                         {"Address"}, {transports_.begin()->first});
     }
 
@@ -734,7 +788,7 @@ std::shared_ptr<TransportInstance> SIPManager::getTransport(QString& address) co
     }
     else
     {
-      Logger::getLogger()->printDebug(DEBUG_ERROR, this, "Different IP version was not successful either",
+      Logger::getLogger()->printError(this, "Different IP version was not successful either",
                         {"Different IP Address", }, {differentAddress.toString()});
     }
   }
@@ -830,8 +884,18 @@ void SIPManager::createRegistration(NameAddr& addressRecord)
    * part of connection with the server (mostly for sending REGISTER requests).
    */
 
-  if (registrations_.find(addressRecord.uri.hostport.host) == registrations_.end())
+  if (addressRecord.uri.hostport.host == "")
   {
+    Logger::getLogger()->printError(this, "Cannot create registration without address");
+    return;
+  }
+
+  if (registrations_.find(addressRecord.uri.hostport.host) == registrations_.end() ||
+      registrations_.at(addressRecord.uri.hostport.host) == nullptr)
+  {
+    Logger::getLogger()->printNormal(this, "Creating SIP registration",
+                                     {"Address"}, {addressRecord.uri.hostport.host});
+
     std::shared_ptr<RegistrationInstance> registration =
         std::shared_ptr<RegistrationInstance> (new RegistrationInstance);
     registrations_[addressRecord.uri.hostport.host] = registration;
@@ -877,6 +941,11 @@ void SIPManager::createRegistration(NameAddr& addressRecord)
 
     registration->retryTimer.start();
   }
+  else
+  {
+    Logger::getLogger()->printWarning(this, "Registration already exists for address",
+                                      {"Address"}, {addressRecord.uri.hostport.host});
+  }
 }
 
 
@@ -908,14 +977,17 @@ void SIPManager::createDialog(uint32_t sessionID, NameAddr &local,
   std::shared_ptr<SDPMessageInfo> sdp = std::shared_ptr<SDPMessageInfo> (new SDPMessageInfo);
   *sdp = *ourSDP_;
 
-  dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sessionID, localAddress, cname_, sdp, sdpConf_));
-  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID, config_.ice, config_.privateAddresses));
+  dialog->sdp = std::shared_ptr<SDPNegotiation> (new SDPNegotiation(sessionID, localAddress, cname_, sdp, sdpConf_, ourDialog));
+  dialog->sdp->includeSSRC(config_.role != MEDIA_SERVER);
+
+
+  std::shared_ptr<SDPICE> ice = std::shared_ptr<SDPICE> (new SDPICE(nCandidates_, sessionID, config_.ice, config_.localAddress));
 
   // we need a way to get our final SDP to the SIP user
   QObject::connect(ice.get(), &SDPICE::localSDPWithCandidates,
                    this, &SIPManager::finalLocalSDP);
 
-  if (settingEnabled(SettingsKey::sipP2PConferencing) && CONFERENCE_MODE == MESH_WITH_RTP_MULTIPLEXING)
+  if (config_.topology != P2P)
   {
     ice->limitMediaCandidates(ourSDP_->media.size());
   }
@@ -1097,15 +1169,13 @@ NameAddr SIPManager::localInfo(bool registered, QString connectionAddress)
 NameAddr SIPManager::localInfo()
 {
   // init stuff from the settings
-  QSettings settings("uvgComm.ini", QSettings::IniFormat);
-
   NameAddr local;
 
-  local.realname = settings.value("local/Name").toString();
+  local.realname = settingString(SettingsKey::localRealname);
   local.uri.userinfo.user = getLocalUsername();
 
   // dont set server address if we have already set peer-to-peer address
-  local.uri.hostport.host = settings.value("sip/ServerAddress").toString();
+  local.uri.hostport.host = settingString(SettingsKey::sipServerAddress);
 
   local.uri.type = DEFAULT_SIP_TYPE;
   local.uri.hostport.port = 0; // port is added later if needed

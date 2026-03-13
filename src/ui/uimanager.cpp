@@ -2,8 +2,10 @@
 
 #include "gui/statisticswindow.h"
 #include "videoviewfactory.h"
+#include "statisticscsv.h"
 
 #include "logger.h"
+
 
 #include "ui_about.h"
 
@@ -34,6 +36,9 @@ void UIManager::init(ParticipantInterface *partInt, std::shared_ptr<VideoviewFac
 
   QObject::connect(&settingsView_, &Settings::updateCallSettings,
                    this,           &UIManager::updateCallSettings);
+
+  QObject::connect(&settingsView_, &Settings::updateCallSettings,
+                   &window_,        &CallWindow::callSettingsUpdated);
 
   QObject::connect(&settingsView_, &Settings::updateVideoSettings,
                    this,           &UIManager::updateVideoSettings);
@@ -82,6 +87,28 @@ void UIManager::init(ParticipantInterface *partInt, std::shared_ptr<VideoviewFac
   window_.init(partInt);
   viewFactory->addSelfview(settingsView_.getSelfView());
   viewFactory->addSelfview(window_.getSelfView());
+
+  connect(&script_, &Scripting::endCall, this, &UIManager::endCall);
+  connect(&script_, &Scripting::updateVideoSetting, this, &UIManager::updateVideoSettings);
+  connect(&script_, &Scripting::updateAudioSetting, this, &UIManager::updateAudioSettings);
+  connect(&script_, &Scripting::updateCallSetting, this, &UIManager::updateCallSettings);
+  connect(&script_, &Scripting::quitScript,  &window_,  &CallWindow::close);
+
+  script_.setPartInterface(partInt);
+}
+
+
+void UIManager::runScriptFromFile(const QString& filename)
+{
+  script_.fileScripting(filename);
+  script_.start();
+}
+
+
+void UIManager::runScriptFromStdin()
+{
+  script_.stdinScripting();
+  script_.start();
 }
 
 
@@ -92,18 +119,26 @@ void UIManager::updateServerStatus(QString status)
 
 
 // functions for managing the GUI
-StatisticsInterface* UIManager::createStatsWindow()
+StatisticsInterface* UIManager::createStats(QString statsFolder, QString& sipLogFile)
 {
-  Logger::getLogger()->printNormal(this, "Creating statistics window");
+  if (statsFolder != "")
+  {
+    Logger::getLogger()->printNormal(this, "CSV recording enabled");
+    csv_ = new StatisticsCSV(statsFolder, sipLogFile);
+    return csv_;
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Creating statistics window");
+    statsWindow_ = new StatisticsWindow(&window_);
+    // Stats GUI updates are handled solely by timer
+    timer_->setInterval(200);
+    timer_->setSingleShot(false);
+    timer_->start();
 
-  statsWindow_ = new StatisticsWindow(&window_);
+    connect(timer_, SIGNAL(timeout()), statsWindow_, SLOT(update()));
+  }
 
-  // Stats GUI updates are handled solely by timer
-  timer_->setInterval(200);
-  timer_->setSingleShot(false);
-  timer_->start();
-
-  connect(timer_, SIGNAL(timeout()), statsWindow_, SLOT(update()));
   return statsWindow_;
 }
 
@@ -129,10 +164,11 @@ void UIManager::displayIncomingCall(uint32_t sessionID, QString caller)
 
 // adds video stream to view
 void UIManager::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
-                            uint32_t sessionID, QStringList names,
-                            const QList<std::pair<MediaID, MediaID> > &audioVideoIDs)
+                            uint32_t sessionID,
+                            QStringList names,
+                            const std::map<QString, MediaSource> &sources)
 {
-  return window_.callStarted(viewFactory, sessionID, names, audioVideoIDs);
+  return window_.callStarted(viewFactory, sessionID, names, sources);
 }
 
 

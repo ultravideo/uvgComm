@@ -2,7 +2,7 @@
 
 #include "sdpdefault.h"
 
-#include "initiation/negotiation/sdpmeshconference.h"
+#include "initiation/negotiation/sdpconference.h"
 #include "ssrcgenerator.h"
 #include "sdphelper.h"
 
@@ -11,18 +11,23 @@
 
 #include <QVariant>
 
-SDPNegotiation::SDPNegotiation(uint32_t sessionID, QString localAddress, QString cname,
+SDPNegotiation::SDPNegotiation(uint32_t sessionID,
+                               QString localAddress,
+                               QString cname,
                                std::shared_ptr<SDPMessageInfo> localSDP,
-                               std::shared_ptr<SDPMeshConference> sdpConf):
-  sessionID_(sessionID),
-  localbaseSDP_(nullptr),
-  localSDP_(nullptr),
-  remoteSDP_(nullptr),
-  negotiationState_(NEG_NO_STATE),
-  peerAcceptsSDP_(false),
-  localAddress_(""),
-  sdpConf_(sdpConf),
-  cname_(cname)
+                               std::shared_ptr<SDPConference> sdpConf,
+                               bool ishost)
+    : sessionID_(sessionID)
+    , localbaseSDP_(nullptr)
+    , localSDP_(nullptr)
+    , remoteSDP_(nullptr)
+    , negotiationState_(NEG_NO_STATE)
+    , peerAcceptsSDP_(false)
+    , localAddress_("")
+    , sdpConf_(sdpConf)
+    , cname_(cname)
+    , setSSRC_(true),
+    isHost_(ishost)
 {
   localAddress_ = localAddress;
 
@@ -42,6 +47,12 @@ void SDPNegotiation::setBaseSDP(std::shared_ptr<SDPMessageInfo> localSDP)
   generateOrigin(localSDP, localAddress_, getLocalUsername());
 
   localbaseSDP_ = localSDP;
+}
+
+
+void SDPNegotiation::includeSSRC(bool setSSRC)
+{
+  setSSRC_ = setSSRC;
 }
 
 
@@ -172,16 +183,33 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
   {
     ourSDP = localSDP_;
     negotiationState_ = NEG_FINISHED;
+    if (isHost_)
+    {
+      ourSDP = sdpConf_->generateConferenceMedia(sessionID_, ourSDP);
+    }
   }
   else if (negotiationState_ == NEG_NO_STATE)
   {
     negotiationState_ = NEG_OFFER_SENT;
 
+    if (isHost_)
+    {
+      ourSDP = sdpConf_->generateConferenceMedia(sessionID_, ourSDP);
+    }
+
     for (unsigned int i = 0; i < ourSDP->media.size(); ++i)
     {
-      setSSRC(i, ourSDP->media[i]);
       setMID(i, ourSDP->media[i]);
     }
+
+    if (setSSRC_)
+    {
+      for (unsigned int i = 0; i < ourSDP->media.size(); ++i)
+      {
+        setSSRC(ourSDP->media[i]);
+      }
+    }
+
   }
   else
   {
@@ -189,11 +217,8 @@ bool SDPNegotiation::sdpToContent(QVariant& content)
     return false;
   }
 
-
-  ourSDP = sdpConf_->getMeshSDP(sessionID_, ourSDP);
-
   Q_ASSERT(ourSDP != nullptr);
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Adding local SDP to content");
+  Logger::getLogger()->printNormal(this, "Adding local SDP to content");
   if(!ourSDP)
   {
     Logger::getLogger()->printWarning(this, "Failed to get local SDP!");
@@ -213,12 +238,10 @@ bool SDPNegotiation::processSDP(QVariant& content)
     case NEG_OFFER_RECEIVED:
     case NEG_FINISHED:
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                      "Got an SDP offer");
+      Logger::getLogger()->printNormal(this, "Got an SDP offer");
       if(!processOfferSDP(content))
       {
-         Logger::getLogger()->printError(this,
-                                         "Failed to process SDP offer");
+         Logger::getLogger()->printError(this, "Failed to process SDP offer");
 
          return false;
       }
@@ -226,8 +249,7 @@ bool SDPNegotiation::processSDP(QVariant& content)
     }
     case NEG_OFFER_SENT:
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                      "Got an SDP answer.");
+      Logger::getLogger()->printNormal(this, "Got an SDP answer.");
       processAnswerSDP(content);
       break;
     }
@@ -246,7 +268,7 @@ bool SDPNegotiation::processOfferSDP(QVariant& content)
 {
   if(!content.isValid())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printProgramError(this,
                                     "The SDP content is not valid at processing. "
                                     "Should be detected earlier.");
     return false;
@@ -254,7 +276,10 @@ bool SDPNegotiation::processOfferSDP(QVariant& content)
 
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
 
-  sdpConf_->addRemoteSDP(sessionID_, retrieved);
+  if (isHost_)
+  {
+    sdpConf_->recordReceivedSDP(sessionID_, retrieved);
+  }
 
   // get our final SDP, which is later sent to them
   localSDP_ = findCommonSDP(*localbaseSDP_.get(), retrieved);
@@ -281,16 +306,18 @@ bool SDPNegotiation::processAnswerSDP(QVariant &content)
   SDPMessageInfo retrieved = content.value<SDPMessageInfo>();
   if (!content.isValid())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
+    Logger::getLogger()->printProgramError(this,
                                     "Content is not valid when processing SDP. "
                                     "Should be detected earlier.");
     return false;
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Negotiation",
-                                  "Starting to process answer SDP.");
+  Logger::getLogger()->printNormal("Negotiation", "Starting to process answer SDP.");
 
-  sdpConf_->addRemoteSDP(sessionID_, retrieved);
+  if (isHost_)
+  {
+    sdpConf_->recordReceivedSDP(sessionID_, retrieved);
+  }
 
   /* Get our final SDP based on their answer, should succeed if they did everything correctly,
    * but good to check */
@@ -324,8 +351,7 @@ bool SDPNegotiation::checkSessionValidity(bool checkRemote) const
   if(localSDP_ == nullptr ||
      (remoteSDP_ == nullptr && checkRemote))
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Negotiation",
-                                    "SDP not set correctly");
+    Logger::getLogger()->printProgramError("Negotiation", "SDP not set correctly");
     return false;
   }
   return true;
@@ -474,15 +500,34 @@ std::shared_ptr<SDPMessageInfo> SDPNegotiation::findCommonSDP(const SDPMessageIn
           }
         }
       }
+
+      // copy bandwidth (TODO: User should set limits of bandwidth they accept)
+      for (unsigned int j = 0; j < comparedSDP.media.at(i).bandwidth.size(); ++j)
+      {
+        if (comparedSDP.media.at(i).bandwidth.at(j).type == BandwidthType::CT ||
+            comparedSDP.media.at(i).bandwidth.at(j).type == BandwidthType::AS)
+        {
+          resultMedia.bandwidth.push_back(comparedSDP.media.at(i).bandwidth.at(j));
+        }
+      }
+
+      if (resultMedia.type == "video")
+      {
+        for (auto& imgAttr : comparedSDP.media.at(i).imgAttributes)
+        {
+          resultMedia.imgAttributes[imgAttr.first] = imgAttr.second;
+        }
+      }
     }
 
     copyMID(resultMedia, comparedSDP.media.at(i));
+    copyLabel(resultMedia, comparedSDP.media.at(i));
     newInfo->media.append(resultMedia);
   }
 
   for (unsigned int i = 0; i < newInfo->media.size(); ++i)
   {
-    setSSRC(i, newInfo->media[i]);
+    setSSRC(newInfo->media[i]);
   }
 
   return newInfo;
@@ -501,6 +546,18 @@ void SDPNegotiation::copyMID(MediaInfo& target, const MediaInfo& source)
 }
 
 
+void SDPNegotiation::copyLabel(MediaInfo& target, const MediaInfo& source)
+{
+  for (unsigned int i = 0; i < source.valueAttributes.size(); ++i)
+  {
+    if (source.valueAttributes.at(i).type == A_LABEL)
+    {
+      target.valueAttributes.push_back(source.valueAttributes.at(i));
+    }
+  }
+}
+
+
 bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& comparedNums, const QList<RTPMap> &comparedCodecs,
                                      const QList<uint8_t>& baseNums,     const QList<RTPMap> &baseCodecs,
                                            QList<uint8_t>& resultNums,         QList<RTPMap> &resultCodecs)
@@ -512,7 +569,8 @@ bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& comparedNums, const Q
       if(remoteCodec.codec == supportedCodec.codec)
       {
         resultCodecs.append(remoteCodec);
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",  "Found suitable codec");
+        Logger::getLogger()->printNormal("SDPNegotiationHelper",  "Found suitable codec",
+                                        {"Code"}, {remoteCodec.codec});
 
         resultNums.push_back(remoteCodec.rtpNum);
 
@@ -528,15 +586,13 @@ bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& comparedNums, const Q
       if(rtpNumber == supportedNum)
       {
         resultNums.append(rtpNumber);
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, "SDPNegotiationHelper",
-                                        "Found suitable RTP number");
+        Logger::getLogger()->printNormal("SDPNegotiationHelper", "Found suitable RTP number");
         return true;
       }
     }
   }
 
-  Logger::getLogger()->printDebug(DEBUG_ERROR, "SDPNegotiationHelper",
-                                  "Could not find suitable codec or RTP number for media.");
+  Logger::getLogger()->printError("SDPNegotiationHelper", "Could not find suitable codec or RTP number for media.");
 
   return false;
 }
@@ -597,7 +653,8 @@ SDPAttributeType SDPNegotiation::findStatusAttribute(const QList<SDPAttributeTyp
   return A_NO_ATTRIBUTE;
 }
 
-void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
+
+void SDPNegotiation::setSSRC(MediaInfo& media)
 {
   uint32_t ssrc = 0;
   if (findSSRC(media, ssrc))
@@ -607,15 +664,17 @@ void SDPNegotiation::setSSRC(unsigned int mediaIndex, MediaInfo& media)
     return;
   }
 
-  if (mediaSSRCs_.find(mediaIndex) == mediaSSRCs_.end())
+  QString mid = findMID(media);
+
+  if (mediaSSRCs_.find(mid) == mediaSSRCs_.end())
   {
-    mediaSSRCs_[mediaIndex] = SSRCGenerator::generateSSRC();
+    mediaSSRCs_[mid] = SSRCGenerator::generateSSRC();
     Logger::getLogger()->printNormal(this, "Generated a new SSRC for media",
-                                     "SSRC", QString::number(mediaSSRCs_[mediaIndex]));
+                                     "SSRC", QString::number(mediaSSRCs_[mid]));
   }
 
   media.multiAttributes.push_back({});
-  media.multiAttributes.back().push_back({A_SSRC, QString::number(mediaSSRCs_[mediaIndex])});
+  media.multiAttributes.back().push_back({A_SSRC, QString::number(mediaSSRCs_[mid])});
 
   if (cname_ != "")
   {
@@ -635,5 +694,3 @@ void SDPNegotiation::setMID(unsigned int mediaIndex, MediaInfo& media)
   }
   media.valueAttributes.push_back({A_MID, QString::number(mediaIndex + 1)});
 }
-
-

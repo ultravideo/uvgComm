@@ -39,7 +39,7 @@ uint32_t SSRCGenerator::newSSRC()
 
   while (previousSSRCs_.find(ssrc) != previousSSRCs_.end())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "SSRCGenerator",
+    Logger::getLogger()->printWarning("SSRCGenerator",
                                     "SSRC collision while generating");
     ssrc = gen32_dist(rng_);
   }

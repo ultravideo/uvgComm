@@ -4,9 +4,9 @@
 #include "initiation/sipmanager.h"
 #include "ui/uimanager.h"
 #include "participantinterface.h"
-#include "mediaid.h"
 
 #include <QObject>
+#include <QString>
 
 #include <map>
 
@@ -19,13 +19,14 @@
 struct SDPMessageInfo;
 class StatisticsInterface;
 
-class uvgCommController : public QObject, public ParticipantInterface
+class uvgCommController : public ParticipantInterface
 {
   Q_OBJECT
 public:
   uvgCommController();
 
-  void init();
+  void init(bool useStdin, QString& scriptFilename, QString& configFilename, QString &statsFolder, QString& sipLogFile);
+
   void uninit();
 
   // participant interface funtions used to start a call or a chat.
@@ -102,15 +103,7 @@ private:
 
   void createSIPDialog(QString name, QString username, QString ip, uint32_t sessionID);
 
-  void updateMediaIDs(uint32_t sessionID,
-                      QList<MediaInfo>& localMedia,
-                      QList<MediaInfo>& remoteMedia,
-                      bool followOurSDP,
-                      QList<std::pair<MediaID, MediaID>>& audioVideoIDs, QList<MediaID>& allIDs);
-
-  void getMediaAttributes(const MediaInfo &local, const MediaInfo& remote,
-                          bool followOurSDP, bool &send,
-                          bool& receive);
+  void groupSSRCsByCNAME(const QList<MediaInfo>& remoteMedia, std::map<QString, MediaSource> &cnameToSource);
 
   // the stun addresses are our outward network addresses which our peer uses to send data to us
   // we cannot however bind to those so we must translate the addresses to our local addresses
@@ -124,7 +117,8 @@ private:
   // this is a huge hack altogether
   bool areWeICEController(bool initialAgent, uint32_t sessionID) const;
 
-  MediaID getMediaID(uint32_t sessionID, const MediaInfo &media);
+  MediaRole getMediaRole(QString role) const;
+  ConferenceTopology getTopology(QString topology) const;
 
   // call state is used to make sure everything is going according to plan,
   // no surprise ACK messages etc
@@ -165,7 +159,8 @@ private:
 
   QTimer delayedNegotiation_;
 
-  std::map<uint32_t, std::shared_ptr<std::vector<MediaID>>> sessionMedias_;
+  // sessionID to remote SSRCs
+  std::map<uint32_t, std::shared_ptr<std::vector<uint32_t>>> sessionMedias_;
 
   std::shared_ptr<VideoviewFactory> viewFactory_;
 

@@ -4,18 +4,29 @@
 
 #include "media/processing/filter.h"
 
+#include <QFuture>
+#include <atomic>
+#include <mutex>
+
 class UvgRTPReceiver : public Filter
 {
   Q_OBJECT
 public:
-  UvgRTPReceiver(uint32_t sessionID, QString id, StatisticsInterface *stats,
-                 std::shared_ptr<ResourceAllocator> hwResources, DataType type,
-                 QString media, std::shared_ptr<UvgRTPStream> mstream);
+  UvgRTPReceiver(uint32_t sessionID,
+                 QString id,
+                 StatisticsInterface *stats,
+                 std::shared_ptr<ResourceAllocator> hwResources,
+                 DataType type,
+                 QString media,
+                 uint32_t localSSRC,
+                 uint32_t remoteSSRC,
+                 uvgrtp::media_stream *stream,
+                 bool runZRTP);
   ~UvgRTPReceiver();
 
-  void receiveHook(uvg_rtp::frame::rtp_frame *frame);
+  virtual void stop();
 
-  void uninit();
+  void receiveHook(uvg_rtp::frame::rtp_frame *frame);
 
 protected:
   void process();
@@ -25,6 +36,10 @@ signals:
 
 private:
 
+  void uninit();
+
+  void updateSessionBandwidth();
+
   void processRTCPSenderReport(std::unique_ptr<uvgrtp::frame::rtcp_sender_report> sr);
 
   bool discardUntilIntra_;
@@ -32,5 +47,21 @@ private:
   uint16_t lastSeq_;
   uint32_t sessionID_;
 
-  std::shared_ptr<UvgRTPStream> us_;
+  uint32_t localSSRC_;
+  uint32_t remoteSSRC_;
+  uvgrtp::media_stream* stream_;
+
+  // Protects accesses to stream_. Acquire before reading or writing stream_.
+  mutable std::mutex streamMutex_;
+
+  // Guard used to indicate the filter is alive; set to false early during
+  // teardown so callbacks and processing can bail out safely.
+  std::atomic<bool> alive_{true};
+
+  int lastSessionBandwidthKbps_ = -1;
+  std::atomic<bool> loggedNoStreamForBandwidth_ {false};
+
+  int64_t lastSEITime_;
+
+  QFuture<rtp_error_t> futureRes_;
 };

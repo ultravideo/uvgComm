@@ -8,6 +8,8 @@
 
 #include <QObject>
 #include <QTimer>
+#include <QHostAddress>
+#include <QList>
 #include <map>
 
 #include <functional>
@@ -52,7 +54,7 @@ struct TransportInstance
 
 class StatisticsInterface;
 class NetworkCandidates;
-class SDPMeshConference;
+class SDPConference;
 struct SDPMessageInfo;
 
 /* This is a manager class that manages interactions between different
@@ -71,6 +73,22 @@ enum SIPConnectionType
   SIP_TLS
 };
 
+enum MediaRole
+{
+  MEDIA_CLIENT,
+  MEDIA_SERVER,
+  MEDIA_BOTH
+};
+
+enum ConferenceTopology
+{
+  P2P,
+  P2P_MESH,
+  RELAY,
+  SFU,
+  MCU,
+  HYBRID
+};
 
 struct SIPConfig
 {
@@ -78,16 +96,25 @@ struct SIPConfig
   QString sipServerAddress;
   uint16_t sipServerPort;
 
-  bool conferencing;
+  MediaRole role;
 
-  uint16_t mediaPort;
+  ConferenceTopology topology;
+
+  uint16_t localMediaPort;
 
   bool ice;
-  bool privateAddresses;
+
+  QHostAddress localAddress; // optional
 
   bool stun;
   QString stunServerAddress;
   uint16_t stunServerPort;
+
+  uint16_t videoWidth;
+  uint16_t videoHeight;
+
+  uint32_t videoKbps;
+  uint32_t audioKbps;
 };
 
 
@@ -283,7 +310,7 @@ private:
   QTimer delayTimer_;
   std::queue<uint32_t> dMessages_;
 
-  std::shared_ptr<SDPMeshConference> sdpConf_;
+  std::shared_ptr<SDPConference> sdpConf_;
 
   SIPConfig config_;
 

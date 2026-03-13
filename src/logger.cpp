@@ -43,100 +43,205 @@ void Logger::printDebug(DebugType type, const QObject *object, QString descripti
 
 
 void Logger::printNormal(const QObject *object, QString description,
+                         QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_NORMAL, object, description, valueNames, values);
+}
+
+
+void Logger::printNormal(const QString module, QString description,
+                         QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_NORMAL, module, description, valueNames, values);
+}
+
+
+// Backwards-compatible single-value overloads
+void Logger::printNormal(const QObject *object, QString description,
                          QString valueName, QString value)
 {
-  printDebug(DEBUG_NORMAL, object, description, {valueName}, {value});
+  printNormal(object, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printNormal(const QString module, QString description,
                          QString valueName, QString value)
 {
-  printDebug(DEBUG_NORMAL, module, description, {valueName}, {value});
+  printNormal(module, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printImportant(const QObject* object, QString description,
+                            QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_IMPORTANT, object, description, valueNames, values);
+}
+
+
+void Logger::printImportant(const QString module, QString description,
+                            QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_IMPORTANT, module, description, valueNames, values);
+}
+
+
+// Backwards-compatible single-value overloads
+void Logger::printImportant(const QObject* object, QString description,
                             QString valueName, QString value)
 {
-  printDebug(DEBUG_IMPORTANT, object, description, {valueName}, {value});
+  printImportant(object, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printImportant(const QString module, QString description,
                             QString valueName, QString value)
 {
-  printDebug(DEBUG_IMPORTANT, module, description, {valueName}, {value});
+  printImportant(module, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printWarning(const QObject* object, QString description,
+                          QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_WARNING, object, description, valueNames, values);
+}
+
+
+void Logger::printWarning(const QString module, QString description,
+                          QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_WARNING, module, description, valueNames, values);
+}
+
+
+// Backwards-compatible single-value overloads
+void Logger::printWarning(const QObject* object, QString description,
                           QString valueName, QString value)
 {
-  printDebug(DEBUG_WARNING, object, description, {valueName}, {value});
+  printWarning(object, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printWarning(const QString module, QString description,
                           QString valueName, QString value)
 {
-  printDebug(DEBUG_WARNING, module, description, {valueName}, {value});
+  printWarning(module, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printError(const QObject *object, QString description,
+                        QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_ERROR, object, description, valueNames, values);
+}
+
+
+void Logger::printError(const QString module, QString description,
+                        QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_ERROR, module, description, valueNames, values);
+}
+
+
+// Backwards-compatible single-value overloads
+void Logger::printError(const QObject *object, QString description,
                         QString valueName, QString value)
 {
-  printDebug(DEBUG_ERROR, object, description, {valueName}, {value});
+  printError(object, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printError(const QString module, QString description,
                         QString valueName, QString value)
 {
-  printDebug(DEBUG_ERROR, module, description, {valueName}, {value});
+  printError(module, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printProgramError(const QObject *object, QString description,
+                               QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_PROGRAM_ERROR, object, description, valueNames, values);
+}
+
+
+void Logger::printProgramError(const QString module, QString description,
+                               QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_PROGRAM_ERROR, module, description, valueNames, values);
+}
+
+
+// Backwards-compatible single-value overloads
+void Logger::printProgramError(const QObject *object, QString description,
                                QString valueName, QString value)
 {
-  printDebug(DEBUG_PROGRAM_ERROR, object, description, {valueName}, {value});
+  printProgramError(object, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printProgramError(const QString module, QString description,
                                QString valueName, QString value)
 {
-  printDebug(DEBUG_PROGRAM_ERROR, module, description, {valueName}, {value});
+  printProgramError(module, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printProgramWarning(const QObject *object, QString description,
+                                 QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_PROGRAM_WARNING, object, description, valueNames, values);
+}
+
+
+void Logger::printProgramWarning(const QString module, QString description,
+                                 QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_PROGRAM_WARNING, module, description, valueNames, values);
+}
+
+
+// Backwards-compatible single-value overloads
+void Logger::printProgramWarning(const QObject *object, QString description,
                                  QString valueName, QString value)
 {
-  printDebug(DEBUG_PROGRAM_WARNING, object, description, {valueName}, {value});
+  printProgramWarning(object, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printProgramWarning(const QString module, QString description,
                                  QString valueName, QString value)
 {
-  printDebug(DEBUG_PROGRAM_WARNING, module, description, {valueName}, {value});
+  printProgramWarning(module, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printPeerError(const QObject *object, QString description,
+                            QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_PEER_ERROR, object, description, valueNames, values);
+}
+
+
+void Logger::printPeerError(const QString module, QString description,
+                            QStringList valueNames, QStringList values)
+{
+  printDebug(DEBUG_PEER_ERROR, module, description, valueNames, values);
+}
+
+
+// Backwards-compatible single-value overloads
+void Logger::printPeerError(const QObject *object, QString description,
                             QString valueName, QString value)
 {
-  printDebug(DEBUG_PEER_ERROR, object, description, {valueName}, {value});
+  printPeerError(object, description, QStringList{valueName}, QStringList{value});
 }
 
 
 void Logger::printPeerError(const QString module, QString description,
                             QString valueName, QString value)
 {
-  printDebug(DEBUG_PEER_ERROR, module, description, {valueName}, {value});
+  printPeerError(module, description, QStringList{valueName}, QStringList{value});
 }
 
 

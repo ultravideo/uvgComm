@@ -4,10 +4,13 @@
 #include "ui/settings/settings.h"
 #include "gui/callwindow.h"
 
+#include "scripting.h"
+
 class StatisticsWindow;
 class StatisticsInterface;
 class VideoviewFactory;
 class SDPMediaParticipant;
+class StatisticsCSV;
 
 namespace Ui {
 class AboutWidget;
@@ -26,8 +29,12 @@ public:
 
   void init(ParticipantInterface *partInt, std::shared_ptr<VideoviewFactory> viewFactory);
 
+  // Script integration
+  void runScriptFromFile(const QString& filename);
+  void runScriptFromStdin();
+
   // functions for managing the GUI
-  StatisticsInterface* createStatsWindow();
+  StatisticsInterface* createStats(QString statsFolder, QString& sipLogFile);
 
   // sessionID identifies the view slot
   void displayOutgoingCall(uint32_t sessionID, QString name);
@@ -37,7 +44,7 @@ public:
   // adds video stream to view
   void callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
                    uint32_t sessionID, QStringList names,
-                   const QList<std::pair<MediaID, MediaID> > &audioVideoIDs);
+                   const std::map<QString, MediaSource>& sources);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
@@ -85,10 +92,13 @@ private:
 
   Settings settingsView_;
   StatisticsWindow *statsWindow_;
+  StatisticsCSV* csv_;
 
   Ui::AboutWidget* aboutWidget_;
   QWidget about_;
 
   QTimer *timer_; // for GUI update
   GUIMessage mesg_;
+
+  Scripting script_;
 };

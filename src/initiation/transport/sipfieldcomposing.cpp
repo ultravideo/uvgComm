@@ -12,14 +12,13 @@ bool getFirstRequestLine(QString& line, SIPRequest& request, QString lineEnding)
 {
   if(request.requestURI.hostport.host == "")
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing",
+    Logger::getLogger()->printProgramError("SIPComposing",
                "Request URI host is empty when comprising the first line.");
   }
 
   if(request.method == SIP_NO_REQUEST)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SIPComposing",
-                "SIP_NO_REQUEST given.");
+    Logger::getLogger()->printProgramError("SIPComposing", "SIP_NO_REQUEST given.");
     return false;
   }
 

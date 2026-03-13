@@ -199,7 +199,7 @@ void TCPConnection::stopConnection()
 
 void TCPConnection::establishConnection(const QString &destination, uint16_t port)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Establishing connection",
+  Logger::getLogger()->printNormal(this, "Establishing connection",
                                   {"Destination", "port"}, {destination, QString::number(port)});
 
   destination_ = destination;
@@ -283,7 +283,7 @@ bool TCPConnection::connectLoop()
     for (unsigned int i = 0; i < NUMBER_OF_RETRIES &&
          socket_->state() != QAbstractSocket::ConnectedState; ++i)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Attempting to connect",
+      Logger::getLogger()->printNormal(this, "Attempting to connect",
                 {"Attempt"}, {QString::number(i + 1)});
 
       socket_->connectToHost(destination_, port_);
@@ -319,7 +319,7 @@ void TCPConnection::run()
 
   if(eventDispatcher() == nullptr)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "No event dispatcher for this connection.");
+    Logger::getLogger()->printWarning(this, "No event dispatcher for this connection.");
     return;
   }
   while(active_)
@@ -337,7 +337,7 @@ void TCPConnection::run()
 
     if(socket_ != nullptr && socket_->bytesToWrite() > 0)
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Detected need to send.", {"Bytes", "State"},
+      Logger::getLogger()->printNormal(this, "Detected need to send.", {"Bytes", "State"},
                   {QString::number(socket_->bytesToWrite()), QString::number(socket_->state())});
     }
 
@@ -364,7 +364,7 @@ void TCPConnection::run()
       }
       else if(socket_->bytesAvailable() > MAX_READ_BYTES)
       {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
+        Logger::getLogger()->printWarning(this, 
                                         "Flushing the socket because of too much data!");
         socket_->flush();
       }
@@ -404,7 +404,7 @@ void TCPConnection::bufferToSocket()
 
   if(buffer_.size() > MAX_READ_BYTES)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
+    Logger::getLogger()->printWarning(this, 
                                     "We are sending too much stuff to the other end",
                                     {"Buffer size"}, {QString::number(buffer_.size())});
   }
@@ -452,7 +452,7 @@ void TCPConnection::disconnected()
 
 void TCPConnection::printError(int socketError, const QString &message)
 {
-  Logger::getLogger()->printDebug(DEBUG_ERROR, this, "Socket Error",
+  Logger::getLogger()->printError( this, "Socket Error",
              {"Code", "Message"}, {QString::number(socketError), message});
 }
 

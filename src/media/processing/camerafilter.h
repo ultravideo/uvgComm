@@ -15,6 +15,8 @@ public:
                std::shared_ptr<ResourceAllocator> hwResources);
   ~CameraFilter();
 
+  void setResolution(std::pair<uint16_t, uint16_t> resolution);
+
   // setup camera device
   virtual bool init();
 
@@ -63,6 +65,10 @@ private:
   int currentDeviceID_;
   QString currentInputFormat_;
 
+  bool wantedRunning_;
+
   std::unique_ptr<QMediaCaptureSession> capture_;
   std::unique_ptr<QVideoSink>  sink_;
+
+  uint32_t rtpTimestamp_;
 };

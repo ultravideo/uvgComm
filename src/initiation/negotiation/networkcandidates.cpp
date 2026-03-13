@@ -39,6 +39,7 @@ NetworkCandidates::NetworkCandidates():
 {}
 
 
+
 NetworkCandidates::~NetworkCandidates()
 {
   unbindRequestSockets();
@@ -95,8 +96,7 @@ void NetworkCandidates::init(uint16_t mediaPort, bool stun,
     availablePorts_.clear();
     currentMinPort_ = minPort;
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, 
-                                    "Allocating (but not reserving) ports for media",
+    Logger::getLogger()->printNormal(this, "Allocating (but not reserving) ports for media",
                                     {"Min ports", "Max port"},
                                     {QString::number(minPort), QString::number(maxPort)});
     QStringList addressNames;
@@ -141,15 +141,14 @@ void NetworkCandidates::init(uint16_t mediaPort, bool stun,
       }
     }
 
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,
-                                    "Found the following addresses",
+    Logger::getLogger()->printNormal(this, "Found the following addresses",
                                     addressNames, addresses);
   }
 
   // Start stun address acquasition if stun was enabled or address has changed
   if (stun && stunHasChanged)
   {
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Looking up STUN server IP",
+    Logger::getLogger()->printNormal(this, "Looking up STUN server IP",
                                     {"Server address"}, {stunServerAddress_});
 
     if (stunServerAddress_ != "")
@@ -615,10 +614,10 @@ bool NetworkCandidates::sendSTUNserverRequest(QHostAddress localAddress,
 {
   if (localPort == 0 || serverPort == 0)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Port set to 0. Can't get STUN address.",
-                                    {"Interface address", "Server address"},
-                                    {localAddress.toString() + ":" + QString::number(localPort),
-                                    serverAddress.toString() + ":" + QString::number(serverPort)});
+    Logger::getLogger()->printProgramError(this, "Port set to 0. Can't get STUN address.",
+                                           {"Interface address", "Server address"},
+                                           {localAddress.toString() + ":" + QString::number(localPort),
+                                           serverAddress.toString() + ":" + QString::number(serverPort)});
     return false;
   }
 

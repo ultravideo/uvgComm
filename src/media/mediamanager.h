@@ -2,7 +2,6 @@
 
 #include "initiation/negotiation/sdptypes.h"
 #include "delivery/ice.h"
-#include "mediaid.h"
 
 #include <QObject>
 #include <QMutex>
@@ -28,10 +27,15 @@ class VideoviewFactory;
 class StatisticsInterface;
 class Delivery;
 
-class FilterGraph;
+class FilterGraphClient;
+class FilterGraphSFU;
 class MediaSession;
 struct MediaInfo;
 class VideoInterface;
+
+class ResourceAllocator;
+
+class Filter;
 
 typedef int16_t PeerID;
 
@@ -42,7 +46,6 @@ struct ParticipantMedia
   std::shared_ptr<SDPMessageInfo> localInfo;
   std::shared_ptr<SDPMessageInfo> peerInfo;
 
-  QList<MediaID> allIDs;
   bool followOurSDP;
 };
 
@@ -62,17 +65,17 @@ public:
   // registers a contact for activity monitoring
   void registerContact(in_addr ip);
 
-  void addParticipant(uint32_t sessionID,
-                      const std::shared_ptr<SDPMessageInfo> peerInfo,
-                      const std::shared_ptr<SDPMessageInfo> localInfo,
-                      const QList<MediaID>& allIDs,
-                      bool iceController, bool followOurSDP);
+  void newSession(uint32_t sessionID,
+                  const std::shared_ptr<SDPMessageInfo> peerInfo,
+                  const std::shared_ptr<SDPMessageInfo> localInfo,
+                  bool iceController,
+                  bool followOurSDP);
 
-  void modifyParticipant(uint32_t sessionID,
-                         const std::shared_ptr<SDPMessageInfo> peerInfo,
-                         const std::shared_ptr<SDPMessageInfo> localInfo,
-                         const QList<MediaID>& allIDs,
-                         bool iceController, bool followOurSDP);
+  void modifySession(uint32_t sessionID,
+                     const std::shared_ptr<SDPMessageInfo> peerInfo,
+                     const std::shared_ptr<SDPMessageInfo> localInfo,
+                     bool iceController,
+                     bool followOurSDP);
 
   void removeParticipant(uint32_t sessionID);
 
@@ -107,27 +110,55 @@ signals:
   void updateAutomaticSettings();
 
 public slots:
-  void iceSucceeded(const MediaID &id, uint32_t sessionID,
+  void iceSucceeded(const uint32_t &ssrc, uint32_t sessionID,
                     MediaInfo local, MediaInfo remote);
-  void iceFailed(const MediaID& id, uint32_t sessionID);
+  void iceFailed(const uint32_t& ssrc, uint32_t sessionID);
 
 signals:
   void iceMediaFailed(uint32_t sessionID);
 
 private:
+  void clientMedia(uint32_t sessionID,
+                   const MediaInfo& localMedia,
+                   const MediaInfo& remoteMedia,
+                   bool send,
+                   bool receive);
 
-  void createMediaPair(uint32_t sessionID, const MediaID &id,
-                       const MediaInfo &localMedia, const MediaInfo &remoteMedia,
-                       VideoInterface *videoView);
+  void clientSendMedia(uint32_t sessionID,
+                       const MediaInfo& localMedia,
+                       const MediaInfo& remoteMedia,
+                       bool enabled,
+                       QString codec,
+                       uint32_t localSSRC);
 
-  void createOutgoingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           const MediaInfo& remoteMedia, const MediaID &id, bool active);
-  void createIncomingMedia(uint32_t sessionID, const MediaInfo& localMedia,
-                           const MediaInfo& remoteMedia, const MediaID &id, VideoInterface *videoView, bool active);
+  void clientReceiveMedia(uint32_t sessionID,
+                          const MediaInfo& localMedia,
+                          const MediaInfo& remoteMedia,
+                          bool enabled,
+                          QString codec,
+                          uint32_t localSSRC,
+                          uint32_t remoteSSRC,
+                          QString remoteCNAME);
+
+  void sfuMedia(uint32_t sessionID,
+                const MediaInfo& localMedia,
+                const MediaInfo& remoteMedia,
+                bool send,
+                bool receive);
+
+  void sfuSendMedia(uint32_t sessionID,
+                    const MediaInfo& localMedia,
+                    const MediaInfo& remoteMedia,
+                    bool enabled,
+                    uint32_t localSSRC);
+
+  void sfuReceiveMedia(uint32_t sessionID,
+                       const MediaInfo& localMedia,
+                       const MediaInfo& remoteMedia,
+                       bool enabled,
+                       QString remoteCNAME);
 
   QString rtpNumberToCodec(const MediaInfo& info);
-
-  void sdpToStats(uint32_t sessionID, std::shared_ptr<SDPMessageInfo> sdp, bool local);
 
   QString getMediaNettype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
   QString getMediaAddrtype(std::shared_ptr<SDPMessageInfo> sdp, int mediaIndex);
@@ -136,12 +167,26 @@ private:
   bool sessionChecks(std::shared_ptr<SDPMessageInfo> peerInfo,
                      const std::shared_ptr<SDPMessageInfo> localInfo) const;
 
+  uint32_t countParticipants(const std::shared_ptr<SDPMessageInfo> peerInfo);
+
+  bool isP2P(const MediaInfo& localMedia, const MediaInfo& remoteMedia) const;
+
+  std::pair<uint16_t, uint16_t> getResolution(const MediaInfo& localMedia);
+
   StatisticsInterface* stats_;
 
-  std::unique_ptr<FilterGraph> fg_;
+  std::unique_ptr<FilterGraphClient> clientFg_;
+  std::unique_ptr<FilterGraphSFU> sfuFg_;
+
   std::unique_ptr<Delivery> streamer_;
 
-  std::map<uint32_t, ParticipantMedia> participants_;
+  std::map<uint32_t, ParticipantMedia> sessions_;
 
   std::shared_ptr<VideoviewFactory> viewFactory_;
+
+  std::shared_ptr<ResourceAllocator> hwResources_;
+
+  int localInitialIndex_;
+
+  std::map<uint32_t, QSet<QString>> seenCNames_;
 };

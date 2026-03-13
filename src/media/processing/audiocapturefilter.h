@@ -66,4 +66,6 @@ private:
 
   uint8_t muteSamples_;
   uint8_t mutingPeriod_;
+
+  uint32_t rtpTimestamp_;
 };

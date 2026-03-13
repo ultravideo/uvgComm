@@ -8,7 +8,6 @@
 #include <QSettings>
 
 #include <memory>
-#include <cstdlib>
 #include <chrono>
 #include <thread>
 #include <math.h>       /* pow */
@@ -29,7 +28,7 @@ ICE::~ICE()
 }
 
 
-void ICE::startNomination(const MediaID &id, const MediaInfo &local, const MediaInfo &remote, bool controller)
+void ICE::startNomination(const uint32_t &ssrc, const MediaInfo &local, const MediaInfo &remote, bool controller)
 {
   std::vector<std::shared_ptr<ICEPair>> newCandidates = makeCandidatePairs(local.candidates,
                                                                            remote.candidates, controller);
@@ -41,7 +40,7 @@ void ICE::startNomination(const MediaID &id, const MediaInfo &local, const Media
 
     updateMedia(mediaNominations_[matchIndex].localMedia, local);
     updateMedia(mediaNominations_[matchIndex].remoteMedia, remote);
-    emit mediaNominationSucceeded(id, sessionID_,
+    emit mediaNominationSucceeded(ssrc, sessionID_,
                                   mediaNominations_[matchIndex].localMedia,
                                   mediaNominations_[matchIndex].remoteMedia);
   }
@@ -69,7 +68,7 @@ void ICE::startNomination(const MediaID &id, const MediaInfo &local, const Media
                                  local,
                                  remote,
                                  false,
-                                 id,
+                                 ssrc,
                                  newCandidates,
                                  {},
                                  std::unique_ptr<IceSessionTester> (new IceSessionTester(controller)),
@@ -95,8 +94,7 @@ void ICE::startNomination(const MediaID &id, const MediaInfo &local, const Media
       role = "Controller";
     }
 
-    Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this,
-                                    "No previous matching ICE results, performing nomination",
+    Logger::getLogger()->printImportant(this, "No previous matching ICE results, performing nomination",
                                     {"Role", "Pairs", "Existing media nominations"}, {role,
                                     QString::number(mediaNominations_.back().candidatePairs.size()),
                                     QString::number(mediaNominations_.size())});
@@ -167,7 +165,7 @@ void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair>> &streams)
         }
       }
 
-      emit mediaNominationSucceeded(media.id, sessionID_, media.localMedia, media.remoteMedia);
+      emit mediaNominationSucceeded(media.ssrc, sessionID_, media.localMedia, media.remoteMedia);
 
       return;
     }
@@ -179,8 +177,7 @@ void ICE::handeICESuccess(std::vector<std::shared_ptr<ICEPair>> &streams)
 
 void ICE::handleICEFailure(std::vector<std::shared_ptr<ICEPair> > &candidates)
 {
-  Logger::getLogger()->printDebug(DEBUG_ERROR, "ICE",
-                                  "Failed to nominate RTP/RTCP candidates!");
+  Logger::getLogger()->printError("ICE", "Failed to nominate RTP/RTCP candidates!");
 
   for (auto& media : mediaNominations_)
   {
@@ -190,7 +187,7 @@ void ICE::handleICEFailure(std::vector<std::shared_ptr<ICEPair> > &candidates)
       media.state = ICE_FAILED;
       media.iceTester->quit();
 
-      emit mediaNominationFailed(media.id, sessionID_);
+      emit mediaNominationFailed(media.ssrc, sessionID_);
     }
   }
 
@@ -210,7 +207,7 @@ void ICE::printSuccessICEPairs(std::vector<std::shared_ptr<ICEPair> > &streams) 
                   component->remote->address + ":" + QString::number(component->remote->port));
   }
 
-  Logger::getLogger()->printDebug(DEBUG_IMPORTANT, this, "Nominated media ICE candidates", names, values);
+  Logger::getLogger()->printImportant( this, "Nominated media ICE candidates", names, values);
 }
 
 
@@ -304,7 +301,7 @@ void ICE::setMediaPair(MediaInfo& media, std::shared_ptr<ICEInfo> mediaInfo, boo
 {
   if (mediaInfo == nullptr)
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SDPNegotiationHelper",
+    Logger::getLogger()->printProgramError("SDPNegotiationHelper",
                                     "Null mediainfo in setMediaPair");
     return;
   }
@@ -337,7 +334,7 @@ void ICE::updateMedia(MediaInfo& oldMedia, const MediaInfo &newMedia)
 
   oldMedia.rtpNums = newMedia.rtpNums;
   oldMedia.title = newMedia.title;
-  oldMedia.bitrate = newMedia.bitrate;
+  oldMedia.bandwidth = newMedia.bandwidth;
   oldMedia.encryptionKey = newMedia.encryptionKey;
 
   oldMedia.rtpMaps = newMedia.rtpMaps;

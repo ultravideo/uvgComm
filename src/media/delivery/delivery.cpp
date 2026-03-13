@@ -5,14 +5,16 @@
 #include "common.h"
 #include "logger.h"
 #include "settingskeys.h"
+#include "uvgrelay.h"
+#include "udpsender.h"
+#include "udpreceiver.h"
 
 #include <QtEndian>
 #include <QHostInfo>
 #include <QCoreApplication>
+#include <QThread>
 
 #include <uvgrtp/lib.hh>
-
-#include <iostream>
 
 Delivery::Delivery():
   rtp_ctx_(new uvg_rtp::context),
@@ -22,8 +24,10 @@ Delivery::Delivery():
 
 
 Delivery::~Delivery()
-{}
-
+{
+  // Ensure sessions, streams and relays are torn down
+  uninit();
+}
 
 void Delivery::init(StatisticsInterface *stats,
                     std::shared_ptr<ResourceAllocator> hwResources)
@@ -44,6 +48,13 @@ void Delivery::init(StatisticsInterface *stats,
 void Delivery::uninit()
 {
   removeAllPeers();
+
+  // Destroy the uvgRTP context so underlying sockets are closed
+  if (rtp_ctx_)
+  {
+    delete rtp_ctx_;
+    rtp_ctx_ = nullptr;
+  }
 }
 
 bool Delivery::addSession(uint32_t sessionID,
@@ -67,11 +78,11 @@ bool Delivery::addSession(uint32_t sessionID,
   }
   else
   {
-    Logger::getLogger()->printNormal(this, "Adding a new session for peer since we use different route",
+    Logger::getLogger()->printNormal(this, "Adding a new session for peer since route is not recognized",
                                       "Connection", connection);
 
     peers_[sessionID]->sessions.push_back({rtp_ctx_->create_session(peerAddress.toStdString(), localAddress.toStdString()),
-                                           localAddress, peerAddress, {}, false});
+                                           localAddress, peerAddress, {}, {}, false});
   }
 
   return true;
@@ -132,11 +143,10 @@ void Delivery::parseCodecString(QString codec, rtp_format_t& fmt,
 }
 
 
-std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
+std::shared_ptr<Filter> Delivery::addRTPSendStream(uint32_t sessionID,
                                                 QString localAddress, QString remoteAddress,
                                                 uint16_t localPort, uint16_t peerPort,
                                                 QString codec, uint8_t rtpNum,
-                                                MediaID id,
                                                 uint32_t localSSRC, uint32_t remoteSSRC)
 {
   Q_UNUSED(rtpNum); // TODO in uvgRTP
@@ -159,45 +169,74 @@ std::shared_ptr<Filter> Delivery::addSendStream(uint32_t sessionID,
   }
 
   if (!initializeStream(sessionID, peers_[sessionID]->sessions.at(sessionIndex),
-                        localPort, peerPort, id, fmt, localSSRC, remoteSSRC))
+                        localPort, peerPort, fmt, localSSRC, remoteSSRC, false))
   {
     Logger::getLogger()->printError(this, "Failed to initialize stream");
     return nullptr;
   }
 
   // create filter if it does not exist
-  if (peers_[sessionID]->sessions.at(sessionIndex).streams[id]->sender == nullptr)
+  if (peers_[sessionID]->sessions.at(sessionIndex).outgoingStreams[localSSRC]->sender == nullptr)
   {
     Logger::getLogger()->printNormal(this, "Creating sender filter");
 
-    peers_[sessionID]->sessions.at(sessionIndex).streams[id]->sender =
+    peers_[sessionID]->sessions.at(sessionIndex).outgoingStreams[localSSRC]->sender =
         std::shared_ptr<UvgRTPSender>(new UvgRTPSender(sessionID,
                                                        remoteAddress + ":" + QString::number(peerPort),
                                                        stats_,
                                                        hwResources_,
                                                        type,
                                                        mediaName,
-                                                       peers_[sessionID]->sessions.at(sessionIndex).streams[id]->stream));
+                                                       localSSRC,
+                                                       remoteSSRC,
+                                                       peers_[sessionID]->sessions.at(sessionIndex).outgoingStreams[localSSRC]->ms,
+                                                       peers_[sessionID]->sessions.at(sessionIndex).outgoingStreams[localSSRC]->runZRTP));
 
     connect(
-      peers_[sessionID]->sessions.at(sessionIndex).streams[id]->sender.get(),
+      peers_[sessionID]->sessions.at(sessionIndex).outgoingStreams[localSSRC]->sender.get(),
       &UvgRTPSender::zrtpFailure,
       this,
       &Delivery::handleZRTPFailure);
   }
   else
   {
-    Logger::getLogger()->printNormal(this, "Using existing sender filter");
+    Logger::getLogger()->printNormal(this, "Using existing sender filter",
+                                     "SessionID", QString::number(sessionID));
   }
 
-  return peers_[sessionID]->sessions.at(sessionIndex).streams[id]->sender;
+  return peers_[sessionID]->sessions.at(sessionIndex).outgoingStreams[localSSRC]->sender;
 }
 
-std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
+
+std::shared_ptr<Filter> Delivery::addUDPSendStream(uint32_t sessionID,
+                                         QString localAddress, QString remoteAddress,
+                                         uint16_t localPort, uint16_t peerPort, uint32_t remoteSSRC)
+{
+  if (udpSenders_.find(remoteSSRC) == udpSenders_.end())
+  {
+    Logger::getLogger()->printNormal(this, "Creating a new UDP sender",
+                                     "Remote SSRC", QString::number(remoteSSRC));
+    std::shared_ptr<RelayInterface> relay = getUDPRelay(localAddress, localPort);
+
+    QString id = remoteAddress + ":" + QString::number(peerPort);
+
+    udpSenders_[remoteSSRC] = std::shared_ptr<UDPSender>(new UDPSender(id, stats_,  hwResources_,
+                                                                       remoteAddress.toStdString(),
+                                                                       peerPort, relay));
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Using existing UDP sender");
+  }
+
+  return udpSenders_[remoteSSRC];
+}
+
+
+std::shared_ptr<Filter> Delivery::addRTPReceiveStream(uint32_t sessionID,
                                                    QString localAddress, QString remoteAddress,
                                                    uint16_t localPort, uint16_t peerPort,
                                                    QString codec, uint8_t rtpNum,
-                                                   MediaID id,
                                                    uint32_t localSSRC, uint32_t remoteSSRC)
 {
   Q_UNUSED(rtpNum); // TODO in uvgRTP
@@ -222,17 +261,20 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
   }
 
   if (!initializeStream(sessionID, peers_[sessionID]->sessions.at(sessionIndex),
-                        localPort, peerPort, id, fmt, localSSRC, remoteSSRC))
+                        localPort, peerPort, fmt, localSSRC, remoteSSRC, true))
   {
     return nullptr;
   }
 
   // create filter if it does not exist
-  if (peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver == nullptr)
+  if (peers_[sessionID]->sessions.at(sessionIndex).incomingStreams.find(remoteSSRC) ==
+      peers_[sessionID]->sessions.at(sessionIndex).incomingStreams.end() ||
+      peers_[sessionID]->sessions.at(sessionIndex).incomingStreams[remoteSSRC]->receiver == nullptr)
   {
     Logger::getLogger()->printNormal(this, "Creating receiver filter", "Interface",
                                      localAddress + ":" + QString::number(localPort));
-    peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver = std::shared_ptr<UvgRTPReceiver>(
+
+    peers_[sessionID]->sessions.at(sessionIndex).incomingStreams[remoteSSRC]->receiver = std::shared_ptr<UvgRTPReceiver>(
         new UvgRTPReceiver(
           sessionID,
           localAddress + ":" + QString::number(localPort),
@@ -240,12 +282,15 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
           hwResources_,
           type,
           mediaName,
-          peers_[sessionID]->sessions.at(sessionIndex).streams[id]->stream
+          localSSRC,
+          remoteSSRC,
+          peers_[sessionID]->sessions.at(sessionIndex).incomingStreams[remoteSSRC]->ms,
+          peers_[sessionID]->sessions.at(sessionIndex).incomingStreams[remoteSSRC]->runZRTP
         )
     );
 
     connect(
-      peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver.get(),
+      peers_[sessionID]->sessions.at(sessionIndex).incomingStreams[remoteSSRC]->receiver.get(),
       &UvgRTPReceiver::zrtpFailure,
       this,
       &Delivery::handleZRTPFailure);
@@ -255,15 +300,89 @@ std::shared_ptr<Filter> Delivery::addReceiveStream(uint32_t sessionID,
     Logger::getLogger()->printNormal(this, "Using existing RTP receiver");
   }
 
-  return peers_[sessionID]->sessions.at(sessionIndex).streams[id]->receiver;
+  return peers_[sessionID]->sessions.at(sessionIndex).incomingStreams[remoteSSRC]->receiver;
+}
+
+
+std::shared_ptr<Filter> Delivery::addUDPReceiveStream(uint32_t sessionID,
+                                                      QString localAddress, uint16_t localPort,
+                                                      uint32_t remoteSSRC)
+{
+  if (udpReceivers_.find(remoteSSRC) == udpReceivers_.end())
+  {
+    Logger::getLogger()->printNormal(this, "Creating new UDP receiver", "Path",
+                                     localAddress + ":" + QString::number(localPort));
+
+    std::shared_ptr<RelayInterface> relay = getUDPRelay(localAddress, localPort);
+    QString id = localAddress + ":" + QString::number(localPort);
+    udpReceivers_[remoteSSRC] = std::shared_ptr<UDPReceiver>(new UDPReceiver(id, stats_, hwResources_));
+    relay->registerRTPReceiver(remoteSSRC, udpReceivers_[remoteSSRC]);
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Using existing UDP receiver");
+  }
+
+  return udpReceivers_[remoteSSRC];
+}
+
+
+std::shared_ptr<Filter> Delivery::addUDPReceiveRTCPStream(uint32_t sessionID,
+                                                          QString localAddress, uint16_t localPort,
+                                                          uint32_t remoteSSRC)
+{
+  if (udpRtcpReceivers_.find(remoteSSRC) == udpRtcpReceivers_.end())
+  {
+    Logger::getLogger()->printNormal(this, "Creating new RTCP-only UDP receiver", "Path",
+                                     localAddress + ":" + QString::number(localPort));
+
+    std::shared_ptr<RelayInterface> relay = getUDPRelay(localAddress, localPort);
+    QString id = localAddress + ":" + QString::number(localPort);
+    udpRtcpReceivers_[remoteSSRC] = std::shared_ptr<UDPReceiver>(new UDPReceiver(id, stats_, hwResources_));
+    // Register as RTCP receiver so RTCP-only flow is handled separately from RTP
+    relay->registerRTCPReceiver(remoteSSRC, udpRtcpReceivers_[remoteSSRC]);
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Using existing RTCP-only UDP receiver");
+  }
+
+  return udpRtcpReceivers_[remoteSSRC];
+}
+
+
+std::shared_ptr<RelayInterface> Delivery::getUDPRelay(QString localAddress, uint16_t localPort)
+{
+  QString relayKey = localAddress + ":" + QString::number(localPort);
+
+  if (relays_.find(relayKey) == relays_.end())
+  {
+    Logger::getLogger()->printNormal(this, "Creating new UDP relay", "Local socket", relayKey);
+
+    // Create a UVGRelay shared_ptr first so we can connect its signal, then
+    // store it as a RelayInterface.
+    std::shared_ptr<UVGRelay> tmp = std::make_shared<UVGRelay>(localAddress.toStdString(), localPort);
+    connect(tmp.get(), &UVGRelay::rtcpAppPacketReceived,
+            this, &Delivery::rtcpAppPacketReceived);
+    relays_[relayKey] = std::static_pointer_cast<RelayInterface>(tmp);
+    Logger::getLogger()->printNormal(this, "Connected UVGRelay RTCP APP signal to Delivery",
+                                    {"LocalSocket"}, {relayKey});
+
+    relays_[relayKey]->start();
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Using existing UDP relay", "Path", relayKey);
+  }
+
+  return relays_[relayKey];
 }
 
 
 bool Delivery::initializeStream(uint32_t sessionID,
                                 DeliverySession& session,
                                 uint16_t localPort, uint16_t peerPort,
-                                MediaID id,
-                                rtp_format_t fmt, uint32_t localSSRC, uint32_t remoteSSRC)
+                                rtp_format_t fmt, uint32_t localSSRC, uint32_t remoteSSRC, bool recv)
 {
   bool success = true;
   // add peer if it does not exist
@@ -272,21 +391,43 @@ bool Delivery::initializeStream(uint32_t sessionID,
     return false;
   }
 
-  // create mediastream if it does not exist
-  if (session.streams.find(id) == session.streams.end())
+  if (recv)
   {
-    Logger::getLogger()->printNormal(this, "Creating a new uvgRTP mediastream");
-    success = addMediaStream(sessionID, session,
-                             localPort, peerPort, fmt, session.dhSelected, id,
-                             localSSRC, remoteSSRC);
-    if (success)
+    // create mediastream if it does not exist
+    if (session.incomingStreams.find(remoteSSRC) == session.incomingStreams.end())
     {
-      session.dhSelected = true;
+      Logger::getLogger()->printNormal(this, "Creating a new uvgRTP mediastream");
+      success = addMediaStream(sessionID, session,
+                               localPort, peerPort, fmt, session.dhSelected,
+                               localSSRC, remoteSSRC, recv);
+      if (success)
+      {
+        session.dhSelected = true;
+      }
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Reusing existing uvgRTP mediastream");
     }
   }
   else
   {
-    Logger::getLogger()->printNormal(this, "Reusing existing uvgRTP mediastream");
+    // create mediastream if it does not exist
+    if (session.outgoingStreams.find(localSSRC) == session.outgoingStreams.end())
+    {
+      Logger::getLogger()->printNormal(this, "Creating a new uvgRTP mediastream");
+      success = addMediaStream(sessionID, session,
+                               localPort, peerPort, fmt, session.dhSelected,
+                               localSSRC, remoteSSRC, recv);
+      if (success)
+      {
+        session.dhSelected = true;
+      }
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Reusing existing uvgRTP mediastream");
+    }
   }
 
   return success;
@@ -295,8 +436,8 @@ bool Delivery::initializeStream(uint32_t sessionID,
 
 bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
                               uint16_t localPort, uint16_t peerPort,
-                              rtp_format_t fmt, bool dhSelected, MediaID& id,
-                              uint32_t localSSRC, uint32_t remoteSSRC)
+                              rtp_format_t fmt, bool dhSelected,
+                              uint32_t localSSRC, uint32_t remoteSSRC, bool recv)
 {
   if (peers_.find(sessionID) == peers_.end())
   {
@@ -316,6 +457,9 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
     flags |= RCE_PACE_FRAGMENT_SENDING;
   }
 
+  flags |= RCE_RTCP;
+  flags |= RCE_RTCP_MUX;
+
   bool runZRTP = false;
 
   // enable encryption if it works
@@ -324,56 +468,206 @@ bool Delivery::addMediaStream(uint32_t sessionID, DeliverySession &session,
   {
     Logger::getLogger()->printNormal(this, "Encryption enabled");
 
-    // enable srtp + zrtp
+    // enable SRTP
     flags |= RCE_SRTP;
 
-    // zrtp will always be performed explicitly
-    //flags |= RCE_SRTP_KMNGMNT_ZRTP;
-
-    if (!dhSelected)
+    if (runZRTP)
     {
-      flags |= RCE_ZRTP_DIFFIE_HELLMAN_MODE;
+      // zrtp will always be performed explicitly
+      if (!dhSelected)
+      {
+        flags |= RCE_ZRTP_DIFFIE_HELLMAN_MODE;
+      }
+      else
+      {
+        flags |= RCE_ZRTP_MULTISTREAM_MODE;
+      }
     }
     else
     {
-      flags |= RCE_ZRTP_MULTISTREAM_MODE;
+      flags |= RCE_SRTP_KMNGMNT_USER | RCE_SRTP_KEYSIZE_256;
     }
-
-    runZRTP = true;
   }
   else
   {
     Logger::getLogger()->printWarning(this, "No media encryption");
   }
 
-  uvg_rtp::media_stream* stream = session.session->create_stream(localPort, peerPort, fmt, flags);
+  uvg_rtp::media_stream* stream = session.session->create_stream(localPort, peerPort, fmt, flags, localSSRC);
 
-  // check if there already exists a media session and overwrite
-  if (session.streams.find(id) != session.streams.end() &&
-      session.streams[id] != nullptr)
+  if (!runZRTP && ctx.crypto_enabled() && settingEnabled(SettingsKey::sipSRTP))
   {
-    Logger::getLogger()->printProgramWarning(this, "Existing mediastream detected. Overwriting."
-                              " Will cause a crash if previous filters are attached to filtergraph.");
-    removeMediaStream(sessionID, session, id);
+    constexpr int KEY_SIZE = 256;
+    constexpr int KEY_SIZE_BYTES = KEY_SIZE / 8;
+    constexpr int SALT_SIZE = 112;
+    constexpr int SALT_SIZE_BYTES = SALT_SIZE / 8;
+    uint8_t key[KEY_SIZE_BYTES] = {0};
+    uint8_t salt[SALT_SIZE_BYTES] = {0};
+
+    // initialize SRTP key and salt with dummy values
+    for (int i = 0; i < KEY_SIZE_BYTES; ++i)
+      key[i] = i;
+
+    for (int i = 0; i < SALT_SIZE_BYTES; ++i)
+      salt[i] = i * 2;
+
+    stream->add_srtp_ctx(key, salt);
   }
 
-  // actually create the mediastream
-  session.streams[id] = new MediaStream;
-  session.streams[id]->stream = std::shared_ptr<UvgRTPStream> (new UvgRTPStream);
-  *(session.streams[id]->stream) = {stream, runZRTP, localSSRC, remoteSSRC};
+  if (recv)
+  {
+    // check if there already exists a media session and overwrite
+    if (session.incomingStreams.find(remoteSSRC) != session.incomingStreams.end()
+        && session.incomingStreams[remoteSSRC] != nullptr) {
+      Logger::getLogger()->printProgramWarning(this, "Existing mediastream detected. Overwriting. "
+                                                     "Will cause a crash if previous filters "
+                                                     "are attached to filtergraph.");
+      removeRecvStream(sessionID, session, remoteSSRC);
+    }
+
+    // actually create the mediastream
+    session.incomingStreams[remoteSSRC] = new RecvStream;
+    session.incomingStreams[remoteSSRC]->ms = stream;
+    session.incomingStreams[remoteSSRC]->runZRTP = runZRTP;
+    session.incomingStreams[remoteSSRC]->receiver = nullptr;
+
+    if (remoteSSRC != 0)
+    {
+      stream->configure_ctx(RCC_REMOTE_SSRC, remoteSSRC);
+    }
+
+    Logger::getLogger()->printNormal(this, "Created mediastream for receiving",
+                                     {"SessionID","RemoteSSRC","IncomingCount"},
+                                     {QString::number(sessionID), QString::number(remoteSSRC), QString::number(session.incomingStreams.size())});
+  }
+  else
+  {
+    // check if there already exists a media session and overwrite
+    if (session.outgoingStreams.find(localSSRC) != session.outgoingStreams.end()
+        && session.outgoingStreams[localSSRC] != nullptr) {
+      Logger::getLogger()->printProgramWarning(this, "Existing mediastream detected. Overwriting. "
+                                                     "Will cause a crash if previous filters "
+                                                     "are attached to filtergraph.");
+      removeSendStream(sessionID, session, localSSRC);
+    }
+
+    // actually create the mediastream
+    session.outgoingStreams[localSSRC] = new SendStream;
+    session.outgoingStreams[localSSRC]->ms = stream;
+    session.outgoingStreams[localSSRC]->runZRTP = runZRTP;
+    session.outgoingStreams[localSSRC]->sender = nullptr;
+
+
+    if (localSSRC != 0)
+    {
+      stream->configure_ctx(RCC_SSRC, localSSRC);
+    }
+
+    Logger::getLogger()->printNormal(this, "Created mediastream for sending",
+                                     {"SessionID","LocalSSRC","OutgoingCount"},
+                                     {QString::number(sessionID), QString::number(localSSRC), QString::number(session.outgoingStreams.size())});
+  }
 
   return true;
 }
 
 
-void Delivery::removeMediaStream(uint32_t sessionID, DeliverySession &session, MediaID& id)
+void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
+                                uint32_t localSSRC)
 {
-  Logger::getLogger()->printNormal(this, "Removing mediastream");
+  Logger::getLogger()->printNormal(this, "Removing send media",
+                                   {"LocalSSRC"},
+                                   {QString::number(localSSRC)});
 
-  session.session->destroy_stream(session.streams[id]->stream->ms);
-  delete session.streams[id];
-  session.streams[id] = nullptr;
-  session.streams.erase(id);
+  // If a sender filter exists, stop it and release it before destroying
+  // the underlying uvgRTP media_stream. The filter may access the
+  // media_stream on background threads, so destroying the stream while
+  // the filter is still running can cause crashes.
+  if (session.outgoingStreams.find(localSSRC) != session.outgoingStreams.end() &&
+      session.outgoingStreams[localSSRC] != nullptr &&
+      session.outgoingStreams[localSSRC]->sender != nullptr)
+  {
+    auto sender = session.outgoingStreams[localSSRC]->sender;
+    Logger::getLogger()->printNormal(this, "Found sender before removal",
+                                     {"SenderPtr"}, {QString::number((quintptr)sender.get())});
+    // stop processing and drain buffers
+    sender->stop();
+    sender->emptyBuffer();
+
+    // wait for filter to actually stop
+    int waitMs = 0;
+    while (sender->isRunning())
+    {
+      QCoreApplication::processEvents();
+      QThread::msleep(1);
+      waitMs += 1;
+      if (waitMs % 100 == 0)
+      {
+        Logger::getLogger()->printWarning(this, "Waiting for sender to stop",
+                                          {"LocalSSRC","WaitMs"},
+                                          {QString::number(localSSRC), QString::number(waitMs)});
+      }
+      if (waitMs > 2000)
+      {
+        Logger::getLogger()->printError(this, "Timeout waiting for sender to stop");
+        break;
+      }
+    }
+
+    // release our reference so the filter can be destroyed
+    session.outgoingStreams[localSSRC]->sender = nullptr;
+    sender = nullptr;
+  }
+
+  // Now it is safe to destroy the uvgRTP stream and the wrapper
+  if (session.outgoingStreams.find(localSSRC) != session.outgoingStreams.end() &&
+      session.outgoingStreams[localSSRC] != nullptr)
+  {
+    Logger::getLogger()->printNormal(this, "Destroying outgoing media_stream");
+    session.session->destroy_stream(session.outgoingStreams[localSSRC]->ms);
+    delete session.outgoingStreams[localSSRC];
+    session.outgoingStreams[localSSRC] = nullptr;
+    session.outgoingStreams.erase(localSSRC);
+  }
+}
+
+
+void Delivery::removeRecvStream(uint32_t sessionID, DeliverySession& session,
+                                uint32_t remoteSSRC)
+{
+  Logger::getLogger()->printNormal(this, "Removing receive stream",
+                                   {"RemoteSSRC"}, {QString::number(remoteSSRC)});
+
+  // If a receiver filter exists, stop it and release it before destroying
+  // the underlying uvgRTP media_stream. The receiver installs hooks into
+  // the stream and may be called from uvgRTP threads; releasing the hook
+  // after stream destruction would be unsafe.
+  if (session.incomingStreams.find(remoteSSRC) != session.incomingStreams.end() &&
+      session.incomingStreams[remoteSSRC] != nullptr)
+  {
+    if (session.incomingStreams[remoteSSRC]->receiver != nullptr)
+    {
+      auto receiver = session.incomingStreams[remoteSSRC]->receiver;
+      Logger::getLogger()->printNormal(this, "Found receiver before removal");
+      receiver->stop();
+      receiver->emptyBuffer();
+
+      while (receiver->isRunning())
+      {
+        QCoreApplication::processEvents();
+        QThread::msleep(1);
+      }
+
+      session.incomingStreams[remoteSSRC]->receiver = nullptr;
+      receiver = nullptr;
+    }
+
+    Logger::getLogger()->printNormal(this, "Destroying incoming media_stream");
+    session.session->destroy_stream(session.incomingStreams[remoteSSRC]->ms);
+    delete session.incomingStreams[remoteSSRC];
+    session.incomingStreams[remoteSSRC] = nullptr;
+    session.incomingStreams.erase(remoteSSRC);
+  }
 }
 
 
@@ -383,25 +677,41 @@ void Delivery::removePeer(uint32_t sessionID)
   {
     for (auto& session : peers_[sessionID]->sessions)
     {
-      std::vector<MediaID> streams;
+      std::vector<uint32_t> localSSRCs;
+      std::vector<uint32_t> remoteSSRCs;
 
       // take all keys so we wont get iterator errors
-      for (auto& stream : session.streams)
+      for (auto& stream : session.outgoingStreams)
       {
-        streams.push_back(stream.first);
+        if (stream.second != nullptr)
+        {
+          localSSRCs.push_back(stream.first);
+        }
+      }
+
+      for (auto& stream : session.incomingStreams)
+      {
+        if (stream.second != nullptr)
+        {
+          remoteSSRCs.push_back(stream.first);
+        }
       }
 
       // delete all streams
-      for (auto& stream : streams)
+      for (auto& ssrc : localSSRCs)
       {
-        removeMediaStream(sessionID, session, stream);
+        removeSendStream(sessionID, session, ssrc);
+      }
+
+      for (auto& ssrc : remoteSSRCs)
+      {
+        removeRecvStream(sessionID, session, ssrc);
       }
 
       // delete session
-      if (session.session)
+      if (rtp_ctx_ && session.session)
       {
-        // TODO: uvgRTP free_session
-        delete session.session;
+        rtp_ctx_->destroy_session(session.session);
         session.session = nullptr;
       }
     }
@@ -423,8 +733,20 @@ void Delivery::removeAllPeers()
   // remove all peers by sessionID
   for (unsigned int i = 0; i < ids.size(); ++i)
   {
-    removePeer(i);
+    // Use the collected id values
+    removePeer(ids[i]);
   }
+
+  for (auto& relay : relays_)
+  {
+    relay.second->stop();
+    while (relay.second->isRunning())
+    {
+      QCoreApplication::processEvents();
+    }
+  }
+
+  relays_.clear();
 }
 
 
@@ -442,7 +764,6 @@ bool Delivery::findSession(uint32_t sessionID, uint32_t& outIndex,
       break;
     }
   }
-
 
   return sessionExists;
 }

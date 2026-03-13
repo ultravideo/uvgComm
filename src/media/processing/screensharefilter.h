@@ -32,4 +32,6 @@ private:
   QSize currentResolution_;
 
   int screenID_;
+
+  uint32_t rtpTimestamp_;
 };

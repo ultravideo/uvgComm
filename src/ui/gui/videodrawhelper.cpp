@@ -1,11 +1,14 @@
 #include "videodrawhelper.h"
 
 #include "logger.h"
+#include "common.h"
+#include "settingskeys.h"
 
 #include <QWidget>
 #include <QKeyEvent>
 #include <QPainter>
 #include <QDateTime>
+#include <QProcessEnvironment>
 
 const uint16_t VIEWBUFFERSIZE = 5;
 const QImage::Format IMAGE_FORMAT = QImage::Format_ARGB32;
@@ -36,7 +39,9 @@ VideoDrawHelper::VideoDrawHelper(uint32_t sessionID, LayoutID layoutID, uint8_t 
   micIcon_(QString(":/icons/mic_off.svg")),
   drawIcon_(false),
   fullscreen_(false),
-  bufferFullWarnings_(0)
+  discardedFrames_(0),
+  showLatency_(false),
+  lastLatency_(0)
 {
   micIcon_.setAspectRatioMode(Qt::KeepAspectRatio);
 }
@@ -103,7 +108,6 @@ void VideoDrawHelper::disableOverlay()
   drawOverlay_ = false;
   overlay_ = QImage(imageRect_.size(), IMAGE_FORMAT);
   overlay_.fill(QColor(0,0,0,0));
-
 }
 
 
@@ -135,11 +139,14 @@ bool VideoDrawHelper::readyToDraw()
 
 
 void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data, QImage &image,
-                                 double framerate, int64_t timestamp)
+                                 double framerate, int64_t creationTimestamp, int64_t displayTimestamp)
 {
-  if (!widget->isVisible() ||
-      widget->isHidden() ||
-      widget->isMinimized())
+  // Respect the widget visibility by default to avoid unnecessary drawing.
+  // Allow overriding in headless experimental runs by setting KV_HEADLESS_FORCE_OFFSCREEN=1
+  QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+  bool forceOffscreen = !env.value("KV_HEADLESS_FORCE_OFFSCREEN").isEmpty();
+
+  if ((!widget->isVisible() || widget->isHidden() || widget->isMinimized()) && !forceOffscreen)
   {
     return;
   }
@@ -151,7 +158,7 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
 
   if(!firstImageReceived_)
   {
-    lastFrame_ = {image, std::move(data), timestamp};
+    lastFrame_ = {image, std::move(data), creationTimestamp, displayTimestamp};
     firstImageReceived_ = true;
     updateTargetRect(widget);
   }
@@ -160,39 +167,45 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
     if(previousSize_ != image.size())
     {
       Logger::getLogger()->printNormal(this, "Video widget needs to update its target "
-                                             "rectangle because of resolution change");
+                                                          "rectangle because of resolution change",
+                                      {"Previous size", "Current size"},
+                                      {QString::number(previousSize_.width()) + "x" +
+                                       QString::number(previousSize_.height()),
+                                       QString::number(image.width()) + "x" +
+                                       QString::number(image.height())});
 
       frameBuffer_.clear();
-      frameBuffer_.push_front({image, std::move(data), timestamp});
+      frameBuffer_.push_front({image, std::move(data), creationTimestamp, displayTimestamp});
 
+      lastFrame_ = {image, std::move(data), creationTimestamp, displayTimestamp};
+      firstImageReceived_ = true;
       updateTargetRect(widget);
     }
     else
     {
-      frameBuffer_.push_front({image, std::move(data), timestamp});
+      frameBuffer_.push_front({image, std::move(data), creationTimestamp, displayTimestamp});
     }
 
-    // delete oldes image if there is too much buffer
+    // delete oldest image if there is too much buffer
     if(frameBuffer_.size() > VIEWBUFFERSIZE)
     {
-      if (bufferFullWarnings_ == 0)
-      {
-        Logger::getLogger()->printWarning(this, "Buffer full when inputting image",
-                                         {"Buffer"}, QString::number(frameBuffer_.size()) + "/" +
-                                                     QString::number(VIEWBUFFERSIZE));
-      }
-
-      ++bufferFullWarnings_;
+      ++discardedFrames_;
       frameBuffer_.pop_back();
+
+      if (discardedFrames_%30 == 1)
+      {
+        Logger::getLogger()->printWarning(this, "Buffer full when inputting image, discarding oldest frame",
+                                         {"Buffer", "Discarded so far"},
+                                          {QString::number(frameBuffer_.size()) + "/" + QString::number(VIEWBUFFERSIZE),
+                                          QString::number(discardedFrames_)});
+      }
 
       //setUpdatesEnabled(true);
       //stats_->packetDropped("view" + QString::number(sessionID_));
     }
-    else if (bufferFullWarnings_ > 0)
+    else if (discardedFrames_ > 0)
     {
-      Logger::getLogger()->printWarning(this, "Discarded frames because buffer was full",
-                                        {"Amount discarded"}, QString::number(bufferFullWarnings_));
-      bufferFullWarnings_ = 0;
+      discardedFrames_ = 0;
     }
   }
 }
@@ -234,7 +247,7 @@ void VideoDrawHelper::visualizeROIMap(RoiMap& map, int baseQP)
 }
 
 
-bool VideoDrawHelper::getRecentImage(QImage& image)
+bool VideoDrawHelper::getRecentImage(QImage& image, int64_t& timestamp, int64_t& latency, bool& showLatency)
 {
   Q_ASSERT(readyToDraw());
   bool showNewFrame = false;
@@ -258,8 +271,8 @@ bool VideoDrawHelper::getRecentImage(QImage& image)
     }
     else if (frameBuffer_.size() == VIEWBUFFERSIZE) // we are buffering frames
     {
-      Logger::getLogger()->printWarning(this, "We are buffering, showing more images",
-                                        "Image interval", QString::number(timeSinceLastFrame));
+      //Logger::getLogger()->printWarning(this, "We are buffering, showing more images",
+      //                                  "Image interval", QString::number(timeSinceLastFrame));
       showNewFrame = true;
     }
     else // show previous frame while waiting
@@ -270,6 +283,13 @@ bool VideoDrawHelper::getRecentImage(QImage& image)
 
     if (showNewFrame)
     {
+      if (frameBuffer_.back().creationTimestamp != 0)
+      {
+        auto now = std::chrono::system_clock::now();
+        lastLatency_ = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count()
+                       - frameBuffer_.back().creationTimestamp;
+      }
+
       image = frameBuffer_.back().image;
       lastFrame_ = std::move(frameBuffer_.back());
       frameBuffer_.pop_back();
@@ -279,6 +299,10 @@ bool VideoDrawHelper::getRecentImage(QImage& image)
     {
       image = lastFrame_.image;
     }
+
+    timestamp = lastFrame_.displayTimestamp;
+    latency = lastLatency_;
+    showLatency = showLatency_;
   }
 
   return showNewFrame;
@@ -292,8 +316,7 @@ void VideoDrawHelper::updateTargetRect(QWidget* widget)
     Q_ASSERT(lastFrame_.image.data_ptr());
     if(lastFrame_.image.data_ptr() == nullptr)
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,
-                                      "Null pointer in current image!");
+      Logger::getLogger()->printProgramError(this, "Null pointer in current image!");
       return;
     }
 
@@ -643,6 +666,10 @@ void VideoDrawHelper::keyPressEvent(QWidget* widget, QKeyEvent *event)
     {
       exitFullscreen(widget);
     }
+  }
+  else if (event->key() == Qt::Key_F11)
+  {
+    showLatency_ = !showLatency_;
   }
   else
   {

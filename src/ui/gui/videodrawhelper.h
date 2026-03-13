@@ -47,15 +47,19 @@ public:
   void setDrawMicOff(bool state);
 
   bool readyToDraw();
-  void inputImage(QWidget *widget, std::unique_ptr<uchar[]> data,
-                  QImage &image, double framerate, int64_t timestamp);
+  void inputImage(QWidget* widget,
+                  std::unique_ptr<uchar[]> data,
+                  QImage& image,
+                  double framerate,
+                  int64_t creationTimestamp,
+                  int64_t displayTimestamp);
 
   void inputDetections(std::vector<Detection> detections, QSize original_size, uint64_t timestamp);
 
   void visualizeROIMap(RoiMap &map, int baseQP);
 
   // returns whether this is a new image or the previous one
-  bool getRecentImage(QImage& image);
+  bool getRecentImage(QImage& image, int64_t &timestamp, int64_t& latency, bool &showLatency);
 
   void draw(QPainter& painter);
 
@@ -79,6 +83,11 @@ public:
 
   std::unique_ptr<int8_t[]> getRoiMask(int& width, int& height, int qp, bool scaleToInput);
 
+  bool haveFrames()
+  {
+    return !frameBuffer_.empty();
+  }
+
 signals:
 
   void reattach(LayoutID layoutID);
@@ -101,6 +110,8 @@ private:
 
   QSizeF getSizeMultipliers(int width, int height);
 
+  void recordLatencies();
+
   uint32_t sessionID_;
   LayoutID layoutID_;
 
@@ -119,7 +130,8 @@ private:
   {
     QImage image;
     std::unique_ptr<uchar[]> data;
-    int64_t timestamp;
+    int64_t creationTimestamp;
+    int64_t displayTimestamp;
   };
 
   Frame lastFrame_;
@@ -148,7 +160,7 @@ private:
 
   bool fullscreen_;
 
-  int bufferFullWarnings_;
+  int discardedFrames_ = 0;
 
   std::vector<Detection> detections_;
   int64_t timepoint_ = 0;
@@ -158,4 +170,8 @@ private:
   int baseQP_ = 0;
 
   double framerate_ = 30;
+
+  bool showLatency_ = false;
+
+  int64_t lastLatency_ = 0;
 };

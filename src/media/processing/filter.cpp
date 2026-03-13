@@ -42,6 +42,29 @@ QString datatypeToString(const DataType type)
   return typeString.at(type);
 }
 
+uint32_t initializeRtpTimestamp()
+{
+  return QRandomGenerator::global()->generate() & 0x7FFFFFFF;
+}
+
+uint32_t updateVideoRtpTimestamp(uint32_t previousTimestamp, int framerateNumerator, int framerateDenominator, int frameCount)
+{
+  // Calculate RTP timestamp ticks per video frame based on framerate
+  // Video uses 90 kHz clock rate (RFC 3551)
+  uint32_t increment = static_cast<uint32_t>((static_cast<uint64_t>(VIDEO_RTP_TIMESTAMP_RATE) * 
+                                              static_cast<uint64_t>(framerateDenominator)) /
+                                             static_cast<uint64_t>(framerateNumerator));
+  return previousTimestamp + (increment * frameCount);
+}
+
+uint32_t updateAudioRtpTimestamp(uint32_t previousTimestamp)
+{
+  // Audio uses 48 kHz clock rate (RFC 7587)
+  // Increment per frame = OPUS_RTP_TIMESTAMP_RATE / AUDIO_FRAMES_PER_SECOND
+  uint32_t increment = OPUS_RTP_TIMESTAMP_RATE / AUDIO_FRAMES_PER_SECOND;
+  return previousTimestamp + increment;
+}
+
 Filter::Filter(QString id, QString name, StatisticsInterface *stats,
                std::shared_ptr<ResourceAllocator> hwResources,
                DataType input, DataType output, bool enforceFramerate):
@@ -83,7 +106,7 @@ bool Filter::init()
 }
 
 
-bool Filter::isVideo(DataType type) const
+bool Filter::isVideo(DataType type)
 {
   return type == DT_YUV420VIDEO ||
     type == DT_YUV422VIDEO ||
@@ -105,7 +128,7 @@ bool Filter::isVideo(DataType type) const
 }
 
 
-bool Filter::isAudio(DataType type) const
+bool Filter::isAudio(DataType type)
 {
   return type == DT_RAWAUDIO ||
       type == DT_OPUSAUDIO;
@@ -114,7 +137,7 @@ bool Filter::isAudio(DataType type) const
 
 void Filter::addOutConnection(std::shared_ptr<Filter> out)
 {
-  outConnections_.push_back(out);
+  outConnections_.push_back({out, true});
 }
 
 void Filter::removeOutConnection(std::shared_ptr<Filter> out)
@@ -123,7 +146,7 @@ void Filter::removeOutConnection(std::shared_ptr<Filter> out)
   connectionMutex_.lock();
   for(unsigned int i = 0; i < outConnections_.size(); ++i)
   {
-    if(outConnections_[i].get() == out.get())
+    if(outConnections_[i].filter.get() == out.get())
     {
       outConnections_.erase(outConnections_.begin() + i);
       removed = true;
@@ -134,9 +157,24 @@ void Filter::removeOutConnection(std::shared_ptr<Filter> out)
 
   if(!removed)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this,
-                                    "Did not succeed at removing outconnection.");
+    Logger::getLogger()->printWarning(this, "Did not succeed at removing outconnection.");
   }
+}
+
+int Filter::getOutConnectionIndex(std::shared_ptr<Filter> target) const
+{
+  QMutexLocker lock(&const_cast<Filter*>(this)->connectionMutex_);
+  for (int i = 0; i < (int)outConnections_.size(); ++i)
+  {
+    if (outConnections_[i].filter.get() == target.get())
+      return i;
+  }
+  return -1;
+}
+
+void Filter::setOutConnectionEnabledByIndex(int index, bool enabled)
+{
+  setOutputStatus(index, enabled);
 }
 
 void Filter::emptyBuffer()
@@ -158,7 +196,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
   if(!ok)
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this,  "Discarding bad data");
+    Logger::getLogger()->printWarning(this, "Discarding bad data");
     return;
   }
 #endif
@@ -199,8 +237,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
     {
       if(inBuffer_[0]->type == DT_OPUSAUDIO)
       {
-        Logger::getLogger()->printDebug(DEBUG_WARNING, this,  
-                                        "Should input Null pointer to opus decoder.");
+        Logger::getLogger()->printWarning(this, "Should input Null pointer to opus decoder.");
       }
       inBuffer_.pop_front(); // discard the oldest
     }
@@ -210,7 +247,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 
     if (inputDiscarded_ == 1 || inputDiscarded_%10 == 0)
     {
-      Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Buffer too full",
+      Logger::getLogger()->printWarning(this, "Buffer too full",
                                       {"Name", "Discarded/total input"},
                                       {name_, QString::number(inputDiscarded_) + "/" +
                                               QString::number(inputTaken_)});
@@ -222,7 +259,7 @@ void Filter::putInput(std::unique_ptr<Data> data)
 }
 
 
-std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source) const
+std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source)
 {
   std::unique_ptr<Data> data(new Data);
   data->type = type;
@@ -230,6 +267,7 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source) c
   data->data_size = 0;
   data->creationTimestamp = 0;
   data->presentationTimestamp = 0;
+  data->rtpTimestamp = 0;
 
   if (isVideo(type))
   {
@@ -240,6 +278,7 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source) c
     data->vInfo->framerateDenominator = 0;
     data->vInfo->flippedVertically = false;
     data->vInfo->flippedHorizontally = false;
+    data->vInfo->keyframe = false;
 
     data->vInfo->roi.width = 0;
     data->vInfo->roi.height = 0;
@@ -251,9 +290,9 @@ std::unique_ptr<Data> Filter::initializeData(DataType type, DataSource source) c
     data->aInfo = std::unique_ptr<AudioInfo> (new AudioInfo);
     data->aInfo->sampleRate = 0;
   }
-  else
+  else if (type != DT_RTP)
   {
-    Logger::getLogger()->printProgramError(this, "Could not determine input data type!");
+    Logger::getLogger()->printProgramError("Filter", "Could not determine input data type!");
   }
 
   return data;
@@ -319,7 +358,7 @@ std::unique_ptr<Data> Filter::getInput()
         r->vInfo->framerateDenominator != framerateDenominator_ || now > timeSlot)
     {
       /*
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Updating frame rate synchronization point.",
+      Logger::getLogger()->printNormal(this, "Updating frame rate synchronization point.",
                                       {"Arrival time"},
                                       {QString::number(std::chrono::duration_cast<
                                        std::chrono::milliseconds>
@@ -361,58 +400,67 @@ void Filter::resetSynchronizationPoint(int32_t framerateNumerator,
 }
 
 
-void Filter::sendOutput(std::unique_ptr<Data> output)
+void Filter::sendOutput(std::unique_ptr<Data> output, bool inverse)
 {
   Q_ASSERT(output);
 
-  if(outDataCallbacks_.size() == 0 && outConnections_.size() == 0)
+  if (outDataCallbacks_.empty() && outConnections_.empty())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
-                                    "Trying to send output data without outconnections.");
+    Logger::getLogger()->printWarning(this,
+                                    "Trying to send output data without outconnections.",
+                                    {"Name/id"}, {name_ + " " + id_});
     return;
   }
 
   // TODO: If data is HEVC, I think we can safely use shallowcopy
 
   connectionMutex_.lock();
-  // copy data to callbacks expect the last one is moved
-  // in either callbacks or outconnections(default).
-  if(outDataCallbacks_.size() != 0)
+  // Copy data to callbacks (except for the last one which is moved)
+  if (!outDataCallbacks_.empty())
   {
-    // all expect the last
-    for(unsigned int i = 0; i < outDataCallbacks_.size() - 1; ++i)
+    // All callbacks except the last
+    for (unsigned int i = 0; i < outDataCallbacks_.size() - 1; ++i)
     {
       Data* copy = deepDataCopy(output.get());
       std::unique_ptr<Data> u_copy(copy);
       outDataCallbacks_[i](std::move(u_copy));
     }
 
-    // copy last callback and move last connection
-    if(outConnections_.size() != 0)
+    // Copy the last callback and move the last connection
+    if (!outConnections_.empty())
     {
       Data* copy = deepDataCopy(output.get());
       std::unique_ptr<Data> u_copy(copy);
       outDataCallbacks_.back()(std::move(u_copy));
     }
-    else // move last callback
+    else // Move the last callback
     {
       outDataCallbacks_.back()(std::move(output));
     }
   }
 
-  // handle all connected filters.
-  if(outConnections_.size() != 0)
+  // Handle all connected filters, considering 'enabled' status
+  if (!outConnections_.empty())
   {
-    // all expect the last
-    for(unsigned int i = 0; i < outConnections_.size() - 1; ++i)
+    // All output connections except the last (which will be moved)
+    for (unsigned int i = 0; i < outConnections_.size() - 1; ++i)
     {
-      Data* copy = deepDataCopy(output.get());
-      std::unique_ptr<Data> u_copy(copy);
-      outConnections_[i]->putInput(std::move(u_copy));
+      // Only send to enabled connections
+      if ((outConnections_[i].enabled && !inverse) || (!outConnections_[i].enabled && inverse))
+      {
+        Data* copy = deepDataCopy(output.get());
+        std::unique_ptr<Data> u_copy(copy);
+        outConnections_[i].filter->putInput(std::move(u_copy));
+      }
     }
-    // always move the last outconnection
-    outConnections_.back()->putInput(std::move(output));
+
+    // Always move the last connection
+    if ((outConnections_.back().enabled && !inverse) || (!outConnections_.back().enabled && inverse))
+    {
+      outConnections_.back().filter->putInput(std::move(output));
+    }
   }
+
   connectionMutex_.unlock();
 }
 
@@ -453,6 +501,7 @@ Data* Filter::shallowDataCopy(Data* original) const
 
     copy->creationTimestamp = original->creationTimestamp;
     copy->presentationTimestamp = original->presentationTimestamp;
+    copy->rtpTimestamp = original->rtpTimestamp;
 
     copy->data_size = 0; // no data in shallow copy
 
@@ -466,6 +515,7 @@ Data* Filter::shallowDataCopy(Data* original) const
       copy->vInfo->framerateDenominator  = original->vInfo->framerateDenominator;
       copy->vInfo->flippedHorizontally = original->vInfo->flippedHorizontally;
       copy->vInfo->flippedVertically   = original->vInfo->flippedVertically;
+      copy->vInfo->keyframe            = original->vInfo->keyframe;
     }
 
     if (original->aInfo != nullptr)
@@ -477,8 +527,7 @@ Data* Filter::shallowDataCopy(Data* original) const
 
     return copy;
   }
-  Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
-                                  "Trying to copy nullptr Data pointer.");
+  Logger::getLogger()->printWarning(this, "Trying to copy nullptr Data pointer.");
   return nullptr;
 }
 
@@ -493,8 +542,7 @@ Data* Filter::deepDataCopy(Data* original) const
 
     return copy;
   }
-  Logger::getLogger()->printDebug(DEBUG_WARNING, this, 
-                                  "Trying to copy nullptr Data pointer.");
+  Logger::getLogger()->printWarning(this, "Trying to copy nullptr Data pointer.");
   return nullptr;
 }
 
@@ -505,7 +553,7 @@ QString Filter::printOutputs()
 
   for(auto& out : outConnections_)
   {
-    outs += "   \"" + name_ + "\" -> \"" + out->name_ + "\";" + "\r\n";
+    outs += "   \"" + name_ + "\" -> \"" + out.filter->name_ + "\";" + "\r\n";
   }
 
   outs += "plus " + QString::number(outDataCallbacks_.size()) + " callbacks";

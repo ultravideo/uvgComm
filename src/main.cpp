@@ -2,19 +2,104 @@
 
 #include "settingskeys.h"
 #include "logger.h"
-#include "version.h"
 
 #include <QApplication>
 #include <QSettings>
 #include <QFontDatabase>
 #include <QDir>
 #include <QMessageBox>
-#include <QSystemTrayIcon>
+//#include <QSystemTrayIcon>
+#include <QCommandLineParser>
+
+enum class ScriptMode
+{
+  SCRIPT_NONE,
+  SCRIPT_STDIN,
+  SCRIPT_FILE
+};
+
+
+ScriptMode commandLine(QApplication& app,
+                       QString& outScriptfile, QString& outConfigfile,
+                       QString& statsFolder,   QString& sipLogFile)
+{
+  Logger::getLogger()->printNormal("Main", "Parsing command line arguments");
+
+  QCommandLineParser parser;
+  parser.setApplicationDescription("Video conferencing app with optional scripting support");
+  parser.addHelpOption();
+  parser.addVersionOption();
+
+  QCommandLineOption scriptOption("script",
+                                  "Run script for automated testing. Use 'stdin' to read from stdin.",
+                                  "filename");
+  parser.addOption(scriptOption);
+
+  QCommandLineOption configOption("config",
+                                  "Use the specified config file instead of default.",
+                                  "filename");
+  parser.addOption(configOption);
+
+  QCommandLineOption statsOption("stats",
+                                  "Record statistics into a folder instead of the window.",
+                                  "destination folder");
+  parser.addOption(statsOption);
+
+  QCommandLineOption sipOption("siplog",
+                               "Record SIP messages into a file.",
+                               "filename");
+  parser.addOption(sipOption);
+
+
+  parser.process(app);
+
+  ScriptMode scriptMode = ScriptMode::SCRIPT_NONE;
+
+  if (parser.isSet(scriptOption))
+  {
+    QString scriptPath = parser.value(scriptOption);
+    if (scriptPath == "-" || scriptPath == "stdin")
+    {
+      // Read from stdin
+      scriptMode = ScriptMode::SCRIPT_STDIN;
+    }
+    else
+    {
+      outScriptfile = scriptPath;
+      scriptMode = ScriptMode::SCRIPT_FILE;
+    }
+  }
+
+  if (parser.isSet(configOption))
+  {
+    outConfigfile = parser.value(configOption);
+  }
+
+  if (parser.isSet(statsOption))
+  {
+    statsFolder = parser.value(statsOption);
+  }
+
+  if (parser.isSet(sipOption))
+  {
+    sipLogFile = parser.value(sipOption);
+  }
+
+  Logger::getLogger()->printNormal("Main", "Command line parsing done",
+                                  {"Script mode", "Script file", "Config file", "Stats folder", "SIP log file"},
+                                  {QString::number(static_cast<int>(scriptMode)),
+                                   outScriptfile, outConfigfile, statsFolder, sipLogFile});
+
+  return scriptMode;
+}
+
 
 int main(int argc, char *argv[])
 {
+  Logger::getLogger()->printImportant("Main", "uvgComm started");
   QApplication a(argc, argv);
 
+/*
 #ifndef QT_NO_SYSTEMTRAYICON
 
   if (!QSystemTrayIcon::isSystemTrayAvailable()) {
@@ -24,11 +109,12 @@ int main(int argc, char *argv[])
       return 1;
   }
 #endif
+*/
 
   a.setApplicationName("uvgComm");
   //a.setQuitOnLastWindowClosed(false);
 
-  //Logger::getLogger()->printDebug(DEBUG_NORMAL, "Main", "Starting uvgComm",
+  //Logger::getLogger()->printNormal("Main", "Starting uvgComm",
   //                                {"Version"}, {QString::fromStdString(get_version())});
 
   int id = QFontDatabase::addApplicationFont(":/fonts/OpenSans-Regular.ttf");
@@ -40,7 +126,7 @@ int main(int argc, char *argv[])
   }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, "Main", 
+    Logger::getLogger()->printWarning("Main", 
                                     "Could not find default font. Is the file missing?");
   }
 
@@ -50,6 +136,13 @@ int main(int argc, char *argv[])
 
   QSettings::setPath(settingsFileFormat, QSettings::SystemScope, ".");
 
+  QString scriptFile  = "";
+  QString configFile  = "";
+  QString statsFolder = "";
+  QString sipLogFile  = "";
+
+  ScriptMode script = commandLine(a, scriptFile, configFile, statsFolder, sipLogFile);
+
   QFile File(":/stylesheet.qss");
   File.open(QFile::ReadOnly);
   QString StyleSheet = QLatin1String(File.readAll());
@@ -57,7 +150,8 @@ int main(int argc, char *argv[])
   a.setWindowIcon(QIcon(":/favicon.ico"));
 
   uvgCommController controller;
-  controller.init();
+
+  controller.init(script == ScriptMode::SCRIPT_STDIN, scriptFile, configFile, statsFolder, sipLogFile);
 
   return a.exec(); // starts main thread
 }

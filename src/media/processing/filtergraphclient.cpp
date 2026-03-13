@@ -1,0 +1,1029 @@
+#include "filtergraphclient.h"
+
+#include "media/processing/camerafilter.h"
+#include "media/processing/screensharefilter.h"
+#include "media/processing/fakecamera.h"
+#include "media/processing/kvazaarfilter.h"
+#include "media/processing/roimanualfilter.h"
+#include "media/processing/hybridfilter.h"
+#include "media/processing/hybridslavefilter.h"
+
+#include "media/processing/openhevcfilter.h"
+
+//#include "media/delivery/rtpbuffer.h"
+
+#include "media/processing/halfrgbfilter.h"
+#include "media/processing/libyuvconverter.h"
+
+#include "media/processing/displayfilter.h"
+#include "media/processing/audiocapturefilter.h"
+#include "media/processing/opusencoderfilter.h"
+#include "media/processing/opusdecoderfilter.h"
+#include "media/processing/dspfilter.h"
+#include "media/processing/audiomixerfilter.h"
+#include "media/processing/audiooutputfilter.h"
+
+#include "media/delivery/uvgrtpsender.h"
+
+#ifdef uvgComm_HAVE_ONNX_RUNTIME
+#include "media/processing/roiyolofilter.h"
+#endif
+
+#include "ui/gui/videointerface.h"
+
+#include "speexaec.h"
+#include "audiomixer.h"
+
+#include "settingskeys.h"
+#include "common.h"
+#include "logger.h"
+#include "src/media/resourceallocator.h"
+
+#include <QSettings>
+#include <QFile>
+#include <QTextStream>
+#include <QAudioFormat>
+
+// speex DSP settings
+
+// We limit the gain so background noises don't start coming through in a quiet
+// audio stream.
+
+// The default Speex AGC volume seems to be 1191182336 which is around 55%.
+// 50% seems to be completely quiet
+
+// The input volume we want to normilize so the differences in mics and distance
+// from mic don't affect the sound as much
+const int32_t AUDIO_INPUT_VOLUME = 1191182336; // default
+const int AUDIO_INPUT_GAIN = 10; // dB
+
+// The output we want to normalize if we have multiple participants, two people
+// speaking at the same time should not sound very loud and only one person
+// speaking very quiet.
+const int32_t AUDIO_OUTPUT_VOLUME = INT32_MAX - INT32_MAX/4;
+const int AUDIO_OUTPUT_GAIN = 20; // dB
+
+FilterGraphClient::FilterGraphClient()
+  : FilterGraph(),
+
+    cameraGraph_(),
+    screenShareGraph_(),
+    selfviewFilter_(nullptr),
+    roiInterface_(nullptr),
+    videoFormat_(""),
+    videoSendIniated_(false),
+    audioInputGraph_(),
+    audioOutputGraph_(),
+    aec_(nullptr),
+    mixer_(),
+    audioInputInitialized_(false),
+    audioOutputInitialized_(false),
+    format_(),
+    resolution_({0,0}),
+    lastAppliedResolution_(QSize(0,0)),
+    lastAppliedBitrate_(-1)
+{
+  // TODO negotiate these values with all included filters and SDP
+  // TODO move these to settings and manage them automatically
+
+  // 48000 should be used with opus, since opus is able to downsample when needed
+  format_ = createAudioFormat(1, 48000);
+}
+
+
+FilterGraphClient::~FilterGraphClient()
+{}
+
+
+void FilterGraphClient::setSelfViews(QList<VideoInterface*> selfViews)
+{
+  if (selfViews.size() > 1)
+  {
+    roiInterface_ = selfViews.at(0);
+  }
+  else
+  {
+    Logger::getLogger()->printProgramWarning(this, "RoI surface not set, RoI usage not possible");
+  }
+
+  selfviewFilter_ =
+      std::shared_ptr<DisplayFilter>(new DisplayFilter("Self", stats_, hwResources_, selfViews, 1111, ""));
+
+  initCameraSelfView();
+}
+
+
+void FilterGraphClient::refreshResolutions()
+{
+  // Only restart the encoder / reconfigure converters if the effective
+  // resolution or encoder bitrate actually changed. Restarting Kvazaar is
+  // expensive and seems to be the root cause of delays when participants
+  // increase.
+
+  QSize hwRes = hwResources_->getVideoResolution();
+  int hwBitrate = hwResources_->getEncoderBitrate(DT_HEVCVIDEO);
+
+  bool resolutionChanged = (lastAppliedResolution_.isEmpty() || lastAppliedResolution_ != hwRes);
+  bool bitrateChanged = (lastAppliedBitrate_ == -1 || lastAppliedBitrate_ != hwBitrate);
+
+  if (kvazaar_)
+  {
+    if (resolutionChanged || bitrateChanged)
+    {
+      Logger::getLogger()->printNormal(this, "Applying new encoder parameters",
+                                       {"Resolution", "Bitrate"},
+                                       {QString("%1x%2").arg(hwRes.width()).arg(hwRes.height()),
+                                        QString::number(hwBitrate)});
+
+      kvazaar_->restartEncoder();
+
+      lastAppliedResolution_ = hwRes;
+      lastAppliedBitrate_ = hwBitrate;
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Encoder parameters unchanged, skipping restart",
+                                       {"Resolution", "Bitrate"},
+                                       {QString("%1x%2").arg(hwRes.width()).arg(hwRes.height()),
+                                        QString::number(hwBitrate)});
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Kvazaar not initialized when refreshing resolutions");
+  }
+
+  // Make sure libyuv uses the same resolution the encoder will use. Force the
+  // target before asking the filter to change so there is no race where
+  // changeResolution() reads an outdated HW manager value and applies it.
+  if (libyuv_)
+  {
+    libyuv_->setTargetResolution(hwRes);
+    if (resolutionChanged)
+      libyuv_->changeResolution();
+  }
+
+  if (libyuv2_)
+  {
+    libyuv2_->setTargetResolution(hwRes);
+    if (resolutionChanged)
+      libyuv2_->changeResolution();
+  }
+}
+
+
+void FilterGraphClient::updateConferenceSize()
+{
+  if (resolution_.first == 0 || resolution_.second == 0)
+  {
+    Logger::getLogger()->printProgramError(this, "Conference resolution is zero, "
+                                                 "cannot update conference size");
+    return;
+  }
+
+  uint32_t otherParticipants = 0;
+
+  for (auto& peer : peers_)
+  {
+    if (peer.second != nullptr)
+    {
+      otherParticipants += peer.second->videoViewFlow.size();
+    }
+  }
+
+  if (otherParticipants > 0)
+  {
+    Logger::getLogger()->printNormal(this,
+                     "Updating conference size", {"Other Participants", "Conference resolution"},
+                     {QString::number(otherParticipants),
+                      QString("%1x%2").arg(resolution_.first).arg(resolution_.second)});
+
+    hwResources_->setParticipants(otherParticipants);
+
+    refreshResolutions();
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this,
+                     "No other participants, setting conference size to 1");
+    hwResources_->setParticipants(1);
+  }
+}
+
+
+void FilterGraphClient::uninit()
+{
+  quitting_ = true;
+
+  removeAllParticipants();
+
+  destroyFilters(cameraGraph_);
+  videoSendIniated_ = false;
+
+  destroyFilters(screenShareGraph_);
+  destroyFilters(fileInputGraph_);
+
+  destroyFilters(audioInputGraph_);
+  destroyFilters(audioOutputGraph_);
+  audioInputInitialized_ = false;
+  audioOutputInitialized_ = false;
+}
+
+
+void FilterGraphClient::updateVideoSettings()
+{
+  QSettings settings(getSettingsFile(), settingsFileFormat);
+  // if the video format has changed so that we need different conversions
+
+  QString wantedVideoFormat = settings.value(SettingsKey::videoInputFormat).toString();
+  if(videoFormat_ != wantedVideoFormat)
+  {
+    Logger::getLogger()->printNormal(this,
+                                    "Video format changed. Reconstructing video send graph.",
+                                    {"Previous format", "New format"},
+                                    {videoFormat_, settings.value(SettingsKey::videoInputFormat).toString()});
+
+    // update selfview in case camera format has changed
+    initCameraSelfView();
+
+    // if we are in a call, initiate kvazaar and connect peers. Otherwise add it late.
+    if(peers_.size() != 0)
+    {
+      initVideoSend(resolution_);
+
+      // reconnect all videosends to streamers
+      for(auto& peer : peers_)
+      {
+        if(peer.second != nullptr)
+        {
+          for (auto& senderFilter : peer.second->videoSenders)
+          {
+            // kvazaar is the last in all input graphs so we only need to connect to one graph
+            cameraGraph_.back()->addOutConnection(senderFilter.second);
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    // camera and conversions
+    for(auto& filter : cameraGraph_)
+    {
+      filter->updateSettings();
+    }
+  }
+
+  // screen share and conversions
+  for (auto& filter : screenShareGraph_)
+  {
+    filter->updateSettings();
+  }
+
+  // screen share and conversions
+  for (auto& filter : fileInputGraph_)
+  {
+    filter->updateSettings();
+  }
+
+  if (mixer_)
+  {
+    mixer_->updateSettings();
+  }
+
+  selectVideoSource();
+
+  FilterGraph::updateVideoSettings();
+}
+
+
+void FilterGraphClient::updateAudioSettings()
+{
+  for (auto& filter : audioInputGraph_)
+  {
+    filter->updateSettings();
+  }
+
+  for (auto& filter : audioOutputGraph_)
+  {
+    filter->updateSettings();
+  }
+
+  if (aec_)
+  {
+    aec_->updateSettings();
+  }
+
+  mic(settingEnabled(SettingsKey::micStatus));
+
+  FilterGraph::updateAudioSettings();
+}
+
+
+void FilterGraphClient::initCameraSelfView()
+{
+  Logger::getLogger()->printNormal(this, "Iniating camera");
+
+  QSettings settings(getSettingsFile(), settingsFileFormat);
+  videoFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
+
+  if (cameraGraph_.size() > 0)
+  {
+    destroyFilters(cameraGraph_);
+  }
+
+  camera_ = std::shared_ptr<CameraFilter>(new CameraFilter("", stats_, hwResources_));
+  // Sending video graph
+  if (!addToGraph(camera_, cameraGraph_))
+  {
+    // camera failed
+    Logger::getLogger()->printError(this, "Failed to add camera to graph");
+  }
+
+  // create screen share filter, but it is stopped at the beginning
+  if (screenShareGraph_.empty())
+  {
+    if (addToGraph(std::shared_ptr<Filter>(new ScreenShareFilter("", stats_, hwResources_)),
+                   screenShareGraph_))
+    {
+      screenShareGraph_.at(0)->stop();
+    }
+  }
+
+  if (fileInputGraph_.empty())
+  {
+    if (addToGraph(std::shared_ptr<Filter>(new FakeCamera("", stats_, hwResources_)),
+                   fileInputGraph_))
+    {
+      fileInputGraph_.at(0)->stop();
+    }
+  }
+
+  if (selfviewFilter_)
+  {
+    Logger::getLogger()->printNormal(this, "Iniating self view");
+    // connect scaling filter
+    // TODO: not useful if it does not support YUV. Testing needed to verify
+    /*
+    ScaleFilter* scaler = new ScaleFilter("Self", stats_);
+    scaler->setResolution(selfView->size());
+    addToGraph(std::shared_ptr<Filter>(scaler), videoSend_);
+    */
+
+    // Connect selfview to camera and screen sharing. The self view vertical mirroring
+    // depends on which conversions are used.
+
+    // TODO: Figure out what is going on. There is probably a bug in one of the
+    // optimization that flip the video. This however removes the need for an
+    // additional flip for some reason saving CPU.
+
+    // We don't do horizontal mirroring if we are using screen sharing, but that
+    // is changed later.
+    // Note: mirroring is slow with Qt
+
+    std::shared_ptr<Filter> resizeFilter1 = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
+    std::shared_ptr<Filter> resizeFilter2 = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
+    std::shared_ptr<Filter> resizeFilter3 = std::shared_ptr<Filter>(new HalfRGBFilter("", stats_, hwResources_));
+    if (!cameraGraph_.empty())
+    {
+      libyuv_ = std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
+                                                            cameraGraph_.at(0)->outputType()));
+      addToGraph(libyuv_, cameraGraph_, 0);
+      // Ensure libyuv is immediately using the current HW resolution to avoid
+      // processing a frame at a stale/full resolution before sync.
+      libyuv_->setTargetResolution(hwResources_->getVideoResolution());
+      addToGraph(resizeFilter1, cameraGraph_, cameraGraph_.size() - 1);
+      addToGraph(selfviewFilter_, cameraGraph_, cameraGraph_.size() - 1);
+    }
+
+    if (!screenShareGraph_.empty())
+    {
+      auto libyuv_ss = std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
+                                                             screenShareGraph_.at(0)->outputType()));
+      addToGraph(libyuv_ss, screenShareGraph_, 0);
+      libyuv_ss->setTargetResolution(hwResources_->getVideoResolution());
+      addToGraph(resizeFilter2, screenShareGraph_, screenShareGraph_.size() - 1);
+      addToGraph(selfviewFilter_, screenShareGraph_, screenShareGraph_.size() - 1);
+    }
+
+    if (!fileInputGraph_.empty())
+    {
+      libyuv2_ = std::shared_ptr<LibYUVConverter>(new LibYUVConverter("", stats_, hwResources_,
+                                                                      fileInputGraph_.at(0)->outputType()));
+      addToGraph(libyuv2_, fileInputGraph_, 0);
+      libyuv2_->setTargetResolution(hwResources_->getVideoResolution());
+      addToGraph(resizeFilter3, fileInputGraph_, fileInputGraph_.size() - 1);
+      addToGraph(selfviewFilter_, fileInputGraph_, fileInputGraph_.size() - 1);
+    }
+
+    selfviewFilter_->setHorizontalMirroring(true);
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Self view filter has not been set");
+  }
+
+  selectVideoSource();
+}
+
+
+void FilterGraphClient::initVideoSend(std::pair<uint16_t, uint16_t> resolution)
+{
+  Logger::getLogger()->printNormal(this, "Iniating video send");
+
+  if(resolution.first == 0 || resolution.second == 0)
+  {
+    Logger::getLogger()->printProgramError(this, "Cannot initiate video send with zero resolution");
+    return;
+  }
+
+  if(cameraGraph_.size() == 0)
+  {
+    Logger::getLogger()->printProgramWarning(this, "Camera was not iniated for video send");
+    initCameraSelfView();
+  }
+
+  QSize conferenceResolution(resolution.first, resolution.second);
+  hwResources_->setConferenceResolution(conferenceResolution);
+  hwResources_->setParticipants(1);
+
+  camera_->setResolution(resolution);
+
+  if (libyuv_)
+  {
+    // Ensure libyuv uses the same resolution as the encoder/ResourceAllocator.
+    libyuv_->setTargetResolution(conferenceResolution);
+    libyuv_->changeResolution();
+  }
+
+  if (libyuv2_)
+  {
+    libyuv2_->setTargetResolution(conferenceResolution);
+    libyuv2_->changeResolution();
+  }
+
+  // we connect mroi to libyuv conversion filter which makes sure the format is correct
+  std::shared_ptr<Filter> mRoi =
+      std::shared_ptr<Filter>(new ROIManualFilter("", stats_, hwResources_, roiInterface_));
+  addToGraph(mRoi, cameraGraph_, 1);
+#ifdef uvgComm_HAVE_ONNX_RUNTIME
+  auto roi = std::shared_ptr<Filter>(new ROIYoloFilter("", stats_, hwResources_, true, roiInterface_));
+  addToGraph(roi, cameraGraph_, cameraGraph_.size() - 1);
+#endif
+
+  // TODO: the init fails if we add same filter twice
+  kvazaar_ = std::shared_ptr<KvazaarFilter>(new KvazaarFilter("", stats_, hwResources_, resolution));
+
+  // note that all inputs feed to the same kvazaar so we only need to attach senders at the end of one graph (camera)
+  addToGraph(kvazaar_, cameraGraph_, cameraGraph_.size() - 1); // mroi
+  addToGraph(kvazaar_, screenShareGraph_, 0);
+  addToGraph(kvazaar_, fileInputGraph_, 1); // libyuv, could also be roi
+
+  // only the camera filter needs hybrid as all senders are attached to end of camera graph
+  addHybridFilter(std::shared_ptr<HybridFilter>(new HybridFilter("", stats_, hwResources_)),
+                  cameraGraph_);
+
+  videoSendIniated_ = true;
+  resolution_ = resolution;
+}
+
+
+void FilterGraphClient::initializeAudioInput(bool opus)
+{
+  audioCapture_ = std::shared_ptr<AudioCaptureFilter>(new AudioCaptureFilter("", format_, stats_, hwResources_));
+
+  if (audioOutput_)
+  {
+    QObject::connect(audioOutput_.get(), &AudioOutputFilter::outputtingSound,
+                     audioCapture_.get(), &AudioCaptureFilter::mute);
+  }
+
+
+  // Do this before adding participants, otherwise AEC filter wont get attached
+  addToGraph(audioCapture_, audioInputGraph_);
+
+  if (aec_ == nullptr)
+  {
+    aec_ = std::make_shared<SpeexAEC>(format_);
+    aec_->init();
+  }
+
+  // Do everything (AGC, AEC, denoise, dereverb) for input expect provide AEC reference
+  std::shared_ptr<DSPFilter> dspProcessor =
+      std::shared_ptr<DSPFilter>(new DSPFilter("", stats_, hwResources_, aec_, format_,
+                                               false, true, true, true, true,
+                                               AUDIO_INPUT_VOLUME, AUDIO_INPUT_GAIN));
+
+  addToGraph(dspProcessor, audioInputGraph_, (unsigned int)audioInputGraph_.size() - 1);
+
+  if (opus)
+  {
+    addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_, hwResources_)),
+               audioInputGraph_, (unsigned int)audioInputGraph_.size() - 1);
+    addHybridSlave(std::shared_ptr<HybridSlaveFilter>(new HybridSlaveFilter("", stats_, hwResources_, DT_OPUSAUDIO)),
+                   audioOutputGraph_);
+  }
+  else
+  {
+    addHybridSlave(std::shared_ptr<HybridSlaveFilter>(new HybridSlaveFilter("", stats_, hwResources_, DT_RAWAUDIO)),
+                   audioOutputGraph_);
+  }
+
+  audioInputInitialized_ = true;
+}
+
+
+void FilterGraphClient::initializeAudioOutput(bool opus)
+{
+  Logger::getLogger()->printNormal(this, "Initializing audio output");
+
+  if (aec_ == nullptr)
+  {
+    aec_ = std::make_shared<SpeexAEC>(format_);
+    aec_->init();
+  }
+
+  // Provide echo reference and do AGC once more so conference calls will have
+  // good volume levels.
+  addToGraph(std::make_shared<DSPFilter>("", stats_, hwResources_, aec_, format_,
+                                         true, false, false, false, true,
+                                         AUDIO_OUTPUT_VOLUME, AUDIO_OUTPUT_GAIN),
+             audioOutputGraph_);
+
+  audioOutput_ = std::make_shared<AudioOutputFilter>("", stats_, hwResources_, format_);
+
+  addToGraph(audioOutput_, audioOutputGraph_, (unsigned int)audioOutputGraph_.size() - 1);
+
+  if (audioCapture_)
+  {
+    QObject::connect(audioOutput_.get(),  &AudioOutputFilter::outputtingSound,
+                     audioCapture_.get(), &AudioCaptureFilter::mute);
+  }
+
+  audioOutputInitialized_ = true;
+}
+
+void FilterGraphClient::sendVideoto(uint32_t sessionID,
+                                    std::shared_ptr<Filter> sender,
+                                    uint32_t localSSRC,
+                                    const std::vector<uint32_t>& remoteSSRCs,
+                                    const std::vector<QString>& remoteCNAMEs,
+                                    bool isP2P,
+                                    std::pair<uint16_t, uint16_t> resolution)
+{
+  Q_ASSERT(sessionID);
+  Q_ASSERT(sender);
+
+  Logger::getLogger()->printNormal(this, "Adding send video", {"SessionID"},
+                                   QString::number(sessionID));
+
+  // make sure we are generating video
+  if(!videoSendIniated_)
+  {
+    initVideoSend(resolution);
+  }
+
+  // add participant if necessary
+  checkParticipant(sessionID);
+
+  // add sender if necessary
+  if (peers_[sessionID]->videoSenders.find(localSSRC) == peers_[sessionID]->videoSenders.end())
+  {
+    peers_[sessionID]->videoSenders[localSSRC] = sender;
+    cameraGraph_.back()->addOutConnection(sender); // connect to hybrid filter
+    sender->start();
+  }
+
+  std::shared_ptr<UvgRTPSender> rtpSender = std::dynamic_pointer_cast<UvgRTPSender>(peers_[sessionID]->videoSenders[localSSRC]);
+
+  // always inform hybrid about new remote SSRCs
+  for (unsigned int i = 0; i < remoteSSRCs.size(); ++i)
+  {
+    // inform the type to hybrid
+    if (isP2P)
+    {
+      hybrid_->addLink(LINK_P2P, remoteSSRCs.at(i), remoteCNAMEs.at(i), rtpSender);
+    }
+    else
+    {
+      hybrid_->addLink(LINK_SFU, remoteSSRCs.at(i), remoteCNAMEs.at(i), rtpSender);
+    }
+  }
+}
+
+
+void FilterGraphClient::receiveVideoFrom(uint32_t sessionID,
+                                      std::shared_ptr<Filter> receiver,
+                                      VideoInterface* view,
+                                      uint32_t remoteSSRC,
+                                      QString cname)
+{
+  Q_ASSERT(sessionID);
+  Q_ASSERT(receiver);
+
+  checkParticipant(sessionID);
+
+  if (peers_[sessionID]->videoReceivers.find(remoteSSRC) == peers_[sessionID]->videoReceivers.end())
+  {
+    // create the decoder and view if we don't have them yet
+    if (peers_[sessionID]->videoViewFlow.find(cname) == peers_[sessionID]->videoViewFlow.end())
+    {
+      std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
+      peers_[sessionID]->videoViewFlow[cname] = graph;
+
+//      addToGraph(std::shared_ptr<Filter>(new RTPBuffer(QString::number(sessionID), stats_, hwResources_, receiver->outputType())), *graph, 0);
+      if (receiver->outputType() == DT_HEVCVIDEO)
+      {
+        addToGraph(std::shared_ptr<Filter>(new OpenHEVCFilter(sessionID, cname, stats_, hwResources_)), *graph, (unsigned int)graph->size() - 1);
+      }
+      else
+      {
+        Logger::getLogger()->printProgramError(this, "Unsupported video format received",
+                                               "Format", QString::number(receiver->outputType()));
+      }
+
+      std::shared_ptr<DisplayFilter> displayFilter =
+      std::shared_ptr<DisplayFilter>(new DisplayFilter(QString::number(sessionID),
+                                                         stats_, hwResources_, {view}, sessionID, cname));
+
+      addToGraph(displayFilter, *graph, (unsigned int)graph->size() - 1);
+    }
+
+    peers_[sessionID]->videoReceivers[remoteSSRC] = receiver;
+
+    // connect the receiver to the decoder and view
+    peers_[sessionID]->videoReceivers[remoteSSRC]->addOutConnection(peers_[sessionID]->videoViewFlow.at(cname)->front());
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Found existing filter, not adding video receiver to Filter Graph",
+                                     "Remote SSRC", QString::number(remoteSSRC));
+  }
+}
+
+
+void FilterGraphClient::sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
+                                 uint32_t localSSRC)
+{
+  Q_ASSERT(sessionID);
+  Q_ASSERT(sender);
+
+  if (!audioInputInitialized_)
+  {
+    initializeAudioInput(sender->inputType() == DT_OPUSAUDIO);
+  }
+
+  // add participant if necessary
+  checkParticipant(sessionID);
+
+  if (peers_[sessionID]->audioSenders.find(localSSRC) == peers_[sessionID]->audioSenders.end())
+  {
+    peers_[sessionID]->audioSenders[localSSRC] = sender;
+
+    audioInputGraph_.back()->addOutConnection(sender);
+    sender->start();
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Found existing filter, not adding audio sender to Filter Graph");
+  }
+
+  mic(settingEnabled(SettingsKey::micStatus));
+}
+
+
+void FilterGraphClient::receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                      uint32_t remoteSSRC, QString cname)
+{
+  Q_ASSERT(sessionID);
+  Q_ASSERT(receiver);
+
+  if (!audioOutputInitialized_)
+  {
+    initializeAudioOutput(receiver->outputType() == DT_OPUSAUDIO);
+  }
+
+  // add participant if necessary
+  checkParticipant(sessionID);
+
+  if (peers_[sessionID]->audioReceivers.find(remoteSSRC) == peers_[sessionID]->audioReceivers.end())
+  {
+    if (peers_[sessionID]->audioViewFlow.find(cname) == peers_[sessionID]->audioViewFlow.end())
+    {
+      std::shared_ptr<GraphSegment> graph = std::shared_ptr<GraphSegment> (new GraphSegment);
+      peers_[sessionID]->audioViewFlow[cname] = graph;
+
+//      addToGraph(std::shared_ptr<Filter>(new RTPBuffer(QString::number(sessionID), stats_, hwResources_, receiver->outputType())), *graph, (unsigned int)graph->size());
+
+      if (receiver->outputType() == DT_OPUSAUDIO)
+      {
+        std::shared_ptr<OpusDecoderFilter> decoder =
+            std::shared_ptr<OpusDecoderFilter>(new OpusDecoderFilter(sessionID, format_, stats_, hwResources_));
+        addToGraph(decoder, *graph, (unsigned int)graph->size() - 1);
+      }
+
+      // mixer helps mix the incoming audio streams into one output stream
+      if (mixer_ == nullptr)
+      {
+        mixer_ = std::make_shared<AudioMixer>();
+      }
+
+      std::shared_ptr<AudioMixerFilter> audioMixer =
+          std::make_shared<AudioMixerFilter>(QString::number(sessionID), stats_, hwResources_, sessionID, mixer_);
+
+      addToGraph(audioMixer, *graph, (unsigned int)graph->size() - 1);
+
+      if (!audioOutputGraph_.empty())
+      {
+        // connects audio reception to audio output
+        connectFilters(graph->back(), audioOutputGraph_.front());
+      }
+      else
+      {
+        Logger::getLogger()->printProgramError(this, "Audio output not initialized "
+                                                     "when adding audio reception");
+      }
+    }
+
+    peers_[sessionID]->audioReceivers[remoteSSRC] = receiver;
+
+    // connect the receiver to the decoder and mixer
+    peers_[sessionID]->audioReceivers[remoteSSRC]->addOutConnection(peers_[sessionID]->audioViewFlow.at(cname)->front());
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "Found existing filter, not adding audio receiver to Filter Graph");
+  }
+}
+
+
+void FilterGraphClient::mic(bool state)
+{
+  if(audioInputGraph_.size() > 0)
+  {
+    if(!state)
+    {
+      Logger::getLogger()->printNormal(this, "Stopping microphone");
+      audioInputGraph_.at(0)->stop();
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Starting microphone");
+      audioInputGraph_.at(0)->start();
+    }
+  }
+}
+
+
+void FilterGraphClient::camera(bool state)
+{
+  if(cameraGraph_.size() > 0)
+  {
+    if(!state)
+    {
+      Logger::getLogger()->printNormal(this, "Stopping camera");
+      cameraGraph_.at(0)->stop();
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Starting camera", "Output Type",
+                                       QString::number(cameraGraph_.at(0)->outputType()));
+      selfviewFilter_->setHorizontalMirroring(true);
+      cameraGraph_.at(0)->start();
+    }
+  }
+}
+
+
+void FilterGraphClient::screenShare(bool shareState)
+{
+  if(screenShareGraph_.size() > 0)
+  {
+    if(shareState)
+    {
+      Logger::getLogger()->printNormal(this, "Starting to share the screen");
+
+      // We don't want to flip selfview horizontally when sharing the screen.
+      // This way the self view is an accurate representation of what the others
+      // will view. With camera on the other hand, we want it to mirror the user.
+      selfviewFilter_->setHorizontalMirroring(false);
+      screenShareGraph_.at(0)->start();
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Not sharing the screen");
+      screenShareGraph_.at(0)->stop();
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "Screen share graph empty");
+  }
+}
+
+
+void FilterGraphClient::fileInput(bool shareState)
+{
+  if(fileInputGraph_.size() > 0)
+  {
+    if(shareState)
+    {
+      Logger::getLogger()->printNormal(this, "Starting fake cam");
+      selfviewFilter_->setHorizontalMirroring(true);
+      fileInputGraph_.at(0)->start();
+    }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Not using fake cam");
+      fileInputGraph_.at(0)->stop();
+    }
+  }
+  else
+  {
+    Logger::getLogger()->printProgramError(this, "File input graph empty");
+  }
+}
+
+
+void FilterGraphClient::selectVideoSource()
+{
+  if (settingEnabled(SettingsKey::videoFileEnabled))
+  {
+    Logger::getLogger()->printNormal(this, "Enabled video file in filter graph");
+    camera(false);
+    screenShare(false);
+    fileInput(true);
+  }
+  else if (settingEnabled(SettingsKey::screenShareStatus))
+  {
+    Logger::getLogger()->printNormal(this, "Enabled screen sharing in filter graph");
+    camera(false);
+    screenShare(true);
+    fileInput(true);
+  }
+  else if (settingEnabled(SettingsKey::cameraStatus))
+  {
+    Logger::getLogger()->printNormal(this, "Enabled camera in filter graph");
+    screenShare(false);
+    camera(true);
+    fileInput(true);
+  }
+  else
+  {
+    Logger::getLogger()->printNormal(this, "No video in filter graph");
+
+    screenShare(false);
+    camera(false);
+    fileInput(true);
+
+    // maybe some custom image here?
+  }
+}
+
+
+void FilterGraphClient::receiveVideoRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                             uint32_t remoteSSRC, QString cname)
+{
+  Q_UNUSED(sessionID);
+  Q_UNUSED(receiver);
+  Q_UNUSED(remoteSSRC);
+  Q_UNUSED(cname);
+
+  Logger::getLogger()->printWarning(this, "Client filter graph received an RTCP-only receiver; not handled yet");
+}
+
+
+void FilterGraphClient::receiveAudioRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                             uint32_t remoteSSRC, QString cname)
+{
+  Q_UNUSED(sessionID);
+  Q_UNUSED(receiver);
+  Q_UNUSED(remoteSSRC);
+  Q_UNUSED(cname);
+
+  Logger::getLogger()->printWarning(this, "Client filter graph received an RTCP-only audio receiver; not handled yet");
+}
+
+
+void FilterGraphClient::running(bool state)
+{
+  for(std::shared_ptr<Filter>& f : cameraGraph_)
+  {
+    changeState(f, state);
+  }
+
+  for(std::shared_ptr<Filter>& f : audioInputGraph_)
+  {
+    changeState(f, state);
+  }
+
+  for(std::shared_ptr<Filter>& f : audioOutputGraph_)
+  {
+    changeState(f, state);
+  }
+
+  if (screenShareGraph_.size() > 0)
+  {
+    changeState(screenShareGraph_.at(0), state);
+  }
+
+  if (fileInputGraph_.size() > 0)
+  {
+    changeState(fileInputGraph_.at(0), state);
+  }
+
+  FilterGraph::running(state);
+}
+
+
+void FilterGraphClient::destroyPeer(Peer* peer)
+{
+  Logger::getLogger()->printNormal(this, "Destroying peer from P2P Filter Graph");
+
+  for (auto& audioSender : peer->audioSenders)
+  {
+    audioInputGraph_.back()->removeOutConnection(audioSender.second);
+  }
+  for (auto& videoSender : peer->videoSenders)
+  {
+    cameraGraph_.back()->removeOutConnection(videoSender.second);
+  }
+
+  FilterGraph::destroyPeer(peer);
+}
+
+
+void FilterGraphClient::lastPeerRemoved()
+{
+  destroyFilters(cameraGraph_);
+  destroyFilters(screenShareGraph_);
+  destroyFilters(fileInputGraph_);
+  destroyFilters(audioInputGraph_);
+  destroyFilters(audioOutputGraph_);
+  audioOutput_ = nullptr;
+  audioCapture_ = nullptr;
+
+  libyuv_ = nullptr;
+  libyuv2_ = nullptr;
+  kvazaar_ = nullptr;
+  hybrid_ = nullptr;
+
+  videoSendIniated_ = false;
+  audioInputInitialized_ = false;
+  audioOutputInitialized_ = false;
+
+  if (!quitting_)
+  {
+    // since destruction removes even the inputs, we must restore them
+    initCameraSelfView();
+    mic(settingEnabled(SettingsKey::micStatus));
+  }
+
+  // Clear cached encoder parameters - graph reset means parameters must be
+  // re-applied when sending starts again.
+  lastAppliedResolution_ = QSize(0,0);
+  lastAppliedBitrate_ = -1;
+}
+
+
+void FilterGraphClient::addHybridFilter(std::shared_ptr<HybridFilter> hybrid, GraphSegment &segment)
+{
+  if (hybrid_)
+  {
+    Logger::getLogger()->printProgramError(this, "Hybrid filter already exists");
+    return;
+  }
+
+  hybrid_ = hybrid;
+
+  addToGraph(hybrid_, segment, segment.size() - 1);
+
+  for (auto& slave : slaves_)
+  {
+    hybrid_->addSlave(slave);
+  }
+}
+
+
+void FilterGraphClient::addHybridSlave(std::shared_ptr<HybridSlaveFilter> slave, GraphSegment& segment)
+{
+  addToGraph(slave, segment, segment.size() - 1);
+
+  slaves_.push_back(slave);
+  if (hybrid_)
+  {
+    hybrid_->addSlave(slave);
+  }
+}
+
+
+QAudioFormat FilterGraphClient::createAudioFormat(uint8_t channels, uint32_t sampleRate)
+{
+  QAudioFormat format;
+
+  format.setSampleRate(sampleRate);
+  format.setChannelCount(channels);
+  format.setSampleFormat(QAudioFormat::Int16);
+
+  return format;
+}

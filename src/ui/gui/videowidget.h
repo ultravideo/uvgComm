@@ -25,13 +25,10 @@ public:
               uint8_t borderSize = 1);
   ~VideoWidget();
 
-  virtual void setStats(StatisticsInterface* stats)
-  {
-    stats_ = stats;
-  }
+  virtual void setStats(StatisticsInterface* stats, QString cname);
 
   // Takes ownership of the image data
-  virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, double framerate, int64_t timestamp);
+  virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image, double framerate, int64_t creationTimestamp, int64_t displayTimestamp);
 
   virtual void inputDetections(std::vector<Detection> detections, QSize original_size, int64_t timestamp);
 
@@ -55,6 +52,10 @@ public:
                      bool showGrid, bool pixelBased, QSize videoResolution);
   void disableOverlay();
   void resetOverlay();
+
+public slots:
+
+  void paintTimer();
 
 signals:
 
@@ -81,6 +82,7 @@ private:
 
   StatisticsInterface* stats_;
   uint32_t sessionID_;
+  QString cname_;
   VideoDrawHelper helper_;
 
   QTimer updateTimer_;

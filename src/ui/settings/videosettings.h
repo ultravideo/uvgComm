@@ -65,12 +65,16 @@ public slots:
   void updateTilesStatus();
   void updateObaStatus(int index);
 
-  void browse();
+  void browseModel();
+
+  void browseVideoFile();
 
 protected:
 
   // if user closes the window
-  void closeEvent(QCloseEvent *event);
+  void closeEvent(QCloseEvent *event) override;
+
+  void showEvent(QShowEvent *event) override;
 
 private:
   void initializeResolutions();
@@ -91,6 +95,8 @@ private:
   void initializeFormat();
   void initializeThreads();
 
+  void initFileSelection();
+
   int currentDevice_;
 
   Ui::VideoSettings *videoSettingsUI_;
@@ -98,6 +104,4 @@ private:
   std::shared_ptr<CameraInfo> cam_;
 
   bool sharingScreen_;
-
-  QSettings settings_;
 };

@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.16)
 
 include(cmake/ProjectDetails.cmake)
 
-# Note: We do not set the default build type, since this is typically handled by Qt Creator
+#  Default to release build type if none is specified
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    message(STATUS "No build type specified, defaulting to Release")
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
 
 project(uvgComm
     VERSION ${uvgComm_VER}
@@ -56,7 +60,7 @@ set(uvgComm_SOURCES
     src/initiation/negotiation/sdpnegotiation.cpp       src/initiation/negotiation/sdpnegotiation.h
     src/initiation/negotiation/sdptypes.h
     src/initiation/negotiation/sipcontent.cpp           src/initiation/negotiation/sipcontent.h
-    src/initiation/negotiation/sdpmeshconference.cpp    src/initiation/negotiation/sdpmeshconference.h
+    src/initiation/negotiation/sdpconference.cpp    src/initiation/negotiation/sdpconference.h
     src/initiation/negotiation/ssrcgenerator.h          src/initiation/negotiation/ssrcgenerator.cpp
     src/initiation/siphelper.cpp                        src/initiation/siphelper.h
     src/initiation/sipmanager.cpp                       src/initiation/sipmanager.h
@@ -89,6 +93,7 @@ set(uvgComm_SOURCES
     src/media/delivery/icesessiontester.cpp         src/media/delivery/icesessiontester.h
     src/media/delivery/uvgrtpreceiver.cpp           src/media/delivery/uvgrtpreceiver.h
     src/media/delivery/uvgrtpsender.cpp             src/media/delivery/uvgrtpsender.h
+    src/media/delivery/uvgrtp_socket.cc             src/media/delivery/uvgrtp_socket.hh
     src/media/mediamanager.cpp                      src/media/mediamanager.h
     src/media/processing/audiocapturefilter.cpp     src/media/processing/audiocapturefilter.h
     src/media/processing/audioframebuffer.cpp       src/media/processing/audioframebuffer.h
@@ -138,7 +143,7 @@ set(uvgComm_SOURCES
     src/ui/gui/videointerface.h
     src/ui/gui/videowidget.cpp                      src/ui/gui/videowidget.h
     src/ui/settings/audiosettings.cpp               src/ui/settings/audiosettings.h     src/ui/settings/audiosettings.ui
-    src/ui/settings/automaticsettings.cpp           src/ui/settings/automaticsettings.h src/ui/settings/automaticsettings.ui
+    src/ui/settings/demos.cpp           src/ui/settings/demos.h src/ui/settings/demos.ui
     src/ui/settings/camerainfo.cpp                  src/ui/settings/camerainfo.h
     src/ui/settings/defaultsettings.cpp             src/ui/settings/defaultsettings.h
     src/ui/settings/deviceinfointerface.h
@@ -146,12 +151,11 @@ set(uvgComm_SOURCES
     src/ui/settings/screeninfo.cpp                  src/ui/settings/screeninfo.h
     src/ui/settings/settings.cpp                    src/ui/settings/settings.h          src/ui/settings/settings.ui
     src/ui/settings/settingshelper.cpp              src/ui/settings/settingshelper.h
-    src/ui/settings/sipsettings.cpp                 src/ui/settings/sipsettings.h       src/ui/settings/sipsettings.ui
+    src/ui/settings/callsettings.cpp                 src/ui/settings/callsettings.h       src/ui/settings/callsettings.ui
     src/ui/settings/stunmessage.ui
     src/ui/settings/videosettings.cpp               src/ui/settings/videosettings.h     src/ui/settings/videosettings.ui
     src/ui/uimanager.cpp                            src/ui/uimanager.h
     src/videoviewfactory.cpp                        src/videoviewfactory.h
-    src/mediaid.h                                   src/mediaid.cpp
 )
 
 
@@ -167,6 +171,19 @@ qt_add_executable(uvgComm WIN32 MACOSX_BUNDLE
     src/main.cpp
     version.cpp
     src/cameraformats.h src/cameraformats.cpp
+    src/media/processing/filtergraphclient.h src/media/processing/filtergraphclient.cpp
+    src/media/processing/filtergraphsfu.h src/media/processing/filtergraphsfu.cpp
+    src/media/delivery/udpreceiver.h src/media/delivery/udpreceiver.cpp
+    src/media/delivery/udpsender.h src/media/delivery/udpsender.cpp
+    src/cname.h src/cname.cpp
+    src/media/delivery/uvgrelay.h src/media/delivery/uvgrelay.cpp
+    src/media/delivery/relayinterface.h
+    src/ui/scripting.h src/ui/scripting.cpp
+    src/media/processing/hybridfilter.h src/media/processing/hybridfilter.cpp
+    src/media/processing/hybridslavefilter.h src/media/processing/hybridslavefilter.cpp
+    src/statisticscsv.h src/statisticscsv.cpp
+    src/media/processing/fakecamera.h src/media/processing/fakecamera.cpp
+    src/media/delivery/rtpbuffer.h src/media/delivery/rtpbuffer.cpp
 
 )
 
@@ -301,3 +318,36 @@ else()
 endif()
 
 
+
+if (MSVC)
+    if(DEFINED ENV{VCToolsRedistDir})
+        set(VC_REDIST_DIR "$ENV{VCToolsRedistDir}x64\\Microsoft.VC${MSVC_TOOLSET_VERSION}.CRT")
+        file(GLOB MSVC_DLLS "${VC_REDIST_DIR}\*.dll")
+        install(FILES ${MSVC_DLLS} DESTINATION ${CMAKE_INSTALL_BINDIR})
+        message(STATUS "MSVC runtime DLLs installed from ${VC_REDIST_DIR}")
+    else()
+        message(WARNING "VCToolsRedistDir environment variable not set. Cannot locate MSVC runtime DLLs.")
+    endif()
+endif()
+
+#TODO: MSVC 2010 redistributables
+
+# Install the license file
+install(FILES LICENSE
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/uvgComm
+)
+
+#docker
+if(UNIX AND NOT APPLE)
+  find_program(DOCKER_EXECUTABLE docker)
+
+  if(DOCKER_EXECUTABLE)
+    add_custom_target(docker
+      COMMAND ${DOCKER_EXECUTABLE} build -t uvgcomm-docker -f docker/Dockerfile .
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+      COMMENT "Building Docker container for uvgComm"
+    )
+  else()
+    message(STATUS "Docker not found – skipping Docker target.")
+  endif()
+endif()

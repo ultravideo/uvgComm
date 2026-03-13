@@ -22,7 +22,7 @@ public:
   // 1) what happes when the maxY or yLines when they are multiplied or divided by two
   // 2) if yLines is 5 or less, the graph wont go smaller
   // 3) yLines is capped at 10
-  void init(int maxY, int yLines, bool adaptive, int xWindowSize, QString chartTitle);
+  void init(unsigned int maxY, int yLines, bool adaptive, int xWindowSize, QString chartTitle);
 
   // returns the line ID of added line
   int addLine(QString name);
@@ -75,7 +75,7 @@ private:
   void drawCross(QPainter& painter, float x, float y);
 
   // what is the maximum y value of the chart
-  int maxY_;
+  unsigned int maxY_;
   QSize maxYSize_;
 
   // how many points are drawn at maximum per

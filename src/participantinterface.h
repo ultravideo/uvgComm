@@ -1,8 +1,10 @@
 #pragma once
 #include <QString>
+#include <QObject>
 
-class ParticipantInterface
+class ParticipantInterface : public QObject
 {
+  Q_OBJECT
  public:
 
   virtual ~ParticipantInterface(){}

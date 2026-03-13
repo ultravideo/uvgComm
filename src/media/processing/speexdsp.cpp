@@ -22,7 +22,7 @@ void SpeexDSP::updateSettings()
 {
   if ( preprocessor_ != nullptr)
   {
-    QSettings settings(settingsFile, settingsFileFormat);
+    QSettings settings(getSettingsFile(), settingsFileFormat);
 
     processMutex_.lock();
 
@@ -71,7 +71,7 @@ void SpeexDSP::updateSettings()
       // we set a low gain to avoid background noises from coming through during pauses
       speex_preprocess_ctl(preprocessor_, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN , &agcMaxGain_);
 
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "AGC has been enabled",
+      Logger::getLogger()->printNormal(this, "AGC has been enabled",
                  {"Level", "Increment", "Decrement"},
                  {QString::number(agcLevel_),
                   QString::number(increment), QString::number(decrement)});

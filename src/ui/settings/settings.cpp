@@ -32,8 +32,7 @@ Settings::Settings(QWidget *parent) :
   sipSettings_(this),
   videoSettings_(this, cam_),
   audioSettings_(this, mic_),
-  autoSettings_(this),
-  settings_(settingsFile, settingsFileFormat)
+  autoSettings_(this)
 {}
 
 
@@ -68,6 +67,7 @@ void Settings::init()
 
   audioSettings_.init(audioIndex);
   videoSettings_.init(videoID);
+  autoSettings_.init();
   sipSettings_.init();
 
   checkUUID(); // makes sure that we have an uuid and if not, creates one
@@ -77,7 +77,7 @@ void Settings::init()
 
   // video settings
   QObject::connect(&videoSettings_, &VideoSettings::updateVideoSettings,
-                   &autoSettings_,  &AutomaticSettings::updateVideoConfig);
+                   &autoSettings_,  &Demos::updateVideoConfig);
   QObject::connect(&videoSettings_, &VideoSettings::updateVideoSettings,
                    this, &Settings::updateVideoSettings);
   QObject::connect(&videoSettings_, &VideoSettings::hidden, this, &Settings::show);
@@ -93,21 +93,21 @@ void Settings::init()
                    this,                            &Settings::openAudioSettings);
 
   // call settings
-  QObject::connect(&sipSettings_, &SIPSettings::updateCallSettings,
+  QObject::connect(&sipSettings_, &CallSettings::updateCallSettings,
                    this,          &Settings::updateCallSettings);
-  QObject::connect(&sipSettings_, &SIPSettings::hidden,
+  QObject::connect(&sipSettings_, &CallSettings::hidden,
                    this,          &Settings::show);
   QObject::connect(basicUI_->sip_settings_button, &QCheckBox::clicked,
                    this,                          &Settings::openCallSettings);
 
   // automatic settings
-  QObject::connect(&autoSettings_, &AutomaticSettings::updateAutomaticSettings,
+  QObject::connect(&autoSettings_, &Demos::updateAutomaticSettings,
                    this,          &Settings::updateAutomaticSettings);
   QObject::connect(basicUI_->media_settings_button, &QCheckBox::clicked,
                    this,                            &Settings::openAutomaticSettings);
-  QObject::connect(&autoSettings_, &AutomaticSettings::hidden,
+  QObject::connect(&autoSettings_, &Demos::hidden,
                    this,           &Settings::show);
-  QObject::connect(&autoSettings_, &AutomaticSettings::updateVideoSettings,
+  QObject::connect(&autoSettings_, &Demos::updateVideoSettings,
                    this,           &Settings::updateVideoSettings);
 
 
@@ -152,15 +152,22 @@ void Settings::init()
   QObject::connect(basicUI_->screenDevice_combo, &QComboBox::currentTextChanged,
                    this, &Settings::uiChangedString);
 
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
   // we must initialize the settings if they do not exist
-  if (!settings_.value(SettingsKey::micStatus).isValid())
+  if (!settings.value(SettingsKey::micStatus).isValid())
   {
     setMicState(true);
   }
 
-  if (!settings_.value(SettingsKey::cameraStatus).isValid())
+  if (!settings.value(SettingsKey::cameraStatus).isValid())
   {
     setCameraState(true);
+  }
+
+  if (!settings.value(SettingsKey::videoFileEnabled).isValid())
+  {
+    settings.setValue(SettingsKey::videoFileEnabled, "0");
   }
 
   // never start with screen sharing turned on
@@ -186,37 +193,43 @@ void Settings::show()
 
   QWidget::show();
   basicUI_->save->hide();
+
+  Logger::getLogger()->printNormal(this, "Settings opened");
 }
 
 
 void Settings::setMicState(bool enabled)
 {
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
   if (enabled)
   {
-    settings_.setValue(SettingsKey::micStatus, "1");
+    settings.setValue(SettingsKey::micStatus, "1");
   }
   else
   {
-    settings_.setValue(SettingsKey::micStatus, "0");
+    settings.setValue(SettingsKey::micStatus, "0");
   }
 }
 
 
 void Settings::setCameraState(bool enabled)
 {
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
   if (enabled)
   {
-    settings_.setValue(SettingsKey::cameraStatus, "1");
+    settings.setValue(SettingsKey::cameraStatus, "1");
   }
   else
   {
-    settings_.setValue(SettingsKey::cameraStatus, "0");
+    settings.setValue(SettingsKey::cameraStatus, "0");
   }
 }
 
 
 void Settings::setScreenShareState(bool enabled)
 {
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
   if (enabled)
   {
     int screenIndex = getDeviceID(basicUI_->screenDevice_combo, SettingsKey::userScreenID,
@@ -229,15 +242,15 @@ void Settings::setScreenShareState(bool enabled)
       if (screen != nullptr)
       {
         QSize resolution;
-        resolution.setWidth(screen->size().width() - screen->size().width()%8);
-        resolution.setHeight(screen->size().height() - screen->size().height()%8);
+        resolution.setWidth(screen->size().width());
+        resolution.setHeight(screen->size().height());
 
-        settings_.setValue(SettingsKey::screenShareStatus, "1");
-        settings_.setValue(SettingsKey::videoResolutionWidth, resolution.width());
-        settings_.setValue(SettingsKey::videoResolutionHeight, resolution.height());
+        settings.setValue(SettingsKey::screenShareStatus, "1");
+        settings.setValue(SettingsKey::videoResolutionWidth, resolution.width());
+        settings.setValue(SettingsKey::videoResolutionHeight, resolution.height());
 
-        settings_.setValue(SettingsKey::videoFramerateNumerator, "10");
-        settings_.setValue(SettingsKey::videoFramerateDenominator, "1");
+        settings.setValue(SettingsKey::videoFramerateNumerator, "10");
+        settings.setValue(SettingsKey::videoFramerateDenominator, "1");
         videoSettings_.setScreenShareState(enabled);
 
         Logger::getLogger()->printNormal(this, "Enabled Screen sharing", "Screen resolution",
@@ -247,7 +260,7 @@ void Settings::setScreenShareState(bool enabled)
   }
   else
   {
-    settings_.setValue(SettingsKey::screenShareStatus, "0");
+    settings.setValue(SettingsKey::screenShareStatus, "0");
     videoSettings_.setScreenShareState(enabled);
     videoSettings_.saveCameraCapabilities(getDeviceID(basicUI_->videoDevice_combo,
                                                       SettingsKey::videoDeviceID,
@@ -333,8 +346,8 @@ void Settings::on_save_clicked()
 void Settings::on_close_clicked()
 {
   Logger::getLogger()->printNormal(this, "Closing Settings. Gettings settings from file.");
-
-  if (checkSettingsList(settings_, neededSettings))
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+  if (checkSettingsList(settings, neededSettings))
   {
     // discard UI values and restore the settings from file
     getSettings(false);
@@ -380,10 +393,12 @@ void Settings::saveSettings()
 {
   Logger::getLogger()->printNormal(this, "Recording settings");
 
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
   // Local settings
-  saveTextValue(SettingsKey::localRealname, basicUI_->name_edit->text(), settings_);
-  saveTextValue(SettingsKey::localUsername, basicUI_->username_edit->text(), settings_);
-  saveTextValue(SettingsKey::sipServerAddress, basicUI_->serverAddress_edit->text(), settings_);
+  saveTextValue(SettingsKey::localRealname, basicUI_->name_edit->text(), settings);
+  saveTextValue(SettingsKey::localUsername, basicUI_->username_edit->text(), settings);
+  saveTextValue(SettingsKey::sipServerAddress, basicUI_->serverAddress_edit->text(), settings);
   if (basicUI_->passwd_edit->text() != "")
   {
     QCryptographicHash hash(QCryptographicHash::Md5);
@@ -393,11 +408,11 @@ void Settings::saveSettings()
 
     QString credentials = hash.result().toHex();
 
-    saveTextValue("local/Credentials", credentials, settings_);
+    saveTextValue("local/Credentials", credentials, settings);
   }
 
-  saveCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
-  saveCheckBox(SettingsKey::manualSettings, basicUI_->show_manual_box, settings_);
+  saveCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings);
+  saveCheckBox(SettingsKey::manualSettings, basicUI_->show_manual_box, settings);
 
   saveDevice(basicUI_->videoDevice_combo, SettingsKey::videoDeviceID,
              SettingsKey::videoDevice, D_VIDEO);
@@ -418,18 +433,20 @@ void Settings::getSettings(bool changedDevice)
   initDeviceSelector(basicUI_->screenDevice_combo, SettingsKey::userScreenID,
                      SettingsKey::userScreen, screen_);
 
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
   //get values from QSettings
-  if (checkSettingsList(settings_, neededSettings))
+  if (checkSettingsList(settings, neededSettings))
   {
-    Logger::getLogger()->printNormal(this, "Loading settings from file", {"File"}, {settings_.fileName()});
+    Logger::getLogger()->printNormal(this, "Loading settings from file", {"File"}, {settings.fileName()});
 
-    basicUI_->name_edit->setText      (settings_.value(SettingsKey::localRealname).toString());
-    basicUI_->username_edit->setText  (settings_.value(SettingsKey::localUsername).toString());
+    basicUI_->name_edit->setText      (settings.value(SettingsKey::localRealname).toString());
+    basicUI_->username_edit->setText  (settings.value(SettingsKey::localUsername).toString());
 
-    basicUI_->serverAddress_edit->setText(settings_.value(SettingsKey::sipServerAddress).toString());
+    basicUI_->serverAddress_edit->setText(settings.value(SettingsKey::sipServerAddress).toString());
 
-    restoreCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings_);
-    restoreCheckBox(SettingsKey::manualSettings, basicUI_->show_manual_box, settings_);
+    restoreCheckBox(SettingsKey::sipAutoConnect, basicUI_->auto_connect_box, settings);
+    restoreCheckBox(SettingsKey::manualSettings, basicUI_->show_manual_box, settings);
 
     // set the UI in correct state
     showServerOptions(basicUI_->auto_connect_box->isChecked());
@@ -540,12 +557,14 @@ int Settings::getDeviceID(QComboBox* deviceSelector, QString settingID,
                           QString settingsDevice)
 {
   Q_ASSERT(deviceSelector);
-  QString deviceName = settings_.value(settingsDevice).toString();
+
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+  QString deviceName = settings.value(settingsDevice).toString();
 
   int deviceIndex = deviceSelector->findText(deviceName);
-  int deviceID = settings_.value(settingID).toInt();
+  int deviceID = settings.value(settingID).toInt();
 
-//  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Getting device ID from selector list",
+//  Logger::getLogger()->printNormal(this, "Getting device ID from selector list",
 //      {"SettingsID", "DeviceName", "List Index", "Number of items"},
 //      {settingID, deviceName, QString::number(deviceIndex),
 //       QString::number(deviceSelector->count())});
@@ -555,21 +574,21 @@ int Settings::getDeviceID(QComboBox* deviceSelector, QString settingID,
   {
     // if we have multiple devices with same name we use id
     if(deviceID != deviceIndex
-       && deviceSelector->itemText(deviceID) == settings_.value(settingsDevice).toString())
+       && deviceSelector->itemText(deviceID) == settings.value(settingsDevice).toString())
     {
       return deviceID;
     }
     else
     {
       // the recorded info was false and our found device is chosen
-      settings_.setValue(settingID, deviceIndex);
+      settings.setValue(settingID, deviceIndex);
       return deviceIndex;
     }
   } // if there are devices available, use first
   else if(deviceSelector->count() != 0)
   {
     // could not find the device. Choosing first one
-    settings_.setValue(settingID, 0);
+    settings.setValue(settingID, 0);
     return 0;
   }
 
@@ -581,16 +600,18 @@ int Settings::getDeviceID(QComboBox* deviceSelector, QString settingID,
 void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
                           QString settingsDevice, DeviceType type)
 {
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
   int currentIndex = deviceSelector->currentIndex();
   if( currentIndex != -1)
   {
-    if(deviceSelector->currentText() != settings_.value(settingsDevice).toString())
+    if(deviceSelector->currentText() != settings.value(settingsDevice).toString())
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "The device name has changed",
+      Logger::getLogger()->printNormal(this, "The device name has changed",
                                        {"Old name", "New name"},
-                                       {settings_.value(settingsDevice).toString(), deviceSelector->currentText()});
+                                       {settings.value(settingsDevice).toString(), deviceSelector->currentText()});
 
-      settings_.setValue(settingsDevice, deviceSelector->currentText());
+      settings.setValue(settingsDevice, deviceSelector->currentText());
 
       // set capability to first
 
@@ -605,11 +626,11 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
         audioSettings_.changedDevice(currentIndex);
       }
     }
-    else if(deviceSelector->currentIndex() != settings_.value(settingsID).toInt())
+    else if(deviceSelector->currentIndex() != settings.value(settingsID).toInt())
     {
-      Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "The device ID has changed",
+      Logger::getLogger()->printNormal(this, "The device ID has changed",
                                        {"Old ID", "New ID"},
-                                       {settings_.value(settingsID).toString(),
+                                       {settings.value(settingsID).toString(),
                                         QString::number(deviceSelector->currentIndex())});
 
       if (type == D_VIDEO)
@@ -625,13 +646,13 @@ void Settings::saveDevice(QComboBox* deviceSelector, QString settingsID,
     }
 
     // record index in all cases
-    settings_.setValue(settingsID,      currentIndex);
+    settings.setValue(settingsID,      currentIndex);
   }
   else
   {
     // record something so it doesn't give error when checking for missing keys
-    settings_.setValue(settingsID,      "-1");
-    settings_.setValue(settingsDevice,  "none");
+    settings.setValue(settingsID,      "-1");
+    settings.setValue(settingsDevice,  "none");
   }
 }
 
@@ -667,8 +688,10 @@ void Settings::updateServerStatus(QString status)
 
 void Settings::checkUUID()
 {
-  if (!settings_.value(SettingsKey::sipUUID).isValid() ||
-      settings_.value(SettingsKey::sipUUID).toString().isEmpty())
+  QSettings settings = QSettings(getSettingsFile(), settingsFileFormat);
+
+  if (!settings.value(SettingsKey::sipUUID).isValid() ||
+      settings.value(SettingsKey::sipUUID).toString().isEmpty())
   {
     QUuid uuid = QUuid::createUuid();
     QString uuid_str = uuid.toString();
@@ -676,7 +699,7 @@ void Settings::checkUUID()
     uuid_str = uuid_str.remove("{");
     uuid_str = uuid_str.remove("}");
 
-    settings_.setValue(SettingsKey::sipUUID, uuid_str);
+    settings.setValue(SettingsKey::sipUUID, uuid_str);
 
     Logger::getLogger()->printNormal(this, "Generated new UUID.", "UUID", uuid_str);
   }

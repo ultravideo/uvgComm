@@ -1,7 +1,8 @@
 #include "audiocapturefilter.h"
 
-#include "statisticsinterface.h"
 #include "audioframebuffer.h"
+#include "common.h"
+#include "statisticsinterface.h"
 
 #include "settingskeys.h"
 #include "global.h"
@@ -26,7 +27,8 @@ AudioCaptureFilter::AudioCaptureFilter(QString id, QAudioFormat format,
   wantedState_(QAudio::StoppedState),
   buffer_(nullptr),
   muteSamples_(0),
-  mutingPeriod_(0)
+  mutingPeriod_(0),
+  rtpTimestamp_(initializeRtpTimestamp())
 {}
 
 
@@ -43,7 +45,7 @@ bool AudioCaptureFilter::init()
   const QList<QAudioDevice> microphones = QMediaDevices::audioInputs();
   if (!microphones.empty())
   {
-    QSettings settings(settingsFile, settingsFileFormat);
+    QSettings settings(getSettingsFile(), settingsFileFormat);
     QString deviceName = settings.value(SettingsKey::audioDevice).toString();
     int deviceID = settings.value(SettingsKey::audioDeviceID).toInt();
 
@@ -77,7 +79,7 @@ bool AudioCaptureFilter::init()
           if(parsedName == deviceName)
           {
             deviceID = i;
-            Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found Mic.", {"Name", "ID"},
+            Logger::getLogger()->printNormal(this, "Found Mic.", {"Name", "ID"},
                         {microphones.at(i).description(), QString::number(deviceID)});
             break;
           }
@@ -107,9 +109,9 @@ bool AudioCaptureFilter::init()
   }
 
   if(format_.sampleRate() != -1)
-    getStats()->audioInfo(format_.sampleRate(), format_.channelCount());
+    getStats()->audioInfo(0, 0, format_.sampleRate(), format_.channelCount());
   else
-    getStats()->audioInfo(0, 0);
+    getStats()->audioInfo(0, 0, 0, 0);
 
   createAudioInput();
   Logger::getLogger()->printNormal(this, "Audio initializing completed.");
@@ -144,7 +146,7 @@ void AudioCaptureFilter::createAudioInput()
   connect(audioInput_, &QAudioSource::stateChanged,
           this,        &AudioCaptureFilter::stateChanged);
 /*
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Created audio input",
+  Logger::getLogger()->printNormal(this, "Created audio input",
              {"Notify interval", "Buffer size", "Period Size"},
              {QString::number(audioInput_->notifyInterval()),
               QString::number(audioInput_->bufferSize()),
@@ -212,12 +214,17 @@ void AudioCaptureFilter::readMore()
       std::unique_ptr<Data> audioFrame = initializeData(DT_RAWAUDIO, DS_LOCAL);
 
       // create audio data packet to be sent to filter graph
-      audioFrame->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+      audioFrame->creationTimestamp = clockNowMs();
       audioFrame->presentationTimestamp = audioFrame->creationTimestamp;
 
       audioFrame->data_size = buffer_->getDesiredSize();
       audioFrame->data = std::unique_ptr<uint8_t[]>(frame);
       audioFrame->aInfo->sampleRate = format_.sampleRate();
+
+      // Calculate RTP timestamp according to RFC 3550
+      // Opus uses 48 kHz clock rate (RFC 7587)
+      rtpTimestamp_ = updateAudioRtpTimestamp(rtpTimestamp_);
+      audioFrame->rtpTimestamp = rtpTimestamp_;
 
       if (muteSamples_ > 0)
       {

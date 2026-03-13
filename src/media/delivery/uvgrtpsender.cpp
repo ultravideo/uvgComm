@@ -11,51 +11,232 @@
 #include <QtConcurrent>
 #include <QFuture>
 
-#include <functional>
 
-UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id, StatisticsInterface *stats,
+UvgRTPSender::UvgRTPSender(uint32_t sessionID, QString id,
+                           StatisticsInterface *stats,
                            std::shared_ptr<ResourceAllocator> hwResources,
                            DataType type, QString media,
-                           std::shared_ptr<UvgRTPStream> stream):
-  Filter(id, "RTP Sender " + media, stats, hwResources, type, DT_NONE, false),
+                           uint32_t localSSRC, uint32_t remoteSSRC,
+                           uvgrtp::media_stream* stream, bool runZRTP)
+  :Filter(id, "RTP Sender " + media, stats, hwResources, type, DT_NONE, false),
   stream_(stream),
   sessionID_(sessionID),
   rtpFlags_(RTP_NO_FLAGS),
   framerateNumerator_(0),
-  framerateDenominator_(0)
+  framerateDenominator_(0),
+  lastSessionBandwidthKbps_(-1),
+  overrideSessionBandwidthKbps_(0)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initializing uvgRTP sender",
+  Q_ASSERT(stream_);
+
+  Logger::getLogger()->printNormal(this, "Initializing uvgRTP sender",
                                   {"LocalSSRC", "Remote SSRC", "Sender type"},
-                                  {QString::number(stream_->localSSRC),
-                                   QString::number(stream_->remoteSSRC),
+                                  {QString::number(localSSRC),
+                                   QString::number(remoteSSRC),
                                    datatypeToString(input_)});
+
+  // Update uvgRTP session bandwidth whenever participant count changes.
+  // This ensures RTCP intervals track allocation changes immediately.
+  if (getHWManager())
+  {
+    QObject::connect(getHWManager().get(), &ResourceAllocator::participantsChanged,
+                     this, [this](int)
+                     {
+                       updateSessionBandwidth();
+                     },
+                     Qt::QueuedConnection);
+  }
+
+  if (input_ == DT_HEVCVIDEO)
+    awaitingKeyframe_ = true;
+
+  std::function<void(uint32_t, uint32_t, double)> f = std::bind(&UvgRTPSender::rtt, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
+  {
+    std::lock_guard<std::mutex> g(streamMutex_);
+    if (stream_ && stream_->get_rtcp())
+      stream_->get_rtcp()->install_roundtrip_time_hook(f);
+  }
 
   UvgRTPSender::updateSettings();
 
-  if (stream_->localSSRC != 0)
+  if (runZRTP)
   {
-    stream_->ms->configure_ctx(RCC_SSRC, stream_->localSSRC);
-  }
-  if (stream_->remoteSSRC != 0)
-  {
-    stream_->ms->configure_ctx(RCC_REMOTE_SSRC, stream_->remoteSSRC);
-  }
-
-  if (stream->runZRTP)
-  {
-    stream->runZRTP = false;
     futureRes_ =
         QtConcurrent::run([=](uvgrtp::media_stream *ms)
                           {
                             return ms->start_zrtp();
-                          },
-                          stream_->ms);
+                          }, stream_);
   }
 }
 
 
+void UvgRTPSender::updateSessionBandwidth()
+{
+  if (!alive_.load())
+    return;
+
+  std::lock_guard<std::mutex> g(streamMutex_);
+
+  if (!stream_)
+  {
+    if (!loggedNoStreamForBandwidth_.exchange(true))
+    {
+      Logger::getLogger()->printWarning(this, "Skipping RCC_SESSION_BANDWIDTH: no stream",
+                                       {"SessionID", "Type"},
+                                       {QString::number(sessionID_), datatypeToString(inputType())});
+    }
+    return;
+  }
+
+  loggedNoStreamForBandwidth_.store(false);
+
+  const int overrideKbps = overrideSessionBandwidthKbps_.load();
+
+  int totalSessionBitrateKbps = 0;
+  if (overrideKbps > 0)
+  {
+    // Keep non-zero so RTCP is still sent (needed for RTT / latency probing).
+    totalSessionBitrateKbps = std::max(10, overrideKbps);
+  }
+  else
+  {
+    int payloadBitrateBps = 0;
+    if (getHWManager())
+      payloadBitrateBps = getHWManager()->getEncoderBitrate(inputType());
+
+    totalSessionBitrateKbps = std::max(10, (int)(payloadBitrateBps / (1.0 - TRANSMISSION_OVERHEAD))/1000);
+  }
+
+  if (totalSessionBitrateKbps == lastSessionBandwidthKbps_)
+    return;
+
+  Logger::getLogger()->printNormal(this, "Applying RCC_SESSION_BANDWIDTH",
+                                  {"SessionID", "SSRC", "Kbps", "OverrideKbps", "Type"},
+                                  {QString::number(sessionID_),
+                                   QString::number(stream_->get_ssrc()),
+                                   QString::number(totalSessionBitrateKbps),
+                                   QString::number(overrideKbps),
+                                   datatypeToString(inputType())});
+
+  stream_->configure_ctx(RCC_SESSION_BANDWIDTH, totalSessionBitrateKbps);
+  lastSessionBandwidthKbps_ = totalSessionBitrateKbps;
+}
+
+
+void UvgRTPSender::setTemporarySessionBandwidthKbps(int kbps)
+{
+  // Clamp: RTCP must not be zero.
+  overrideSessionBandwidthKbps_.store(std::max(10, kbps));
+  updateSessionBandwidth();
+}
+
+
+void UvgRTPSender::clearTemporarySessionBandwidth()
+{
+  overrideSessionBandwidthKbps_.store(0);
+  updateSessionBandwidth();
+}
+
+
 UvgRTPSender::~UvgRTPSender()
-{}
+{
+  uninit();
+}
+
+
+void UvgRTPSender::stop()
+{
+  uninit();
+  Filter::stop();
+}
+
+
+void UvgRTPSender::uninit()
+{
+  // mark as not alive so callbacks / process() can bail out early
+  alive_.store(false);
+
+  // If ZRTP handshake thread is running, wait for it to finish so we don't
+  // race with stream destruction.
+  if (futureRes_.isRunning())
+  {
+    Logger::getLogger()->printWarning(this, "Waiting for ZRTP to finish in destructor");
+    futureRes_.waitForFinished();
+  }
+
+  std::lock_guard<std::mutex> g(streamMutex_);
+  if (stream_)
+  {
+    // Remove all RTCP hooks
+    if (stream_->get_rtcp())
+    {
+      stream_->get_rtcp()->remove_all_hooks();
+    }
+    // Null out our reference to make it safe for concurrent checks.
+    stream_ = nullptr;
+  }
+}
+
+void UvgRTPSender::startForwarding(uint32_t remoteSSRC, uint32_t futureTimestamp)
+{
+  sendAPP(remoteSSRC, futureTimestamp, "STRT", 0);
+}
+
+
+void UvgRTPSender::stopForwarding(uint32_t remoteSSRC, uint32_t futureTimestamp)
+{
+  sendAPP(remoteSSRC, futureTimestamp, "STOP", 1);
+}
+
+
+void UvgRTPSender::sendAPP(uint32_t remoteSSRC, uint32_t futureTimestamp, const char* name, uint8_t subtype)
+{
+  if (futureRes_.isRunning())
+  {
+    Logger::getLogger()->printWarning(this, "Waiting for ZRTP to finish");
+    // Block until ZRTP handshake finishes instead of using ad-hoc sleeps.
+    // This keeps behavior deterministic and avoids timing races.
+    futureRes_.waitForFinished();
+  }
+
+  Logger::getLogger()->printNormal(this, "Scheduling RTCP APP packet",
+                                  {"Future Timestamp", "Name"},
+                                  {QString::number(futureTimestamp), QString(name)});
+
+  // Allocate and populate 8-byte payload: [SSRC (4 bytes)] [Timestamp (4 bytes)]
+  uint32_t netSSRC = htonl(remoteSSRC);
+  uint32_t netTimestamp = htonl(futureTimestamp);
+
+  uint8_t payload[8];
+  memcpy(payload, &netSSRC, 4);
+  memcpy(payload + 4, &netTimestamp, 4);
+
+  std::lock_guard<std::mutex> g(streamMutex_);
+  if (stream_ && stream_->get_rtcp())
+  {
+    rtp_error_t result = stream_->get_rtcp()->send_app_packet(name, subtype, sizeof(payload), payload);
+    if (result != RTP_OK)
+    {
+      Logger::getLogger()->printWarning(this, "Failed to send RTCP APP STOP packet");
+    }
+  }
+}
+
+
+void UvgRTPSender::rtt(uint32_t localSSRC, uint32_t remoteSSRC, double time)
+{
+  //Logger::getLogger()->printNormal(this, "RTT received",
+  //                                {"Time (ms)", "SSRC"}, {QString::number(time, 'f', 2), QString::number(remoteSSRC)});
+
+  if (time < 0 || time > 5000) // we assume max 5 seconds
+  {
+    Logger::getLogger()->printError("Hybrid", "Invalid RTT value: " + QString::number(time));
+    return;
+  }
+
+  emit rttReceived(remoteSSRC, time);
+}
 
 
 void UvgRTPSender::updateSettings()
@@ -68,32 +249,47 @@ void UvgRTPSender::updateSettings()
     uint32_t vps   = settingValue(SettingsKey::videoVPS);
     uint16_t intra = (uint16_t)settingValue(SettingsKey::videoIntra);
     maxBufferSize_ = vps * intra;
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this,  "Updated buffersize",
+    Logger::getLogger()->printNormal(this,  "Updated buffersize",
                                     {"Size"}, {QString::number(maxBufferSize_)});
 
-    framerateNumerator_ = settingValue(SettingsKey::videoFramerateNumerator);
-    framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
+    if (settingValue(SettingsKey::videoFileEnabled))
+    {
+      framerateNumerator_ = settingValue(SettingsKey::videoFileFramerate);
+      framerateDenominator_ = 1;
+    }
+    else
+    {
+      framerateNumerator_ = settingValue(SettingsKey::videoFramerateNumerator);
+      framerateDenominator_ = settingValue(SettingsKey::videoFramerateDenominator);
+    }
 
-    if (stream_->ms &&
+    std::lock_guard<std::mutex> g(streamMutex_);
+    if (stream_ &&
         dataFormat_ == RTP_FORMAT_H264 ||
         dataFormat_ == RTP_FORMAT_H265 ||
         dataFormat_ == RTP_FORMAT_H266)
     {
-      stream_->ms->configure_ctx(RCC_FPS_NUMERATOR, framerateNumerator_);
-      stream_->ms->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
+      stream_->configure_ctx(RCC_FPS_NUMERATOR, framerateNumerator_);
+      stream_->configure_ctx(RCC_FPS_DENOMINATOR, framerateDenominator_);
     }
   }
+
+  // Also refresh uvgRTP session bandwidth so RTCP intervals track current allocation.
+  updateSessionBandwidth();
 }
 
 
 void UvgRTPSender::process()
 {
-  if (!stream_->ms)
+  if (!alive_.load())
+    return;
+
+  if (!stream_)
     return;
 
   if (futureRes_.isRunning())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this, "Waiting for ZRTP to finish");
+    Logger::getLogger()->printWarning(this, "Waiting for ZRTP to finish");
     return;
   }
 
@@ -103,11 +299,40 @@ void UvgRTPSender::process()
   // TODO: For HEVC, make sure that the first frame we send is intra
   while (input)
   {
-    ret = stream_->ms->push_frame(std::move(input->data), input->data_size, rtpFlags_);
+    streamMutex_.lock();
+    if (stream_)
+    {
+      if (input->type == DT_HEVCVIDEO && awaitingKeyframe_)
+      {
+        if (input->vInfo && input->vInfo->keyframe)
+        {
+          awaitingKeyframe_ = false;
+          // Forward the keyframe below
+        }
+        else
+        {
+          // Drop this frame; wait for keyframe
+          input = getInput();
+          streamMutex_.unlock();
+          continue;
+        }
+      }
+
+      if (input->rtpTimestamp != 0)
+      {
+        ret = stream_->push_frame(std::move(input->data), input->data_size, input->rtpTimestamp, rtpFlags_);
+      }
+      else
+      {
+        Logger::getLogger()->printWarning(this, "No RTP timestamp available");
+        ret = stream_->push_frame(std::move(input->data), input->data_size, rtpFlags_);
+      }
+    }
+    streamMutex_.unlock();
 
     if (ret != RTP_OK)
     {
-      Logger::getLogger()->printDebug(DEBUG_ERROR, this,  "Failed to send data", 
+      Logger::getLogger()->printError(this,  "Failed to send data", 
                                       { "Error" }, { QString::number(ret) });
     }
 
@@ -120,7 +345,11 @@ void UvgRTPSender::process()
 
 void UvgRTPSender::processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp_receiver_report> rr)
 {
-  uint32_t ourSSRC = stream_->ms->get_ssrc();
+  std::lock_guard<std::mutex> g(streamMutex_);
+  if (!alive_.load() || !stream_)
+    return;
+
+  uint32_t ourSSRC = stream_->get_ssrc();
 
   for (auto& block : rr->report_blocks)
   {
@@ -138,7 +367,7 @@ void UvgRTPSender::processRTCPReceiverReport(std::unique_ptr<uvgrtp::frame::rtcp
         type = "Audio";
       }
 
-      getStats()->addRTCPPacket(sessionID_, type,
+      getStats()->addRTCPPacket(sessionID_, "", type,
                                 block.fraction,
                                 block.lost,
                                 block.last_seq,

@@ -275,7 +275,7 @@ bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields
       // Check the correct number of values for Field
       if (commaSeparated.size() > 500)
       {
-        Logger::getLogger()->printDebug(DEBUG_PEER_ERROR, "SIP Transport Helper",
+        Logger::getLogger()->printPeerError("SIP Transport Helper",
                    "Too many comma separated sets in field",
                     {"Field", "Amount"}, {field.name, QString::number(commaSeparated.size())});
         return false;
@@ -285,7 +285,7 @@ bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields
       {
         if (!parseField(value, field))
         {
-          Logger::getLogger()->printDebug(DEBUG_WARNING, "SIP Transport Helper", "Failed to parse field",
+          Logger::getLogger()->printWarning("SIP Transport Helper", "Failed to parse field",
                        {"Name", "Field"}, {field.name, value});
           return false;
         }
@@ -300,7 +300,7 @@ bool headerToFields(QString& header, QString& firstLine, QList<SIPField>& fields
     }
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "SIP Transport Helper", "Found the following lines",
+  Logger::getLogger()->printNormal("SIP Transport Helper", "Found the following lines",
              {"Lines"}, debugLineNames);
 
   return true;

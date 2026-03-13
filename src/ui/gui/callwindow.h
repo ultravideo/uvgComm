@@ -3,8 +3,6 @@
 #include "conferenceview.h"
 #include "contactlist.h"
 
-#include "mediaid.h"
-
 #include <QMainWindow>
 #include <QPushButton>
 
@@ -38,8 +36,9 @@ public:
 
   // adds video stream to view
   void callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
-                   uint32_t sessionID, QStringList names,
-                   const QList<std::pair<MediaID, MediaID>> &audioVideoIDs);
+                   uint32_t sessionID,
+                   QStringList names,
+                   const std::map<QString, MediaSource> &sources);
 
   // removes caller from view
   void removeParticipant(uint32_t sessionID);
@@ -86,6 +85,8 @@ public slots:
   void layoutRejects(LayoutID layoutID);
   void layoutCancels(LayoutID layoutID);
 
+  void callSettingsUpdated();
+
 private slots:
   void expireLayouts();
 
@@ -114,9 +115,9 @@ private:
 
   void cleanUp();
 
-  std::vector<uint32_t> sessionLayouts(uint32_t sessionID);
-
   bool getTempLayoutID(LayoutID& id, uint32_t sessionID);
+
+  void removeExpiredLayouts();
 
   Ui::CallWindow *ui_;
 
@@ -126,16 +127,14 @@ private:
   ParticipantInterface* partInt_;
 
   QTimer removeLayoutTimer_;
-  QList<uint32_t> expiringLayouts_;
+  QList<LayoutID> expiringLayouts_;
 
-  struct LayoutMedia
-  {
-    LayoutID layoutID;
-    MediaID mediaID;
-  };
-
+  // key is sessionID, used to track incoming/outgoing call view in the session
   std::map<uint32_t, LayoutID> temporaryLayoutIDs_;
 
-  // key is sessionID, used to store layoutID/mediaID combinations
-  std::map<uint32_t, std::vector<LayoutMedia>> layoutIDs_;
+  // key is sessionID, used to store layoutIDs for convenient deletion
+  std::map<uint32_t, std::vector<LayoutID>> layoutIDs_;
+
+  // stores the video layoutID for each cname
+  std::map<uint32_t, std::map<QString, LayoutID>> sessionCnameToLayoutID_;
 };

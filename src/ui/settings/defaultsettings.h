@@ -44,8 +44,6 @@ private:
   uint64_t calculatePoints(QString format, QSize resolution, double fps);
 
   uint64_t calculateComplexity(QSize resolution, double fps);
-
-  QSettings settings_;
 };
 
 

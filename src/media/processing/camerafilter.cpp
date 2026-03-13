@@ -5,6 +5,7 @@
 
 #include "settingskeys.h"
 #include "logger.h"
+#include "common.h"
 
 #include <QSettings>
 #include <QTime>
@@ -25,8 +26,13 @@ CameraFilter::CameraFilter(QString id, StatisticsInterface *stats,
   resolutionHeight_(0),
   currentDeviceName_(""),
   currentDeviceID_(-1),
-  currentInputFormat_("")
-{}
+  currentInputFormat_(""),
+  rtpTimestamp_(initializeRtpTimestamp()),
+  wantedRunning_(false)
+{
+  resolutionWidth_ = settingValue(SettingsKey::videoResolutionWidth);
+  resolutionHeight_ = settingValue(SettingsKey::videoResolutionHeight);
+}
 
 
 CameraFilter::~CameraFilter()
@@ -40,7 +46,7 @@ CameraFilter::~CameraFilter()
 
 void CameraFilter::updateSettings()
 {
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
 
   QString deviceName = settings.value(SettingsKey::videoDevice).toString();
   int deviceID = settings.value(SettingsKey::videoDeviceID).toInt();
@@ -62,16 +68,53 @@ void CameraFilter::updateSettings()
   {
     Logger::getLogger()->printNormal(this, "Updating camera settings since they have changed");
 
+    const bool wasRunning = wantedRunning_;
+
+    resolutionWidth_ = resolutionWidth;
+    resolutionHeight_ = resolutionHeight;
+
     // TODO: Just set the viewfinder settings instead for restarting camera.
     // Settings the viewfinder does not always restart camera.
 
     stop();
     uninit();
     init();
-    start();
+
+    if (wasRunning)
+    {
+      start();
+    }
   }
 
   Filter::updateSettings();
+}
+
+
+void CameraFilter::setResolution(std::pair<uint16_t, uint16_t> resolution)
+{
+  if (resolution.first != resolutionWidth_ ||
+      resolution.second != resolutionHeight_)
+  {
+    Logger::getLogger()->printNormal(this, "Updating camera resolution to " +
+                                     QString::number(resolution.first) + "x" +
+                                     QString::number(resolution.second));
+
+  const bool wasRunning = wantedRunning_;
+
+    resolutionWidth_ = resolution.first;
+    resolutionHeight_ = resolution.second;
+
+    // TODO: Just set the viewfinder settings instead for restarting camera.
+    // Settings the viewfinder does not always restart camera.
+    stop();
+    uninit();
+    init();
+
+    if (wasRunning)
+    {
+      start();
+    }
+  }
 }
 
 
@@ -116,7 +159,7 @@ bool CameraFilter::initialCameraSetup()
     return false;
   }
 
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
   currentDeviceName_ = settings.value(SettingsKey::videoDevice).toString();
   currentDeviceID_ = settings.value(SettingsKey::videoDeviceID).toInt();
 
@@ -135,20 +178,20 @@ bool CameraFilter::initialCameraSetup()
     {
       if(cameras.at(i).description() == currentDeviceName_)
       {
-        Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Found the camera.", {"Description", "ID"},
+        Logger::getLogger()->printNormal(this, "Found the camera.", {"Description", "ID"},
                    {cameras.at(i).description(), QString::number(i)});
         currentDeviceID_ = i;
         break;
       }
     }
     // previous camera could not be found, use first.
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Did not find the camera. Using first.", 
+    Logger::getLogger()->printNormal(this, "Did not find the camera. Using first.", 
                                     {"Settings camera", "First camera"},
                {currentDeviceName_, cameras.at(0).description()});
     currentDeviceID_ = 0;
   }
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Initiating Qt camera", {"ID"},
+  Logger::getLogger()->printNormal(this, "Initiating Qt camera", {"ID"},
               {QString::number(currentDeviceID_)});
 
   if (currentDeviceID_ != -1 && currentDeviceID_ < cameras.size())
@@ -168,7 +211,7 @@ bool CameraFilter::cameraSetup()
 
   if (camera_)
   {
-    QSettings settings(settingsFile, settingsFileFormat);
+    QSettings settings(getSettingsFile(), settingsFileFormat);
 
     int waitRoundMS = 5;
     int totalWaitTime = 1000;
@@ -191,8 +234,10 @@ bool CameraFilter::cameraSetup()
     capture_->setCamera(camera_);
 
     currentInputFormat_ = settings.value(SettingsKey::videoInputFormat).toString();
-    resolutionWidth_ = settings.value(SettingsKey::videoResolutionWidth).toInt();
-    resolutionHeight_ = settings.value(SettingsKey::videoResolutionHeight).toInt();
+
+    // these are set earlier
+    //resolutionWidth_ = settings.value(SettingsKey::videoResolutionWidth).toInt();
+    //resolutionHeight_ = settings.value(SettingsKey::videoResolutionHeight).toInt();
     framerateNumerator_ = settings.value(SettingsKey::videoFramerateNumerator).toInt();
     framerateDenominator_ = settings.value(SettingsKey::videoFramerateDenominator).toInt();
     output_ = stringToDataType(currentInputFormat_);
@@ -226,11 +271,6 @@ bool CameraFilter::cameraSetup()
       Logger::getLogger()->printError(this, "Did not find camera option");
       return false;
     }
-    if (!camera_->isActive())
-    {
-      camera_->start();
-    }
-    Logger::getLogger()->printImportant(this, "Starting camera.");
   }
   else
   {
@@ -242,6 +282,7 @@ bool CameraFilter::cameraSetup()
 
 void CameraFilter::start()
 {
+  wantedRunning_ = true;
   Filter::start();
   if(camera_)
   {
@@ -252,6 +293,7 @@ void CameraFilter::start()
 
 void CameraFilter::stop()
 {
+  wantedRunning_ = false;
   if(camera_)
   {
     camera_->stop();
@@ -299,8 +341,14 @@ void CameraFilter::process()
 
     // capture the frame data
     std::unique_ptr<Data> newImage = initializeData(output_, DS_LOCAL);
-    newImage->creationTimestamp = QDateTime::currentMSecsSinceEpoch();
+
+    newImage->creationTimestamp = clockNowMs();
     newImage->presentationTimestamp = newImage->creationTimestamp;
+
+    // Calculate RTP timestamp according to RFC 3550
+    // Video uses 90 kHz clock rate (RFC 3551)
+    rtpTimestamp_ = updateVideoRtpTimestamp(rtpTimestamp_, framerateNumerator_, framerateDenominator_);
+    newImage->rtpTimestamp = rtpTimestamp_;
 
     newImage->type = output_;
 
@@ -327,14 +375,14 @@ void CameraFilter::process()
     newImage->data_size = totalSize;
 
     // kvazaar requires divisable by 8 resolution
-    newImage->vInfo->width = cloneFrame.width() - cloneFrame.width()%8;
-    newImage->vInfo->height = cloneFrame.height() - cloneFrame.height()%8;
+    newImage->vInfo->width = cloneFrame.width();
+    newImage->vInfo->height = cloneFrame.height();
     newImage->vInfo->framerateNumerator = framerateNumerator_;
     newImage->vInfo->framerateDenominator = framerateDenominator_;
 
 /*
     printDataBytes("Camera bytes", newImage->data.get(), newImage->data_size, 3, 0);
-    Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Captured frame",
+    Logger::getLogger()->printNormal(this, "Captured frame",
                                     {"Width", "Height", "data size"},
                                     {QString::number(newImage->vInfo->width),
                                      QString::number(newImage->vInfo->height),

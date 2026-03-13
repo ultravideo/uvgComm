@@ -113,7 +113,7 @@ void ContactList::addContact(ParticipantInterface* interface,
 {
   Q_ASSERT(!address.isEmpty());
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Adding contact",
+  Logger::getLogger()->printNormal(this, "Adding contact",
                                   {"Name", "username", "address", "index"},
                                   {name, username, address, QString::number(items_.size())});
 
@@ -196,8 +196,7 @@ void ContactList::removeContact(int index)
 
   if(index == -1  || index >= items_.size())
   {
-    Logger::getLogger()->printDebug(DEBUG_WARNING, this,
-                                    "Tried to remove a nonexisting contact");
+    Logger::getLogger()->printWarning(this, "Tried to remove a nonexisting contact");
     return;
   }
 

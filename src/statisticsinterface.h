@@ -3,9 +3,7 @@
 #include <QString>
 #include <QSize>
 
-#include <map>
 #include <stdint.h>
-#include <vector>
 #include <memory>
 
 // An interface where the program tells various statistics of its operations.
@@ -25,41 +23,42 @@ public:
   virtual void addSession(uint32_t sessionID) = 0;
   virtual void removeSession(uint32_t sessionID) = 0;
 
+  virtual void addParticipant(uint32_t sessionID, const QString& cname) = 0;
+  virtual void removeParticipant(uint32_t sessionID, const QString& cname) = 0;
+
   // MEDIA
   // basic information on audio/video. Can be called in case information changes.
-  virtual void videoInfo(double framerate, QSize resolution) = 0;
-  virtual void audioInfo(uint32_t sampleRate, uint16_t channelCount) = 0;
-
-  // basic call info for incoming and outgoing medias
-  virtual void incomingMedia(uint32_t sessionID, QString name) = 0;
-  virtual void outgoingMedia(uint32_t sessionID, QString name) = 0;
+  virtual void audioInfo(uint32_t sessionID, uint32_t bitrate, uint32_t sampleRate, uint16_t channelCount) = 0;
+  virtual void videoInfo(uint32_t sessionID, uint32_t bitrate, double framerate, QSize resolution) = 0;
 
   virtual void selectedICEPair(uint32_t sessionID, std::shared_ptr<ICEPair> pair) = 0;
 
-  // the delay it takes from input to the point when input is encoded
-  virtual void encodingDelay(QString type, uint32_t delay) = 0;
+  virtual void encodedAudioFrame(uint32_t size, uint32_t encodingTime) = 0;
+  virtual void encodedVideoFrame(uint32_t size,
+                                 uint32_t bandwidth,
+                                 uint32_t encodingTime,
+                                 QSize resolution,
+                                 float psnrY = -1.0,
+                                 float psnrU = -1.0,
+                                 float psnrV = -1.0,
+                                 int64_t networkLatencyMs = -1,
+                                 int64_t creationTimestamp = 0.0) = 0;
 
-  // the delay it takes from receiving the packet to the point when media presented
-  virtual void decodingDelay(QString type, uint32_t delay) = 0;
+  virtual void decodedAudioFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime) = 0;
+  virtual void decodedVideoFrame(QString cname, int64_t timestamp, uint32_t size, uint32_t decodingTime, QSize resolution, int64_t e2eLatency) = 0;
 
-  // the delay until the presentation of the packet
-  virtual void totalDelay(uint32_t sessionID, QString type, int32_t delay) = 0;
-
-  // one packet has been presented to user
-  virtual void presentPackage(uint32_t sessionID, QString type) = 0;
-
-  // For tracking of encoding bitrate and possibly other information.
-  virtual void addEncodedPacket(QString type, uint32_t size) = 0;
+  virtual void audioLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t delay) = 0;
+  virtual void videoLatency(uint32_t sessionID, QString cname, int64_t timestamp, int64_t delay) = 0;
 
   // DELIVERY
   // Tracking of sent packets
   virtual void addSendPacket(uint32_t size) = 0;
 
   // tracking of received packets.
-  virtual void addReceivePacket(uint32_t sessionID, QString type, uint32_t size) = 0;
+  virtual void addReceivePacket(uint32_t sessionID, const QString& cname, QString type, uint32_t size) = 0;
 
   // Details of an individual packet that shows how well our data is getting delivered
-  virtual void addRTCPPacket(uint32_t sessionID, QString type,
+  virtual void addRTCPPacket(uint32_t sessionID, const QString& cname, QString type,
                              uint8_t  fraction,
                              int32_t  lost,
                              uint32_t last_seq,

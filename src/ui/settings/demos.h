@@ -10,13 +10,15 @@ namespace Ui {
 class AutomaticSettings;
 }
 
-class AutomaticSettings : public QDialog
+class Demos : public QDialog
 {
   Q_OBJECT
 
 public:
-  explicit AutomaticSettings(QWidget *parent = nullptr);
-  ~AutomaticSettings();
+  explicit Demos(QWidget *parent = nullptr);
+  ~Demos();
+
+  void init();
 
   VideoWidget* getRoiSelfView();
 
@@ -54,8 +56,6 @@ private:
   void disableROI();
 
   Ui::AutomaticSettings *ui_;
-
-  QSettings settings_;
 
   int previousBitrate_;
 

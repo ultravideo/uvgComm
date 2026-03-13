@@ -26,11 +26,11 @@ public:
   virtual ~VideoInterface(){}
 
   // set stats to use with this video view.
-  virtual void setStats(StatisticsInterface* stats) = 0;
+  virtual void setStats(StatisticsInterface* stats, QString cname) = 0;
 
   // Takes ownership of the image data
   virtual void inputImage(std::unique_ptr<uchar[]> data, QImage &image,
-                          double framerate, int64_t timestamp) = 0;
+                          double framerate, int64_t creationTimestamp, int64_t displayTimestamp) = 0;
 
   virtual void inputDetections(std::vector<Detection> detections, QSize original_size, int64_t timestamp) = 0;
 

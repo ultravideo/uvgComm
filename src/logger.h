@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QMutex>
 #include <QFile>
 #include <QTextStream>
@@ -24,12 +25,22 @@ public:
   static std::shared_ptr<Logger> getLogger();
 
   // One time informational debug printing.
+  void printNormal(const QObject* object, QString description,
+                   QStringList valueNames, QStringList values);
+  void printNormal(const QString module, QString description,
+                   QStringList valueNames, QStringList values);
+  // Backwards-compatible single-value overloads
   void printNormal(const QObject* object, QString description = "",
                    QString valueName = "", QString value = "");
   void printNormal(const QString module, QString description = "",
                    QString valueName = "", QString value = "");
 
   // Important one time events
+  void printImportant(const QObject* object, QString description,
+                      QStringList valueNames, QStringList values);
+  void printImportant(const QString module, QString description,
+                      QStringList valueNames, QStringList values);
+  // Backwards-compatible single-value overloads
   void printImportant(const QObject* object, QString description = "",
                       QString valueName = "", QString value = "");
   void printImportant(const QString module, QString description = "",
@@ -37,6 +48,11 @@ public:
 
   // Events outside the program that can be dealt with, but are unusual
   // and/or can cause problems in the future
+  void printWarning(const QObject* object, QString description,
+                    QStringList valueNames, QStringList values);
+  void printWarning(const QString module, QString description,
+                    QStringList valueNames, QStringList values);
+  // Backwards-compatible single-value overloads
   void printWarning(const QObject* object, QString description = "",
                     QString valueName = "", QString value = "");
   void printWarning(const QString module, QString description = "",
@@ -44,12 +60,22 @@ public:
 
   // Events outside the program that will cause problems
   // for the functionality of the uvgComm.
+  void printError(const QObject* object, QString description,
+                  QStringList valueNames, QStringList values);
+  void printError(const QString module, QString description,
+                  QStringList valueNames, QStringList values);
+  // Backwards-compatible single-value overloads
   void printError(const QObject* object, QString description = "",
                   QString valueName = "", QString value = "");
   void printError(const QString module, QString description = "",
                   QString valueName = "", QString value = "");
 
   // Impossible situation that will cause problems to functionality of uvgComm.
+  void printProgramError(const QObject* object, QString description,
+                        QStringList valueNames, QStringList values);
+  void printProgramError(const QString module, QString description,
+                        QStringList valueNames, QStringList values);
+  // Backwards-compatible single-value overloads
   void printProgramError(const QObject* object, QString description = "",
                         QString valueName = "", QString value = "");
   void printProgramError(const QString module, QString description = "",
@@ -57,6 +83,11 @@ public:
 
   // Impossible situation that can be dealt without causing problems to functionality
   // of uvgComm.
+  void printProgramWarning(const QObject* object, QString description,
+                           QStringList valueNames, QStringList values);
+  void printProgramWarning(const QString module, QString description,
+                           QStringList valueNames, QStringList values);
+  // Backwards-compatible single-value overloads
   void printProgramWarning(const QObject* object, QString description = "",
                            QString valueName = "", QString value = "");
   void printProgramWarning(const QString module, QString description = "",
@@ -64,6 +95,11 @@ public:
 
   // Errors in behavior of entities that we think are caused by other entities.
   // Most commonly a protocol.
+  void printPeerError(const QObject* object, QString description,
+                      QStringList valueNames, QStringList values);
+  void printPeerError(const QString module, QString description,
+                      QStringList valueNames, QStringList values);
+  // Backwards-compatible single-value overloads
   void printPeerError(const QObject* object, QString description = "",
                       QString valueName = "", QString value = "");
   void printPeerError(const QString module, QString description = "",
@@ -73,11 +109,12 @@ public:
   void printUnimplemented(const QObject* object, QString whatIsNotImplemented);
   void printUnimplemented(const QString module, QString whatIsNotImplemented);
 
-
-
   bool checkError(QObject* object, bool check, DebugType type = DEBUG_ERROR,
                   QString description = "", QStringList values = {});
 
+private:
+
+  Logger();
 
   // Print debug information with custom class name. Use this and getname with filters.
   // context is a general context that makes it easier to link different prints to one another.
@@ -89,11 +126,6 @@ public:
   // use this if printing is inside class derived from QObject which is most classes in uvgComm
   void printDebug(DebugType type, const QObject* object, QString description = "",
                   QStringList valueNames = {}, QStringList values = {});
-
-
-private:
-
-  Logger();
 
   struct PrintSet
   {

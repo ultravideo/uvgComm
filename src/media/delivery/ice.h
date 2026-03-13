@@ -3,7 +3,6 @@
 
 #include "../../initiation/negotiation/sdptypes.h"
 #include "icetypes.h"
-#include "mediaid.h"
 
 #include <QHostAddress>
 #include <QString>
@@ -36,7 +35,7 @@ public:
   // Call this function to start the connectivity check/nomination process.
   // The other side should start negotiation as fast as possible
   // Does not block
-  void startNomination(const MediaID& id, const MediaInfo& local, const MediaInfo& remote,
+  void startNomination(const uint32_t& ssrc, const MediaInfo& local, const MediaInfo& remote,
                        bool controller);
 
   // free all ICE-related resources
@@ -52,9 +51,9 @@ private slots:
 
 signals:
 
-  void mediaNominationSucceeded(const MediaID& id, uint32_t sessionID,
+  void mediaNominationSucceeded(const uint32_t& ssrc, uint32_t sessionID,
                                 MediaInfo local, MediaInfo remote);
-  void mediaNominationFailed(const MediaID& id, uint32_t sessionID);
+  void mediaNominationFailed(const uint32_t& ssrc, uint32_t sessionID);
 
 private:
 
@@ -80,7 +79,7 @@ private:
     MediaInfo localMedia;
     MediaInfo remoteMedia;
     bool addedToStats;
-    MediaID id;
+    uint32_t ssrc;
 
     std::vector<std::shared_ptr<ICEPair>> candidatePairs;
     std::vector<std::shared_ptr<ICEPair>> succeededPairs;

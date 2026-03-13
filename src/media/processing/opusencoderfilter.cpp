@@ -8,7 +8,6 @@
 #include "global.h"
 #include "logger.h"
 
-#include <QDateTime>
 #include <QSettings>
 
 
@@ -57,7 +56,7 @@ bool OpusEncoderFilter::init()
 
 void OpusEncoderFilter::updateSettings()
 {
-  QSettings settings(settingsFile, settingsFileFormat);
+  QSettings settings(getSettingsFile(), settingsFileFormat);
 
   int bitrate = settings.value(SettingsKey::audioBitrate).toInt();
   int complexity = settings.value(SettingsKey::audioComplexity).toInt();
@@ -103,7 +102,7 @@ void OpusEncoderFilter::process()
     opus_int32 len = 0; // encoded frame size
     uint32_t pos = 0; // output position TODO: Is this pos variable necessary?
 
-    opus_encoder_ctl(enc_, OPUS_SET_BITRATE(getHWManager()->getBitrate(outputType())));
+    opus_encoder_ctl(enc_, OPUS_SET_BITRATE(getHWManager()->getEncoderBitrate(outputType())));
 
     // The audiocapturefilter makes sure the frames are the samplesPerFrame size.
 
@@ -125,7 +124,7 @@ void OpusEncoderFilter::process()
     u_copy->data = std::move(opus_frame);
     sendOutput(std::move(u_copy));
 
-    /*Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Encoded Opus Audio.",
+    /*Logger::getLogger()->printNormal(this, "Encoded Opus Audio.",
               {"Input size", "Index", "Position", "Output size"},
               {QString::number(input->data_size), QString::number(i),
                QString::number(pos), QString::number(len)});*/
@@ -133,10 +132,11 @@ void OpusEncoderFilter::process()
 
     if(len > 0)
     {
-      uint32_t delay = QDateTime::currentMSecsSinceEpoch() - input->creationTimestamp;
+      const int64_t since_epoch = clockNowMs();
+      const int64_t delay64 = since_epoch - input->creationTimestamp;
+      const uint32_t delay = delay64 > 0 ? static_cast<uint32_t>(delay64) : 0;
       
-      getStats()->encodingDelay("audio", delay);
-      getStats()->addEncodedPacket("audio", len);
+      getStats()->encodedAudioFrame(len, delay);
     }
     else
     {

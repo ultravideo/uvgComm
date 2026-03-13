@@ -1,6 +1,5 @@
 #pragma once
 
-#include "mediaid.h"
 #include <QWidget>
 #include <QtMultimedia/QAudioFormat>
 #include <QObject>
@@ -9,18 +8,12 @@
 #include <memory>
 
 class VideoInterface;
-class StatisticsInterface;
 
 class Filter;
-class ScreenShareFilter;
-class DisplayFilter;
-class AudioCaptureFilter;
-class AudioOutputFilter;
-
-class SpeexAEC;
-class AudioMixer;
-
 class ResourceAllocator;
+class StatisticsInterface;
+class LibYUVConverter;
+
 
 typedef std::vector<std::shared_ptr<Filter>> GraphSegment;
 
@@ -30,40 +23,74 @@ class FilterGraph : public QObject
 public:
   FilterGraph();
 
-  void init(QList<VideoInterface*> selfViews, StatisticsInterface *stats,
+  void init(StatisticsInterface *stats,
             std::shared_ptr<ResourceAllocator> hwResources);
-  void uninit();
+
+  virtual void uninit() = 0;
 
   // These functions are used to manipulate filter graphs regarding a peer
-  void sendVideoto(uint32_t sessionID, std::shared_ptr<Filter> videoFramedSource,
-                   const MediaID &id);
+  virtual void sendVideoto(uint32_t sessionID,
+                           std::shared_ptr<Filter> sender,
+                           uint32_t localSSRC,
+                           const std::vector<uint32_t>& remoteSSRCs,
+                           const std::vector<QString>& remoteCNAMEs,
+                           bool isP2P, std::pair<uint16_t, uint16_t> resolution) = 0;
 
-  void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> videoSink,
-                        VideoInterface *view,
-                        const MediaID &id);
-  void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> audioFramedSource,
-                   const MediaID &id);
-  void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> audioSink,
-                        const MediaID &id);
+  virtual void receiveVideoFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                VideoInterface *view,
+                                uint32_t remoteSSRC,
+                                QString cname) = 0;
+
+  virtual void receiveVideoRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                    uint32_t remoteSSRC, QString cname) = 0;
+
+  virtual void sendAudioTo(uint32_t sessionID, std::shared_ptr<Filter> sender,
+                           uint32_t localSSRC) = 0;
+
+  virtual void receiveAudioFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                uint32_t remoteSSRC, QString cname) = 0;
+
+  virtual void receiveAudioRTCPFrom(uint32_t sessionID, std::shared_ptr<Filter> receiver,
+                                    uint32_t remoteSSRC, QString cname) = 0;
 
   // removes participant and all its associated filter from filter graph.
   void removeParticipant(uint32_t sessionID);
 
-  void running(bool state);
+  virtual void running(bool state);
 
 public slots:
 
-  void updateVideoSettings();
-  void updateAudioSettings();
-  void updateAutomaticSettings();
+  virtual void updateVideoSettings();
+  virtual void updateAudioSettings();
+  virtual void updateAutomaticSettings();
 
-private:
+protected:
 
-  void selectVideoSource();
+  struct Peer
+  {
+    // key is local SSRC
+    std::map<uint32_t, std::shared_ptr<Filter>> audioSenders; // sends audio
+    std::map<uint32_t, std::shared_ptr<Filter>> videoSenders; // sends video
 
-  void mic(bool state);
-  void camera(bool state);
-  void screenShare(bool shareState);
+    // key is remote SSRC
+    std::map<uint32_t, std::shared_ptr<Filter>> audioReceivers; // receives audio
+    std::map<uint32_t, std::shared_ptr<Filter>> videoReceivers; // receives video
+
+    std::map<uint32_t, std::shared_ptr<Filter>> audioRTCPReceivers;
+    std::map<uint32_t, std::shared_ptr<Filter>> videoRTCPReceivers;
+
+    // key is remote CName
+    std::map<QString, std::shared_ptr<GraphSegment>> videoViewFlow;
+    std::map<QString, std::shared_ptr<GraphSegment>> audioViewFlow;
+  };
+
+  // destroy all filters associated with this peer.
+  virtual void destroyPeer(Peer* peer);
+
+  virtual void lastPeerRemoved() = 0;
+
+  // makes sure the participant exists and adds if necessary
+  void checkParticipant(uint32_t sessionID);
 
   // Adds fitler to graph and connects it to connectIndex unless this is
   // the first filter in graph. Adds format conversion if needed.
@@ -74,78 +101,20 @@ private:
   // connects the two filters and checks for any problems
   bool connectFilters(std::shared_ptr<Filter> previous, std::shared_ptr<Filter> filter);
 
-  // makes sure the participant exists and adds if necessary
-  void checkParticipant(uint32_t sessionID);
+  void changeState(std::shared_ptr<Filter> f, bool state);
 
-  // iniates camera and attaches a self view to it.
-  void initCameraSelfView();
-
-  // iniates encoder and attaches it
-  void initVideoSend();
-
-  // iniates encoder and attaches it
-  void initializeAudioInput(bool opus);
-  void initializeAudioOutput(bool opus);
-
-  QAudioFormat createAudioFormat(uint8_t channels, uint32_t sampleRate);
-
-  void removeAllParticipants();
-
-  struct Peer
-  {
-    // keep track of existing connections, so we don't duplicate them
-    std::vector<MediaID> sendingStreams;
-    std::vector<MediaID> receivingStreams;
-
-    // Arrays of filters which send media, but are not connected to each other.
-    std::vector<std::shared_ptr<Filter>> audioSenders; // sends audio
-    std::vector<std::shared_ptr<Filter>> videoSenders; // sends video
-
-    // Arrays of filters which receive media.
-    // Each graphsegment receives one mediastream.
-    std::vector<std::shared_ptr<GraphSegment>> videoReceivers;
-    std::vector<std::shared_ptr<GraphSegment>> audioReceivers;
-  };
-
-  // destroy all filters associated with this peer.
-  void destroyPeer(Peer* peer);
 
   void destroyFilters(std::vector<std::shared_ptr<Filter>>& filters);
 
-  bool existingConnection(std::vector<MediaID>& connections, MediaID id);
+  void removeAllParticipants();
 
   // --------------- General stuff ----------------
+
   bool quitting_;
 
-  // key is sessionID
-  std::map<uint32_t, Peer*> peers_;
   std::shared_ptr<ResourceAllocator> hwResources_;
   StatisticsInterface* stats_;
 
-  // --------------- Video stuff   --------------------
-  GraphSegment cameraGraph_;
-  GraphSegment screenShareGraph_;
-
-  std::shared_ptr<DisplayFilter> selfviewFilter_;
-  VideoInterface* roiInterface_; // this is the roi surface from settings
-
-  QString videoFormat_;
-  bool videoSendIniated_;
-
-  // --------------- Audio stuff   ----------------
-  GraphSegment audioInputGraph_;  // mic and stuff after it
-  GraphSegment audioOutputGraph_; // stuff before speakers and speakers
-
-  // these are shared between filters
-  std::shared_ptr<SpeexAEC> aec_;
-  std::shared_ptr<AudioMixer> mixer_;
-
-  bool audioInputInitialized_;
-  bool audioOutputInitialized_;
-
-  std::shared_ptr<AudioCaptureFilter> audioCapture_;
-  std::shared_ptr<AudioOutputFilter>  audioOutput_;
-
-  // audio configs
-  QAudioFormat format_;
+  // key is sessionID
+  std::map<uint32_t, Peer*> peers_;
 };

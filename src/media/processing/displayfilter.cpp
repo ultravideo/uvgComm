@@ -11,10 +11,11 @@
 
 DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
                              std::shared_ptr<ResourceAllocator> hwResources,
-                             QList<VideoInterface *> widgets, uint32_t sessionID):
-  Filter(id, "Display", stats, hwResources, DT_RGB32VIDEO, DT_NONE, false),
-  horizontalMirroring_(false),
-  widgets_(widgets),
+                             QList<VideoInterface *> widgets, uint32_t sessionID, 
+                             QString cname): 
+  Filter(id, "Display", stats, hwResources, DT_RGB32VIDEO, DT_NONE, false), 
+  horizontalMirroring_(false), 
+  widgets_(widgets), 
   sessionID_(sessionID)
 {
 
@@ -45,13 +46,17 @@ DisplayFilter::DisplayFilter(QString id, StatisticsInterface *stats,
       }
     }
 
-    widgets.at(0)->setStats(stats);
+    widgets.at(0)->setStats(stats, cname);
   }
   else {
     Q_ASSERT(false);
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "Display Filter",
-                                    "Gived nonexistant widget");
+    Logger::getLogger()->printProgramError("Display Filter", "Gived nonexistant widget");
   }
+
+  Logger::getLogger()->printNormal(this, "DisplayFilter created",
+                                  {"ID", "SessionID", "WidgetCount", "FirstWidgetPtr", "CName"},
+                                  {id, QString::number(sessionID_), QString::number(widgets_.size()),
+                                   QString::number((qintptr)widgets_.at(0)), cname});
 
   updateSettings();
 }
@@ -80,9 +85,8 @@ void DisplayFilter::process()
       format = QImage::Format_Invalid;
       break;
     default:
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
-                                      "Wrong type of display input.", {"Type"}, 
-                                      {QString::number(input->type)});
+      Logger::getLogger()->printProgramError(this, "Wrong type of display input.", 
+                                             {"Type"}, {QString::number(input->type)});
       format = QImage::Format_Invalid;
       break;
     }
@@ -105,14 +109,6 @@ void DisplayFilter::process()
                                format, i != 0,
                                horizontalMirroring_);
         }
-      }
-
-
-      if( sessionID_ != 1111)
-      {
-        int32_t delay = QDateTime::currentMSecsSinceEpoch() - input->creationTimestamp;
-        //getStats()->decodingDelay("Video", delay);
-        getStats()->totalDelay(sessionID_, "Video", delay);
       }
     }
 
@@ -151,7 +147,7 @@ std::unique_ptr<Data> DisplayFilter::deliverFrame(VideoInterface* screen,
   
   screen->inputImage(std::move(input->data), image,
                      double(input->vInfo->framerateNumerator/input->vInfo->framerateDenominator),
-                     input->presentationTimestamp);
+                     input->creationTimestamp, input->presentationTimestamp);
 
   if (useCopy)
   {

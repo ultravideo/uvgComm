@@ -36,9 +36,15 @@ void restoreCheckBox(const QString settingValue, QCheckBox* box, QSettings& sett
   {
     box->setChecked(false);
   }
+  else if (!settings.contains(settingValue))
+  {
+    Logger::getLogger()->printError("Settings Helper",
+                                    "Missing settings value for checkbox in settings file",
+                                    {"Key"}, {settingValue});
+  }
   else
   {
-    Logger::getLogger()->printDebug(DEBUG_ERROR, "Settings Helper", 
+    Logger::getLogger()->printError("Settings Helper",
                                     "Corrupted value for checkbox in settings file",
                                     {"Key"}, {settingValue});
   }
@@ -63,8 +69,7 @@ bool checkMissingValues(QSettings& settings)
   {
     if(settings.value(key).isNull() || settings.value(key) == "")
     {
-      Logger::getLogger()->printDebug(DEBUG_ERROR, "Settings Helper", 
-                                      "Missing setting found", {"Key"}, {key});
+      Logger::getLogger()->printError("Settings Helper", "Missing setting found", {"Key"}, {key});
       foundEverything = false;
     }
   }
@@ -81,7 +86,7 @@ bool checkSettingsList(QSettings& settings, const QStringList& keys)
   {
     if(!settings.contains(need))
     {
-      Logger::getLogger()->printDebug(DEBUG_WARNING, "Settings Helper",
+      Logger::getLogger()->printWarning("Settings Helper",
                                       "Found missing setting. Resetting video settings", {"Missing key"}, {need});
       everythingPresent = false;
     }
@@ -111,7 +116,7 @@ void listSettingsToGUI(QString filename, QString listName, QStringList values, Q
 
   int size = settings.beginReadArray(listName);
 
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Settings Helper", 
+  Logger::getLogger()->printNormal("Settings Helper",
                                   "Reading list from settings", {"File", "List name", "Items"},
                                   {filename, listName, QString::number(size)});
 
@@ -134,7 +139,7 @@ void listSettingsToGUI(QString filename, QString listName, QStringList values, Q
 
 void listGUIToSettings(QString filename, QString listName, QStringList values, QTableWidget* table)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Settings Helper", 
+  Logger::getLogger()->printNormal("Settings Helper",
                                   "Writing list from GUI to settings", {"File", "List name", "Table items"},
                                   {filename, listName, QString::number(table->rowCount())});
 
@@ -157,11 +162,11 @@ void listGUIToSettings(QString filename, QString listName, QStringList values, Q
 void showContextMenu(const QPoint& pos, QTableWidget* table, QObject* processor,
                      QStringList actions, QStringList processSlots)
 {
-  Logger::getLogger()->printDebug(DEBUG_NORMAL, "Settings Helper", "Showing context menu.");
+  Logger::getLogger()->printNormal("Settings Helper", "Showing context menu.");
 
   if(actions.size() != processSlots.size())
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, "SettingsHelper",  
+    Logger::getLogger()->printProgramError("SettingsHelper",
                                     "Different amounts of actions and slots",
                                     {"Actions", "Slots"}, 
                                     {QString::number(actions.size()), 

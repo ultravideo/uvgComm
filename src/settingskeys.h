@@ -7,7 +7,6 @@
 // Using this file should reduce the chance of typos causing bugs.
 // settings file names
 
-const QString settingsFile = "uvgComm.ini";
 const QString blocklistFile = "blocklist.local";
 const QString contactsFile = "contacts.local";
 
@@ -44,6 +43,12 @@ const QString videoFramerateNumerator = "video/FramerateNumerator";
 const QString videoFramerateDenominator = "video/FramerateDenominator";
 const QString videoOpenGL = "video/opengl";
 
+// file
+const QString videoFilename = "video/Filename";
+const QString videoFileEnabled = "video/FileEnabled";
+const QString videoFileResolutionWidth = "video/FileResolutionWidth";
+const QString videoFileResolutionHeight = "video/FileResolutionHeight";
+const QString videoFileFramerate = "video/FileFramerate";
 
 // Kvazaar setting keys
 const QString videoQP = "video/QP";
@@ -107,21 +112,36 @@ const QString localRealname = "local/Name";
 const QString localUsername = "local/Username";
 const QString localAutoAccept = "local/Auto-Accept";
 
-// SIP setting keys
-
+// Call setting keys
 const QString sipServerAddress = "sip/ServerAddress";
 const QString sipAutoConnect = "sip/AutoConnect";
-const QString sipP2PConferencing = "sip/P2PConferencing";
+const QString sipRole = "sip/Role";
+const QString sipTopology = "sip/Topology";
+const QString sipMediaServerAddress = "sip/MediaServerAddress";
+const QString sipMediaServerPort = "sip/MediaServerPort";
 
 const QString sipMediaPort = "sip/mediaport";
 const QString sipSTUNEnabled = "sip/stunEnabled";
 const QString sipICEEnabled = "sip/iceEnabled";
-const QString privateAddresses = "sip/localEnabled";
 const QString sipSTUNAddress = "sip/stunAddress";
 const QString sipSTUNPort = "sip/stunPort";
 const QString sipSRTP = "sip/srtpEnabled";
 
 const QString sipUUID = "sip/UUID";
+
+const QString sipLocalAddress = "sip/localAddress";
+
+const QString sipUpBandwidth = "sip/upBandwidth";
+const QString sipDownBandwidth = "sip/downBandwidth";
+
+const QString sipConferenceMode = "sip/conferenceMode";
+const QString sipSpeakerMode = "sip/speakerMode";
+const QString sipVisibleParticipants = "sip/visibleParticipants";
+const QString sipTimestampInterval = "sip/timestampInterval";
+const QString sipHybridPriorization = "sip/hybridPriorization";
+
+const QString sipSIPProtocol = "sip/SIPProtocol";
+const QString sipSIPPort = "sip/SIPPort";
 
 // blocklist setting key
 const QString blocklist = "blocklist";

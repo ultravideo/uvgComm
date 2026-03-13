@@ -50,7 +50,7 @@ void OpusDecoderFilter::process()
 
   while(input)
   {
-    getStats()->addReceivePacket(sessionID_, "Audio", input->data_size);
+    getStats()->addReceivePacket(sessionID_, "", "Audio", input->data_size);
 
     // TODO: get number of channels from opus sample: opus_packet_get_nb_channels
     int32_t len = 0;
@@ -60,7 +60,7 @@ void OpusDecoderFilter::process()
 
     uint32_t datasize = len*format_.channelCount()*sizeof(opus_int16);
 
-    //Logger::getLogger()->printDebug(DEBUG_NORMAL, this, "Decoded Opus audio.", 
+    //Logger::getLogger()->printNormal(this, "Decoded Opus audio.", 
     //                                {"Input size", "Output size"},
     //                                {QString::number(input->data_size),
     //                                 QString::number(datasize)};

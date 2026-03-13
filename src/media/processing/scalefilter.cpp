@@ -22,7 +22,7 @@ void ScaleFilter::process()
 {
   if(newSize_ == QSize(0,0))
   {
-    Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, "Size not set for scaler.");
+    Logger::getLogger()->printProgramError(this, "Size not set for scaler.");
     return;
   }
 
@@ -31,7 +31,7 @@ void ScaleFilter::process()
   {
     if(input->vInfo->height == 0 || input->vInfo->width == 0 || input->data_size == 0)
     {
-      Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this, 
+      Logger::getLogger()->printProgramError(this, 
                                       "The resolution of input image for scaler is not set.",
                                       {"Width", "Height"}, {QString::number(input->vInfo->width),
                                        QString::number(input->vInfo->height)});
@@ -49,7 +49,7 @@ void ScaleFilter::process()
       }
       default:
       {
-        Logger::getLogger()->printDebug(DEBUG_PROGRAM_ERROR, this,  "Wrong video format for scaler.",
+        Logger::getLogger()->printProgramError(this,  "Wrong video format for scaler.",
                                         {"Input type"},{QString::number(input->type)});
         format = QImage::Format_Invalid;
         break;
