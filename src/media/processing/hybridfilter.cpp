@@ -5,6 +5,8 @@
 #include "media/resourceallocator.h"
 
 #include <algorithm>
+#include <climits>
+#include <cmath>
 
 #include "logger.h"
 
@@ -595,21 +597,38 @@ double HybridFilter::averageRTT(const std::deque<double>& samples) const
 
 void HybridFilter::reEvaluateConnections(uint32_t currentTimestamp)
 {
-  const int availableBandwidth = settingValue(SettingsKey::sipUpBandwidth);
-  int linkBandwidth = getHWManager()->getEncoderBitrate(output_);
+  const int64_t availableBandwidth = static_cast<int64_t>(settingValue(SettingsKey::sipUpBandwidth));
+
+  // Per-uplink payload bitrate (video + audio). We convert this to an estimated
+  // on-wire bitrate below when computing how many parallel uplinks fit.
+  int64_t payloadBandwidth = static_cast<int64_t>(getHWManager()->getEncoderBitrate(output_));
 
   for (auto& slave : slaves_)
   {
     // add audio bitrate
-    linkBandwidth += slave->getBitrate();
+    payloadBandwidth += static_cast<int64_t>(slave->getBitrate());
   }
 
-  // add transmission overhead
-  linkBandwidth = linkBandwidth * (1.0 + TRANSMISSION_OVERHEAD);
+  if (payloadBandwidth <= 0 || availableBandwidth <= 0)
+  {
+    Logger::getLogger()->printError(this, "Connection bandwidth is zero or negative, cannot re-evaluate connections");
+    return;
+  }
+
+  // Convert payload bitrate to an estimated total (payload + RTP/RTCP overhead).
+  // Our overhead constant represents a fraction of total bandwidth, so:
+  //   payload = total * (1 - overhead)  =>  total = payload / (1 - overhead)
+  const double denom = (1.0 - static_cast<double>(TRANSMISSION_OVERHEAD));
+  if (denom <= 0.0)
+  {
+    Logger::getLogger()->printProgramError(this, "Invalid TRANSMISSION_OVERHEAD (>= 1.0), cannot re-evaluate");
+    return;
+  }
+  const int64_t linkBandwidth = static_cast<int64_t>(std::ceil(static_cast<double>(payloadBandwidth) / denom));
 
   if (linkBandwidth <= 0)
   {
-    Logger::getLogger()->printError(this, "Connection bandwidth is zero or negative, cannot re-evaluate connections");
+    Logger::getLogger()->printError(this, "Computed link bandwidth is zero or negative, cannot re-evaluate connections");
     return;
   }
 
@@ -625,18 +644,36 @@ void HybridFilter::reEvaluateConnections(uint32_t currentTimestamp)
     entry->latestsSFURtt = averageRTT(entry->sfuRTT);
   }
 
-  int maxP2PConnections = availableBandwidth / linkBandwidth;
+  const int64_t maxTotalUplinks = availableBandwidth / linkBandwidth;
+  int maxP2PConnections = static_cast<int>(std::max<int64_t>(0, maxTotalUplinks));
 
   // we can do all connections however we like
-  if (maxP2PConnections  >= cnameToLinks_.size())
+  if (static_cast<size_t>(maxP2PConnections) >= cnameToLinks_.size())
   {
+    Logger::getLogger()->printNormal(this, "Bandwidth allows full evaluation",
+                                    {"Available", "PerUplink", "MaxUplinks", "Participants"},
+                                    {QString::number(static_cast<long long>(availableBandwidth)),
+                                     QString::number(static_cast<long long>(linkBandwidth)),
+                                     QString::number(static_cast<long long>(maxTotalUplinks)),
+                                     QString::number(static_cast<unsigned long long>(cnameToLinks_.size()))});
     return fullBandwidthEvaluation(currentTimestamp);
   }
 
-  maxP2PConnections -= 1; // reserve one link for SFU
+  // Reserve one uplink for SFU when we cannot afford P2P to everyone.
+  // This is the intended place where results can look "one short" (P2P slots
+  // become maxTotalUplinks - 1) when SFU must be active.
+  maxP2PConnections = std::max(0, maxP2PConnections - 1);
+
+  Logger::getLogger()->printNormal(this, "Bandwidth-limited evaluation",
+                                  {"Available", "PerUplink", "MaxUplinks", "P2PSlots", "Participants"},
+                                  {QString::number(static_cast<long long>(availableBandwidth)),
+                                   QString::number(static_cast<long long>(linkBandwidth)),
+                                   QString::number(static_cast<long long>(maxTotalUplinks)),
+                                   QString::number(maxP2PConnections),
+                                   QString::number(static_cast<unsigned long long>(cnameToLinks_.size()))});
 
   // Otherwise, use P2P where RTT benefit is biggest
-  rankedBandwidthEvaluation(maxP2PConnections, linkBandwidth, currentTimestamp);
+  rankedBandwidthEvaluation(maxP2PConnections, static_cast<int>(std::min<int64_t>(linkBandwidth, INT_MAX)), currentTimestamp);
   pendingSfuActive_ = true; // we need sfu if not all connections are P2P
 }
 

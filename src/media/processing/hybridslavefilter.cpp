@@ -1,7 +1,8 @@
 #include "hybridslavefilter.h"
 
-#include "settingskeys.h"
 #include "common.h"
+#include "media/resourceallocator.h"
+#include "settingskeys.h"
 
 HybridSlaveFilter::HybridSlaveFilter(QString id, StatisticsInterface *stats,
                                      std::shared_ptr<ResourceAllocator> hwResources, DataType type):
@@ -17,16 +18,14 @@ void HybridSlaveFilter::setConnection(int index, bool status)
 
 int HybridSlaveFilter::getBitrate()
 {
-  if (output_ == DT_HEVCVIDEO)
-  {
-    return settingValue(SettingsKey::videoBitrate);
-  }
-  else if (output_ == DT_OPUSAUDIO)
-  {
-    return settingValue(SettingsKey::audioBitrate);
-  }
+  // Report the bitrate that is actually used by the pipeline.
+  // For Opus, the encoder updates its bitrate from ResourceAllocator every frame,
+  // so reading the raw setting here can overestimate and skew HybridFilter's
+  // max-connection calculation.
+  if (output_ == DT_RAWAUDIO)
+    return 0;
 
-  return 0;
+  return getHWManager()->getEncoderBitrate(output_);
 }
 
 
