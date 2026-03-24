@@ -22,6 +22,9 @@ struct LinkInfo
   int p2pOutIndex;
   std::shared_ptr<UvgRTPSender> p2pRTPSender;
 
+  // Temporarily boost RTCP rate until we get the first RTT sample.
+  bool p2pRtcpWarmupActive = false;
+
   std::deque<double> p2pRTT;
   double latestsP2PRtt = 0.0;
 
@@ -61,6 +64,9 @@ protected:
 
 private:
   void setLowRtcpMode(const std::shared_ptr<UvgRTPSender>& sender, bool enabled);
+
+  void maybeEnableSfuRtcpWarmup();
+  void maybeEnableP2pRtcpWarmup(const std::shared_ptr<LinkInfo>& link);
 
   void addP2PLink(std::shared_ptr<LinkInfo>& entry,
                   int outIdx,
@@ -124,4 +130,8 @@ private:
 
   // Cached setting value; refreshed in updateSettings() to avoid per-frame lookups.
   int32_t sipTimestampInterval_ = 0;
+
+  // Startup helper: temporarily increase SFU RTCP rate to obtain the first RTT
+  // sample sooner, then revert to the computed bandwidth.
+  bool sfuRtcpWarmupActive_ = false;
 };

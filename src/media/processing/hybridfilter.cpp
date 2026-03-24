@@ -22,6 +22,7 @@ const int DUMMY_INTERVAL = 160; // Number of frames between dummy packets
 const int SYNC_PERIOD_IN_FRAMES = 120; // the period after which delayed switch is applied
 const int P2P_RTT_THRESHOLD_MS = 10; // Minimum RTT improvement to consider P2P switch
 const int DUMMY_SESSION_BANDWIDTH_KBPS = 64; // low but non-zero; used to reduce RTCP traffic on inactive links
+const int SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS = 256; // temporary boost until first SFU RTT sample
 
 
 HybridFilter::HybridFilter(QString id, StatisticsInterface *stats,
@@ -172,6 +173,9 @@ void HybridFilter::addP2PLink(std::shared_ptr<LinkInfo>& entry,
   QObject::connect(rtpSender.get(), &UvgRTPSender::rttReceived,
                    this, &HybridFilter::recordRTT,
                    Qt::UniqueConnection);
+
+  // Prime P2P RTT as well: the first SR/RR exchange can be delayed.
+  maybeEnableP2pRtcpWarmup(entry);
 }
 
 
@@ -210,6 +214,9 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
     sfuOutIndex_ = outIdx;
     setConnection(outIdx, sfuActive_, sfuRTPSender_);
 
+    // Prime SFU RTT so evaluation doesn't sit in "SFU RTT = 0" state for long.
+    maybeEnableSfuRtcpWarmup();
+
     // Disable any already-active P2P links now that SFU is available, evaluation may enable them later
     for (auto& kv : cnameToLinks_)
     {
@@ -235,6 +242,53 @@ void HybridFilter::setLowRtcpMode(const std::shared_ptr<UvgRTPSender>& sender, b
     sender->setTemporarySessionBandwidthKbps(DUMMY_SESSION_BANDWIDTH_KBPS);
   else
     sender->clearTemporarySessionBandwidth();
+}
+
+
+void HybridFilter::maybeEnableSfuRtcpWarmup()
+{
+  if (!sfuRTPSender_ || sfuRtcpWarmupActive_)
+    return;
+
+  // Boost only if the computed bandwidth is lower than the warmup value.
+  // This avoids accidentally reducing RTCP rate for high-bitrate cases.
+  const int payloadBitrateBps = getHWManager() ? getHWManager()->getEncoderBitrate(sfuRTPSender_->inputType()) : 0;
+  const int computedSessionKbps = std::max(10, static_cast<int>((payloadBitrateBps / (1.0 - TRANSMISSION_OVERHEAD)) / 1000));
+
+  if (computedSessionKbps >= SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS)
+    return;
+
+  sfuRtcpWarmupActive_ = true;
+  sfuRTPSender_->setTemporarySessionBandwidthKbps(SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS);
+  Logger::getLogger()->printNormal(this, "Enabled SFU RTCP warmup",
+                                  {"ComputedKbps", "WarmupKbps"},
+                                  {QString::number(computedSessionKbps),
+                                   QString::number(SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS)});
+}
+
+
+void HybridFilter::maybeEnableP2pRtcpWarmup(const std::shared_ptr<LinkInfo>& link)
+{
+  if (!link || link->p2pRtcpWarmupActive)
+    return;
+  if (!link->p2pRTPSender)
+    return;
+  if (!link->p2pRTT.empty())
+    return;
+
+  const int payloadBitrateBps = getHWManager() ? getHWManager()->getEncoderBitrate(link->p2pRTPSender->inputType()) : 0;
+  const int computedSessionKbps = std::max(10, static_cast<int>((payloadBitrateBps / (1.0 - TRANSMISSION_OVERHEAD)) / 1000));
+
+  if (computedSessionKbps >= SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS)
+    return;
+
+  link->p2pRtcpWarmupActive = true;
+  link->p2pRTPSender->setTemporarySessionBandwidthKbps(SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS);
+  Logger::getLogger()->printNormal(this, "Enabled P2P RTCP warmup",
+                                  {"P2P SSRC", "ComputedKbps", "WarmupKbps"},
+                                  {QString::number(link->p2pSSRC),
+                                   QString::number(computedSessionKbps),
+                                   QString::number(SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS)});
 }
 
 
@@ -266,6 +320,22 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
       // (pure P2P mesh case). Use average to smooth jitter.
       entry->latestsP2PRtt = averageRTT(entry->p2pRTT);
 
+      // As soon as we have our first P2P RTT sample, revert any temporary
+      // RTCP warmup override for this link.
+      if (entry->p2pRtcpWarmupActive && entry->p2pRTPSender)
+      {
+        entry->p2pRtcpWarmupActive = false;
+
+        if (entry->p2pActive)
+          entry->p2pRTPSender->clearTemporarySessionBandwidth();
+        else
+          entry->p2pRTPSender->setTemporarySessionBandwidthKbps(DUMMY_SESSION_BANDWIDTH_KBPS);
+
+        Logger::getLogger()->printNormal(this, "Disabled P2P RTCP warmup",
+                                         {"CNAME", "Active"},
+                                         {pair.first, entry->p2pActive ? "true" : "false"});
+      }
+
       foundSSRC = true;
       break;
     }
@@ -287,6 +357,15 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
       // Keep cached RTT up-to-date even when we are not running hybrid re-evaluations
       // (pure SFU case).
       entry->latestsSFURtt = averageRTT(entry->sfuRTT);
+
+      // As soon as we have our first SFU RTT sample, revert any temporary
+      // RTCP warmup override.
+      if (sfuRtcpWarmupActive_ && sfuRTPSender_ && sfuActive_)
+      {
+        sfuRtcpWarmupActive_ = false;
+        sfuRTPSender_->clearTemporarySessionBandwidth();
+        Logger::getLogger()->printNormal(this, "Disabled SFU RTCP warmup");
+      }
       foundSSRC = true;
       break;
     }
@@ -572,6 +651,11 @@ void HybridFilter::applySfuState(bool needSFU)
 {
   if (!sfuRTPSender_)
     return;
+
+  // If SFU is being disabled before we ever received an RTT sample, make sure
+  // we don't later clear the low-RTCP override (used for inactive links).
+  if (!needSFU)
+    sfuRtcpWarmupActive_ = false;
 
   sfuActive_ = needSFU;
   setConnection(sfuOutIndex_, sfuActive_, sfuRTPSender_);
