@@ -23,17 +23,28 @@ protected:
   virtual void process() override;
 
 private:
+  void bufferFrame(std::unique_ptr<Data> packet);
+  std::vector<Frame> collectFramesToOutput(int64_t nowMs);
+  void setTimestamp(uint32_t outputRtpTimestamp);
+
   std::deque<Frame> frameBuffer_;
-  const size_t BUFFER_SIZE = 1; // number of complete frames to buffer
 
-  // SSRC/state tracking for source-aware hold-mode
-  uint32_t currentOutputSSRC_ = 0; // SSRC currently being output
-  uint32_t pendingNewSSRC_ = 0; // SSRC that triggered hold-mode
-  uint32_t pendingSwitchTimestamp_ = 0; // first timestamp observed from new SSRC
-  // highest timestamp seen so far for the old/current output SSRC while in hold-mode
-  uint32_t pendingOldMaxTimestamp_ = 0;
-  bool holdMode_ = false; // when true, buffer outputs until condition met
+  // Output ordering state
+  uint32_t lastOutputTimestamp_ = 0;
+  bool haveLastOutputTimestamp_ = false;
 
-  // Estimated RTP timestamp delta per frame (90kHz / 30fps = 3000). Used to compute thresholds.
-  uint32_t estimatedFrameDelta_ = (VIDEO_RTP_TIMESTAMP_RATE / 30);
+  // Arrival-order tracking (for logging only)
+  uint32_t lastArrivalTimestamp_ = 0;
+  bool haveLastArrivalTimestamp_ = false;
+
+  // Missing-frame handling: only enabled when we detect a timestamp gap.
+  bool waitingForMissing_ = false;
+  int64_t missingStartMs_ = -1;
+
+  static constexpr int64_t MAX_MISSING_WAIT_MS = 300;
+
+  // Fixed RTP timestamp delta for video frames at 30fps.
+  static constexpr uint32_t FIXED_FRAME_DELTA_30FPS = (VIDEO_RTP_TIMESTAMP_RATE / 30);
+  static constexpr uint32_t MIN_ACCEPTABLE_DELTA = (FIXED_FRAME_DELTA_30FPS / 2);           // -50%
+  static constexpr uint32_t MAX_ACCEPTABLE_DELTA = (FIXED_FRAME_DELTA_30FPS + MIN_ACCEPTABLE_DELTA); // +50%
 };

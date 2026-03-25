@@ -1,208 +1,211 @@
 #include "rtpbuffer.h"
 #include "logger.h"
 
+#include "common.h"
+
 RTPBuffer::RTPBuffer(QString id, StatisticsInterface* stats,
                      std::shared_ptr<ResourceAllocator> hwResources,
                      DataType type)
   : Filter(id, "RTPBuffer", stats, hwResources, type, type)
 {}
 
+void RTPBuffer::bufferFrame(std::unique_ptr<Data> packet)
+{
+  if (!packet)
+    return;
+
+  if (!frameBuffer_.empty())
+  {
+    const int32_t diffToNewestBuffered =
+        static_cast<int32_t>(packet->rtpTimestamp - frameBuffer_.back().timestamp);
+    if (diffToNewestBuffered < 0)
+    {
+      Logger::getLogger()->printWarning(this, "Wrong order: buffered timestamp older than newest buffered",
+                                       {"FrameTS", "NewestBufferedTS"},
+                                       {QString::number(packet->rtpTimestamp),
+                                        QString::number(frameBuffer_.back().timestamp)});
+    }
+  }
+
+  Frame* target = nullptr;
+  for (auto it = frameBuffer_.begin(); it != frameBuffer_.end(); ++it)
+  {
+    const int32_t diff = static_cast<int32_t>(packet->rtpTimestamp - it->timestamp);
+    if (diff == 0)
+    {
+      target = &(*it);
+      break;
+    }
+    if (diff < 0)
+    {
+      target = &(*frameBuffer_.insert(it, Frame{packet->rtpTimestamp, packet->ssrc, {}}));
+      break;
+    }
+  }
+
+  if (!target)
+  {
+    frameBuffer_.push_back(Frame{packet->rtpTimestamp, packet->ssrc, {}});
+    target = &frameBuffer_.back();
+  }
+
+  if (target->ssrc == 0 && packet->ssrc != 0)
+    target->ssrc = packet->ssrc;
+
+  target->nalUnits.push_back(std::move(packet));
+}
+
+std::vector<Frame> RTPBuffer::collectFramesToOutput(int64_t nowMs)
+{
+  std::vector<Frame> out;
+
+  if (!haveLastOutputTimestamp_)
+    return out;
+
+  uint32_t lastTs = lastOutputTimestamp_;
+
+  // Flush any contiguous frames we already have.
+  while (!frameBuffer_.empty())
+  {
+    const uint32_t ts = frameBuffer_.front().timestamp;
+
+    const int32_t diffToLast = static_cast<int32_t>(ts - lastTs);
+    if (diffToLast <= 0)
+    {
+      Logger::getLogger()->printWarning(this, "Dropping late frame older than expected",
+                                       {"FrameTS", "LastOutputTS"},
+                                       {QString::number(ts), QString::number(lastTs)});
+      frameBuffer_.pop_front();
+      continue;
+    }
+
+    const uint32_t deltaFromLast = static_cast<uint32_t>(diffToLast);
+    if (deltaFromLast >= MIN_ACCEPTABLE_DELTA && deltaFromLast <= MAX_ACCEPTABLE_DELTA)
+    {
+      // Gap resolved (we have an acceptable next timestamp), so exit waiting mode.
+      waitingForMissing_ = false;
+      missingStartMs_ = -1;
+
+      out.emplace_back(std::move(frameBuffer_.front()));
+      frameBuffer_.pop_front();
+
+      lastTs = ts;
+      continue;
+    }
+
+    // We still have a gap (timestamp jump too large).
+    if (!waitingForMissing_)
+    {
+      waitingForMissing_ = true;
+      missingStartMs_ = nowMs;
+    }
+    break;
+  }
+
+  // If the gap persists long enough, assume the missing frame is lost and flush everything.
+  if (waitingForMissing_ && !frameBuffer_.empty() && missingStartMs_ > 0)
+  {
+    const int64_t waited = nowMs - missingStartMs_;
+    if (waited >= MAX_MISSING_WAIT_MS)
+    {
+      Logger::getLogger()->printWarning(this, "Missing frame timeout; skipping gap",
+                                       {"WaitedMs", "LastOutputTS", "NextBufferedTS"},
+                                       {QString::number(waited),
+                                        QString::number(lastTs),
+                                        QString::number(frameBuffer_.front().timestamp)});
+
+      waitingForMissing_ = false;
+      missingStartMs_ = -1;
+
+      while (!frameBuffer_.empty())
+      {
+        out.emplace_back(std::move(frameBuffer_.front()));
+        frameBuffer_.pop_front();
+      }
+    }
+  }
+
+  return out;
+}
+
+void RTPBuffer::setTimestamp(uint32_t outputRtpTimestamp)
+{
+  lastOutputTimestamp_ = outputRtpTimestamp;
+  haveLastOutputTimestamp_ = true;
+}
+
 void RTPBuffer::process()
 {
+  // Drain currently queued input quickly.
   std::unique_ptr<Data> input = getInput();
-
   while (input)
-  { 
-    // Find or create frame for this timestamp
-    Frame* targetFrame = nullptr;
-    bool isDuplicate = false;
-    
-    for (auto it = frameBuffer_.begin(); it != frameBuffer_.end(); ++it)
+  {
+    const int64_t nowMs = clockNowMs();
+
+    // Always forward additional NAL units that share the last output timestamp.
+    // This handles cases like SPS/PPS arriving with the same timestamp as the last NAL unit.
+    if (haveLastOutputTimestamp_ && input->rtpTimestamp == lastOutputTimestamp_)
     {
-      int32_t diff = (int32_t)(input->rtpTimestamp - it->timestamp);
-      
-      if (diff == 0) // we have these timestamps already
+      sendOutput(std::move(input));
+      input = getInput();
+      continue;
+    }
+
+    if (!waitingForMissing_)
+    {
+      if (!haveLastOutputTimestamp_)
       {
-        for (const auto& packet : it->nalUnits)
+        setTimestamp(input->rtpTimestamp);
+        sendOutput(std::move(input));
+      }
+      else
+      {
+        const int32_t diffToLast =
+            static_cast<int32_t>(input->rtpTimestamp - lastOutputTimestamp_);
+
+        if (diffToLast > 0)
         {
-          if (packet->data_size == input->data_size) // duplicate
+          const uint32_t deltaFromLast = static_cast<uint32_t>(diffToLast);
+          if (deltaFromLast >= MIN_ACCEPTABLE_DELTA && deltaFromLast <= MAX_ACCEPTABLE_DELTA)
           {
-            Logger::getLogger()->printWarning(this, "Duplicate RTP packet detected and discarded",
-                                             {"RTP Timestamp", "Size"},
+            // Accept next timestamp with tolerance and use it as-is.
+            setTimestamp(input->rtpTimestamp);
+            sendOutput(std::move(input));
+          }
+          else
+          {
+            Logger::getLogger()->printWarning(this, "Wrong order: non-contiguous timestamp; buffering",
+                                             {"FrameTS", "LastOutputTS", "DeltaFromLast"},
                                              {QString::number(input->rtpTimestamp),
-                                              QString::number(input->data_size)});
-            isDuplicate = true;
-            break;
+                                              QString::number(lastOutputTimestamp_),
+                                              QString::number(deltaFromLast)});
+            waitingForMissing_ = true;
+            missingStartMs_ = nowMs;
+            bufferFrame(std::move(input));
           }
-        }
-        targetFrame = &(*it);
-        break;
-      }
-      else if (diff < 0) // wrong timestamp order
-      {
-        // Earlier timestamp - insert new frame before this one
-        Logger::getLogger()->printWarning(this, "Out-of-order frame reordered",
-                                         {"RTP Timestamp", "Expected after"},
-                                         {QString::number(input->rtpTimestamp),
-                                          QString::number(it->timestamp)});
-        targetFrame = &(*frameBuffer_.insert(it, {input->rtpTimestamp, {}}));
-        break;
-      }
-    }
-    
-    // If not found, add new frame at end
-    if (!targetFrame)
-    {
-      frameBuffer_.push_back({input->rtpTimestamp, {}});
-      targetFrame = &frameBuffer_.back();
-    }
-    
-    if (!isDuplicate) // multiple NAL units with same timestamp
-    {
-      // assign SSRC to the frame if unknown
-      if (targetFrame->ssrc == 0 && input->ssrc != 0)
-      {
-        targetFrame->ssrc = input->ssrc;
-      }
-      else if (targetFrame->ssrc != 0 && input->ssrc != 0 && targetFrame->ssrc != input->ssrc)
-      {
-        Logger::getLogger()->printWarning(this, "Same RTP timestamp contains packets from different SSRCs",
-                                         {"RTP Timestamp", "Frame SSRC", "Packet SSRC"},
-                                         {QString::number(targetFrame->timestamp),
-                                          QString::number(targetFrame->ssrc),
-                                          QString::number(input->ssrc)});
-      }
-
-      targetFrame->nalUnits.push_back(std::move(input));
-    }
-    
-    // Detect SSRC change and enter hold-mode if needed
-    if (!holdMode_)
-    {
-      // initialize current output SSRC if unknown
-      if (currentOutputSSRC_ == 0 && !frameBuffer_.empty() && frameBuffer_.front().ssrc != 0)
-      {
-        currentOutputSSRC_ = frameBuffer_.front().ssrc;
-      }
-
-      // If the newly inserted/updated frame has a different SSRC than current output, start hold-mode
-      if (targetFrame->ssrc != 0 && currentOutputSSRC_ != 0 && targetFrame->ssrc != currentOutputSSRC_)
-      {
-        pendingNewSSRC_ = targetFrame->ssrc;
-        pendingSwitchTimestamp_ = targetFrame->timestamp;
-
-        // determine highest timestamp we have seen for the old SSRC in buffer
-        pendingOldMaxTimestamp_ = 0;
-        for (const auto &f : frameBuffer_)
-        {
-          if (f.ssrc == currentOutputSSRC_ && f.timestamp > pendingOldMaxTimestamp_)
-            pendingOldMaxTimestamp_ = f.timestamp;
-        }
-
-        // Compute threshold: we consider it safe to switch immediately if old max TS
-        // has reached new TS - 1.5 * interval
-        int64_t offset = (int64_t)estimatedFrameDelta_ * 3 / 2; // 1.5 * interval
-        int64_t threshold = (int64_t)pendingSwitchTimestamp_ - offset;
-
-        if ((int64_t)pendingOldMaxTimestamp_ >= threshold)
-        {
-          // No need to hold — flush existing buffer and switch immediately
-          Logger::getLogger()->printNormal(this, "RTPBuffer immediate switch (no hold) due to old-stream progress",
-                                           {"Current SSRC", "New SSRC", "Switch RTP Timestamp", "OldMaxTS", "Threshold"},
-                                           {QString::number(currentOutputSSRC_),
-                                            QString::number(pendingNewSSRC_),
-                                            QString::number(pendingSwitchTimestamp_),
-                                            QString::number(pendingOldMaxTimestamp_),
-                                            QString::number(threshold)});
-
-          // Flush buffered frames now in timestamp order, leaving BUFFER_SIZE frames buffered
-          while (frameBuffer_.size() > BUFFER_SIZE)
-          {
-            Frame& f = frameBuffer_.front();
-            for (auto& packet : f.nalUnits)
-            {
-              sendOutput(std::move(packet));
-            }
-            frameBuffer_.pop_front();
-          }
-
-          currentOutputSSRC_ = pendingNewSSRC_;
-          pendingNewSSRC_ = 0;
-          pendingSwitchTimestamp_ = 0;
-          pendingOldMaxTimestamp_ = 0;
-          holdMode_ = false;
         }
         else
         {
-          // Otherwise enter hold-mode until old source reaches threshold
-          holdMode_ = true;
-          Logger::getLogger()->printNormal(this, "Entering RTPBuffer hold-mode due to SSRC change",
-                                           {"Current SSRC", "New SSRC", "Switch RTP Timestamp", "OldMaxTS", "Threshold"},
-                                           {QString::number(currentOutputSSRC_),
-                                            QString::number(pendingNewSSRC_),
-                                            QString::number(pendingSwitchTimestamp_),
-                                            QString::number(pendingOldMaxTimestamp_),
-                                            QString::number(threshold)});
+          Logger::getLogger()->printWarning(this, "Wrong order: dropping late timestamp older than last output",
+                                           {"FrameTS", "LastOutputTS"},
+                                           {QString::number(input->rtpTimestamp),
+                                            QString::number(lastOutputTimestamp_)});
         }
       }
     }
     else
     {
-      // update max timestamp seen for the old SSRC while we are holding
-      if (targetFrame->ssrc == currentOutputSSRC_ && targetFrame->timestamp > pendingOldMaxTimestamp_)
-      {
-        pendingOldMaxTimestamp_ = targetFrame->timestamp;
-      }
-
-      // check if we can exit hold-mode: old source has progressed close enough to new stream
-      int64_t offset = (int64_t)estimatedFrameDelta_ * 3 / 2; // 1.5 * interval
-      int64_t threshold = (int64_t)pendingSwitchTimestamp_ - offset;
-      if ((int64_t)pendingOldMaxTimestamp_ >= threshold)
-      {
-        Logger::getLogger()->printNormal(this, "RTPBuffer exiting hold-mode; flushing buffered frames",
-                                         {"PendingNewSSRC", "OldMaxTS", "Threshold"},
-                                         {QString::number(pendingNewSSRC_),
-                                          QString::number(pendingOldMaxTimestamp_),
-                                          QString::number(threshold)});
-
-        // Flush buffered frames in timestamp order, leaving BUFFER_SIZE frames buffered
-        while (frameBuffer_.size() > BUFFER_SIZE)
-        {
-          Frame& f = frameBuffer_.front();
-          for (auto& packet : f.nalUnits)
-          {
-            sendOutput(std::move(packet));
-          }
-          frameBuffer_.pop_front();
-        }
-
-        // switch current output SSRC to new
-        currentOutputSSRC_ = pendingNewSSRC_;
-        pendingNewSSRC_ = 0;
-        pendingSwitchTimestamp_ = 0;
-        pendingOldMaxTimestamp_ = 0;
-        holdMode_ = false;
-      }
+      bufferFrame(std::move(input));
     }
 
-    // Output oldest frames (keep BUFFER_SIZE frames buffered).
-    // In hold-mode, only output frames from the current (old) SSRC.
-    while (frameBuffer_.size() > BUFFER_SIZE)
+    std::vector<Frame> readyFrames = collectFramesToOutput(nowMs);
+    for (auto& f : readyFrames)
     {
-      if (holdMode_)
-      {
-        if (currentOutputSSRC_ == 0 || frameBuffer_.front().ssrc != currentOutputSSRC_)
-        {
-          break;
-        }
-      }
-
-      Frame& oldestFrame = frameBuffer_.front();
-      for (auto& packet : oldestFrame.nalUnits)
+      setTimestamp(f.timestamp);
+      for (auto& packet : f.nalUnits)
       {
         sendOutput(std::move(packet));
       }
-      frameBuffer_.pop_front();
     }
 
     input = getInput();
