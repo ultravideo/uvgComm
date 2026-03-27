@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <climits>
 #include <cmath>
+#include <utility>
 
 #include "logger.h"
 
@@ -54,6 +55,19 @@ Filter(id, "Hybrid", stats, hwResources, DT_HEVCVIDEO, DT_HEVCVIDEO),
 HybridFilter::~HybridFilter()
 {
   cnameToLinks_.clear();
+}
+
+
+bool HybridFilter::hasAnyP2PLinks() const
+{
+  for (const auto& kv : cnameToLinks_)
+  {
+    const std::shared_ptr<LinkInfo>& entry = kv.second;
+    if (entry && entry->p2pRTPSender)
+      return true;
+  }
+
+  return false;
 }
 
 
@@ -419,7 +433,9 @@ void HybridFilter::process()
 
     if (count_ % DUMMY_INTERVAL == 0)
     {
-      if (p2pLinkCount_ > 0 && sfuRTPSender_ != nullptr)
+      const bool hasAnyP2P = hasAnyP2PLinks();
+
+      if (hasAnyP2P && sfuRTPSender_ != nullptr)
       {
         sendDummies(input->rtpTimestamp); // to get latency measurements for inactive connections
       }
@@ -431,7 +447,9 @@ void HybridFilter::process()
 
     if (triggerReEvaluation_)
     {
-      if (p2pLinkCount_ == 0 || sfuRTPSender_ == nullptr)
+      const bool hasAnyP2P = hasAnyP2PLinks();
+
+      if (!hasAnyP2P || sfuRTPSender_ == nullptr)
       {
         Logger::getLogger()->printNormal(this, "Skipping re-evaluation: not hybrid (no P2P or no SFU)");
       }
@@ -902,7 +920,12 @@ void HybridFilter::fullBandwidthEvaluation(uint32_t currentTimestamp)
                                           QString::number(entry->latestsP2PRtt) + " ms",
                                           QString::number(entry->latestsSFURtt) + " ms"});
 
-        if (!entry->p2pActive)
+        // Since we keep existing state, count the link based on the current active path.
+        if (entry->p2pActive)
+        {
+          ++p2pLinks;
+        }
+        else
         {
           needSFU = true;
         }
@@ -957,13 +980,8 @@ void HybridFilter::fullBandwidthEvaluation(uint32_t currentTimestamp)
 
 void HybridFilter::rankedBandwidthEvaluation(const int maxP2PConnections, int connectionBandwidth, uint32_t currentTimestamp)
 {
-  struct RankedConnection
-  {
-    std::shared_ptr<LinkInfo> p2plink;
-    double rttBenefit; // higher is better
-  };
-
-  std::vector<RankedConnection> rankedConnections;
+  // (RTT benefit, link). Benefit is SFU RTT minus P2P RTT (higher means bigger win for P2P).
+  std::vector<std::pair<double, std::shared_ptr<LinkInfo>>> rankedConnections;
 
   for (auto& pair : cnameToLinks_)
   {
@@ -973,39 +991,39 @@ void HybridFilter::rankedBandwidthEvaluation(const int maxP2PConnections, int co
 
     if (entry->p2pRTPSender && entry->sfuSSRC != 0)
     {
-      RankedConnection ranked;
-      ranked.p2plink = entry;
-      // benefit is SFU RTT minus P2P RTT (higher means bigger win for P2P)
-      ranked.rttBenefit = entry->latestsSFURtt - entry->latestsP2PRtt;
-      rankedConnections.push_back(ranked);
+      const double rttBenefit = entry->latestsSFURtt - entry->latestsP2PRtt;
+      rankedConnections.push_back(std::make_pair(rttBenefit, entry));
     }
   }
 
-  // Sort connections by RTT benefit (descending)
-  std::sort(rankedConnections.begin(), rankedConnections.end(),
-            [](const RankedConnection& a, const RankedConnection& b) {
-              return a.rttBenefit > b.rttBenefit;
-            });
+  // Sort by RTT benefit (ascending), then iterate from the end (descending).
+  std::sort(rankedConnections.begin(), rankedConnections.end());
 
   int p2pLinks = 0;
   // Enable P2P connections until we reach the limit
-  for (int i = 0; i < rankedConnections.size(); ++i)
+  const int p2pLimit = std::max(0, maxP2PConnections);
+  const size_t total = rankedConnections.size();
+  for (size_t order = 0; order < total; ++order)
   {
-    bool shouldBeP2P = (i < maxP2PConnections) && (rankedConnections[i].rttBenefit > P2P_RTT_THRESHOLD_MS);
+    const size_t idx = total - 1 - order; // descending by benefit
+    const double rttBenefit = rankedConnections[idx].first;
+    const std::shared_ptr<LinkInfo>& link = rankedConnections[idx].second;
+
+    const bool shouldBeP2P = (static_cast<int>(order) < p2pLimit) && (rttBenefit > P2P_RTT_THRESHOLD_MS);
 
     if (shouldBeP2P)
     {
-      if (!rankedConnections[i].p2plink->p2pActive)
+      if (!link->p2pActive)
       {
-        delayedSwitchToP2P(rankedConnections[i].p2plink, currentTimestamp);
+        delayedSwitchToP2P(link, currentTimestamp);
       }
       ++p2pLinks;
     }
     else
     {
-      if (rankedConnections[i].p2plink->p2pActive)
+      if (link->p2pActive)
       {
-        delayedSwitchToSFU(rankedConnections[i].p2plink, currentTimestamp);
+        delayedSwitchToSFU(link, currentTimestamp);
       }
     }
   }

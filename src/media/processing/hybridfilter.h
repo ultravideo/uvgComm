@@ -63,6 +63,8 @@ protected:
   virtual void process() override;
 
 private:
+  bool hasAnyP2PLinks() const;
+
   void setLowRtcpMode(const std::shared_ptr<UvgRTPSender>& sender, bool enabled);
 
   void maybeEnableSfuRtcpWarmup();
