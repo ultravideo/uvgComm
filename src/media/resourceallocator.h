@@ -49,7 +49,7 @@ public:
   void addRTCPReport(uint32_t sessionID, DataType type,
                      int32_t lost, uint32_t jitter);
 
-  void setConferenceBitrate(DataType type, int bitrate);
+  void setConferenceBandwidth(DataType type, int bandwidth);
   int getEncoderBitrate(DataType type);
 
   void setConferenceResolution(const QSize& resolution);
@@ -68,7 +68,7 @@ private:
 
   std::shared_ptr<StreamInfo> getStreamInfo(uint32_t sessionID, DataType type);
 
-  int conferenceBitratePortion(DataType type);
+  int conferenceBandwidthPortion(DataType type);
 
   int limitUploadBitrate(int bitrate, DataType type);
 
@@ -83,8 +83,8 @@ private:
   std::map<uint32_t, std::shared_ptr<StreamInfo>> videoStreams_;
 
   QMutex bitrateMutex_;
-  int conferenceVideoBitrate_;
-  int conferenceAudioBitrate_;
+  int conferenceVideoBandwidth_;
+  int conferenceAudioBandwidth_;
 
   uint8_t roiQp_;
   uint8_t backgroundQp_;
