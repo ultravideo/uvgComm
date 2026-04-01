@@ -72,7 +72,8 @@ std::vector<Frame> RTPBuffer::collectFramesToOutput(int64_t nowMs)
     const int32_t diffToLast = static_cast<int32_t>(ts - lastTs);
     if (diffToLast <= 0)
     {
-      Logger::getLogger()->printWarning(this, "Dropping late frame older than expected",
+      // Strict ordering: decoder does not accept out-of-order frames.
+      Logger::getLogger()->printWarning(this, "Wrong order: dropping buffered timestamp older/equal to last output",
                                        {"FrameTS", "LastOutputTS"},
                                        {QString::number(ts), QString::number(lastTs)});
       frameBuffer_.pop_front();
@@ -90,6 +91,20 @@ std::vector<Frame> RTPBuffer::collectFramesToOutput(int64_t nowMs)
       frameBuffer_.pop_front();
 
       lastTs = ts;
+
+      if (switchingLinks_ && haveSecondarySsrc_ && out.back().ssrc == secondarySsrc_)
+      {
+        Logger::getLogger()->printWarning(this, "Link switch committed (started outputting new SSRC)",
+                                         {"OldSSRC", "NewSSRC", "OutputTS"},
+                                         {QString::number(primarySsrc_),
+                                          QString::number(secondarySsrc_),
+                                          QString::number(ts)});
+        primarySsrc_ = secondarySsrc_;
+        havePrimarySsrc_ = true;
+        haveSecondarySsrc_ = false;
+        switchingLinks_ = false;
+        switchStartMs_ = -1;
+      }
       continue;
     }
 
@@ -97,25 +112,52 @@ std::vector<Frame> RTPBuffer::collectFramesToOutput(int64_t nowMs)
     if (!waitingForMissing_)
     {
       waitingForMissing_ = true;
-      missingStartMs_ = nowMs;
+      if (!switchingLinks_)
+        missingStartMs_ = nowMs;
     }
     break;
   }
 
   // If the gap persists long enough, assume the missing frame is lost and flush everything.
-  if (waitingForMissing_ && !frameBuffer_.empty() && missingStartMs_ > 0)
+  if (waitingForMissing_ && !frameBuffer_.empty())
   {
-    const int64_t waited = nowMs - missingStartMs_;
+    const int64_t startMs = switchingLinks_ ? switchStartMs_ : missingStartMs_;
+    if (startMs <= 0)
+      return out;
+
+    const int64_t waited = nowMs - startMs;
     if (waited >= MAX_MISSING_WAIT_MS)
     {
+      const uint32_t oldestBufferedTs = frameBuffer_.front().timestamp;
+      const uint32_t newestBufferedTs = frameBuffer_.back().timestamp;
+      const uint32_t bufferedFrames = static_cast<uint32_t>(frameBuffer_.size());
+      const uint32_t deltaToOldest = static_cast<uint32_t>(oldestBufferedTs - lastTs);
+      const uint32_t approxMissingFrames = (deltaToOldest / FIXED_FRAME_DELTA_30FPS);
+
       Logger::getLogger()->printWarning(this, "Missing frame timeout; skipping gap",
-                                       {"WaitedMs", "LastOutputTS", "NextBufferedTS"},
+                                       {"WaitedMs", "LastOutputTS", "NextBufferedTS", "BufferedFrames", "NewestBufferedTS", "ApproxMissingFrames"},
                                        {QString::number(waited),
                                         QString::number(lastTs),
-                                        QString::number(frameBuffer_.front().timestamp)});
+                                        QString::number(oldestBufferedTs),
+                                        QString::number(bufferedFrames),
+                                        QString::number(newestBufferedTs),
+                                        QString::number(approxMissingFrames)});
 
       waitingForMissing_ = false;
       missingStartMs_ = -1;
+
+      if (switchingLinks_ && haveSecondarySsrc_)
+      {
+        Logger::getLogger()->printWarning(this, "Link switch timeout; committing to new SSRC",
+                                         {"OldSSRC", "NewSSRC"},
+                                         {QString::number(primarySsrc_),
+                                          QString::number(secondarySsrc_)});
+        primarySsrc_ = secondarySsrc_;
+        havePrimarySsrc_ = true;
+        haveSecondarySsrc_ = false;
+        switchingLinks_ = false;
+        switchStartMs_ = -1;
+      }
 
       while (!frameBuffer_.empty())
       {
@@ -141,6 +183,48 @@ void RTPBuffer::process()
   while (input)
   {
     const int64_t nowMs = clockNowMs();
+
+    if (input->ssrc != 0)
+    {
+      if (!havePrimarySsrc_)
+      {
+        primarySsrc_ = input->ssrc;
+        havePrimarySsrc_ = true;
+      }
+      else if (input->ssrc != primarySsrc_)
+      {
+        if (!haveSecondarySsrc_)
+        {
+          secondarySsrc_ = input->ssrc;
+          haveSecondarySsrc_ = true;
+          switchingLinks_ = true;
+          switchStartMs_ = nowMs;
+          Logger::getLogger()->printWarning(this, "Detected SSRC switch (starting reorder window)",
+                                           {"OldSSRC", "NewSSRC", "LastOutputTS", "FirstNewTS"},
+                                           {QString::number(primarySsrc_),
+                                            QString::number(secondarySsrc_),
+                                            haveLastOutputTimestamp_ ? QString::number(lastOutputTimestamp_) : QString("-"),
+                                            QString::number(input->rtpTimestamp)});
+        }
+        else if (input->ssrc != secondarySsrc_)
+        {
+          // Unexpected third SSRC; restart switch tracking to avoid mixing streams.
+          Logger::getLogger()->printWarning(this, "Unexpected SSRC change; restarting switch tracking",
+                                           {"PrimarySSRC", "SecondarySSRC", "NewSSRC"},
+                                           {QString::number(primarySsrc_),
+                                            QString::number(secondarySsrc_),
+                                            QString::number(input->ssrc)});
+          secondarySsrc_ = input->ssrc;
+          haveSecondarySsrc_ = true;
+          switchingLinks_ = true;
+          switchStartMs_ = nowMs;
+          frameBuffer_.clear();
+          waitingForMissing_ = false;
+          missingStartMs_ = -1;
+          haveLastOutputTimestamp_ = false;
+        }
+      }
+    }
 
     // Always forward additional NAL units that share the last output timestamp.
     // This handles cases like SPS/PPS arriving with the same timestamp as the last NAL unit.
@@ -174,10 +258,12 @@ void RTPBuffer::process()
           }
           else
           {
+            const uint32_t expectedNextTs = lastOutputTimestamp_ + FIXED_FRAME_DELTA_30FPS;
             Logger::getLogger()->printWarning(this, "Wrong order: non-contiguous timestamp; buffering",
-                                             {"FrameTS", "LastOutputTS", "DeltaFromLast"},
+                                             {"FrameTS", "LastOutputTS", "ExpectedNextTS", "DeltaFromLast"},
                                              {QString::number(input->rtpTimestamp),
                                               QString::number(lastOutputTimestamp_),
+                                              QString::number(expectedNextTs),
                                               QString::number(deltaFromLast)});
             waitingForMissing_ = true;
             missingStartMs_ = nowMs;
@@ -201,6 +287,23 @@ void RTPBuffer::process()
     std::vector<Frame> readyFrames = collectFramesToOutput(nowMs);
     for (auto& f : readyFrames)
     {
+      if (haveLastOutputTimestamp_)
+      {
+        const int32_t diffToLastOut = static_cast<int32_t>(f.timestamp - lastOutputTimestamp_);
+        if (diffToLastOut > 0)
+        {
+          const uint32_t deltaFromLastOut = static_cast<uint32_t>(diffToLastOut);
+          if (deltaFromLastOut > MAX_ACCEPTABLE_DELTA)
+          {
+            Logger::getLogger()->printWarning(this, "Assuming missing frames: output timestamp jump",
+                                             {"PrevOutputTS", "NextOutputTS", "DeltaFromLast"},
+                                             {QString::number(lastOutputTimestamp_),
+                                              QString::number(f.timestamp),
+                                              QString::number(deltaFromLastOut)});
+          }
+        }
+      }
+
       setTimestamp(f.timestamp);
       for (auto& packet : f.nalUnits)
       {
