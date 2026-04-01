@@ -318,11 +318,7 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
 
     if (entry->p2pSSRC == ssrc)
     {
-      if (entry->p2pRTT.empty())
-      {
-        Logger::getLogger()->printNormal(this, "First RTT sample received",
-                                         {"CNAME","Type","RTT"}, {pair.first, "P2P", QString::number(rtt)});
-      }
+      const bool firstSample = entry->p2pRTT.empty();
 
       entry->p2pRTT.push_back(rtt);
       if (entry->p2pRTT.size() > MAX_RTT_MEASUREMENTS)
@@ -350,27 +346,60 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
                                          {pair.first, entry->p2pActive ? "true" : "false"});
       }
 
+      // Check if link change is beneficial, speeds up adoption
+      if (firstSample)
+      {
+        const bool hasSfuRtt = (!entry->sfuRTT.empty() && entry->sfuRTT.back() > 0.0) || (entry->latestsSFURtt > 0.0);
+        const bool canBenefitFromImmediateEval = (hasSfuRtt && sfuRTPSender_ && sfuActive_);
+        if (canBenefitFromImmediateEval)
+        {
+          triggerReEvaluation_ = true;
+          Logger::getLogger()->printNormal(this, "Triggered immediate re-evaluation after first P2P RTT sample",
+                                           {"CNAME", "P2P_SSRC", "SFU_SSRC"},
+                                           {pair.first, QString::number(entry->p2pSSRC), QString::number(entry->sfuSSRC)});
+        }
+        else
+        {
+          Logger::getLogger()->printNormal(this, "No re-evluation after first P2P RTT sample received",
+                          {"CNAME", "Type", "RTT"}, {pair.first, "P2P", QString::number(rtt)});
+        }
+      }
+
       foundSSRC = true;
       break;
     }
 
     if (entry->sfuSSRC == ssrc)
     {
-      if (entry->sfuRTT.empty())
-      {
-        Logger::getLogger()->printNormal(this, "First RTT sample received",
-                                         {"CNAME","Type","RTT"}, {pair.first, "SFU", QString::number(rtt)});
-      }
+      const bool firstSample = entry->sfuRTT.empty();
 
       entry->sfuRTT.push_back(rtt);
       if (entry->sfuRTT.size() > MAX_RTT_MEASUREMENTS)
       {
         entry->sfuRTT.pop_front();
       }
-
-      // Keep cached RTT up-to-date even when we are not running hybrid re-evaluations
-      // (pure SFU case).
+      
       entry->latestsSFURtt = averageRTT(entry->sfuRTT);
+
+      // Check if link change is beneficial, speeds up adoption
+      if (firstSample)
+      {
+
+        const bool hasP2pRtt = (!entry->p2pRTT.empty() && entry->p2pRTT.back() > 0.0) || (entry->latestsP2PRtt > 0.0);
+        const bool canBenefitFromImmediateEval = (hasP2pRtt && entry->p2pRTPSender && sfuRTPSender_ && sfuActive_);
+        if (canBenefitFromImmediateEval)
+        {
+          triggerReEvaluation_ = true;
+          Logger::getLogger()->printNormal(this, "Triggered immediate re-evaluation after first SFU RTT sample",
+                                           {"CNAME", "P2P_SSRC", "SFU_SSRC"},
+                                           {pair.first, QString::number(entry->p2pSSRC), QString::number(entry->sfuSSRC)});
+        }
+        else
+        {        
+          Logger::getLogger()->printNormal(this, "No re-evaluation after first SFU RTT sample",
+                                           {"CNAME","Type","RTT"}, {pair.first, "SFU", QString::number(rtt)});
+        }
+      }
 
       // As soon as we have our first SFU RTT sample, revert any temporary
       // RTCP warmup override.
