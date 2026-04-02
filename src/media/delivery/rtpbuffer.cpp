@@ -59,7 +59,12 @@ void RTPBuffer::process()
     {
       buffer_.push_back(std::move(input));
 
-      if (currentRTPTimestamp_ != 0 && currentRTPTimestamp_ + MAX_RTP_INTERVAL < buffer_.front()->rtpTimestamp)
+      if (buffer_.back()->rtpTimestamp <= currentRTPTimestamp_)
+      {
+        Logger::getLogger()->printWarning(this, "Detected an invalid packet from another SSRC, discarding");
+        buffer_.pop_back();
+      }
+      else if (currentRTPTimestamp_ != 0 && currentRTPTimestamp_ + MAX_RTP_INTERVAL < buffer_.front()->rtpTimestamp)
       {
         Logger::getLogger()->printNormal(this, "Buffering RTP packets due to SSRC change",
                                          "RTP Diff", QString::number(buffer_.front()->rtpTimestamp - currentRTPTimestamp_));
@@ -87,7 +92,7 @@ void RTPBuffer::emptyBuffer()
 {
   Logger::getLogger()->printNormal(this, "Emptying buffer", {"Size", "Timestamp Diff"},
                                    {QString::number(buffer_.size()),
-                                    QString::number(buffer_.front()->rtpTimestamp - currentRTPTimestamp_)});
+                                    QString::number((int64_t)(buffer_.front()->rtpTimestamp - currentRTPTimestamp_))});
   for (auto& nalUnit : buffer_)
   {
     currentRTPTimestamp_ = nalUnit->rtpTimestamp;
