@@ -1,10 +1,36 @@
 #include "rtpbuffer.h"
 #include "logger.h"
 
+#include <cstring>
+
 constexpr uint32_t RTP_TIMESTAMP_WRAPAROUND = 0xFFFFFFFF; // 32-bit wraparound
 constexpr uint32_t RTP_TIMESTAMP_RATE = 90000; // 1 second at 90kHz clock rate
 constexpr uint32_t RTP_FRAME_INTERVAL = RTP_TIMESTAMP_RATE/30; // 1/30th of a second, assuming 30 fps video
 constexpr uint32_t MAX_RTP_INTERVAL = RTP_FRAME_INTERVAL * 1.5;
+
+namespace
+{
+// Signature used by HybridFilter::sendDummies(). These packets exist only to
+// provoke RTCP behavior on otherwise-inactive paths; they should not affect
+// receiver-side RTP buffering / SSRC change handling.
+constexpr uint8_t kHybridDummyPacket[] = {
+    0x00, 0x00, 0x00, 0x01,
+    0x4E,
+    0x7B, 0x01,
+    0x00,
+    0x80
+};
+
+bool isHybridDummyPacket(const Data* d)
+{
+  if (!d || !d->data)
+    return false;
+  if (d->data_size != sizeof(kHybridDummyPacket))
+    return false;
+
+  return std::memcmp(d->data.get(), kHybridDummyPacket, sizeof(kHybridDummyPacket)) == 0;
+}
+}
 
 
 RTPBuffer::RTPBuffer(QString id, StatisticsInterface* stats,
@@ -22,6 +48,13 @@ void RTPBuffer::process()
 
   while(input)
   {
+    if (isHybridDummyPacket(input.get()))
+    {
+      Logger::getLogger()->printNormal(this, "Dropped Hybrid dummy packet in RTPBuffer", "SSRC", QString::number(input->ssrc));
+      input = getInput();
+      continue;
+    }
+
     if (input->ssrc != currentSSRC_)
     {
       buffer_.push_back(std::move(input));
