@@ -20,7 +20,7 @@
 const uint8_t MAX_RTT_MEASUREMENTS = 64; // Maximum number of RTT samples to keep
 const int EVALUATION_INTERVAL = 320; // Number of frames between evaluations
 const int DUMMY_INTERVAL = 160; // Number of frames between dummy packets
-const int SYNC_PERIOD_IN_FRAMES = 120; // the period after which delayed switch is applied
+const int SYNC_PERIOD_IN_FRAMES = 300; // the period after which delayed switch is applied
 const int P2P_RTT_THRESHOLD_MS = 10; // Minimum RTT improvement to consider P2P switch
 const int DUMMY_SESSION_BANDWIDTH_KBPS = 64; // low but non-zero; used to reduce RTCP traffic on inactive links
 const int SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS = 256; // temporary boost until first SFU RTT sample
