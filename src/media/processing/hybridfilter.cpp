@@ -503,8 +503,7 @@ void HybridFilter::process()
                                         {QString::number(input->rtpTimestamp), 
                                          QString::number(nextSwitchTimestamp_),
                                          QString::number(delta)});
-        executeSwitches();
-        nextSwitchTimestamp_ = 0;
+        executeSwitches(input->rtpTimestamp);
       }
     }
 
@@ -607,13 +606,51 @@ void HybridFilter::process()
 }
 
 
-void HybridFilter::executeSwitches()
+namespace
 {
-  // Delayed switch of links, needs to be synchronized with sfu server
+// Return true if a is strictly earlier than b in RTP timestamp space.
+// Uses signed subtraction to handle wrap-around (RFC 3550 style).
+inline bool rtpTsEarlier(uint32_t a, uint32_t b)
+{
+  return static_cast<int32_t>(a - b) < 0;
+}
+}
+
+
+void HybridFilter::executeSwitches(uint32_t currentTimestamp)
+{
+  // Delayed switch of links, needs to be synchronized with sfu server.
+  // Execute only those whose scheduled RTP timestamp has been reached.
+  std::vector<std::shared_ptr<LinkInfo>> remaining;
+  remaining.reserve(linksToSwitch_.size());
+
+  uint32_t nextPendingTs = 0;
+
   for (const auto& link : linksToSwitch_)
   {
     if (!link)
       continue;
+
+    if (link->pendingSwitch == LinkInfo::PendingNone)
+      continue;
+
+    if (link->pendingSwitchTimestamp == 0)
+    {
+      Logger::getLogger()->printWarning(this, "Pending switch had no scheduled RTP timestamp; clearing",
+                                        {"sfuSSRC", "p2pSSRC"},
+                                        {QString::number(link->sfuSSRC), QString::number(link->p2pSSRC)});
+      link->pendingSwitch = LinkInfo::PendingNone;
+      continue;
+    }
+
+    const int32_t delta = static_cast<int32_t>(currentTimestamp - link->pendingSwitchTimestamp);
+    if (delta < 0)
+    {
+      remaining.push_back(link);
+      if (nextPendingTs == 0 || rtpTsEarlier(link->pendingSwitchTimestamp, nextPendingTs))
+        nextPendingTs = link->pendingSwitchTimestamp;
+      continue;
+    }
 
     // Use the explicitly scheduled action instead of toggling based on current state.
     if (link->pendingSwitch == LinkInfo::PendingToP2P)
@@ -637,12 +674,19 @@ void HybridFilter::executeSwitches()
 
     // Clear pending flag after execution
     link->pendingSwitch = LinkInfo::PendingNone;
+    link->pendingSwitchTimestamp = 0;
   }
 
-  linksToSwitch_.clear();
+  linksToSwitch_.swap(remaining);
+  nextSwitchTimestamp_ = nextPendingTs;
 
-  // Apply SFU state decision from evaluation
-  applySfuState(pendingSfuActive_);
+  // Apply SFU state decision from evaluation when all scheduled switches
+  // have been executed. This avoids disabling SFU while a switch to SFU is
+  // still pending.
+  if (linksToSwitch_.empty())
+  {
+    applySfuState(pendingSfuActive_);
+  }
 }
 
 
@@ -826,30 +870,32 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32
   }
   else if (!linkInfo->p2pActive) // delayed switch
   {
-    if (sfuRTPSender_)
+    if (linkInfo->pendingSwitch == LinkInfo::PendingToP2P)
     {
-      // Calculate future timestamp for when the switch will occur
-      uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, SYNC_PERIOD_IN_FRAMES);
+      Logger::getLogger()->printWarning(this, "Link is already scheduled for switch to P2P, skipping duplicate");
+      return;
+    }
+
+    // Calculate future timestamp for when the switch will occur
+    uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, SYNC_PERIOD_IN_FRAMES);
+    linkInfo->pendingSwitchTimestamp = futureTimestamp;
+    if (nextSwitchTimestamp_ == 0 || rtpTsEarlier(futureTimestamp, nextSwitchTimestamp_))
       nextSwitchTimestamp_ = futureTimestamp;
 
-      Logger::getLogger()->printNormal(this, "Scheduling delayed switch to P2P connection",
-                                      {"SFU SSRC","P2P SSRC", "Current TS", "Future TS"},
-                                      {QString::number(linkInfo->sfuSSRC), QString::number(linkInfo->p2pSSRC),
-                                       QString::number(currentTimestamp), QString::number(futureTimestamp)});
+    Logger::getLogger()->printNormal(this, "Scheduling delayed switch to P2P connection",
+                                    {"SFU SSRC","P2P SSRC", "Current TS", "Future TS"},
+                                    {QString::number(linkInfo->sfuSSRC), QString::number(linkInfo->p2pSSRC),
+                                     QString::number(currentTimestamp), QString::number(futureTimestamp)});
 
-      // sync with sfu server
+    // sync with sfu server
+    if (sfuRTPSender_)
+    {
       sfuRTPSender_->stopForwarding(linkInfo->sfuSSRC, futureTimestamp);
     }
     // Record the explicit pending switch and avoid duplicate scheduling for the same link
     linkInfo->pendingSwitch = LinkInfo::PendingToP2P;
     if (std::find(linksToSwitch_.begin(), linksToSwitch_.end(), linkInfo) == linksToSwitch_.end())
-    {
       linksToSwitch_.push_back(linkInfo);
-    }
-    else
-    {
-      Logger::getLogger()->printWarning(this, "Link is already scheduled for switch to P2P, skipping duplicate");
-    }
   }
   else
   {
@@ -881,9 +927,17 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
   }
   else if (linkInfo->p2pActive) // delayed switch
   {
+    if (linkInfo->pendingSwitch == LinkInfo::PendingToSFU)
+    {
+      Logger::getLogger()->printWarning(this, "Link is already scheduled for switch to SFU, skipping duplicate");
+      return;
+    }
+
     // Calculate future timestamp for when the switch will occur
     uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, SYNC_PERIOD_IN_FRAMES);
-    nextSwitchTimestamp_ = futureTimestamp;
+    linkInfo->pendingSwitchTimestamp = futureTimestamp;
+    if (nextSwitchTimestamp_ == 0 || rtpTsEarlier(futureTimestamp, nextSwitchTimestamp_))
+      nextSwitchTimestamp_ = futureTimestamp;
 
     Logger::getLogger()->printNormal(this, "Scheduling delayed switch to SFU connection",
                                     {"P2P SSRC","SFU SSRC", "Current TS", "Future TS", "SFU Active"},
@@ -900,13 +954,7 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
     // Record the explicit pending switch and avoid duplicate scheduling for the same link
     linkInfo->pendingSwitch = LinkInfo::PendingToSFU;
     if (std::find(linksToSwitch_.begin(), linksToSwitch_.end(), linkInfo) == linksToSwitch_.end())
-    {
       linksToSwitch_.push_back(linkInfo);
-    }
-    else
-    {
-      Logger::getLogger()->printWarning(this, "Link is already scheduled for switch to SFU, skipping duplicate");
-    }
   }
   else
   {

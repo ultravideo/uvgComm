@@ -36,6 +36,10 @@ struct LinkInfo
   // Pending switch requested for this link (used to schedule delayed, synchronized switches).
   enum PendingSwitchType { PendingNone = 0, PendingToP2P = 1, PendingToSFU = 2 };
   PendingSwitchType pendingSwitch = PendingNone;
+
+  // RTP timestamp at which the pending switch should be executed.
+  // 0 means not scheduled.
+  uint32_t pendingSwitchTimestamp = 0;
 };
 
 class HybridFilter : public Filter
@@ -82,7 +86,7 @@ private:
                   const QString& cname,
                   std::shared_ptr<UvgRTPSender> rtpSender);
 
-  void executeSwitches();
+  void executeSwitches(uint32_t currentTimestamp);
 
   void setConnection(int index, bool status, const std::shared_ptr<UvgRTPSender>& sender = nullptr);
 
