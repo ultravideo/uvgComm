@@ -92,6 +92,9 @@ private:
 
   double averageRTT(const std::deque<double>& samples) const;
 
+  double calculateTotalSessionBandwidthBps(double fallbackBps) const;
+  double calculateMinSfuOneWayLatencySec() const;
+
   void reEvaluateConnections(uint32_t currentTimestamp);
 
   void sendDummies(uint32_t currentTimestamp);
@@ -99,6 +102,8 @@ private:
   void fullBandwidthEvaluation(uint32_t currentTimestamp);
 
   void rankedBandwidthEvaluation(const int maxP2PConnections, int connectionBandwidth, uint32_t currentTimestamp);
+
+  int calculateSyncPeriodInFrames() const;
 
   void delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32_t currentTimestamp);
   void delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32_t currentTimestamp);
