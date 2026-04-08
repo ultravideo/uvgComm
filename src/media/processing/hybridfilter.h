@@ -17,6 +17,13 @@ enum LinkType
 
 struct LinkInfo
 {
+  enum class SwitchPhase
+  {
+    None,
+    Scheduled,
+    AwaitingCompletion
+  };
+
   uint32_t p2pSSRC;
   bool p2pActive;
   int p2pOutIndex;
@@ -33,13 +40,19 @@ struct LinkInfo
   uint32_t sfuSSRC;
   std::deque<double> sfuRTT;
   double latestsSFURtt = 0.0;
-  // Pending switch requested for this link (used to schedule delayed, synchronized switches).
-  enum PendingSwitchType { PendingNone = 0, PendingToP2P = 1, PendingToSFU = 2 };
-  PendingSwitchType pendingSwitch = PendingNone;
+  // Tracks whether switch is queued for RTP timestamp execution or waiting for
+  // post-execution stabilization before new switch requests are allowed.
+  SwitchPhase switchPhase = SwitchPhase::None;
 
-  // RTP timestamp at which the pending switch should be executed.
-  // 0 means not scheduled.
-  uint32_t pendingSwitchTimestamp = 0;
+  // Explicit scheduled switch direction to avoid relying on current path while
+  // executing delayed switches.
+  bool switchTargetP2P = false;
+
+  // RTP timestamp for delayed execution. 0 means there is no scheduled execute point.
+  uint32_t switchOngoingTimestamp = 0;
+
+  // Absolute time deadline that clears switchPhase as a fallback.
+  uint64_t switchOngoingUntilMs = 0;
 };
 
 class HybridFilter : public Filter
@@ -104,6 +117,15 @@ private:
   void rankedBandwidthEvaluation(const int maxP2PConnections, int connectionBandwidth, uint32_t currentTimestamp);
 
   int calculateSyncPeriodInFrames() const;
+
+  bool rtpTsEarlier(uint32_t a, uint32_t b) const;
+  void clearOngoingSwitchState(const std::shared_ptr<LinkInfo>& link);
+  uint64_t calculateSwitchGuardWindowMs(const std::shared_ptr<LinkInfo>& link,
+                                        int syncPeriodFrames) const;
+  uint64_t calculatePostSwitchGuardWindowMs(const std::shared_ptr<LinkInfo>& link) const;
+
+  bool allowNewSwitchRequest(const std::shared_ptr<LinkInfo>& linkInfo, const QString& targetPath);
+  void markSwitchOngoing(const std::shared_ptr<LinkInfo>& linkInfo, uint32_t scheduledTimestamp, int syncPeriodFrames);
 
   void delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32_t currentTimestamp);
   void delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32_t currentTimestamp);
