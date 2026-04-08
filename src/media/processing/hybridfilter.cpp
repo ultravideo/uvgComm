@@ -917,9 +917,13 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32
   }
   else if (!linkInfo->p2pActive) // delayed switch
   {
-    if (linkInfo->pendingSwitch == LinkInfo::PendingToP2P)
+    if (linkInfo->pendingSwitch != LinkInfo::PendingNone)
     {
-      Logger::getLogger()->printWarning(this, "Link is already scheduled for switch to P2P, skipping duplicate");
+      Logger::getLogger()->printWarning(this, "Link already has a pending switch, skipping switch to P2P",
+                                        {"Pending", "P2P SSRC", "SFU SSRC"},
+                                        {QString::number(static_cast<int>(linkInfo->pendingSwitch)),
+                                         QString::number(linkInfo->p2pSSRC),
+                                         QString::number(linkInfo->sfuSSRC)});
       return;
     }
 
@@ -977,9 +981,13 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
   }
   else if (linkInfo->p2pActive) // delayed switch
   {
-    if (linkInfo->pendingSwitch == LinkInfo::PendingToSFU)
+    if (linkInfo->pendingSwitch != LinkInfo::PendingNone)
     {
-      Logger::getLogger()->printWarning(this, "Link is already scheduled for switch to SFU, skipping duplicate");
+      Logger::getLogger()->printWarning(this, "Link already has a pending switch, skipping switch to SFU",
+                                        {"Pending", "P2P SSRC", "SFU SSRC"},
+                                        {QString::number(static_cast<int>(linkInfo->pendingSwitch)),
+                                         QString::number(linkInfo->p2pSSRC),
+                                         QString::number(linkInfo->sfuSSRC)});
       return;
     }
 
