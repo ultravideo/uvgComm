@@ -17,22 +17,15 @@
 
 #include <QSize>
 
-const uint8_t MAX_RTT_MEASUREMENTS = 64; // Maximum number of RTT samples to keep
-const int EVALUATION_INTERVAL = 320; // Number of frames between evaluations
-const int DUMMY_INTERVAL = 160; // Number of frames between dummy packets
+const uint8_t MAX_RTT_MEASUREMENTS = 16; // Maximum number of RTT samples to keep
+const int EVALUATION_INTERVAL = 640; // Number of frames between evaluations
+const int DUMMY_INTERVAL = 120; // needs to be sent at least once per RTCP period
 const int RTT_SWITCH_THRESHOLD_MS = 10; // Bidirectional RTT deadband before switching paths
 const int DUMMY_SESSION_BANDWIDTH_KBPS = 64; // low but non-zero; used to reduce RTCP traffic on inactive links
-const int SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS = 256; // temporary boost until first SFU RTT sample
-
-const double RTCP_TOTAL_BW_FRACTION = 0.05; // RTCP is typically 5% of session bandwidth
-const double RTCP_SENDER_BW_FRACTION = 0.25;
-const double RTCP_RCVR_BW_FRACTION = 0.75;
-const double RTCP_COMPENSATION = 2.71828 - 1.5;
-const double RTCP_RANDOM_MAX_FACTOR = 1.5 / RTCP_COMPENSATION;
+const int RTCP_WARMUP_SESSION_BANDWIDTH_KBPS = 256; // temporary boost until first SFU RTT sample
 const double RTCP_AVG_PACKET_SIZE_OCTETS = 150.0;
 const double SYNC_CUSHION_SECONDS = 0.25;
 const double DEFAULT_SYNC_SESSION_BANDWIDTH_BPS = 100000.0;
-const double NO_BANDWIDTH_FALLBACK_BPS = 0.0;
 const int MAX_SYNC_PERIOD_IN_FRAMES = 1200; // Cap to avoid excessive switch latency.
 
 
@@ -49,16 +42,6 @@ Filter(id, "Hybrid", stats, hwResources, DT_HEVCVIDEO, DT_HEVCVIDEO),
     nextSwitchTimestamp_(0)
 {
   updateSettings();
-
-  // Randomize initial count to stagger evaluation timing across clients
-  uint16_t intraPeriod = (uint16_t)settingValue(SettingsKey::videoIntra);
-  uint16_t randomMultiple = QRandomGenerator::global()->bounded(5); // 0-4
-  count_ = randomMultiple * intraPeriod;
-
-  Logger::getLogger()->printNormal(this, "Randomized initial count for staggered evaluations",
-                                   {"IntraPeriod", "Multiplier", "InitialCount"},
-                                   {QString::number(intraPeriod), QString::number(randomMultiple),
-                                    QString::number(count_)});
 }
 
 
@@ -115,7 +98,7 @@ void HybridFilter::addLink(LinkType type,
     return;
   }
 
-    int outIdx = -1;
+  int outIdx = -1;
   if (rtpSender)
   {
     // UvgRTPSender inherits from Filter, so we can lookup its index
@@ -199,7 +182,8 @@ void HybridFilter::addP2PLink(std::shared_ptr<LinkInfo>& entry,
                    Qt::UniqueConnection);
 
   // Prime P2P RTT as well: the first SR/RR exchange can be delayed.
-  maybeEnableP2pRtcpWarmup(entry);
+  enableRTCPWarmup(entry->p2pRTPSender);
+  entry->p2pRtcpWarmupActive = true;
 }
 
 
@@ -238,9 +222,6 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
     sfuOutIndex_ = outIdx;
     setConnection(outIdx, sfuActive_, sfuRTPSender_);
 
-    // Prime SFU RTT so evaluation doesn't sit in "SFU RTT = 0" state for long.
-    maybeEnableSfuRtcpWarmup();
-
     // Disable any already-active P2P links now that SFU is available, evaluation may enable them later
     for (auto& kv : cnameToLinks_)
     {
@@ -252,7 +233,6 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
         setConnection(link->p2pOutIndex, link->p2pActive, link->p2pRTPSender);
       }
     }
-
   }
 }
 
@@ -269,50 +249,14 @@ void HybridFilter::setLowRtcpMode(const std::shared_ptr<UvgRTPSender>& sender, b
 }
 
 
-void HybridFilter::maybeEnableSfuRtcpWarmup()
+void HybridFilter::enableRTCPWarmup(std::shared_ptr<UvgRTPSender> sender)
 {
-  if (!sfuRTPSender_ || sfuRtcpWarmupActive_)
-    return;
+  const int computedSessionKbps = static_cast<int>((getHWManager()->getEncoderBitrate(sender->inputType()) / (1.0 - TRANSMISSION_OVERHEAD)) / 1000);
 
-  // Boost only if the computed bandwidth is lower than the warmup value.
-  // This avoids accidentally reducing RTCP rate for high-bitrate cases.
-  const int payloadBitrateBps = getHWManager() ? getHWManager()->getEncoderBitrate(sfuRTPSender_->inputType()) : 0;
-  const int computedSessionKbps = std::max(10, static_cast<int>((payloadBitrateBps / (1.0 - TRANSMISSION_OVERHEAD)) / 1000));
-
-  if (computedSessionKbps >= SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS)
-    return;
-
-  sfuRtcpWarmupActive_ = true;
-  sfuRTPSender_->setTemporarySessionBandwidthKbps(SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS);
-  Logger::getLogger()->printNormal(this, "Enabled SFU RTCP warmup",
-                                  {"ComputedKbps", "WarmupKbps"},
-                                  {QString::number(computedSessionKbps),
-                                   QString::number(SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS)});
-}
-
-
-void HybridFilter::maybeEnableP2pRtcpWarmup(const std::shared_ptr<LinkInfo>& link)
-{
-  if (!link || link->p2pRtcpWarmupActive)
-    return;
-  if (!link->p2pRTPSender)
-    return;
-  if (!link->p2pRTT.empty())
-    return;
-
-  const int payloadBitrateBps = getHWManager() ? getHWManager()->getEncoderBitrate(link->p2pRTPSender->inputType()) : 0;
-  const int computedSessionKbps = std::max(10, static_cast<int>((payloadBitrateBps / (1.0 - TRANSMISSION_OVERHEAD)) / 1000));
-
-  if (computedSessionKbps >= SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS)
-    return;
-
-  link->p2pRtcpWarmupActive = true;
-  link->p2pRTPSender->setTemporarySessionBandwidthKbps(SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS);
-  Logger::getLogger()->printNormal(this, "Enabled P2P RTCP warmup",
-                                  {"P2P SSRC", "ComputedKbps", "WarmupKbps"},
-                                  {QString::number(link->p2pSSRC),
-                                   QString::number(computedSessionKbps),
-                                   QString::number(SFU_RTCP_WARMUP_SESSION_BANDWIDTH_KBPS)});
+  if (computedSessionKbps < RTCP_WARMUP_SESSION_BANDWIDTH_KBPS)
+  {
+    sender->setTemporarySessionBandwidthKbps(RTCP_WARMUP_SESSION_BANDWIDTH_KBPS);
+  }
 }
 
 
@@ -336,10 +280,6 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
         entry->p2pRTT.pop_front();
       }
 
-      // Keep cached RTT up-to-date even when we are not running hybrid re-evaluations
-      // (pure P2P mesh case). Use average to smooth jitter.
-      entry->latestsP2PRtt = averageRTT(entry->p2pRTT);
-
       // As soon as we have our first P2P RTT sample, revert any temporary
       // RTCP warmup override for this link.
       if (entry->p2pRtcpWarmupActive && entry->p2pRTPSender)
@@ -347,9 +287,15 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
         entry->p2pRtcpWarmupActive = false;
 
         if (entry->p2pActive)
+        {
+          // clear temporary start boost for faster rtt and return to normal rtcp traffic
           entry->p2pRTPSender->clearTemporarySessionBandwidth();
+        }
         else
+        {
+          // lower rtcp for inactive sessions
           entry->p2pRTPSender->setTemporarySessionBandwidthKbps(DUMMY_SESSION_BANDWIDTH_KBPS);
+        }
 
         Logger::getLogger()->printNormal(this, "Disabled P2P RTCP warmup",
                                          {"CNAME", "Active"},
@@ -359,9 +305,7 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
       // Check if link change is beneficial, speeds up adoption
       if (firstSample)
       {
-        const bool hasSfuRtt = (!entry->sfuRTT.empty() && entry->sfuRTT.back() > 0.0) || (entry->latestsSFURtt > 0.0);
-        const bool canBenefitFromImmediateEval = (hasSfuRtt && sfuRTPSender_ && sfuActive_);
-        if (canBenefitFromImmediateEval)
+        if (!entry->sfuRTT.empty() && sfuRTPSender_ && sfuActive_)
         {
           triggerReEvaluation_ = true;
           Logger::getLogger()->printNormal(this, "Triggered immediate re-evaluation after first P2P RTT sample",
@@ -378,7 +322,7 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
       foundSSRC = true;
       break;
     }
-
+    
     if (entry->sfuSSRC == ssrc)
     {
       const bool firstSample = entry->sfuRTT.empty();
@@ -388,16 +332,11 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
       {
         entry->sfuRTT.pop_front();
       }
-      
-      entry->latestsSFURtt = averageRTT(entry->sfuRTT);
 
       // Check if link change is beneficial, speeds up adoption
       if (firstSample)
-      {
-
-        const bool hasP2pRtt = (!entry->p2pRTT.empty() && entry->p2pRTT.back() > 0.0) || (entry->latestsP2PRtt > 0.0);
-        const bool canBenefitFromImmediateEval = (hasP2pRtt && entry->p2pRTPSender && sfuRTPSender_ && sfuActive_);
-        if (canBenefitFromImmediateEval)
+      { 
+        if (!entry->p2pRTT.empty() && entry->p2pRTPSender && sfuRTPSender_)
         {
           triggerReEvaluation_ = true;
           Logger::getLogger()->printNormal(this, "Triggered immediate re-evaluation after first SFU RTT sample",
@@ -411,20 +350,12 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
         }
       }
 
-      // As soon as we have our first SFU RTT sample, revert any temporary
-      // RTCP warmup override.
-      if (sfuRtcpWarmupActive_ && sfuRTPSender_ && sfuActive_)
-      {
-        sfuRtcpWarmupActive_ = false;
-        sfuRTPSender_->clearTemporarySessionBandwidth();
-        Logger::getLogger()->printNormal(this, "Disabled SFU RTCP warmup");
-      }
       foundSSRC = true;
       break;
     }
   }
 
-  if (!foundSSRC)
+  if (!foundSSRC) // error
   {
     // Dump current known entries for diagnostics
     QStringList names;
@@ -447,9 +378,107 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
 
 void HybridFilter::addSlave(std::shared_ptr<HybridSlaveFilter> slave)
 {
+  // slaves are typically less bandwidth heavy protocols like audio
   slaveMutex_.lock();
   slaves_.push_back(slave);
   slaveMutex_.unlock();
+}
+
+
+std::unique_ptr<Data> HybridFilter::recordEncodedFrameStatistics(std::unique_ptr<Data> input)
+{
+  if (!input)
+    return input;
+
+  uint32_t frameSize = input->data_size;
+
+  // Some timestamp interval modes add extra bytes that should not be counted as encoded frame payload.
+  // If sipTimestampInterval == 1, subtract the known overhead (33 bytes) from the reported frame size.
+  if (sipTimestampInterval_ == 1)
+  {
+    constexpr uint32_t kTimestampIntervalOverheadBytes = 33;
+    frameSize = (frameSize >= kTimestampIntervalOverheadBytes)
+                  ? (frameSize - kTimestampIntervalOverheadBytes)
+                  : 0;
+  }
+
+  // Count active outgoing connections: active P2P links + SFU (if enabled)
+  int activeConnections = 0;
+  for (const auto& kv : cnameToLinks_)
+  {
+    const std::shared_ptr<LinkInfo>& e = kv.second;
+    if (!e) continue;
+    if (e->p2pRTPSender && e->p2pActive && e->p2pOutIndex >= 0)
+      ++activeConnections;
+  }
+  if (sfuRTPSender_ && sfuActive_)
+    ++activeConnections;
+
+  uint64_t bw64 = static_cast<uint64_t>(frameSize) * static_cast<uint64_t>(activeConnections);
+  // Account for extra bandwidth overhead (RTP/RTCP headers etc.) of 10  %
+  double adjusted = static_cast<double>(bw64) / 0.9;
+  uint64_t bwAdj64 = adjusted > static_cast<double>(UINT64_MAX) ? UINT64_MAX : static_cast<uint64_t>(adjusted);
+  uint32_t bandwidth = bwAdj64 > UINT32_MAX ? UINT32_MAX : static_cast<uint32_t>(bwAdj64);
+
+  int64_t now = clockNowMs();
+  int64_t encTime64 = (input->creationTimestamp >= 0) ? (now - input->creationTimestamp) : 0;
+  uint32_t encodingTime = encTime64 > 0 ? static_cast<uint32_t>(encTime64) : 0;
+
+  QSize resolution(0,0);
+  float psnrY = -1.0f, psnrU = -1.0f, psnrV = -1.0f;
+  if (input->vInfo)
+  {
+    resolution.setWidth(input->vInfo->width);
+    resolution.setHeight(input->vInfo->height);
+    psnrY = input->vInfo->psnrY;
+    psnrU = input->vInfo->psnrU;
+    psnrV = input->vInfo->psnrV;
+  }
+
+  // Compute network latency from the latest RTT sample per link (divide by two to approximate
+  // one-way network latency). Using the latest sample is preferable for per-frame reporting
+  // over a smoothed/moving average.
+  double sumRtt = 0.0;
+  int rttCount = 0;
+  for (const auto& kv : cnameToLinks_)
+  {
+    const std::shared_ptr<LinkInfo>& e = kv.second;
+    if (!e) continue;
+
+    // P2P active for this participant
+    const bool hasUsableP2P = (e->p2pRTPSender && e->p2pActive);
+    const bool shouldUseSFU = (e->sfuSSRC != 0 && sfuActive_ && (!e->p2pActive || !e->p2pRTPSender));
+
+    if (hasUsableP2P)
+    {
+      if (!e->p2pRTT.empty() && e->p2pRTT.back() > 0.0)
+      {
+        sumRtt += (e->p2pRTT.back() / 2.0);
+        ++rttCount;
+      }
+    }
+    else if (shouldUseSFU)
+    {
+      // Participant is served via SFU and SFU is active
+      if (!e->sfuRTT.empty() && e->sfuRTT.back() > 0.0)
+      {
+        sumRtt += (e->sfuRTT.back() / 2.0);
+        ++rttCount;
+      }
+    }
+  }
+
+  int64_t networkLatencyMs = -1;
+  if (rttCount > 0)
+  {
+    // Round to nearest integer millisecond
+    networkLatencyMs = static_cast<int64_t>(sumRtt / static_cast<double>(rttCount) + 0.5);
+  }
+
+  getStats()->encodedVideoFrame(frameSize, bandwidth, encodingTime, resolution,
+                                psnrY, psnrU, psnrV, networkLatencyMs, input->creationTimestamp);
+
+  return input;
 }
 
 
@@ -459,11 +488,6 @@ void HybridFilter::process()
 
   while(input)
   {
-    //Logger::getLogger()->printNormal(this, "Processing input",
-    //                                 {"Input size"},
-    //                                 {QString::number(input->data_size)});
-
-
     ++count_;
     if (count_ % EVALUATION_INTERVAL == 0)
     {
@@ -472,27 +496,15 @@ void HybridFilter::process()
 
     if (count_ % DUMMY_INTERVAL == 0)
     {
-      const bool hasAnyP2P = hasAnyP2PLinks();
-
-      if (hasAnyP2P && sfuRTPSender_ != nullptr)
+      if (hasAnyP2PLinks() && sfuRTPSender_ != nullptr)
       {
         sendDummies(input->rtpTimestamp); // to get latency measurements for inactive connections
-      }
-      else
-      {
-        Logger::getLogger()->printNormal(this, "Skipping dummy packet: not hybrid (no P2P or no SFU)");
       }
     }
 
     if (triggerReEvaluation_)
     {
-      const bool hasAnyP2P = hasAnyP2PLinks();
-
-      if (!hasAnyP2P || sfuRTPSender_ == nullptr)
-      {
-        Logger::getLogger()->printNormal(this, "Skipping re-evaluation: not hybrid (no P2P or no SFU)");
-      }
-      else if (input->rtpTimestamp != 0)
+      if (hasAnyP2PLinks() && sfuRTPSender_ != nullptr)
       {
         reEvaluateConnections(input->rtpTimestamp);
       }
@@ -502,12 +514,12 @@ void HybridFilter::process()
 
     // Check and execute switches BEFORE sending output to ensure connection state
     // matches the SFU's forwarding state at the exact same timestamp
-    if (nextSwitchTimestamp_ != 0 && input->rtpTimestamp != 0)
+    if (hasNextSwitchTimestamp_)
     {
-      // Use signed arithmetic to handle RTP timestamp rollover
-      int32_t delta = static_cast<int32_t>(input->rtpTimestamp - nextSwitchTimestamp_);
-      if (delta >= 0)
+      // Use RTP timestamp space comparisons to handle rollover.
+      if (rtpTsAtOrAfter(input->rtpTimestamp, nextSwitchTimestamp_))
       {
+        const int32_t delta = static_cast<int32_t>(input->rtpTimestamp - nextSwitchTimestamp_);
         Logger::getLogger()->printNormal(this, "Executing switches at RTP timestamp",
                                         {"Current", "Scheduled", "Delta"},
                                         {QString::number(input->rtpTimestamp), 
@@ -517,98 +529,7 @@ void HybridFilter::process()
       }
     }
 
-    // Report encoded frame statistics: size, aggregate bandwidth (size * active connections),
-    // encoding time (ms), resolution and PSNRs (if available).
-    if (input)
-    {
-      uint32_t frameSize = input->data_size;
-
-      // Some timestamp interval modes add extra bytes that should not be counted as encoded frame payload.
-      // If sipTimestampInterval == 1, subtract the known overhead (33 bytes) from the reported frame size.
-      if (sipTimestampInterval_ == 1)
-      {
-        constexpr uint32_t kTimestampIntervalOverheadBytes = 33;
-        frameSize = (frameSize >= kTimestampIntervalOverheadBytes)
-                      ? (frameSize - kTimestampIntervalOverheadBytes)
-                      : 0;
-      }
-
-      // Count active outgoing connections: active P2P links + SFU (if enabled)
-      int activeConnections = 0;
-      for (const auto& kv : cnameToLinks_)
-      {
-        const std::shared_ptr<LinkInfo>& e = kv.second;
-        if (!e) continue;
-        if (e->p2pRTPSender && e->p2pActive && e->p2pOutIndex >= 0)
-          ++activeConnections;
-      }
-      if (sfuRTPSender_ && sfuActive_)
-        ++activeConnections;
-
-      uint64_t bw64 = static_cast<uint64_t>(frameSize) * static_cast<uint64_t>(activeConnections);
-      // Account for extra bandwidth overhead (RTP/RTCP headers etc.) of 10  %
-      double adjusted = static_cast<double>(bw64) / 0.9;
-      uint64_t bwAdj64 = adjusted > static_cast<double>(UINT64_MAX) ? UINT64_MAX : static_cast<uint64_t>(adjusted);
-      uint32_t bandwidth = bwAdj64 > UINT32_MAX ? UINT32_MAX : static_cast<uint32_t>(bwAdj64);
-
-      int64_t now = clockNowMs();
-      int64_t encTime64 = (input->creationTimestamp >= 0) ? (now - input->creationTimestamp) : 0;
-      uint32_t encodingTime = encTime64 > 0 ? static_cast<uint32_t>(encTime64) : 0;
-
-      QSize resolution(0,0);
-      float psnrY = -1.0f, psnrU = -1.0f, psnrV = -1.0f;
-      if (input->vInfo)
-      {
-        resolution.setWidth(input->vInfo->width);
-        resolution.setHeight(input->vInfo->height);
-        psnrY = input->vInfo->psnrY;
-        psnrU = input->vInfo->psnrU;
-        psnrV = input->vInfo->psnrV;
-      }
-
-      // Compute network latency from the latest RTT sample per link (divide by two to approximate
-      // one-way network latency). Using the latest sample is preferable for per-frame reporting
-      // over a smoothed/moving average.
-      double sumRtt = 0.0;
-      int rttCount = 0;
-      for (const auto& kv : cnameToLinks_)
-      {
-        const std::shared_ptr<LinkInfo>& e = kv.second;
-        if (!e) continue;
-
-        // P2P active for this participant
-        const bool hasUsableP2P = (e->p2pRTPSender && e->p2pActive);
-        const bool shouldUseSFU = (e->sfuSSRC != 0 && sfuActive_ && (!e->p2pActive || !e->p2pRTPSender));
-
-        if (hasUsableP2P)
-        {
-          if (!e->p2pRTT.empty() && e->p2pRTT.back() > 0.0)
-          {
-            sumRtt += (e->p2pRTT.back() / 2.0);
-            ++rttCount;
-          }
-        }
-        else if (shouldUseSFU)
-        {
-          // Participant is served via SFU and SFU is active
-          if (!e->sfuRTT.empty() && e->sfuRTT.back() > 0.0)
-          {
-            sumRtt += (e->sfuRTT.back() / 2.0);
-            ++rttCount;
-          }
-        }
-      }
-
-      int64_t networkLatencyMs = -1;
-      if (rttCount > 0)
-      {
-        // Round to nearest integer millisecond
-        networkLatencyMs = static_cast<int64_t>(sumRtt / static_cast<double>(rttCount) + 0.5);
-      }
-
-      getStats()->encodedVideoFrame(frameSize, bandwidth, encodingTime, resolution,
-                                    psnrY, psnrU, psnrV, networkLatencyMs, input->creationTimestamp);
-    }
+    input = recordEncodedFrameStatistics(std::move(input));
 
     sendOutput(std::move(input));
     input = getInput();
@@ -616,11 +537,18 @@ void HybridFilter::process()
 }
 
 
-bool HybridFilter::rtpTsEarlier(uint32_t a, uint32_t b) const
+bool HybridFilter::rtpTsAtOrAfter(uint32_t t1, uint32_t t2) const
 {
-  // Return true if a is strictly earlier than b in RTP timestamp space.
-  // Uses signed subtraction to handle wrap-around (RFC 3550 style).
-  return static_cast<int32_t>(a - b) < 0;
+  // Return true if `t1` is equal to or later than `t2` in RTP timestamp space.
+  return static_cast<int32_t>(t1 - t2) >= 0;
+}
+
+
+bool HybridFilter::rtpTsSoonerFrom(uint32_t now, uint32_t a, uint32_t b) const
+{
+  // Return true if `a` occurs sooner than `b`, measured from `now` in RTP timestamp space.
+  // Assumes both timestamps are within < 2^31 ticks from `now` (true for our scheduling horizon).
+  return static_cast<int32_t>(a - now) < static_cast<int32_t>(b - now);
 }
 
 
@@ -631,39 +559,21 @@ void HybridFilter::clearOngoingSwitchState(const std::shared_ptr<LinkInfo>& link
 
   link->switchPhase = LinkInfo::SwitchPhase::None;
   link->switchTargetP2P = false;
-  link->switchOngoingTimestamp = 0;
-  link->switchOngoingUntilMs = 0;
+  link->switchTimestamp = 0;
+  link->switchProhabitionMs = 0;
 }
 
 
 uint64_t HybridFilter::calculateSwitchGuardWindowMs(const std::shared_ptr<LinkInfo>& link,
                                                     int syncPeriodFrames) const
 {
-  const int fpsNum = std::max(1, framerateNumerator_);
-  const int fpsDen = std::max(1, framerateDenominator_);
-  const double frameMs = (1000.0 * static_cast<double>(fpsDen)) / static_cast<double>(fpsNum);
+  const double frameMs = (1000.0 * static_cast<double>(framerateDenominator_)) / 
+                                   static_cast<double>(framerateNumerator_);
   const double syncLeadMs = std::max(1.0, static_cast<double>(syncPeriodFrames) * frameMs);
 
-  double rttGuardMs = 0.0;
-  if (link)
-    rttGuardMs = std::max(link->latestsP2PRtt, link->latestsSFURtt);
+  double rttGuardMs = std::max(link->latestsP2PRtt, link->latestsSFURtt);
 
-  const uint64_t guardMs = static_cast<uint64_t>(std::ceil(syncLeadMs + std::max(0.0, rttGuardMs)));
-  return guardMs;
-}
-
-
-uint64_t HybridFilter::calculatePostSwitchGuardWindowMs(const std::shared_ptr<LinkInfo>& link) const
-{
-  double rttGuardMs = 0.0;
-  if (link)
-    rttGuardMs = std::max(link->latestsP2PRtt, link->latestsSFURtt);
-
-  // Keep a short stabilization period after executing a delayed switch.
-  // This prevents immediate re-scheduling while receiver-side SSRC change
-  // is still converging.
-  const uint64_t guardMs = static_cast<uint64_t>(std::ceil(std::max(1000.0, rttGuardMs + 250.0)));
-  return guardMs;
+  return static_cast<uint64_t>(std::ceil(syncLeadMs + std::max(0.0, rttGuardMs)));
 }
 
 
@@ -675,59 +585,69 @@ void HybridFilter::executeSwitches(uint32_t currentTimestamp)
   remaining.reserve(linksToSwitch_.size());
 
   uint32_t nextPendingTs = 0;
+  bool hasNextPendingTs = false;
 
   for (const auto& link : linksToSwitch_)
   {
-    if (!link || link->switchPhase == LinkInfo::SwitchPhase::None)
+    if (!link)
       continue;
 
-    if (link->switchPhase != LinkInfo::SwitchPhase::Scheduled)
-      continue;
-
-    if (link->switchOngoingTimestamp == 0)
+    if (link->switchPhase == LinkInfo::SwitchPhase::Scheduled)
     {
-      clearOngoingSwitchState(link);
-      continue;
+      if (rtpTsAtOrAfter(currentTimestamp, link->switchTimestamp))
+      {
+        if (link->switchTargetP2P) // switch SFU -> P2P
+        {
+          Logger::getLogger()->printNormal(this, "Switch from SFU to P2P for SSRC " +
+                                            QString::number(link->sfuSSRC) + " to " + QString::number(link->p2pSSRC));
+
+          link->p2pActive = true;
+          if (link->p2pOutIndex >= 0)
+          {
+            setConnection(link->p2pOutIndex, true, link->p2pRTPSender);
+          }
+        }
+        else // switch P2P -> SFU
+        {
+          Logger::getLogger()->printNormal(this, "Switch from P2P to SFU for SSRC " +
+                                            QString::number(link->p2pSSRC) + " to " + QString::number(link->sfuSSRC));
+
+          link->p2pActive = false;
+          if (link->p2pOutIndex >= 0)
+          {
+            setConnection(link->p2pOutIndex, false, link->p2pRTPSender);
+          }
+        }
+
+        // Keep switchPhase in AwaitingCompletion after execute until post-switch stabilization window expires.
+        link->switchPhase = LinkInfo::SwitchPhase::AwaitingCompletion;
+        link->switchTimestamp = 0;
+
+        // wait a little bit more in case something is ongoing at receiver
+        link->switchProhabitionMs = clockNowMs() + std::max(link->latestsP2PRtt, link->latestsSFURtt);
+      }
+      else
+      {
+        remaining.push_back(link);
+        if (!hasNextPendingTs || rtpTsSoonerFrom(currentTimestamp, link->switchTimestamp, nextPendingTs))
+        {
+          nextPendingTs = link->switchTimestamp;
+          hasNextPendingTs = true;
+        }
+      }
     }
-
-    const int32_t delta = static_cast<int32_t>(currentTimestamp - link->switchOngoingTimestamp);
-    if (delta < 0)
-    {
-      remaining.push_back(link);
-      if (nextPendingTs == 0 || rtpTsEarlier(link->switchOngoingTimestamp, nextPendingTs))
-        nextPendingTs = link->switchOngoingTimestamp;
-      continue;
-    }
-
-    const bool switchToP2P = link->switchTargetP2P;
-
-    if (!switchToP2P)
-    {
-      Logger::getLogger()->printNormal(this, "Switch from P2P to SFU for SSRC " +
-                                         QString::number(link->p2pSSRC) + " to " + QString::number(link->sfuSSRC));
-
-      link->p2pActive = false;
-      if (link->p2pOutIndex >= 0)
-        setConnection(link->p2pOutIndex, false, link->p2pRTPSender);
-    }
-    else
-    {
-      Logger::getLogger()->printNormal(this, "Switch from SFU to P2P for SSRC " +
-                                         QString::number(link->sfuSSRC) + " to " + QString::number(link->p2pSSRC));
-
-      link->p2pActive = true;
-      if (link->p2pOutIndex >= 0)
-        setConnection(link->p2pOutIndex, true, link->p2pRTPSender);
-    }
-
-    // Keep switchPhase in AwaitingCompletion after execute until post-switch stabilization window expires.
-    link->switchPhase = LinkInfo::SwitchPhase::AwaitingCompletion;
-    link->switchOngoingTimestamp = 0;
-    link->switchOngoingUntilMs = clockNowMs() + calculatePostSwitchGuardWindowMs(link);
   }
 
   linksToSwitch_.swap(remaining);
-  nextSwitchTimestamp_ = nextPendingTs;
+  hasNextSwitchTimestamp_ = hasNextPendingTs;
+  if (hasNextPendingTs)
+  {
+    nextSwitchTimestamp_ = nextPendingTs;
+  }
+  else
+  {
+    nextSwitchTimestamp_ = 0;
+  }
 
   // Apply SFU state decision from evaluation when all scheduled switches
   // have been executed. This avoids disabling SFU while a switch to SFU is
@@ -747,28 +667,39 @@ bool HybridFilter::allowNewSwitchRequest(const std::shared_ptr<LinkInfo>& linkIn
   if (linkInfo->switchPhase != LinkInfo::SwitchPhase::None)
   {
     const uint64_t nowMs = clockNowMs();
-    if (linkInfo->switchOngoingUntilMs > 0 && nowMs >= linkInfo->switchOngoingUntilMs)
+    if (linkInfo->switchProhabitionMs > 0 && nowMs >= linkInfo->switchProhabitionMs)
     {
-      // Required release: without this phase timeout, one delayed switch could block all future switches forever.
+      QString phase = "unknown";
+      if (linkInfo->switchPhase == LinkInfo::SwitchPhase::Scheduled)
+        phase = "scheduled";
+      else if (linkInfo->switchPhase == LinkInfo::SwitchPhase::AwaitingCompletion)
+        phase = "awaiting-completion";
+
+      Logger::getLogger()->printWarning(this, "Clearing expired switch state",
+                                        {"Target", "Phase", "P2P SSRC", "SFU SSRC"},
+                                        {targetPath,
+                                         phase,
+                                         QString::number(linkInfo->p2pSSRC),
+                                         QString::number(linkInfo->sfuSSRC)});
       clearOngoingSwitchState(linkInfo);
     }
-  }
 
-  if (linkInfo->switchPhase != LinkInfo::SwitchPhase::None)
-  {
-    QString phase = "unknown";
-    if (linkInfo->switchPhase == LinkInfo::SwitchPhase::Scheduled)
-      phase = "scheduled";
-    else if (linkInfo->switchPhase == LinkInfo::SwitchPhase::AwaitingCompletion)
-      phase = "awaiting-completion";
+    if (linkInfo->switchPhase != LinkInfo::SwitchPhase::None)
+    {
+      QString phase = "unknown";
+      if (linkInfo->switchPhase == LinkInfo::SwitchPhase::Scheduled)
+        phase = "scheduled";
+      else if (linkInfo->switchPhase == LinkInfo::SwitchPhase::AwaitingCompletion)
+        phase = "awaiting-completion";
 
-    Logger::getLogger()->printWarning(this, "Link has an ongoing switch, skipping switch",
-                                      {"Target", "Phase", "P2P SSRC", "SFU SSRC"},
-                                      {targetPath,
-                                       phase,
-                                       QString::number(linkInfo->p2pSSRC),
-                                       QString::number(linkInfo->sfuSSRC)});
-    return false;
+      Logger::getLogger()->printWarning(this, "Link has an ongoing switch, skipping switch",
+                                        {"Target", "Phase", "P2P SSRC", "SFU SSRC"},
+                                        {targetPath,
+                                        phase,
+                                        QString::number(linkInfo->p2pSSRC),
+                                        QString::number(linkInfo->sfuSSRC)});
+      return false;
+    }
   }
 
   return true;
@@ -785,9 +716,9 @@ void HybridFilter::markSwitchOngoing(const std::shared_ptr<LinkInfo>& linkInfo,
   const uint64_t switchOngoingTimeoutMs = calculateSwitchGuardWindowMs(linkInfo, syncPeriodFrames);
 
   linkInfo->switchPhase = LinkInfo::SwitchPhase::Scheduled;
-  linkInfo->switchOngoingTimestamp = scheduledTimestamp;
+  linkInfo->switchTimestamp = scheduledTimestamp;
   // Use a conservative schedule lifetime to tolerate delayed frame arrival.
-  linkInfo->switchOngoingUntilMs = clockNowMs() + (switchOngoingTimeoutMs * 2);
+  linkInfo->switchProhabitionMs = clockNowMs() + (switchOngoingTimeoutMs * 2);
 }
 
 
@@ -827,8 +758,7 @@ void HybridFilter::setConnection(int index, bool status, const std::shared_ptr<U
 
   // Reduce RTCP traffic on inactive (dummy-only) connections by temporarily
   // lowering uvgRTP session bandwidth. Keep it non-zero for RTT probing.
-  if (sender)
-    setLowRtcpMode(sender, !status);
+  setLowRtcpMode(sender, !status);
 
   slaveMutex_.lock();
   for (auto& slave : slaves_)
@@ -843,11 +773,6 @@ void HybridFilter::applySfuState(bool needSFU)
 {
   if (!sfuRTPSender_)
     return;
-
-  // If SFU is being disabled before we ever received an RTT sample, make sure
-  // we don't later clear the low-RTCP override (used for inactive links).
-  if (!needSFU)
-    sfuRtcpWarmupActive_ = false;
 
   sfuActive_ = needSFU;
   setConnection(sfuOutIndex_, sfuActive_, sfuRTPSender_);
@@ -882,7 +807,9 @@ double HybridFilter::calculateTotalSessionBandwidthBps(double fallbackBps) const
 
   const double denom = (1.0 - static_cast<double>(TRANSMISSION_OVERHEAD));
   if (payloadBandwidth > 0 && denom > 0.0)
+  {
     return static_cast<double>(payloadBandwidth) / denom;
+  }
 
   Logger::getLogger()->printWarning(this, "Using fallback session bandwidth",
                                    {"PayloadBps", "Overhead", "FallbackBps"},
@@ -901,23 +828,25 @@ double HybridFilter::calculateMinSfuOneWayLatencySec() const
   for (const auto& kv : cnameToLinks_)
   {
     const std::shared_ptr<LinkInfo>& e = kv.second;
-    if (!e || e->latestsSFURtt <= 0.0)
-      continue;
-
-    const double oneWayLatencySec = (e->latestsSFURtt / 2.0) / 1000.0;
-    if (!hasLatencySample)
+    if (e && e->latestsSFURtt >= 0.0)
     {
-      minOneWayLatencySec = oneWayLatencySec;
-      hasLatencySample = true;
-    }
-    else
-    {
-      minOneWayLatencySec = std::min(minOneWayLatencySec, oneWayLatencySec);
+      const double oneWayLatencySec = (e->latestsSFURtt / 2.0) / 1000.0;
+      if (!hasLatencySample)
+      {
+        minOneWayLatencySec = oneWayLatencySec;
+        hasLatencySample = true;
+      }
+      else
+      {
+        minOneWayLatencySec = std::min(minOneWayLatencySec, oneWayLatencySec);
+      }
     }
   }
 
   if (hasLatencySample)
+  {
     return minOneWayLatencySec;
+  }
 
   return 0.0;
 }
@@ -925,6 +854,7 @@ double HybridFilter::calculateMinSfuOneWayLatencySec() const
 
 void HybridFilter::reEvaluateConnections(uint32_t currentTimestamp)
 {
+  constexpr double kNoBandwidthFallbackBps = 0.0;
   const int64_t availableBandwidth = static_cast<int64_t>(settingValue(SettingsKey::sipUpBandwidth));
 
   if (availableBandwidth <= 0)
@@ -937,7 +867,7 @@ void HybridFilter::reEvaluateConnections(uint32_t currentTimestamp)
   // Our overhead constant represents a fraction of total bandwidth, so:
   //   payload = total * (1 - overhead)  =>  total = payload / (1 - overhead)
   const int64_t linkBandwidth = static_cast<int64_t>(
-      std::ceil(calculateTotalSessionBandwidthBps(NO_BANDWIDTH_FALLBACK_BPS)));
+      std::ceil(calculateTotalSessionBandwidthBps(kNoBandwidthFallbackBps)));
 
   if (linkBandwidth <= 0)
   {
@@ -987,7 +917,7 @@ void HybridFilter::reEvaluateConnections(uint32_t currentTimestamp)
 
   // Otherwise, use P2P where RTT benefit is biggest
   rankedBandwidthEvaluation(maxP2PConnections, static_cast<int>(std::min<int64_t>(linkBandwidth, INT_MAX)), currentTimestamp);
-  pendingSfuActive_ = true; // we need sfu if not all connections are P2P
+  pendingSfuActive_ = true; // we need sfu if we cannot afford using only P2P connections
 }
 
 
@@ -1016,9 +946,10 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32
     uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, syncPeriodFrames);
     linkInfo->switchTargetP2P = true;
     markSwitchOngoing(linkInfo, futureTimestamp, syncPeriodFrames);
-    if (nextSwitchTimestamp_ == 0 || rtpTsEarlier(futureTimestamp, nextSwitchTimestamp_))
+    if (!hasNextSwitchTimestamp_ || rtpTsSoonerFrom(currentTimestamp, futureTimestamp, nextSwitchTimestamp_))
     {
       nextSwitchTimestamp_ = futureTimestamp;
+      hasNextSwitchTimestamp_ = true;
     }
 
     Logger::getLogger()->printNormal(this, "Scheduling delayed switch to P2P connection",
@@ -1074,9 +1005,10 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
     uint32_t futureTimestamp = updateVideoRtpTimestamp(currentTimestamp, framerateNumerator_, framerateDenominator_, syncPeriodFrames);
     linkInfo->switchTargetP2P = false;
     markSwitchOngoing(linkInfo, futureTimestamp, syncPeriodFrames);
-    if (nextSwitchTimestamp_ == 0 || rtpTsEarlier(futureTimestamp, nextSwitchTimestamp_))
+    if (!hasNextSwitchTimestamp_ || rtpTsSoonerFrom(currentTimestamp, futureTimestamp, nextSwitchTimestamp_))
     {
       nextSwitchTimestamp_ = futureTimestamp;
+      hasNextSwitchTimestamp_ = true;
     }
 
     Logger::getLogger()->printNormal(this, "Scheduling delayed switch to SFU connection",
@@ -1107,6 +1039,12 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
 
 int HybridFilter::calculateSyncPeriodInFrames() const
 {
+  constexpr double kRtcpTotalBwFraction = 0.05; // RTCP is typically 5% of session bandwidth
+  constexpr double kRtcpSenderBwFraction = 0.25;
+  constexpr double kRtcpRcvrBwFraction = 0.75;
+  constexpr double kRtcpCompensation = 2.71828 - 1.5;
+  constexpr double kRtcpRandomMaxFactor = 1.5 / kRtcpCompensation;
+
   const int fpsNum = std::max(1, framerateNumerator_);
   const int fpsDen = std::max(1, framerateDenominator_);
   const double fps = static_cast<double>(fpsNum) / static_cast<double>(fpsDen);
@@ -1117,20 +1055,20 @@ int HybridFilter::calculateSyncPeriodInFrames() const
   const double sessionKbps = std::max(1.0, totalBandwidthBps / 1000.0);
 
   // RTCP bandwidth as kbps.
-  double rtcpBwKbps = std::max(0.1, sessionKbps * RTCP_TOTAL_BW_FRACTION);
+  double rtcpBwKbps = std::max(0.1, sessionKbps * kRtcpTotalBwFraction);
 
   // Model sender-side interval (we_sent = true).
   const int members = std::max(2, static_cast<int>(cnameToLinks_.size() + 1));
   const int senders = 1;
   int n = members;
-  if (senders <= static_cast<int>(std::floor(static_cast<double>(members) * RTCP_SENDER_BW_FRACTION)))
+  if (senders <= static_cast<int>(std::floor(static_cast<double>(members) * kRtcpSenderBwFraction)))
   {
-    rtcpBwKbps *= RTCP_SENDER_BW_FRACTION;
+    rtcpBwKbps *= kRtcpSenderBwFraction;
     n = std::max(1, senders);
   }
   else
   {
-    rtcpBwKbps *= RTCP_RCVR_BW_FRACTION;
+    rtcpBwKbps *= kRtcpRcvrBwFraction;
     n = std::max(1, members - senders);
   }
 
@@ -1142,7 +1080,7 @@ int HybridFilter::calculateSyncPeriodInFrames() const
 
   // Use worst-case randomization multiplier and budget for multiple RTCP
   // cycles (initial schedule + retries/queueing under load).
-  const double worstSenderIntervalSec = intervalSec * RTCP_RANDOM_MAX_FACTOR;
+  const double worstSenderIntervalSec = intervalSec * kRtcpRandomMaxFactor;
   double controlCycles = 2.0;
   if (cnameToLinks_.size() >= 10)
     controlCycles = 3.0;

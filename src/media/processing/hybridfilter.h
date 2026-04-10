@@ -48,11 +48,11 @@ struct LinkInfo
   // executing delayed switches.
   bool switchTargetP2P = false;
 
-  // RTP timestamp for delayed execution. 0 means there is no scheduled execute point.
-  uint32_t switchOngoingTimestamp = 0;
+  // RTP timestamp for delayed execution.
+  uint32_t switchTimestamp = 0;
 
   // Absolute time deadline that clears switchPhase as a fallback.
-  uint64_t switchOngoingUntilMs = 0;
+  uint64_t switchProhabitionMs = 0;
 };
 
 class HybridFilter : public Filter
@@ -80,12 +80,11 @@ protected:
   virtual void process() override;
 
 private:
+  std::unique_ptr<Data> recordEncodedFrameStatistics(std::unique_ptr<Data> input);
+
   bool hasAnyP2PLinks() const;
-
   void setLowRtcpMode(const std::shared_ptr<UvgRTPSender>& sender, bool enabled);
-
-  void maybeEnableSfuRtcpWarmup();
-  void maybeEnableP2pRtcpWarmup(const std::shared_ptr<LinkInfo>& link);
+  void enableRTCPWarmup(std::shared_ptr<UvgRTPSender> sender);
 
   void addP2PLink(std::shared_ptr<LinkInfo>& entry,
                   int outIdx,
@@ -118,11 +117,11 @@ private:
 
   int calculateSyncPeriodInFrames() const;
 
-  bool rtpTsEarlier(uint32_t a, uint32_t b) const;
+  bool rtpTsAtOrAfter(uint32_t t1, uint32_t t2) const;
+  bool rtpTsSoonerFrom(uint32_t now, uint32_t a, uint32_t b) const;
   void clearOngoingSwitchState(const std::shared_ptr<LinkInfo>& link);
   uint64_t calculateSwitchGuardWindowMs(const std::shared_ptr<LinkInfo>& link,
                                         int syncPeriodFrames) const;
-  uint64_t calculatePostSwitchGuardWindowMs(const std::shared_ptr<LinkInfo>& link) const;
 
   bool allowNewSwitchRequest(const std::shared_ptr<LinkInfo>& linkInfo, const QString& targetPath);
   void markSwitchOngoing(const std::shared_ptr<LinkInfo>& linkInfo, uint32_t scheduledTimestamp, int syncPeriodFrames);
@@ -155,6 +154,7 @@ private:
   uint64_t count_;
 
   uint32_t nextSwitchTimestamp_ = 0;
+  bool hasNextSwitchTimestamp_ = false;
   std::vector<std::shared_ptr<LinkInfo>> linksToSwitch_;
 
   // Framerate for calculating future RTP timestamps
@@ -163,8 +163,4 @@ private:
 
   // Cached setting value; refreshed in updateSettings() to avoid per-frame lookups.
   int32_t sipTimestampInterval_ = 0;
-
-  // Startup helper: temporarily increase SFU RTCP rate to obtain the first RTT
-  // sample sooner, then revert to the computed bandwidth.
-  bool sfuRtcpWarmupActive_ = false;
 };
