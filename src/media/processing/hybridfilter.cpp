@@ -26,7 +26,7 @@ const int RTCP_WARMUP_SESSION_BANDWIDTH_KBPS = 256; // temporary boost until fir
 const double RTCP_AVG_PACKET_SIZE_OCTETS = 150.0;
 const double SYNC_CUSHION_SECONDS = 0.25;
 const double DEFAULT_SYNC_SESSION_BANDWIDTH_BPS = 100000.0;
-const int MAX_SYNC_PERIOD_IN_FRAMES = 1200; // Cap to avoid excessive switch latency.
+const int MAX_SYNC_PERIOD_IN_FRAMES = 600; // Cap to avoid excessive switch latency.
 
 
 HybridFilter::HybridFilter(QString id, StatisticsInterface *stats,
@@ -149,8 +149,9 @@ void HybridFilter::addP2PLink(std::shared_ptr<LinkInfo>& entry,
                                      {"CNAME", "SSRC", "SenderPtr"},
                                      {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
 
-    // Enable P2P by default only if there is no SFU present.
-    entry->p2pActive = (sfuRTPSender_ == nullptr);
+    // If SFU is unavailable or currently disabled, activate the new P2P path immediately
+    // so the link does not stay without any active forwarding path.
+    entry->p2pActive = (sfuRTPSender_ == nullptr || !sfuActive_);
 
     setConnection(outIdx, entry->p2pActive, rtpSender);
   }
@@ -202,6 +203,17 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
   if (!entry->p2pRTPSender)
   {
     entry->p2pActive = false;
+  }
+
+  // A new participant can arrive while SFU is temporarily disabled from an earlier
+  // all-P2P decision. Ensure there is an active fallback path for this link immediately.
+  if (sfuRTPSender_ && !sfuActive_ && !entry->p2pActive)
+  {
+    Logger::getLogger()->printWarning(this, "Re-enabling SFU for newly added link",
+                                      {"CNAME", "SFU SSRC"},
+                                      {cname, QString::number(ssrc)});
+    pendingSfuActive_ = true;
+    applySfuState(true);
   }
 
   // Always ensure RTT signal is connected for the SFU sender instance.
@@ -314,7 +326,7 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
         }
         else
         {
-          Logger::getLogger()->printNormal(this, "No re-evluation after first P2P RTT sample received",
+          Logger::getLogger()->printNormal(this, "No re-evaluation after first P2P RTT sample received",
                           {"CNAME", "Type", "RTT"}, {pair.first, "P2P", QString::number(rtt)});
         }
       }
@@ -589,9 +601,6 @@ void HybridFilter::executeSwitches(uint32_t currentTimestamp)
 
   for (const auto& link : linksToSwitch_)
   {
-    if (!link)
-      continue;
-
     if (link->switchPhase == LinkInfo::SwitchPhase::Scheduled)
     {
       if (rtpTsAtOrAfter(currentTimestamp, link->switchTimestamp))
@@ -774,10 +783,40 @@ void HybridFilter::applySfuState(bool needSFU)
   if (!sfuRTPSender_)
     return;
 
-  sfuActive_ = needSFU;
+  const bool mustKeepSfu = hasAnyLinkNeedingSfu();
+  const bool effectiveNeedSfu = (needSFU || mustKeepSfu);
+
+  if (!needSFU && mustKeepSfu)
+  {
+    Logger::getLogger()->printWarning(this, "Keeping SFU enabled because at least one link still needs SFU",
+                                      {"Requested", "Effective"},
+                                      {"disabled", "enabled"});
+  }
+
+  sfuActive_ = effectiveNeedSfu;
   setConnection(sfuOutIndex_, sfuActive_, sfuRTPSender_);
   Logger::getLogger()->printNormal(this, "Applying SFU state",
                                   "SFU State", sfuActive_ ? "enabled" : "disabled");
+}
+
+
+bool HybridFilter::hasAnyLinkNeedingSfu() const
+{
+  for (const auto& kv : cnameToLinks_)
+  {
+    const std::shared_ptr<LinkInfo>& entry = kv.second;
+    if (!entry)
+      continue;
+
+    const bool hasSfu = (entry->sfuSSRC != 0);
+    const bool hasActiveP2P = (entry->p2pRTPSender && entry->p2pActive);
+
+    // If we have an SFU identity for the link but no active P2P path, SFU must stay on.
+    if (hasSfu && !hasActiveP2P)
+      return true;
+  }
+
+  return false;
 }
 
 

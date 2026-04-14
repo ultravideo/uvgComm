@@ -115,6 +115,8 @@ private:
 
   void rankedBandwidthEvaluation(const int maxP2PConnections, int connectionBandwidth, uint32_t currentTimestamp);
 
+  bool hasAnyLinkNeedingSfu() const;
+
   int calculateSyncPeriodInFrames() const;
 
   bool rtpTsAtOrAfter(uint32_t t1, uint32_t t2) const;
