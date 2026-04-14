@@ -4,6 +4,7 @@
 #include <cstring>
 
 constexpr uint32_t RTP_TIMESTAMP_WRAPAROUND = 0xFFFFFFFF; // 32-bit wraparound
+constexpr uint32_t RTP_TIMESTAMP_HALF_RANGE = 0x80000000; // half of 32-bit space
 constexpr uint32_t RTP_TIMESTAMP_RATE = 90000; // 1 second at 90kHz clock rate
 constexpr uint32_t RTP_FRAME_INTERVAL = RTP_TIMESTAMP_RATE/30; // 1/30th of a second, assuming 30 fps video
 constexpr uint32_t MAX_RTP_INTERVAL = RTP_FRAME_INTERVAL * 1.5;
@@ -30,6 +31,25 @@ bool isHybridDummyPacket(const Data* d)
 
   return std::memcmp(d->data.get(), kHybridDummyPacket, sizeof(kHybridDummyPacket)) == 0;
 }
+
+inline bool isRtpTimestampNewer(uint32_t current, uint32_t candidate)
+{
+  const uint32_t delta = candidate - current;
+
+  // RFC3550-style serial arithmetic: candidate is newer if it's ahead by
+  // less than half the sequence space (and not equal).
+  return delta != 0 && delta < RTP_TIMESTAMP_HALF_RANGE;
+}
+
+inline uint32_t rtpTimestampDiffForward(uint32_t from, uint32_t to)
+{
+  // to has not wrapped around
+  if (to >= from)
+    return to - from;
+
+  // to has wrapped around, use wrap around comparison
+  return (RTP_TIMESTAMP_WRAPAROUND - from) + to + 1;
+}
 }
 
 
@@ -55,19 +75,27 @@ void RTPBuffer::process()
       continue;
     }
 
-    if (input->ssrc != currentSSRC_)
-    {
+    if (input->ssrc != currentSSRC_) // buffer new link packets during switch
+    { 
+      if (buffer_.empty())
+      {
+        Logger::getLogger()->printNormal(this, "Detected new SSRC, starting synchronization", 
+          "Change", QString::number(currentSSRC_) + " -> " + QString::number(input->ssrc));
+      }
+
       buffer_.push_back(std::move(input));
 
-      if (buffer_.back()->rtpTimestamp <= currentRTPTimestamp_)
+      if (currentRTPTimestamp_ != 0 && !isRtpTimestampNewer(currentRTPTimestamp_, buffer_.back()->rtpTimestamp))
       {
-        Logger::getLogger()->printWarning(this, "Detected an invalid packet from another SSRC, discarding");
+        Logger::getLogger()->printWarning(this, "Discarding stale buffered packet during SSRC transition",
+                                          {"CurrentTS", "IncomingTS"},
+                                          {QString::number(currentRTPTimestamp_), QString::number(buffer_.front()->rtpTimestamp)});
         buffer_.pop_back();
       }
-      else if (currentRTPTimestamp_ != 0 && currentRTPTimestamp_ + MAX_RTP_INTERVAL < buffer_.front()->rtpTimestamp)
+      else if (currentRTPTimestamp_ != 0 && rtpTimestampDiffForward(currentRTPTimestamp_, buffer_.front()->rtpTimestamp) > MAX_RTP_INTERVAL)
       {
         Logger::getLogger()->printNormal(this, "Buffering RTP packets due to SSRC change",
-                                         "RTP Diff", QString::number(buffer_.front()->rtpTimestamp - currentRTPTimestamp_));
+                                         "RTP Diff", QString::number(rtpTimestampDiffForward(currentRTPTimestamp_, buffer_.front()->rtpTimestamp)));
       }
       else
       {
@@ -77,7 +105,7 @@ void RTPBuffer::process()
         emptyBuffer();
       }
     }
-    else
+    else // normal operation
     {
       currentRTPTimestamp_ = input->rtpTimestamp;
       sendOutput(std::move(input));
