@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QTimer>
 
 #include <map>
 
@@ -101,6 +102,9 @@ private:
   void renegotiateCall(uint32_t sessionID);
   void renegotiateAllCalls();
 
+  void scheduleNegotiationPump();
+  void pumpNegotiations();
+
   void createSIPDialog(QString name, QString username, QString ip, uint32_t sessionID);
 
   void groupSSRCsByCNAME(const QList<MediaInfo>& remoteMedia, std::map<QString, MediaSource> &cnameToSource);
@@ -156,8 +160,7 @@ private:
   uint32_t delayedAutoAccept_;
 
   int ongoingNegotiations_;
-
-  QTimer delayedNegotiation_;
+  bool negotiationPumpScheduled_;
 
   // sessionID to remote SSRCs
   std::map<uint32_t, std::shared_ptr<std::vector<uint32_t>>> sessionMedias_;

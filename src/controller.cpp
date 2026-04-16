@@ -16,9 +16,6 @@
 #include <thread>
 #include <chrono>
 
-// TODO: Eliminating this would speed up the start of conference, but does require making the media more
-// resilient to repeated re-negotiations
-const int DELAYED_NEGOTIATION_TIMEOUT_MS = 500;
 
 
 uvgCommController::uvgCommController():
@@ -31,7 +28,7 @@ uvgCommController::uvgCommController():
   delayedAutoAccept_(0),
   viewFactory_(std::shared_ptr<VideoviewFactory>(new VideoviewFactory())),
   ongoingNegotiations_(0),
-  delayedNegotiation_()
+  negotiationPumpScheduled_(false)
 {}
 
 
@@ -532,8 +529,7 @@ void uvgCommController::INVITETransactionConcluded(uint32_t sessionID)
 
       if (!pendingRenegotiations_.empty())
       {
-        delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
-                                       this, &uvgCommController::negotiateNextCall);
+        scheduleNegotiationPump();
       }
     }
     else
@@ -746,6 +742,10 @@ void uvgCommController::userRejectsCall(uint32_t sessionID)
   removeSession(sessionID, "Rejected", true);
 
   --ongoingNegotiations_;
+  if (!pendingRenegotiations_.empty())
+  {
+    scheduleNegotiationPump();
+  }
 }
 
 
@@ -758,6 +758,10 @@ void uvgCommController::userCancelsCall(uint32_t sessionID)
   }
 
   --ongoingNegotiations_;
+  if (!pendingRenegotiations_.empty())
+  {
+    scheduleNegotiationPump();
+  }
 }
 
 
@@ -861,8 +865,7 @@ void uvgCommController::SIPRequestCallback(uint32_t sessionID,
 
       if (!pendingRenegotiations_.empty())
       {
-        delayedNegotiation_.singleShot(DELAYED_NEGOTIATION_TIMEOUT_MS,
-                                       this, &uvgCommController::negotiateNextCall);
+        scheduleNegotiationPump();
       }
 
       break;
@@ -931,6 +934,10 @@ void uvgCommController::SIPResponseCallback(uint32_t sessionID,
         response.type != SIP_PROXY_AUTHENTICATION_REQUIRED)
     {
       --ongoingNegotiations_;
+      if (!pendingRenegotiations_.empty())
+      {
+        scheduleNegotiationPump();
+      }
     }
 
     // TODO: Put rest of the error return values
@@ -947,6 +954,10 @@ void uvgCommController::SIPResponseCallback(uint32_t sessionID,
       {
         sessionTerminated(sessionID);
         --ongoingNegotiations_;
+        if (!pendingRenegotiations_.empty())
+        {
+          scheduleNegotiationPump();
+        }
       }
     }
   }
@@ -1046,9 +1057,33 @@ void uvgCommController::renegotiateAllCalls()
 }
 
 
+void uvgCommController::scheduleNegotiationPump()
+{
+  if (negotiationPumpScheduled_)
+  {
+    return;
+  }
+
+  negotiationPumpScheduled_ = true;
+  QTimer::singleShot(0, this, &uvgCommController::pumpNegotiations);
+}
+
+
+void uvgCommController::pumpNegotiations()
+{
+  negotiationPumpScheduled_ = false;
+  negotiateNextCall();
+}
+
+
 void uvgCommController::negotiateNextCall()
 {
-  if (!pendingRenegotiations_.empty() && ongoingNegotiations_ == 0)
+  if (ongoingNegotiations_ != 0)
+  {
+    return;
+  }
+
+  while (!pendingRenegotiations_.empty())
   {
     uint32_t sessionID = pendingRenegotiations_.front();
     pendingRenegotiations_.pop_front();
@@ -1056,8 +1091,9 @@ void uvgCommController::negotiateNextCall()
     if (states_.find(sessionID) == states_.end())
     {
       Logger::getLogger()->printProgramWarning(this, "Negotiating a call which does not exist");
-      return;
+      continue;
     }
+
     ++ongoingNegotiations_;
 
     states_[sessionID].localSDP = nullptr;
@@ -1065,6 +1101,7 @@ void uvgCommController::negotiateNextCall()
 
     states_[sessionID].state = CALL_INVITE_SENT;
     sip_.sendINVITE(sessionID);
+    break;
   }
 }
 
