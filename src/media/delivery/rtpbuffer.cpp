@@ -57,8 +57,9 @@ RTPBuffer::RTPBuffer(QString id, StatisticsInterface* stats,
                      std::shared_ptr<ResourceAllocator> hwResources,
                      DataType type)
   : Filter(id, "RTPBuffer", stats, hwResources, type, type),
-    currentSSRC_(0),
-    currentRTPTimestamp_(0)
+  currentSSRC_(0),
+  currentRTPTimestamp_(0),
+  timestampInitialized_(false)
 {}
 
 
@@ -85,14 +86,14 @@ void RTPBuffer::process()
 
       buffer_.push_back(std::move(input));
 
-      if (currentRTPTimestamp_ != 0 && !isRtpTimestampNewer(currentRTPTimestamp_, buffer_.back()->rtpTimestamp))
+      if (timestampInitialized_ && !isRtpTimestampNewer(currentRTPTimestamp_, buffer_.back()->rtpTimestamp))
       {
         Logger::getLogger()->printWarning(this, "Discarding stale buffered packet during SSRC transition",
                                           {"CurrentTS", "IncomingTS"},
                                           {QString::number(currentRTPTimestamp_), QString::number(buffer_.front()->rtpTimestamp)});
         buffer_.pop_back();
       }
-      else if (currentRTPTimestamp_ != 0 && rtpTimestampDiffForward(currentRTPTimestamp_, buffer_.front()->rtpTimestamp) > MAX_RTP_INTERVAL)
+      else if (timestampInitialized_ && rtpTimestampDiffForward(currentRTPTimestamp_, buffer_.front()->rtpTimestamp) > MAX_RTP_INTERVAL)
       {
         Logger::getLogger()->printNormal(this, "Buffering RTP packets due to SSRC change",
                                          "RTP Diff", QString::number(rtpTimestampDiffForward(currentRTPTimestamp_, buffer_.front()->rtpTimestamp)));
@@ -108,6 +109,7 @@ void RTPBuffer::process()
     else // normal operation
     {
       currentRTPTimestamp_ = input->rtpTimestamp;
+      timestampInitialized_ = true;
       sendOutput(std::move(input));
     }
 
@@ -124,6 +126,7 @@ void RTPBuffer::emptyBuffer()
   for (auto& nalUnit : buffer_)
   {
     currentRTPTimestamp_ = nalUnit->rtpTimestamp;
+    timestampInitialized_ = true;
     sendOutput(std::move(nalUnit));
   }
 

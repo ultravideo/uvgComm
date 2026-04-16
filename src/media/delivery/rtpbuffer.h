@@ -27,6 +27,7 @@ private:
 
   uint32_t currentSSRC_ = 0;
   uint32_t currentRTPTimestamp_ = 0;
+  bool timestampInitialized_ = false;
 
   std::vector<std::unique_ptr<Data>> buffer_;
 };
