@@ -8,6 +8,8 @@ constexpr uint32_t RTP_TIMESTAMP_HALF_RANGE = 0x80000000; // half of 32-bit spac
 constexpr uint32_t RTP_TIMESTAMP_RATE = 90000; // 1 second at 90kHz clock rate
 constexpr uint32_t RTP_FRAME_INTERVAL = RTP_TIMESTAMP_RATE/30; // 1/30th of a second, assuming 30 fps video
 constexpr uint32_t MAX_RTP_INTERVAL = RTP_FRAME_INTERVAL * 1.5;
+constexpr size_t MAX_BUFFER_SIZE = 64;
+constexpr size_t HEVC_NAL_MIN_HEADER_SIZE = 5;
 
 namespace
 {
@@ -86,22 +88,48 @@ void RTPBuffer::process()
 
       buffer_.push_back(std::move(input));
 
-      if (timestampInitialized_ && !isRtpTimestampNewer(currentRTPTimestamp_, buffer_.back()->rtpTimestamp))
+      bool bufferFull = buffer_.size() >= MAX_BUFFER_SIZE;
+      bool isIntra = buffer_.back()->data_size > HEVC_NAL_MIN_HEADER_SIZE && isHEVCIntra(buffer_.back()->data.get());
+      bool caughtUp = rtpTimestampDiffForward(currentRTPTimestamp_, buffer_.front()->rtpTimestamp) <= MAX_RTP_INTERVAL;
+      bool oldPacket = !isRtpTimestampNewer(currentRTPTimestamp_, buffer_.back()->rtpTimestamp);
+
+      if (timestampInitialized_ && oldPacket)
       {
         Logger::getLogger()->printWarning(this, "Discarding stale buffered packet during SSRC transition",
                                           {"CurrentTS", "IncomingTS"},
-                                          {QString::number(currentRTPTimestamp_), QString::number(buffer_.front()->rtpTimestamp)});
+                                          {QString::number(currentRTPTimestamp_), QString::number(buffer_.back()->rtpTimestamp)});
         buffer_.pop_back();
       }
-      else if (timestampInitialized_ && rtpTimestampDiffForward(currentRTPTimestamp_, buffer_.front()->rtpTimestamp) > MAX_RTP_INTERVAL)
+      else if (timestampInitialized_ && !caughtUp && !bufferFull)
       {
         Logger::getLogger()->printNormal(this, "Buffering RTP packets due to SSRC change",
                                          "RTP Diff", QString::number(rtpTimestampDiffForward(currentRTPTimestamp_, buffer_.front()->rtpTimestamp)));
       }
-      else
+      else if (timestampInitialized_ && !caughtUp && bufferFull && !isIntra && buffer_.size() < MAX_BUFFER_SIZE*2)
+      {
+        Logger::getLogger()->printWarning(this, "Waiting for intra NAL unit to release buffer",
+                                          {"BufferedPackets", "TargetSSRC"},
+                                          {QString::number(buffer_.size()), QString::number(buffer_.front()->ssrc)});
+      }
+      else if (timestampInitialized_ && !caughtUp && bufferFull && (isIntra || buffer_.size() >= MAX_BUFFER_SIZE*2))
+      {
+        Logger::getLogger()->printWarning(this, "Forcing buffer resolution, discarding frames in buffer",
+                                          {"BufferedPackets", "TargetSSRC"},
+                                          {QString::number(buffer_.size()) + "/" + QString::number(MAX_BUFFER_SIZE), QString::number(buffer_.front()->ssrc)});
+
+        auto nalUnit = std::move(buffer_.back());
+        currentSSRC_ = nalUnit->ssrc;
+        currentRTPTimestamp_ = nalUnit->rtpTimestamp;
+        timestampInitialized_ = true;
+        sendOutput(std::move(nalUnit));
+        buffer_.clear(); // discard packets in buffer
+      }
+      else // caughtUp
       {
         Logger::getLogger()->printNormal(this, "Change in SSRC resolved", 
-          "Change", QString::number(currentSSRC_) + " -> " + QString::number(buffer_.front()->ssrc));
+          {"Change", "Buffer status"}, {QString::number(currentSSRC_) + " -> " + QString::number(buffer_.front()->ssrc), 
+            QString::number(buffer_.size()) + "/" + QString::number(MAX_BUFFER_SIZE)});
+
         currentSSRC_ = buffer_.front()->ssrc;
         emptyBuffer();
       }
