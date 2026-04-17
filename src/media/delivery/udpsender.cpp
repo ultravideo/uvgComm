@@ -78,6 +78,8 @@ void UDPSender::process()
 
   while (input)
   { 
+    /*
+    TODO: uvgRTP does not always set marker bit correctly
     if (fragments_.empty() && lastFragment(input->data))
     {
       // no need to fragment
@@ -104,6 +106,10 @@ void UDPSender::process()
     {
       fragments_.push_back(std::move(input));
     }
+    */
+
+    // remove if above optimization is enabled
+    relay_->sendUDPData(dest_addr_, dest_addr6_, std::move(input->data), input->data_size);
 
     input = getInput();
   }
