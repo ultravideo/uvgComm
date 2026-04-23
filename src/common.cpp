@@ -18,6 +18,7 @@
 
 #include <cstdlib>
 #include <cmath>
+#include <algorithm>
 
 
 const QString alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -555,4 +556,75 @@ QString findMID(const MediaInfo &media)
   }
 
   return "";
+}
+
+
+double calculateVideoOverheadPercentage(uint32_t streamBitrateBps,
+                                        uint32_t framerate_num,
+                                        uint32_t framerate_den,
+                                        bool ipv6,
+                                        uint16_t mtu_bytes)
+{
+  constexpr double DEFAULT_RTP_OVERHEAD = 0.05; // 5%
+  constexpr uint16_t IPV4_HEADER_SIZE = 20;
+  constexpr uint16_t IPV6_HEADER_SIZE = 40;
+  constexpr uint16_t UDP_HEADER_SIZE = 8;
+  constexpr uint16_t RTP_HEADER_SIZE = 12;
+  constexpr double RTCP_OVERHEAD = 0.05; // 5%
+  
+  // Validate inputs (error returns allowed)
+  if (streamBitrateBps == 0 || framerate_num == 0 || framerate_den == 0)
+  {
+    Logger::getLogger()->printProgramError("Common", "Invalid parameters for overhead calc");
+    return DEFAULT_RTP_OVERHEAD + RTCP_OVERHEAD;
+  }
+
+  // Compute frame rate as numerator/denominator
+  double frameRate = static_cast<double>(framerate_num) / static_cast<double>(framerate_den);
+  if (frameRate <= 0.0)
+  {
+    return DEFAULT_RTP_OVERHEAD + RTCP_OVERHEAD;
+  }
+
+  // Convert kbps to bps and compute average frame size in bits/bytes
+  const double AVG_FRAME_BITS = streamBitrateBps / frameRate;
+  const double AVG_FRAME_BYTES = AVG_FRAME_BITS / 8.0;
+
+  // Select IP header size
+  double ipHeader = static_cast<double>(IPV4_HEADER_SIZE);
+  if (ipv6)
+  {
+    ipHeader = static_cast<double>(IPV6_HEADER_SIZE);
+  }
+
+  const double HEADER_BYTES = ipHeader + static_cast<double>(UDP_HEADER_SIZE) + static_cast<double>(RTP_HEADER_SIZE);
+  const double PAYLOAD_PER_PACKET = static_cast<double>(mtu_bytes) - HEADER_BYTES;
+
+  double overhead = 0.0;
+
+  // If the average frame fits in a single packet, compute header fraction per frame
+  if (AVG_FRAME_BYTES < PAYLOAD_PER_PACKET)
+  {
+    overhead = HEADER_BYTES / (AVG_FRAME_BYTES + HEADER_BYTES);
+  }
+  else // full rtp frames
+  {
+    double packetsPerFrame = std::ceil(AVG_FRAME_BYTES / PAYLOAD_PER_PACKET);
+    double totalHeaderBytes = packetsPerFrame * HEADER_BYTES;
+    overhead = totalHeaderBytes / (AVG_FRAME_BYTES + totalHeaderBytes);
+  }
+
+  overhead += RTCP_OVERHEAD;
+
+  if (overhead < 0.06)
+  {
+    overhead = 0.06;
+  }
+  else if (overhead > 0.5)
+  {
+    Logger::getLogger()->printWarning("Common", "Very high transmission overhead detected, consider optimizing. Forcing 50%");
+    overhead = 0.5;
+  }
+
+  return overhead;
 }

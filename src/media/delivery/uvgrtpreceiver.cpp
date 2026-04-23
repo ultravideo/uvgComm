@@ -95,8 +95,16 @@ void UvgRTPReceiver::updateSessionBandwidth()
     payloadBitrateBps = getHWManager()->getEncoderBitrate(outputType());
 
   // Convert to total session bandwidth (kbps) and leave room for overhead.
-  const int totalSessionBitrateKbps =
-      std::max(10, static_cast<int>((payloadBitrateBps / (1.0 - TRANSMISSION_OVERHEAD)) / 1000));
+  int totalSessionBitrateKbps = 0;
+  if (getHWManager())
+  {
+    int totalBps = getHWManager()->getStreamBandwidthUsage(outputType());
+    totalSessionBitrateKbps = std::max(10, totalBps / 1000);
+  }
+  else
+  {
+    totalSessionBitrateKbps = std::max(10, static_cast<int>((payloadBitrateBps / (1.0 - 0.10)) / 1000));
+  }
 
   if (totalSessionBitrateKbps == lastSessionBandwidthKbps_)
     return;

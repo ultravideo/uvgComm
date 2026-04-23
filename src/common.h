@@ -87,3 +87,15 @@ bool findSSRCs(const MediaInfo& media, std::vector<uint32_t>& ssrc);
 bool findCNAMEs(const MediaInfo &media, std::vector<QString> &cnames);
 
 QString findMID(const MediaInfo &media);
+
+// Calculate estimated transmission overhead (fraction of total bandwidth) for video.
+// - totalBandwidthKbps: total available bandwidth in kilobits per second (kbps)
+// - framerate_num / framerate_den: frame rate as a rational number
+// - ipv6: if true, use IPv6 header sizes when estimating per-packet overhead
+// Returns a fractional overhead (e.g. 0.10 for 10%).
+double calculateVideoOverheadPercentage(uint32_t streamBitrateKbps,
+                                        uint32_t framerate_num,
+                                        uint32_t framerate_den,
+                                        bool ipv6 = false,
+                                        uint16_t mtu_bytes = 1500);
+

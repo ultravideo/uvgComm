@@ -479,7 +479,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
     {
       if (localMedia.bandwidth.size() > 0)
       {
-        hwResources_->setConferenceBandwidth(DT_OPUSAUDIO, localMedia.bandwidth.at(0).value*1000);
+        hwResources_->setConferenceBandwidth(DT_OPUSAUDIO, localMedia.bandwidth.at(0).value);
       }
       clientFg_->sendAudioTo(sessionID, senderFilter, localSSRC);
     }
@@ -487,7 +487,7 @@ void MediaManager::clientSendMedia(uint32_t sessionID,
     {
       if (localMedia.bandwidth.size() > 0)
       {
-        hwResources_->setConferenceBandwidth(DT_HEVCVIDEO, localMedia.bandwidth.at(0).value*1000);
+        hwResources_->setConferenceBandwidth(DT_HEVCVIDEO, localMedia.bandwidth.at(0).value);
       }
 
       clientFg_->sendVideoto(sessionID, senderFilter, localSSRC, filteredSSRCs, filteredCnames,

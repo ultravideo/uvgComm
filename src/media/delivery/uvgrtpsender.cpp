@@ -105,7 +105,17 @@ void UvgRTPSender::updateSessionBandwidth()
     if (getHWManager())
       payloadBitrateBps = getHWManager()->getEncoderBitrate(inputType());
 
-    totalSessionBitrateKbps = std::max(10, (int)(payloadBitrateBps / (1.0 - TRANSMISSION_OVERHEAD))/1000);
+    if (getHWManager())
+    {
+      // Use ResourceAllocator helper to compute total session bandwidth (bps)
+      int totalBps = getHWManager()->getStreamBandwidthUsage(inputType());
+      totalSessionBitrateKbps = std::max(10, totalBps / 1000);
+    }
+    else
+    {
+      // fallback: assume fixed overhead
+      totalSessionBitrateKbps = std::max(10, (int)(payloadBitrateBps / (1.0 - 0.10))/1000);
+    }
   }
 
   if (totalSessionBitrateKbps == lastSessionBandwidthKbps_)

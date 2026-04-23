@@ -41,9 +41,15 @@ int CallSettings::getAudioBitrate(int totalBitrate) const
 
 int CallSettings::getVideoBitrate(int totalBitrate) const
 {
-  // Calculate video bitrate based on total bitrate and overhead
-  int usableBitrate = static_cast<int>(totalBitrate * (1.0f - TRANSMISSION_OVERHEAD));
+  // Calculate video bitrate based on total bitrate and estimated overhead
+  uint32_t frNum = static_cast<uint32_t>(settingValue(SettingsKey::videoFramerateNumerator));
+  uint32_t frDen = static_cast<uint32_t>(settingValue(SettingsKey::videoFramerateDenominator));
+  uint32_t totalKbps = static_cast<uint32_t>(totalBitrate / 1000);
+  if (totalKbps < 1)
+    totalKbps = 1;
+  double overhead = calculateVideoOverheadPercentage(totalKbps, frNum, frDen, false, DEFAULT_MTU_BYTES);
 
+  int usableBitrate = static_cast<int>(totalBitrate * (1.0 - overhead));
   int videoBitrate = static_cast<int>(usableBitrate - getAudioBitrate(totalBitrate));
   return videoBitrate;
 }
@@ -51,8 +57,15 @@ int CallSettings::getVideoBitrate(int totalBitrate) const
 
 int CallSettings::getTotalBitrate(int audioBitrate, int videoBitrate) const
 {
-  // Calculate total bitrate by summing audio and video bitrates
-  return static_cast<int>((audioBitrate + videoBitrate) /(1.0f - TRANSMISSION_OVERHEAD));
+  // Calculate total bitrate by summing audio and video bitrates and accounting for overhead
+  int payload = audioBitrate + videoBitrate;
+  uint32_t frNum = static_cast<uint32_t>(settingValue(SettingsKey::videoFramerateNumerator));
+  uint32_t frDen = static_cast<uint32_t>(settingValue(SettingsKey::videoFramerateDenominator));
+  uint32_t payloadKbps = static_cast<uint32_t>(payload / 1000);
+  if (payloadKbps < 1)
+    payloadKbps = 1;
+  double overhead = calculateVideoOverheadPercentage(payloadKbps, frNum, frDen, false, DEFAULT_MTU_BYTES);
+  return static_cast<int>(static_cast<double>(payload) / (1.0 - overhead));
 }
 
 

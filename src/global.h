@@ -66,10 +66,6 @@ struct MediaSource {
   std::set<uint32_t> videoSSRCs;
 };
 
-// this is a guess, we could measure this my analyzing each frame size to get accurate value
-constexpr float RTP_OVERHEAD = 0.05f;
-
-// RFC 3550 recommeds RTCP take max 5% of bandwidth
-constexpr float RTCP_OVERHEAD = 0.05f;
-
-constexpr float TRANSMISSION_OVERHEAD = RTP_OVERHEAD + RTCP_OVERHEAD;
+// TODO: Use non-hardcoded values (look at address, use 1200 for ipv6, 1400 for ipv4, set it in uvgRTP)
+constexpr uint16_t DEFAULT_MTU_BYTES = 1500;
+constexpr bool IPV6_OVERHEAD = false;

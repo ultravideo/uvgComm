@@ -263,7 +263,17 @@ void HybridFilter::setLowRtcpMode(const std::shared_ptr<UvgRTPSender>& sender, b
 
 void HybridFilter::enableRTCPWarmup(std::shared_ptr<UvgRTPSender> sender)
 {
-  const int computedSessionKbps = static_cast<int>((getHWManager()->getEncoderBitrate(sender->inputType()) / (1.0 - TRANSMISSION_OVERHEAD)) / 1000);
+  int computedSessionKbps = 0;
+  if (getHWManager())
+  {
+    computedSessionKbps = getHWManager()->getStreamBandwidthUsage(sender->inputType()) / 1000;
+  }
+  else
+  {
+    // fallback: estimate using fixed 10% overhead
+    int payloadBps = getHWManager() ? getHWManager()->getEncoderBitrate(sender->inputType()) : 0;
+    computedSessionKbps = static_cast<int>((payloadBps / (1.0 - 0.10)) / 1000);
+  }
 
   if (computedSessionKbps < RTCP_WARMUP_SESSION_BANDWIDTH_KBPS)
   {
@@ -837,25 +847,35 @@ double HybridFilter::averageRTT(const std::deque<double>& samples) const
 
 double HybridFilter::calculateTotalSessionBandwidthBps(double fallbackBps) const
 {
-  int64_t payloadBandwidth = static_cast<int64_t>(getHWManager()->getEncoderBitrate(output_));
+  if (!getHWManager())
+  {
+    Logger::getLogger()->printWarning(this, "Using fallback session bandwidth",
+                                     {"Reason", "FallbackBps"},
+                                     {"No HW manager", QString::number(fallbackBps)});
+    return fallbackBps;
+  }
+
+  const int64_t baseBandwidthBps = static_cast<int64_t>(getHWManager()->getStreamBandwidthUsage(output_));
+  int64_t totalBandwidthBps = baseBandwidthBps;
   for (const auto& slave : slaves_)
   {
     if (slave)
-      payloadBandwidth += static_cast<int64_t>(slave->getBitrate());
+      totalBandwidthBps += static_cast<int64_t>(slave->getBitrate());
   }
 
-  const double denom = (1.0 - static_cast<double>(TRANSMISSION_OVERHEAD));
-  if (payloadBandwidth > 0 && denom > 0.0)
+  if (totalBandwidthBps <= 0)
   {
-    return static_cast<double>(payloadBandwidth) / denom;
+    Logger::getLogger()->printWarning(this, "Using fallback session bandwidth",
+                                     {"TotalBps", "FallbackBps"},
+                                     {QString::number(totalBandwidthBps), QString::number(fallbackBps)});
+    return fallbackBps;
   }
 
-  Logger::getLogger()->printWarning(this, "Using fallback session bandwidth",
-                                   {"PayloadBps", "Overhead", "FallbackBps"},
-                                   {QString::number(payloadBandwidth),
-                                    QString::number(TRANSMISSION_OVERHEAD),
-                                    QString::number(fallbackBps)});
-  return fallbackBps;
+  Logger::getLogger()->printNormal(this, "Calculated session bandwidth",
+                                   {"BaseBps", "TotalBps"},
+                                   {QString::number(baseBandwidthBps), QString::number(totalBandwidthBps)});
+
+  return static_cast<double>(totalBandwidthBps);
 }
 
 
