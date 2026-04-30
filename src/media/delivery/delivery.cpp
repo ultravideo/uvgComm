@@ -209,27 +209,41 @@ std::shared_ptr<Filter> Delivery::addRTPSendStream(uint32_t sessionID,
 
 
 std::shared_ptr<Filter> Delivery::addUDPSendStream(uint32_t sessionID,
-                                         QString localAddress, QString remoteAddress,
-                                         uint16_t localPort, uint16_t peerPort, uint32_t remoteSSRC)
+                                                  QString localAddress,
+                                                  QString remoteAddress,
+                                                  uint16_t localPort,
+                                                  uint16_t peerPort,
+                                                  uint32_t publisherSSRC,
+                                                  uint32_t targetSSRC)
 {
-  if (udpSenders_.find(remoteSSRC) == udpSenders_.end())
+  auto &pubs = udpSendersByTarget_[targetSSRC];
+  auto it = pubs.find(publisherSSRC);
+  if (it != pubs.end() && it->second)
   {
-    Logger::getLogger()->printNormal(this, "Creating a new UDP sender",
-                                     "Remote SSRC", QString::number(remoteSSRC));
-    std::shared_ptr<RelayInterface> relay = getUDPRelay(localAddress, localPort);
-
-    QString id = remoteAddress + ":" + QString::number(peerPort);
-
-    udpSenders_[remoteSSRC] = std::shared_ptr<UDPSender>(new UDPSender(id, stats_,  hwResources_,
-                                                                       remoteAddress.toStdString(),
-                                                                       peerPort, relay));
-  }
-  else
-  {
-    Logger::getLogger()->printNormal(this, "Using existing UDP sender");
+    Logger::getLogger()->printNormal(this, "Using existing UDP sender",
+                                     "PublisherSSRC", QString::number(publisherSSRC));
+    return it->second;
   }
 
-  return udpSenders_[remoteSSRC];
+  Logger::getLogger()->printNormal(this, "Creating a new UDP sender",
+                                   "PublisherSSRC", QString::number(publisherSSRC));
+  std::shared_ptr<RelayInterface> relay = getUDPRelay(localAddress, localPort);
+  QString id = remoteAddress + ":" + QString::number(peerPort);
+
+  // initialize with last known sender address if available, otherwise use SDP
+  std::string initDest = remoteAddress.toStdString();
+  int initPort = (int)peerPort;
+  auto lastIt = lastKnownSenders_.find(targetSSRC);
+  if (lastIt != lastKnownSenders_.end())
+  { 
+    initDest = lastIt->second.ip.toStdString(); 
+    initPort = (int)lastIt->second.port; 
+  }
+
+  std::shared_ptr<UDPSender> sender = std::make_shared<UDPSender>(id, stats_, hwResources_, initDest, initPort, relay);
+  pubs[publisherSSRC] = std::static_pointer_cast<Filter>(sender);
+
+  return pubs[publisherSSRC];
 }
 
 
@@ -364,6 +378,9 @@ std::shared_ptr<RelayInterface> Delivery::getUDPRelay(QString localAddress, uint
     std::shared_ptr<UVGRelay> tmp = std::make_shared<UVGRelay>(localAddress.toStdString(), localPort);
     connect(tmp.get(), &UVGRelay::rtcpAppPacketReceived,
             this, &Delivery::rtcpAppPacketReceived);
+    // Listen for observed sender address changes and update UDPSenders
+    connect(tmp.get(), &UVGRelay::senderAddressChanged,
+      this, &Delivery::onSenderAddressChanged);
     relays_[relayKey] = std::static_pointer_cast<RelayInterface>(tmp);
     Logger::getLogger()->printNormal(this, "Connected UVGRelay RTCP APP signal to Delivery",
                                     {"LocalSocket"}, {relayKey});
@@ -376,6 +393,35 @@ std::shared_ptr<RelayInterface> Delivery::getUDPRelay(QString localAddress, uint
   }
 
   return relays_[relayKey];
+}
+
+
+void Delivery::onSenderAddressChanged(uint32_t ssrc, QString ip, uint16_t port, bool ipv6)
+{
+  // Update all UDPSenders that are forwarding to the target identified by `ssrc`.
+  // Log a single summary line (reduce spam) and verify destinations after update.
+  // Remember latest observed sender address for future UDPSender creations
+  lastKnownSenders_[ssrc] = { ip, port, ipv6 };
+
+  size_t updatedCount = 0;
+  auto tgtIt = udpSendersByTarget_.find(ssrc);
+  if (tgtIt != udpSendersByTarget_.end())
+  {
+    for (auto &kv : tgtIt->second)
+    {
+      std::shared_ptr<Filter> &fptr = kv.second;
+      UDPSender* sender = dynamic_cast<UDPSender*>(fptr.get());
+      if (sender)
+      {
+        sender->updateDestination(ip.toStdString(), (int)port, ipv6);
+        ++updatedCount;
+      }
+    }
+  }
+
+  Logger::getLogger()->printNormal(this, "Updated UDPSender destinations for a publisher",
+                                    {"PublisherSSRC", "Updated Sender Count", "New address", "New Port", "IPv6"},
+                                    {QString::number(ssrc), QString::number((int)updatedCount),  ip, QString::number(port), ipv6 ? "Yes" : "No"});
 }
 
 
@@ -628,6 +674,17 @@ void Delivery::removeSendStream(uint32_t sessionID, DeliverySession& session,
     delete session.outgoingStreams[localSSRC];
     session.outgoingStreams[localSSRC] = nullptr;
     session.outgoingStreams.erase(localSSRC);
+  }
+
+  // Cleanup any UDPSender entries associated with this publisher SSRC
+  for (auto it = udpSendersByTarget_.begin(); it != udpSendersByTarget_.end(); )
+  {
+    auto &inner = it->second;
+    inner.erase(localSSRC);
+    if (inner.empty())
+      it = udpSendersByTarget_.erase(it);
+    else
+      ++it;
   }
 }
 

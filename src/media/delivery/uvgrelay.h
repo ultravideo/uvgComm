@@ -68,16 +68,28 @@ signals:
                              QString appName,
                              uint8_t subtype);
 
+  // Emitted when we observe the sender address for an SSRC for the first
+  // time or when the observed send address changes. Provides the SSRC,
+  // stringified IP, port and a flag whether it's IPv6.
+  void senderAddressChanged(uint32_t ssrc, QString ip, uint16_t port, bool ipv6);
+
 private:
 
   struct ReceivedPacket {
     uint8_t buffer[1500];
     int size;
+    bool ipv6 = false;
+    sockaddr_in sender4 = {};
+    sockaddr_in6 sender6 = {};
   };
 
   void handleRTCPCompound(const uint8_t* buffer, int length);
   void processPackets(); // Worker thread function
-  void processReceivedPacket(const uint8_t* buffer, int size);
+  void processReceivedPacket(const ReceivedPacket& packet);
+
+  // Check whether the observed sender address for `ssrc` is new/changed.
+  // If changed, update internal maps and emit `senderAddressChanged`.
+  void checkAndUpdateSender(uint32_t ssrc, const ReceivedPacket& packet);
 
   std::unordered_map<uint32_t, std::shared_ptr<Filter>> rtpReceivers_;
   std::unordered_map<uint32_t, std::shared_ptr<Filter>> rtcpReceivers_;
@@ -94,4 +106,10 @@ private:
   std::condition_variable queueCV_;
   std::thread processingThread_;
   std::atomic<bool> processingRunning_;
+
+  // Track last observed sender addresses per SSRC so we can detect changes
+  std::unordered_map<uint32_t, sockaddr_in> lastSender4_;
+  std::unordered_map<uint32_t, sockaddr_in6> lastSender6_;
+  std::unordered_map<uint32_t, bool> lastSenderIsIpv6_;
+  std::mutex senderMapMutex_;
 };

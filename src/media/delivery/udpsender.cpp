@@ -36,17 +36,11 @@ UDPSender::UDPSender(QString id,
     , relay_(relay)
     , keepLiveTimer_(this)
 {
-  if (destination.find(':') != std::string::npos)
+  // initialize atomic destination
+  bool isIpv6 = (destination.find(':') != std::string::npos);
   {
-    dest_addr6_.sin6_family = AF_INET6;
-    dest_addr6_.sin6_port = htons(port);
-    inet_pton(AF_INET6, destination.c_str(), &dest_addr6_.sin6_addr);
-  }
-  else
-  {
-    dest_addr_.sin_family = AF_INET;
-    dest_addr_.sin_port = htons(port);
-    inet_pton(AF_INET, destination.c_str(), &dest_addr_.sin_addr);
+    std::shared_ptr<Destination> initPtr = std::make_shared<Destination>(destination, port, isIpv6);
+    std::atomic_store(&destPtr_, initPtr);
   }
 
 
@@ -63,6 +57,13 @@ UDPSender::UDPSender(QString id,
 UDPSender::~UDPSender()
 {
   keepLiveTimer_.stop();
+}
+
+void UDPSender::updateDestination(const std::string &destination, int port, bool ipv6)
+{
+  // atomically replace destination object
+  std::shared_ptr<Destination> newPtr = std::make_shared<Destination>(destination, port, ipv6);
+  std::atomic_store(&destPtr_, newPtr);
 }
 
 
@@ -108,8 +109,14 @@ void UDPSender::process()
     }
     */
 
-    // remove if above optimization is enabled
-    relay_->sendUDPData(dest_addr_, dest_addr6_, std::move(input->data), input->data_size);
+    // delete if above optimization is enabled
+
+    // send using string+port API to avoid accessing sockaddr structs without locks
+    auto dest = std::atomic_load(&destPtr_);
+    if (dest)
+    {
+      relay_->sendUDPData(dest->address, (uint16_t)dest->port, std::move(input->data), input->data_size);
+    }
 
     input = getInput();
   }
@@ -125,5 +132,7 @@ void UDPSender::keepLive()
   std::unique_ptr<unsigned char[]> data(new unsigned char[packetSize]);
   data[0] = 0;
   data[1] = 0;
-  relay_->sendUDPData(destination_, port_, std::move(data), packetSize);
+  auto dest = std::atomic_load(&destPtr_);
+  if (dest)
+    relay_->sendUDPData(dest->address, (uint16_t)dest->port, std::move(data), packetSize);
 }

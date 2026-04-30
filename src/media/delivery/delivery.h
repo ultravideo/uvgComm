@@ -5,6 +5,8 @@
 #include <QHostAddress>
 #include <QObject>
 #include <QFuture>
+#include <unordered_map>
+#include <vector>
 
 #include <uvgrtp/lib.hh>
 
@@ -45,12 +47,15 @@ public:
                                             uint32_t localSSRC = 0,
                                             uint32_t remoteSSRC = 0);
 
-   std::shared_ptr<Filter> addUDPSendStream(uint32_t sessionID,
-                                            QString localAddress,
-                                            QString remoteAddress,
-                                            uint16_t localPort,
-                                            uint16_t peerPort,
-                                            uint32_t remoteSSRC);
+  // publisherSSRC: SSRC of the original publisher (appears in incoming packets)
+  // targetSSRC: SSRC used by the target participant (unique per receiving participant)
+  std::shared_ptr<Filter> addUDPSendStream(uint32_t sessionID,
+                              QString localAddress,
+                              QString remoteAddress,
+                              uint16_t localPort,
+                              uint16_t peerPort,
+                              uint32_t publisherSSRC,
+                              uint32_t targetSSRC);
 
    std::shared_ptr<Filter> addRTPReceiveStream(uint32_t sessionID,
                                                QString localAddress,
@@ -173,10 +178,23 @@ private:
   // the key is address:port as a string
   std::map<QString, std::shared_ptr<RelayInterface>> relays_;
 
-  // key is
-  std::map<uint32_t, std::shared_ptr<Filter>> udpSenders_;
+  // UDPSenders keyed by targetSSRC -> (publisherSSRC -> UDPSender)
+  std::unordered_map<uint32_t, std::unordered_map<uint32_t, std::shared_ptr<Filter>>> udpSendersByTarget_;
   std::map<uint32_t, std::shared_ptr<Filter>> udpReceivers_;
 
   // RTCP-only UDP receivers which receive RTCP flow independently from RTP
   std::map<uint32_t, std::shared_ptr<Filter>> udpRtcpReceivers_;
+
+  // Remember last observed sender address per publisher SSRC so newly created
+  // UDPSenders can be initialized with the current observed address.
+  struct LastSenderInfo 
+  { 
+    QString ip; 
+    uint16_t port; 
+    bool ipv6; 
+  };
+  std::unordered_map<uint32_t, LastSenderInfo> lastKnownSenders_;
+
+private slots:
+  void onSenderAddressChanged(uint32_t ssrc, QString ip, uint16_t port, bool ipv6);
 };

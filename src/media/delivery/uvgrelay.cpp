@@ -168,7 +168,9 @@ void UVGRelay::run()
       while(running_)
       {
         int read = 0;
-        rtp_error_t ret = socket_.recvfrom(buffer, BUFFER_SIZE, MSG_DONTWAIT, &read);
+        sockaddr_in sender4 = {};
+        sockaddr_in6 sender6 = {};
+        rtp_error_t ret = socket_.recvfrom(buffer, BUFFER_SIZE, MSG_DONTWAIT, &sender4, &sender6, &read);
 
         if (ret == RTP_INTERRUPTED)
         {
@@ -190,6 +192,9 @@ void UVGRelay::run()
         ReceivedPacket packet;
         packet.size = read;
         std::memcpy(packet.buffer, buffer, read);
+        packet.sender4 = sender4;
+        packet.sender6 = sender6;
+        packet.ipv6 = (packet.sender6.sin6_family == AF_INET6);
 
         {
           std::lock_guard<std::mutex> lock(queueMutex_);
@@ -231,16 +236,18 @@ void UVGRelay::processPackets()
       // Unlock while processing to allow reception to continue
       lock.unlock();
       
-      processReceivedPacket(packet.buffer, packet.size);
+      processReceivedPacket(packet);
       
       lock.lock();
     }
   }
 }
 
-void UVGRelay::processReceivedPacket(const uint8_t* buffer, int read)
+void UVGRelay::processReceivedPacket(const ReceivedPacket& packet)
 {
   // check if this is an RTP or RTCP packet
+  const uint8_t* buffer = packet.buffer;
+  int read = packet.size;
   uint8_t rtcp_pt = buffer[1];
   uint8_t rtp_pt = rtcp_pt & 0x7F;
 
@@ -253,6 +260,7 @@ void UVGRelay::processReceivedPacket(const uint8_t* buffer, int read)
 
     if (rtpReceivers_.find(ssrc) != rtpReceivers_.end())
     {
+      checkAndUpdateSender(ssrc, packet);
       std::shared_ptr<Filter> filter = rtpReceivers_[ssrc];
 
       std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
@@ -288,6 +296,7 @@ void UVGRelay::processReceivedPacket(const uint8_t* buffer, int read)
 
     if (rtcpReceivers_.find(ssrc) != rtcpReceivers_.end())
     {
+      checkAndUpdateSender(ssrc, packet);
       std::shared_ptr<Filter> filter = rtcpReceivers_[ssrc];
 
       std::unique_ptr<Data> receivedRTPFrame = Filter::initializeData(DT_RTP, DS_REMOTE);
@@ -312,6 +321,63 @@ void UVGRelay::processReceivedPacket(const uint8_t* buffer, int read)
     Logger::getLogger()->printWarning(this, "Received a packet which does not follow RTP specifications",
                                     {"Payload type"},
                                     {QString::number(rtp_pt)});
+  }
+}
+
+void UVGRelay::checkAndUpdateSender(uint32_t ssrc, const ReceivedPacket& packet)
+{
+  std::lock_guard<std::mutex> sm_lock(senderMapMutex_);
+  bool changed = false;
+
+  if (packet.ipv6)
+  {
+    auto it = lastSenderIsIpv6_.find(ssrc);
+    if (it == lastSenderIsIpv6_.end() || !it->second)
+    {
+      changed = true;
+    }
+    else
+    {
+      auto &prev = lastSender6_[ssrc];
+      if (std::memcmp(&prev, &packet.sender6, sizeof(prev)) != 0)
+        changed = true;
+    }
+
+    if (changed)
+    {
+      lastSender6_[ssrc] = packet.sender6;
+      lastSenderIsIpv6_[ssrc] = true;
+      char addrbuf[INET6_ADDRSTRLEN];
+      inet_ntop(AF_INET6, &packet.sender6.sin6_addr, addrbuf, INET6_ADDRSTRLEN);
+      std::string ip = std::string(addrbuf);
+      uint16_t port = ntohs(packet.sender6.sin6_port);
+      emit senderAddressChanged(ssrc, QString::fromStdString(ip), port, true);
+    }
+  }
+  else
+  {
+    auto it = lastSenderIsIpv6_.find(ssrc);
+    if (it == lastSenderIsIpv6_.end() || it->second)
+    {
+      changed = true;
+    }
+    else
+    {
+      auto &prev = lastSender4_[ssrc];
+      if (prev.sin_addr.s_addr != packet.sender4.sin_addr.s_addr || prev.sin_port != packet.sender4.sin_port)
+        changed = true;
+    }
+
+    if (changed)
+    {
+      lastSender4_[ssrc] = packet.sender4;
+      lastSenderIsIpv6_[ssrc] = false;
+      char addrbuf[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET, &packet.sender4.sin_addr, addrbuf, INET_ADDRSTRLEN);
+      std::string ip = std::string(addrbuf);
+      uint16_t port = ntohs(packet.sender4.sin_port);
+      emit senderAddressChanged(ssrc, QString::fromStdString(ip), port, false);
+    }
   }
 }
 

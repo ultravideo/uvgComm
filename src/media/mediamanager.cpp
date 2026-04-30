@@ -638,11 +638,13 @@ void MediaManager::sfuSendMedia(uint32_t sessionID,
     return;
   }
 
+  // Store UDPSender under the publisher's SSRC (localSSRC) and the target's SSRC
+  // so we can update the correct sender when we observe incoming packets.
   std::shared_ptr<Filter> send = streamer_->addUDPSendStream(sessionID,
                                                              localMedia.connection_address,
                                                              remoteMedia.connection_address,
                                                              localMedia.receivePort,
-                                                             remoteMedia.receivePort, remoteSSRCs.at(0));
+                                                             remoteMedia.receivePort, localSSRC, remoteSSRCs.at(0));
 
   if (enabled)
   {
