@@ -122,6 +122,17 @@ void ResourceAllocator::updateSettings()
   videoResolution_ = conferenceResolution_;
 
   hybridPrioritization_ = settingValue(SettingsKey::sipHybridPriorization);
+
+  Logger::getLogger()->printNormal(this, "Updated resource manager settings", 
+    {"Upload bandwidth limit", "Frame rate"}, 
+    {QString::number(uploadBandwidth_), QString::number(framerateNumerator_) + "/" + QString::number(framerateDenominator_)});
+
+  if (framerateNumerator_ == 0 || framerateDenominator_ == 0)
+  {
+    Logger::getLogger()->printWarning(this, "Settings did not have sensible frame rate values, using 30 fps");
+    framerateNumerator_ = 30;
+    framerateDenominator_ = 1;
+  }
 }
 
 

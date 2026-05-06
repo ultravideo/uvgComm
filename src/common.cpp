@@ -575,7 +575,8 @@ double calculateVideoOverheadPercentage(uint32_t streamBitrateBps,
   // Validate inputs (error returns allowed)
   if (streamBitrateBps == 0 || framerate_num == 0 || framerate_den == 0)
   {
-    Logger::getLogger()->printProgramError("Common", "Invalid parameters for overhead calc");
+    Logger::getLogger()->printProgramError("Common", "Invalid parameters for overhead calc", 
+      {"Bitrate", "framerate num/den"}, {QString::number(streamBitrateBps), QString::number(framerate_num) + "/" + QString::number(framerate_den)});
     return DEFAULT_RTP_OVERHEAD + RTCP_OVERHEAD;
   }
 
@@ -622,7 +623,9 @@ double calculateVideoOverheadPercentage(uint32_t streamBitrateBps,
   }
   else if (overhead > 0.5)
   {
-    Logger::getLogger()->printWarning("Common", "Very high transmission overhead detected, consider optimizing. Forcing 50%");
+    // there comes a place in ones life when they need to start packing multiple frames into one RTP packet. This is that time
+    Logger::getLogger()->printWarning("Common", "Very high transmission overhead detected, consider optimizing whatever you are doing. Forcing 50%", 
+      "Overhead", QString::number(overhead));
     overhead = 0.5;
   }
 
