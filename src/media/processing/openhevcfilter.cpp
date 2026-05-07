@@ -149,7 +149,8 @@ void OpenHEVCFilter::process()
 
     if((vpsReceived_ && spsReceived_ && ppsReceived_) || !vcl)
     {
-      if (discardedFrames_ != 0)
+
+      if (discardedFrames_ != 0 && (vpsReceived_ && spsReceived_ && ppsReceived_))
       {
         Logger::getLogger()->printNormal(this, "Starting to decode HEVC video after discarding frames",
                                          "Discarded frames", QString::number(discardedFrames_));

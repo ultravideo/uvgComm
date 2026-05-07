@@ -529,15 +529,8 @@ void MediaManager::clientReceiveMedia(uint32_t sessionID,
   {
     Q_ASSERT(localMedia.receivePort);
     Q_ASSERT(!localMedia.rtpNums.empty());
-
-    Logger::getLogger()->printNormal(this,
-                                    "Creating client receive stream",
-                                    {"Interface", "codec"},
-                                    {localMedia.connection_address + ":"
-                                         + QString::number(localMedia.receivePort),
-                                     codec});
-
     Q_ASSERT(receiverFilter != nullptr);
+    
     if (localMedia.type == "audio")
     {
       clientFg_->receiveAudioFrom(sessionID, receiverFilter, remoteSSRC, remoteCNAME);

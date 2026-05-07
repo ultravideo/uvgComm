@@ -358,6 +358,8 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
 
   // Attach views to layouts, ensuring the UI reflects active media
   int index = 0;
+  int views = 0;
+  int avatars = 0;
   for (const auto& [cname, layoutID] : sessionCnameToLayoutID_[sessionID])
   {
     if (sources.find(cname) == sources.end())
@@ -391,6 +393,10 @@ void CallWindow::callStarted(std::shared_ptr<VideoviewFactory> viewFactory,
 
     ++index;
   }
+
+  Logger::getLogger()->printNormal(this, "Attached views",
+                                   {"Video views", "Avatars"},
+                                   {QString::number(views), QString::number(avatars)});
 }
 
 

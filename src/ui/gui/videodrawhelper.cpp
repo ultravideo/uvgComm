@@ -195,9 +195,7 @@ void VideoDrawHelper::inputImage(QWidget* widget, std::unique_ptr<uchar[]> data,
       if (discardedFrames_%30 == 1)
       {
         Logger::getLogger()->printWarning(this, "Buffer full when inputting image, discarding oldest frame",
-                                         {"Buffer", "Discarded so far"},
-                                          {QString::number(frameBuffer_.size()) + "/" + QString::number(VIEWBUFFERSIZE),
-                                          QString::number(discardedFrames_)});
+                                         "Discarded", QString::number(discardedFrames_));
       }
 
       //setUpdatesEnabled(true);

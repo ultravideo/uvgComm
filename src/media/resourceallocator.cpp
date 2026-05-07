@@ -2,6 +2,7 @@
 
 #include "global.h"
 #include "processing/yuvconversions.h"
+#include "processing/filter.h"
 
 #include "settingskeys.h"
 #include "logger.h"
@@ -291,11 +292,9 @@ int ResourceAllocator::getEncoderBitrate(DataType type)
   int streamBitrateBps = limitUploadBitrate(conferenceTotalBandwidthBps, type);
   bitrateMutex_.unlock();
 
-  Logger::getLogger()->printNormal(this, "Calculated encoder bitrate",
-                                   {"Type", "Conference total bw", "Stream payload"},
-                                   {datatypeToString(type),
-                                    QString::number(conferenceTotalBandwidthBps),
-                                    QString::number(streamBitrateBps)});
+  QString typeStr = datatypeToString(type);
+  QString msg = QString("Calculated encoder bitrate (%1)").arg(typeStr);
+  Logger::getLogger()->printNormal(this, msg, "Payload", QString::number(streamBitrateBps));
 
   return streamBitrateBps;
 }

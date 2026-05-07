@@ -194,11 +194,7 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
                               const QString& cname,
                               std::shared_ptr<UvgRTPSender> rtpSender)
 {
-  Logger::getLogger()->printNormal(this, "Adding SFU link",
-                                   {"CNAME","SSRC","SenderPtr"},
-                                   {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
   entry->sfuSSRC = ssrc;
-
 
   if (!entry->p2pRTPSender)
   {
@@ -228,7 +224,9 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
   // SFU sender is a shared sender
   if (sfuRTPSender_ == nullptr)
   {
-    Logger::getLogger()->printNormal(this, "Setting RTP sender for SFU link (shared sender)");
+    Logger::getLogger()->printNormal(this, "Setting RTP sender for SFU link (shared sender)",
+                     {"CNAME", "SFU SSRC", "SenderPtr", "OutIndex"},
+                     {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get()), QString::number(outIdx)});
     sfuRTPSender_ = rtpSender;
     sfuActive_ = true; // SFU link is active at the start
     sfuOutIndex_ = outIdx;
@@ -686,13 +684,19 @@ bool HybridFilter::allowNewSwitchRequest(const std::shared_ptr<LinkInfo>& linkIn
   if (linkInfo->switchPhase != LinkInfo::SwitchPhase::None)
   {
     const uint64_t nowMs = clockNowMs();
+
+    // are switches allowed again?
     if (linkInfo->switchProhabitionMs > 0 && nowMs >= linkInfo->switchProhabitionMs)
     {
       QString phase = "unknown";
       if (linkInfo->switchPhase == LinkInfo::SwitchPhase::Scheduled)
+      {
         phase = "scheduled";
+      }
       else if (linkInfo->switchPhase == LinkInfo::SwitchPhase::AwaitingCompletion)
+      {
         phase = "awaiting-completion";
+      }
 
       Logger::getLogger()->printWarning(this, "Clearing expired switch state",
                                         {"Target", "Phase", "P2P SSRC", "SFU SSRC"},
@@ -703,13 +707,18 @@ bool HybridFilter::allowNewSwitchRequest(const std::shared_ptr<LinkInfo>& linkIn
       clearOngoingSwitchState(linkInfo);
     }
 
+
     if (linkInfo->switchPhase != LinkInfo::SwitchPhase::None)
     {
       QString phase = "unknown";
       if (linkInfo->switchPhase == LinkInfo::SwitchPhase::Scheduled)
+      {
         phase = "scheduled";
+      }
       else if (linkInfo->switchPhase == LinkInfo::SwitchPhase::AwaitingCompletion)
+      {
         phase = "awaiting-completion";
+      }
 
       Logger::getLogger()->printWarning(this, "Link has an ongoing switch, skipping switch",
                                         {"Target", "Phase", "P2P SSRC", "SFU SSRC"},
@@ -803,10 +812,62 @@ void HybridFilter::applySfuState(bool needSFU)
                                       {"disabled", "enabled"});
   }
 
+  const bool previousSfuActive = sfuActive_;
+
+  // Minimal diagnostic: count active P2P links and those that also have an SFU identity.
+  int totalLinks = 0;
+  int p2pActiveCount = 0;
+  int p2pActiveWithSfuCount = 0;
+  for (const auto& kv : cnameToLinks_)
+  {
+    const std::shared_ptr<LinkInfo>& e = kv.second;
+    if (!e) continue;
+    ++totalLinks;
+    if (e->p2pRTPSender && e->p2pActive)
+      ++p2pActiveCount;
+    if (e->p2pRTPSender && e->p2pActive && e->sfuSSRC != 0)
+      ++p2pActiveWithSfuCount;
+  }
+
   sfuActive_ = effectiveNeedSfu;
   setConnection(sfuOutIndex_, sfuActive_, sfuRTPSender_);
+
   Logger::getLogger()->printNormal(this, "Applying SFU state",
-                                  "SFU State", sfuActive_ ? "enabled" : "disabled");
+                                  {"Prev","New","P2PActive","P2PActiveWithSFU","Participants"},
+                                  {previousSfuActive ? "enabled" : "disabled",
+                                   sfuActive_ ? "enabled" : "disabled",
+                                   QString::number(p2pActiveCount),
+                                   QString::number(p2pActiveWithSfuCount),
+                                   QString::number(totalLinks)});
+
+  // If there are any P2P links that remain active while SFU is enabled,
+  // log a small sample (up to 3) to help diagnose why they were not
+  // disabled. Keep output minimal to avoid log growth.
+  if (sfuActive_ && p2pActiveWithSfuCount > 0)
+  {
+    QStringList names;
+    QStringList values;
+    int shown = 0;
+    for (const auto& kv : cnameToLinks_)
+    {
+      if (shown >= 3) break;
+      const QString& cname = kv.first;
+      const std::shared_ptr<LinkInfo>& e = kv.second;
+      if (!e) continue;
+      if (e->p2pRTPSender && e->p2pActive && e->sfuSSRC != 0)
+      {
+        names << "CNAME" << "OutIdx" << "P2P SSRC";
+        values << cname << QString::number(e->p2pOutIndex) << QString::number(e->p2pSSRC);
+        ++shown;
+      }
+    }
+
+    if (!names.isEmpty())
+    {
+      Logger::getLogger()->printNormal(this, "Sample of P2P links still active after SFU enabled",
+                                       names, values);
+    }
+  }
 }
 
 

@@ -135,7 +135,6 @@ void SDPICE::addLocalCandidatesToSDP(QVariant& content)
 
 void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
 {
-  Logger::getLogger()->printNormal(this, "Media limit", "index", QString::number(mediaIndex));
   int neededComponents = 1;
   if (media.proto == "RTP/AVP")
   {
@@ -195,27 +194,23 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
   else
   {
     // TODO: Fix STUN bindings and change this order
-    Logger::getLogger()->printNormal(this, "Settings connection addresses directly instead of ICE candidates");
-
     if (!allowedLocalAddress_.isNull() && !existingLocalCandidates_[mediaIndex]->empty())
     {
-      Logger::getLogger()->printNormal(this, "Using allowed local IP address");
       setMediaAddress(existingLocalCandidates_, media, mediaIndex);
+      Logger::getLogger()->printNormal(this, "Set media address directly (local)", "Index", QString::number(mediaIndex));
     }
     else if (!existingGlobalCandidates_[mediaIndex]->empty())
     {
-      Logger::getLogger()->printNormal(this, "Using Global IP addresses");
       setMediaAddress(existingGlobalCandidates_, media, mediaIndex);
+      Logger::getLogger()->printNormal(this, "Set media address directly (global)", "Index", QString::number(mediaIndex));
     }
     else if (!existingStunCandidates_[mediaIndex]->empty())
     {
-      Logger::getLogger()->printNormal(this, "Using STUN addresses");
       setMediaAddress(existingStunCandidates_, media, mediaIndex);
+      Logger::getLogger()->printNormal(this, "Set media address directly (stun)", "Index", QString::number(mediaIndex));
     }
     else
     {
-      Logger::getLogger()->printWarning(this, "No addresses were found. Using a loopback address");
-
       std::vector<std::shared_ptr<QList<std::pair<QHostAddress, uint16_t>>>> loopback;
       for(int i = 0; i < mediaIndex + 1; ++i)
       {
@@ -224,6 +219,7 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
       }
 
       setMediaAddress(loopback, media, mediaIndex);
+      Logger::getLogger()->printWarning(this, "Set media address loopback", "Index", QString::number(mediaIndex));
     }
   }
 }

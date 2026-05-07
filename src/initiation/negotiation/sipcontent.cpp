@@ -637,7 +637,6 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
 
   while(type == 'm')
   {
-    Logger::getLogger()->printNormal("SipContent", "Found media", "media", words.at(0));
     if(words.size() < 4)
     {
       Logger::getLogger()->printError("SipContent", "Failed to parse media because its has too few words");
@@ -692,6 +691,24 @@ bool parseSDPContent(const QString& content, SDPMessageInfo &sdp)
     {
       Logger::getLogger()->printError("SipContent", "Failed to parse some media fields");
       return false;
+    }
+
+    // Summarize how many attributes we matched for this media and log it once.
+    {
+      auto &m = sdp.media.back();
+      int attrCount = 0;
+      attrCount += m.flagAttributes.size();
+      attrCount += m.valueAttributes.size();
+      for (const auto &multi : m.multiAttributes) attrCount += multi.size();
+      attrCount += m.rtpMaps.size();
+      for (const auto &kv : m.fmtpAttributes) attrCount += static_cast<int>(kv.second.size());
+      attrCount += static_cast<int>(m.candidates.size());
+      attrCount += m.zrtp.size();
+      attrCount += static_cast<int>(m.imgAttributes.size());
+
+      Logger::getLogger()->printNormal("SipContent",
+                                      QString("Found media %1 (matched attributes: %2)")
+                                      .arg(m.type).arg(attrCount));
     }
 
   } // m=
@@ -892,8 +909,10 @@ bool parseValueAttribute(SDPAttributeType type, QString value,
 {
   if(value != "")
   {
+#ifdef N_DEBUG
     Logger::getLogger()->printNormal("SipContent", "Correctly parsed a value attribute",
                                      {"Type"}, {attributeTypeToString(type)});
+#endif
     valueAttributes.push_back(SDPAttribute{type, value});
     return true;
   }

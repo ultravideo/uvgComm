@@ -255,11 +255,9 @@ std::shared_ptr<Filter> Delivery::addRTPReceiveStream(uint32_t sessionID,
 {
   Q_UNUSED(rtpNum); // TODO in uvgRTP
 
-  Logger::getLogger()->printNormal(this, "Creating uvgRTP receive stream",
-                                   "Path", localAddress + ":" +
-                                   QString::number(localPort) +
-                                   " <- " +
-                                   QString::number(peerPort));
+  // Note: defer logging of creation until we know whether a new receiver
+  // will actually be created to avoid contradictory logs when reusing
+  // an existing receiver.
 
   rtp_format_t fmt = RTP_FORMAT_GENERIC;
   DataType type = DT_NONE;
@@ -285,8 +283,8 @@ std::shared_ptr<Filter> Delivery::addRTPReceiveStream(uint32_t sessionID,
       peers_[sessionID]->sessions.at(sessionIndex).incomingStreams.end() ||
       peers_[sessionID]->sessions.at(sessionIndex).incomingStreams[remoteSSRC]->receiver == nullptr)
   {
-    Logger::getLogger()->printNormal(this, "Creating receiver filter", "Interface",
-                                     localAddress + ":" + QString::number(localPort));
+    Logger::getLogger()->printNormal(this, "Creating RTP receiver",
+                     "Interface", localAddress + ":" + QString::number(localPort));
 
     peers_[sessionID]->sessions.at(sessionIndex).incomingStreams[remoteSSRC]->receiver = std::shared_ptr<UvgRTPReceiver>(
         new UvgRTPReceiver(
@@ -705,7 +703,8 @@ void Delivery::removeRecvStream(uint32_t sessionID, DeliverySession& session,
     if (session.incomingStreams[remoteSSRC]->receiver != nullptr)
     {
       auto receiver = session.incomingStreams[remoteSSRC]->receiver;
-      Logger::getLogger()->printNormal(this, "Found receiver before removal");
+      Logger::getLogger()->printNormal(this, "Found receiver before removal",
+                                       "RemoteSSRC", QString::number(remoteSSRC));
       receiver->stop();
       receiver->emptyBuffer();
 
@@ -718,8 +717,12 @@ void Delivery::removeRecvStream(uint32_t sessionID, DeliverySession& session,
       session.incomingStreams[remoteSSRC]->receiver = nullptr;
       receiver = nullptr;
     }
+    else
+    {
+      Logger::getLogger()->printNormal(this, "Destroying incoming mediastream (no receiver)",
+                                       "RemoteSSRC", QString::number(remoteSSRC));
+    }
 
-    Logger::getLogger()->printNormal(this, "Destroying incoming media_stream");
     session.session->destroy_stream(session.incomingStreams[remoteSSRC]->ms);
     delete session.incomingStreams[remoteSSRC];
     session.incomingStreams[remoteSSRC] = nullptr;

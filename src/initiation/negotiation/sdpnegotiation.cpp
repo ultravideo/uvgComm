@@ -569,8 +569,6 @@ bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& comparedNums, const Q
       if(remoteCodec.codec == supportedCodec.codec)
       {
         resultCodecs.append(remoteCodec);
-        Logger::getLogger()->printNormal("SDPNegotiationHelper",  "Found suitable codec",
-                                        {"Code"}, {remoteCodec.codec});
 
         resultNums.push_back(remoteCodec.rtpNum);
 
@@ -586,7 +584,6 @@ bool SDPNegotiation::selectBestCodec(const QList<uint8_t>& comparedNums, const Q
       if(rtpNumber == supportedNum)
       {
         resultNums.append(rtpNumber);
-        Logger::getLogger()->printNormal("SDPNegotiationHelper", "Found suitable RTP number");
         return true;
       }
     }
@@ -659,8 +656,7 @@ void SDPNegotiation::setSSRC(MediaInfo& media)
   uint32_t ssrc = 0;
   if (findSSRC(media, ssrc))
   {
-    Logger::getLogger()->printNormal(this, "SSRC already present in SDP",
-                                    "SSRC", QString::number(ssrc));
+    // SSRC already present; avoid noisy repeated info-level prints
     return;
   }
 
