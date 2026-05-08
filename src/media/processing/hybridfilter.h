@@ -119,8 +119,6 @@ private:
 
   int calculateSyncPeriodInFrames() const;
 
-  bool rtpTsAtOrAfter(uint32_t t1, uint32_t t2) const;
-  bool rtpTsSoonerFrom(uint32_t now, uint32_t a, uint32_t b) const;
   void clearOngoingSwitchState(const std::shared_ptr<LinkInfo>& link);
   uint64_t calculateSwitchGuardWindowMs(const std::shared_ptr<LinkInfo>& link,
                                         int syncPeriodFrames) const;

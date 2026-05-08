@@ -99,3 +99,17 @@ double calculateVideoOverheadPercentage(uint32_t streamBitrateKbps,
                                         bool ipv6 = false,
                                         uint16_t mtu_bytes = 1500);
 
+// RTP timestamp helpers
+// Return true if `t1` is equal to or later than `t2` in RTP timestamp space.
+inline bool rtpTsAtOrAfter(uint32_t t1, uint32_t t2)
+{
+    return static_cast<int32_t>(t1 - t2) >= 0;
+}
+
+// Return true if `a` occurs sooner than `b`, measured from `now` in RTP timestamp space.
+// Assumes both timestamps are within < 2^31 ticks from `now` (true for our scheduling horizon).
+inline bool rtpTsSoonerFrom(uint32_t now, uint32_t a, uint32_t b)
+{
+    return static_cast<int32_t>(a - now) < static_cast<int32_t>(b - now);
+}
+

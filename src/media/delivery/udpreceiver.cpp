@@ -1,6 +1,7 @@
 #include "udpreceiver.h"
 
 #include "logger.h"
+#include "common.h"
 
 UDPReceiver::UDPReceiver(QString id, StatisticsInterface *stats,
                          std::shared_ptr<ResourceAllocator> hwResources):
@@ -38,8 +39,7 @@ void UDPReceiver::process()
           const uint32_t stopTs = act.rtpTimestamp;
           // Use signed arithmetic to decide whether pkt_ts has reached
           // or passed stopTs, while still handling wrap-around.
-          const int32_t delta = static_cast<int32_t>(input->rtpTimestamp - stopTs);
-          if (delta >= 0)
+          if (rtpTsAtOrAfter(input->rtpTimestamp, stopTs))
           {
             setOutputStatus(outIndex, false);
             Logger::getLogger()->printNormal(this, "Applying STOP forwarding action for outIndex",
@@ -52,8 +52,7 @@ void UDPReceiver::process()
         else if (act.action == ForwardingStatus::PENDING_START)
         {
           const uint32_t startTs = act.rtpTimestamp;
-          const int32_t delta = static_cast<int32_t>(input->rtpTimestamp - startTs);
-          if (delta >= 0)
+          if (rtpTsAtOrAfter(input->rtpTimestamp, startTs))
           {
             setOutputStatus(outIndex, true);
             Logger::getLogger()->printNormal(this, "Applying START forwarding action for outIndex",
