@@ -180,7 +180,7 @@ qt_add_executable(uvgComm WIN32 MACOSX_BUNDLE
     src/media/delivery/relayinterface.h
     src/ui/scripting.h src/ui/scripting.cpp
     src/media/processing/hybridfilter.h src/media/processing/hybridfilter.cpp
-    src/media/processing/hybridslavefilter.h src/media/processing/hybridslavefilter.cpp
+    src/media/processing/hybridfollowerfilter.h src/media/processing/hybridfollowerfilter.cpp
     src/statisticscsv.h src/statisticscsv.cpp
     src/media/processing/fakecamera.h src/media/processing/fakecamera.cpp
     src/media/delivery/rtpbuffer.h src/media/delivery/rtpbuffer.cpp

@@ -1,22 +1,20 @@
-#include "hybridslavefilter.h"
+#include "hybridfollowerfilter.h"
 
-#include "common.h"
 #include "media/resourceallocator.h"
-#include "settingskeys.h"
 
-HybridSlaveFilter::HybridSlaveFilter(QString id, StatisticsInterface *stats,
+HybridFollowerFilter::HybridFollowerFilter(QString id, StatisticsInterface *stats,
                                      std::shared_ptr<ResourceAllocator> hwResources, DataType type):
 Filter(id, "Hybrid", stats, hwResources, type, type)
 {}
 
 
-void HybridSlaveFilter::setConnection(int index, bool status)
+void HybridFollowerFilter::setConnection(int index, bool status)
 {
   setOutputStatus(index, status);
 }
 
 
-int HybridSlaveFilter::getBitrate()
+int HybridFollowerFilter::getBitrate()
 {
   // Report the bitrate that is actually used by the pipeline.
   // For Opus, the encoder updates its bitrate from ResourceAllocator every frame,
@@ -29,7 +27,7 @@ int HybridSlaveFilter::getBitrate()
 }
 
 
-void HybridSlaveFilter::process()
+void HybridFollowerFilter::process()
 {
   std::unique_ptr<Data> input = getInput();
 

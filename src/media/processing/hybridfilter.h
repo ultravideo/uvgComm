@@ -6,7 +6,7 @@
 
 class StatisticsInterface;
 class ResourceAllocator;
-class HybridSlaveFilter;
+class HybridFollowerFilter;
 class UvgRTPSender;
 
 enum LinkType
@@ -24,7 +24,7 @@ struct LinkInfo
     AwaitingCompletion
   };
 
-  uint32_t p2pSSRC;
+  uint32_t p2pRemoteSSRC;
   bool p2pActive;
   int p2pOutIndex;
   std::shared_ptr<UvgRTPSender> p2pRTPSender;
@@ -37,7 +37,7 @@ struct LinkInfo
 
   // while the sfu link is common, we still
   // have a separate ssrc for stats tracking
-  uint32_t sfuSSRC;
+  uint32_t sfuRemoteSSRC;
   std::deque<double> sfuRTT;
   double latestsSFURtt = 0.0;
   // Tracks whether switch is queued for RTP timestamp execution or waiting for
@@ -63,10 +63,10 @@ public:
 
   ~HybridFilter() override;
 
-  void addSlave(std::shared_ptr<HybridSlaveFilter> slave);
+  void addFollower(std::shared_ptr<HybridFollowerFilter> slave);
 
   void addLink(LinkType type,
-               uint32_t ssrc,
+               uint32_t remoteSSRC,
                const QString& cname,
                std::shared_ptr<UvgRTPSender> rtpSender);
 
@@ -88,13 +88,13 @@ private:
 
   void addP2PLink(std::shared_ptr<LinkInfo>& entry,
                   int outIdx,
-                  uint32_t ssrc,
+                  uint32_t remoteSSRC,
                   const QString& cname,
                   std::shared_ptr<UvgRTPSender> rtpSender);
 
   void addSFULink(std::shared_ptr<LinkInfo>& entry,
                   int outIdx,
-                  uint32_t ssrc,
+                  uint32_t remoteSSRC,
                   const QString& cname,
                   std::shared_ptr<UvgRTPSender> rtpSender);
 
@@ -131,8 +131,8 @@ private:
   void delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32_t currentTimestamp);
   void delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32_t currentTimestamp);
 
-  QMutex slaveMutex_;
-  std::vector<std::shared_ptr<HybridSlaveFilter>> slaves_;
+  QMutex followerMutex_;
+  std::vector<std::shared_ptr<HybridFollowerFilter>> followers_;
 
   std::unordered_map<QString, std::shared_ptr<LinkInfo>> cnameToLinks_;
 

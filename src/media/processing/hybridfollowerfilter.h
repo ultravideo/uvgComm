@@ -2,14 +2,14 @@
 
 #include "filter.h"
 
-class HybridSlaveFilter : public Filter
+class HybridFollowerFilter : public Filter
 {
 public:
-  HybridSlaveFilter(QString id, StatisticsInterface *stats,
+  HybridFollowerFilter(QString id, StatisticsInterface *stats,
                     std::shared_ptr<ResourceAllocator> hwResources,
                     DataType type);
 
-  ~HybridSlaveFilter() override = default;
+  ~HybridFollowerFilter() override = default;
 
   int getBitrate();
 

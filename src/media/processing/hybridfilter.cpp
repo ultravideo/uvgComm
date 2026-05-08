@@ -1,6 +1,6 @@
 #include "hybridfilter.h"
 
-#include "hybridslavefilter.h"
+#include "hybridfollowerfilter.h"
 #include "media/delivery/uvgrtpsender.h"
 #include "media/resourceallocator.h"
 
@@ -88,7 +88,7 @@ void HybridFilter::updateSettings()
 
 
 void HybridFilter::addLink(LinkType type,
-                           uint32_t ssrc,
+                           uint32_t remoteSSRC,
                            const QString& cname,
                            std::shared_ptr<UvgRTPSender> rtpSender)
 {
@@ -120,7 +120,7 @@ void HybridFilter::addLink(LinkType type,
     entry->p2pActive = false;
     entry->p2pOutIndex = -1;
     entry->p2pRTPSender = nullptr;
-    entry->sfuSSRC = 0;
+    entry->sfuRemoteSSRC = 0;
     entry->latestsP2PRtt = 0.0;
     entry->latestsSFURtt = 0.0;
     Logger::getLogger()->printNormal(this, "Created new LinkInfo for cname",
@@ -129,42 +129,44 @@ void HybridFilter::addLink(LinkType type,
 
   if (type == LINK_P2P)
   {
-    addP2PLink(entry, outIdx, ssrc, cname, rtpSender);
+    addP2PLink(entry, outIdx, remoteSSRC, cname, rtpSender);
   }
   else if (type == LINK_SFU)
   {
-    addSFULink(entry, outIdx, ssrc, cname, rtpSender);
+    addSFULink(entry, outIdx, remoteSSRC, cname, rtpSender);
   }
 }
 
 void HybridFilter::addP2PLink(std::shared_ptr<LinkInfo>& entry,
                               int outIdx,
-                              uint32_t ssrc,
+                              uint32_t remoteSSRC,
                               const QString& cname,
                               std::shared_ptr<UvgRTPSender> rtpSender)
 {
   if (entry->p2pRTPSender == nullptr)
   {
-    Logger::getLogger()->printNormal(this, "Adding P2P link",
-                                     {"CNAME", "SSRC", "SenderPtr"},
-                                     {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get())});
-
-    // If SFU is unavailable or currently disabled, activate the new P2P path immediately
-    // so the link does not stay without any active forwarding path.
+    // If SFU link is unavailable or currently disabled, activate the new P2P link immediately
+    // so the connection does not stay without any active forwarding path.
     entry->p2pActive = (sfuRTPSender_ == nullptr || !sfuActive_);
+
+    Logger::getLogger()->printNormal(this, "Adding P2P link",
+                                     {"CNAME", "SSRC", "SenderPtr", "Status"},
+                                     {cname, QString::number(remoteSSRC), QString::number((qulonglong)rtpSender.get()),
+                                      entry->p2pActive ? "active" : "inactive"});
 
     setConnection(outIdx, entry->p2pActive, rtpSender);
   }
   else
   {
-    // TODO: The pointer that arrives here when adding new participants is for newest participant, which breasks existing connections
+    // TODO: The pointer that arrives here when adding new participants is for newest participant, which breasks existing connections if applied
+    // fixing it is required to support participants leaving and rejoining
     Logger::getLogger()->printUnimplemented(this, "We should update existing index in case participants have left, but the index is not correct");
 
     if (entry->p2pRTPSender != rtpSender)
     {
       Logger::getLogger()->printWarning(this, "P2P RTP sender pointer changed for existing link");
     }
-    if (entry->p2pSSRC != ssrc)
+    if (entry->p2pRemoteSSRC != remoteSSRC)
     {
       Logger::getLogger()->printWarning(this, "P2P SSRC changed for existing link");
     }
@@ -172,7 +174,7 @@ void HybridFilter::addP2PLink(std::shared_ptr<LinkInfo>& entry,
     return;
   }
 
-  entry->p2pSSRC = ssrc;
+  entry->p2pRemoteSSRC = remoteSSRC;
   entry->p2pRTPSender = rtpSender;
   entry->p2pOutIndex = outIdx;
   // Track that we now have a P2P sender registered (used by evaluator)
@@ -190,11 +192,11 @@ void HybridFilter::addP2PLink(std::shared_ptr<LinkInfo>& entry,
 
 void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
                               int outIdx,
-                              uint32_t ssrc,
+                              uint32_t remoteSSRC,
                               const QString& cname,
                               std::shared_ptr<UvgRTPSender> rtpSender)
 {
-  entry->sfuSSRC = ssrc;
+  entry->sfuRemoteSSRC = remoteSSRC;
 
   if (!entry->p2pRTPSender)
   {
@@ -206,8 +208,8 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
   if (sfuRTPSender_ && !sfuActive_ && !entry->p2pActive)
   {
     Logger::getLogger()->printWarning(this, "Re-enabling SFU for newly added link",
-                                      {"CNAME", "SFU SSRC"},
-                                      {cname, QString::number(ssrc)});
+                                      {"CNAME", "Remote SFU SSRC"},
+                                      {cname, QString::number(remoteSSRC)});
     pendingSfuActive_ = true;
     applySfuState(true);
   }
@@ -225,8 +227,8 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
   if (sfuRTPSender_ == nullptr)
   {
     Logger::getLogger()->printNormal(this, "Setting RTP sender for SFU link (shared sender)",
-                     {"CNAME", "SFU SSRC", "SenderPtr", "OutIndex"},
-                     {cname, QString::number(ssrc), QString::number((qulonglong)rtpSender.get()), QString::number(outIdx)});
+                     {"CNAME", "Remote SFU SSRC", "SenderPtr", "OutIndex"},
+                     {cname, QString::number(remoteSSRC), QString::number((qulonglong)rtpSender.get()), QString::number(outIdx)});
     sfuRTPSender_ = rtpSender;
     sfuActive_ = true; // SFU link is active at the start
     sfuOutIndex_ = outIdx;
@@ -290,7 +292,7 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
     if (!entry)
       continue;
 
-    if (entry->p2pSSRC == ssrc)
+    if (entry->p2pRemoteSSRC == ssrc)
     {
       const bool firstSample = entry->p2pRTT.empty();
 
@@ -330,7 +332,7 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
           triggerReEvaluation_ = true;
           Logger::getLogger()->printNormal(this, "Triggered immediate re-evaluation after first P2P RTT sample",
                                            {"CNAME", "P2P_SSRC", "SFU_SSRC"},
-                                           {pair.first, QString::number(entry->p2pSSRC), QString::number(entry->sfuSSRC)});
+                                           {pair.first, QString::number(entry->p2pRemoteSSRC), QString::number(entry->sfuRemoteSSRC)});
         }
         else
         {
@@ -343,7 +345,7 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
       break;
     }
     
-    if (entry->sfuSSRC == ssrc)
+    if (entry->sfuRemoteSSRC == ssrc)
     {
       const bool firstSample = entry->sfuRTT.empty();
 
@@ -361,7 +363,7 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
           triggerReEvaluation_ = true;
           Logger::getLogger()->printNormal(this, "Triggered immediate re-evaluation after first SFU RTT sample",
                                            {"CNAME", "P2P_SSRC", "SFU_SSRC"},
-                                           {pair.first, QString::number(entry->p2pSSRC), QString::number(entry->sfuSSRC)});
+                                           {pair.first, QString::number(entry->p2pRemoteSSRC), QString::number(entry->sfuRemoteSSRC)});
         }
         else
         {        
@@ -386,7 +388,7 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
       const std::shared_ptr<LinkInfo>& e = kv.second;
       if (!e) continue;
       names << "CNAME" << "p2pSSRC" << "sfuSSRC";
-      values << key << QString::number(e->p2pSSRC) << QString::number(e->sfuSSRC);
+      values << key << QString::number(e->p2pRemoteSSRC) << QString::number(e->sfuRemoteSSRC);
     }
     Logger::getLogger()->printError("Hybrid", "RTT record for unknown SSRC: " + QString::number(ssrc));
     Logger::getLogger()->printNormal(this, "Known SSRCs at time of unknown RTT",
@@ -396,12 +398,12 @@ void HybridFilter::recordRTT(uint32_t ssrc, double rtt)
 }
 
 
-void HybridFilter::addSlave(std::shared_ptr<HybridSlaveFilter> slave)
+void HybridFilter::addFollower(std::shared_ptr<HybridFollowerFilter> slave)
 {
-  // slaves are typically less bandwidth heavy protocols like audio
-  slaveMutex_.lock();
-  slaves_.push_back(slave);
-  slaveMutex_.unlock();
+  // slaves are typically protocols with less bandwidth like audio
+  followerMutex_.lock();
+  followers_.push_back(slave);
+  followerMutex_.unlock();
 }
 
 
@@ -426,13 +428,24 @@ std::unique_ptr<Data> HybridFilter::recordEncodedFrameStatistics(std::unique_ptr
   int activeConnections = 0;
   for (const auto& kv : cnameToLinks_)
   {
-    const std::shared_ptr<LinkInfo>& e = kv.second;
-    if (!e) continue;
-    if (e->p2pRTPSender && e->p2pActive && e->p2pOutIndex >= 0)
+    const std::shared_ptr<LinkInfo>& conn = kv.second;
+    if (conn && conn->p2pRTPSender && conn->p2pActive && conn->p2pOutIndex >= 0)
+    {
       ++activeConnections;
+    }
   }
   if (sfuRTPSender_ && sfuActive_)
+  {
     ++activeConnections;
+  }
+
+  if (activeConnections > cnameToLinks_.size())
+  {
+    // this should never happen, if all p2p links are active, sfu should be off
+    Logger::getLogger()->printProgramWarning(this, "Active connections exceeds the number of other participants",
+                                     {"ActiveConnections", "P2PLinks", "SFU active"},
+                                     {QString::number(activeConnections), QString::number(cnameToLinks_.size()), sfuActive_ ? "yes" : "no"});
+  }
 
   uint64_t bw64 = static_cast<uint64_t>(frameSize) * static_cast<uint64_t>(activeConnections);
   // Account for extra bandwidth overhead (RTP/RTCP headers etc.) of 10  %
@@ -463,27 +476,28 @@ std::unique_ptr<Data> HybridFilter::recordEncodedFrameStatistics(std::unique_ptr
   for (const auto& kv : cnameToLinks_)
   {
     const std::shared_ptr<LinkInfo>& e = kv.second;
-    if (!e) continue;
-
-    // P2P active for this participant
-    const bool hasUsableP2P = (e->p2pRTPSender && e->p2pActive);
-    const bool shouldUseSFU = (e->sfuSSRC != 0 && sfuActive_ && (!e->p2pActive || !e->p2pRTPSender));
-
-    if (hasUsableP2P)
+    if (e)
     {
-      if (!e->p2pRTT.empty() && e->p2pRTT.back() > 0.0)
+      if (e->p2pRTPSender && e->p2pActive)
       {
-        sumRtt += (e->p2pRTT.back() / 2.0);
-        ++rttCount;
+        if (!e->p2pRTT.empty() && e->p2pRTT.back() > 0.0)
+        {
+          sumRtt += (e->p2pRTT.back() / 2.0);
+          ++rttCount;
+        }
       }
-    }
-    else if (shouldUseSFU)
-    {
-      // Participant is served via SFU and SFU is active
-      if (!e->sfuRTT.empty() && e->sfuRTT.back() > 0.0)
+      else if (e->sfuRemoteSSRC != 0 && sfuActive_ && (!e->p2pActive || !e->p2pRTPSender))
       {
-        sumRtt += (e->sfuRTT.back() / 2.0);
-        ++rttCount;
+        // Participant is served via SFU and SFU is active
+        if (!e->sfuRTT.empty() && e->sfuRTT.back() > 0.0)
+        {
+          sumRtt += (e->sfuRTT.back() / 2.0);
+          ++rttCount;
+        }
+      }
+      else
+      {
+        Logger::getLogger()->printProgramError(this, "No active link detected for connection");
       }
     }
   }
@@ -516,7 +530,7 @@ void HybridFilter::process()
 
     if (count_ % DUMMY_INTERVAL == 0)
     {
-      if (hasAnyP2PLinks() && sfuRTPSender_ != nullptr)
+      if (hasAnyP2PLinks() && sfuRTPSender_ != nullptr) // do we benefit from RTT measurements
       {
         sendDummies(input->rtpTimestamp); // to get latency measurements for inactive connections
       }
@@ -524,7 +538,7 @@ void HybridFilter::process()
 
     if (triggerReEvaluation_)
     {
-      if (hasAnyP2PLinks() && sfuRTPSender_ != nullptr)
+      if (hasAnyP2PLinks() && sfuRTPSender_ != nullptr) // is there anything to evaluate
       {
         reEvaluateConnections(input->rtpTimestamp);
       }
@@ -616,7 +630,7 @@ void HybridFilter::executeSwitches(uint32_t currentTimestamp)
         if (link->switchTargetP2P) // switch SFU -> P2P
         {
           Logger::getLogger()->printNormal(this, "Switch from SFU to P2P for SSRC " +
-                                            QString::number(link->sfuSSRC) + " to " + QString::number(link->p2pSSRC));
+                                            QString::number(link->sfuRemoteSSRC) + " to " + QString::number(link->p2pRemoteSSRC));
 
           link->p2pActive = true;
           if (link->p2pOutIndex >= 0)
@@ -627,7 +641,7 @@ void HybridFilter::executeSwitches(uint32_t currentTimestamp)
         else // switch P2P -> SFU
         {
           Logger::getLogger()->printNormal(this, "Switch from P2P to SFU for SSRC " +
-                                            QString::number(link->p2pSSRC) + " to " + QString::number(link->sfuSSRC));
+                                            QString::number(link->p2pRemoteSSRC) + " to " + QString::number(link->sfuRemoteSSRC));
 
           link->p2pActive = false;
           if (link->p2pOutIndex >= 0)
@@ -702,8 +716,8 @@ bool HybridFilter::allowNewSwitchRequest(const std::shared_ptr<LinkInfo>& linkIn
                                         {"Target", "Phase", "P2P SSRC", "SFU SSRC"},
                                         {targetPath,
                                          phase,
-                                         QString::number(linkInfo->p2pSSRC),
-                                         QString::number(linkInfo->sfuSSRC)});
+                                         QString::number(linkInfo->p2pRemoteSSRC),
+                                         QString::number(linkInfo->sfuRemoteSSRC)});
       clearOngoingSwitchState(linkInfo);
     }
 
@@ -724,8 +738,8 @@ bool HybridFilter::allowNewSwitchRequest(const std::shared_ptr<LinkInfo>& linkIn
                                         {"Target", "Phase", "P2P SSRC", "SFU SSRC"},
                                         {targetPath,
                                         phase,
-                                        QString::number(linkInfo->p2pSSRC),
-                                        QString::number(linkInfo->sfuSSRC)});
+                                        QString::number(linkInfo->p2pRemoteSSRC),
+                                        QString::number(linkInfo->sfuRemoteSSRC)});
       return false;
     }
   }
@@ -788,12 +802,12 @@ void HybridFilter::setConnection(int index, bool status, const std::shared_ptr<U
   // lowering uvgRTP session bandwidth. Keep it non-zero for RTT probing.
   setLowRtcpMode(sender, !status);
 
-  slaveMutex_.lock();
-  for (auto& slave : slaves_)
+  followerMutex_.lock();
+  for (auto& slave : followers_)
   {
     slave->setConnection(index, status);
   }
-  slaveMutex_.unlock();
+  followerMutex_.unlock();
 }
 
 
@@ -821,19 +835,23 @@ void HybridFilter::applySfuState(bool needSFU)
   for (const auto& kv : cnameToLinks_)
   {
     const std::shared_ptr<LinkInfo>& e = kv.second;
-    if (!e) continue;
-    ++totalLinks;
-    if (e->p2pRTPSender && e->p2pActive)
-      ++p2pActiveCount;
-    if (e->p2pRTPSender && e->p2pActive && e->sfuSSRC != 0)
-      ++p2pActiveWithSfuCount;
+    if (e)
+    {
+      ++totalLinks;
+      if (e->p2pRTPSender && e->p2pActive)
+      {
+        ++p2pActiveCount;
+      }
+      if (e->p2pRTPSender && e->p2pActive && e->sfuRemoteSSRC != 0)
+        ++p2pActiveWithSfuCount;
+    }
   }
 
   sfuActive_ = effectiveNeedSfu;
   setConnection(sfuOutIndex_, sfuActive_, sfuRTPSender_);
 
   Logger::getLogger()->printNormal(this, "Applying SFU state",
-                                  {"Prev","New","P2PActive","P2PActiveWithSFU","Participants"},
+                                  {"Prev", "New", "P2PActive", "P2P links with SFU SSRC option", "Participants"},
                                   {previousSfuActive ? "enabled" : "disabled",
                                    sfuActive_ ? "enabled" : "disabled",
                                    QString::number(p2pActiveCount),
@@ -854,10 +872,10 @@ void HybridFilter::applySfuState(bool needSFU)
       const QString& cname = kv.first;
       const std::shared_ptr<LinkInfo>& e = kv.second;
       if (!e) continue;
-      if (e->p2pRTPSender && e->p2pActive && e->sfuSSRC != 0)
+      if (e->p2pRTPSender && e->p2pActive && e->sfuRemoteSSRC != 0)
       {
         names << "CNAME" << "OutIdx" << "P2P SSRC";
-        values << cname << QString::number(e->p2pOutIndex) << QString::number(e->p2pSSRC);
+        values << cname << QString::number(e->p2pOutIndex) << QString::number(e->p2pRemoteSSRC);
         ++shown;
       }
     }
@@ -879,7 +897,7 @@ bool HybridFilter::hasAnyLinkNeedingSfu() const
     if (!entry)
       continue;
 
-    const bool hasSfu = (entry->sfuSSRC != 0);
+    const bool hasSfu = (entry->sfuRemoteSSRC != 0);
     const bool hasActiveP2P = (entry->p2pRTPSender && entry->p2pActive);
 
     // If we have an SFU identity for the link but no active P2P path, SFU must stay on.
@@ -918,7 +936,7 @@ double HybridFilter::calculateTotalSessionBandwidthBps(double fallbackBps) const
 
   const int64_t baseBandwidthBps = static_cast<int64_t>(getHWManager()->getStreamBandwidthUsage(output_));
   int64_t totalBandwidthBps = baseBandwidthBps;
-  for (const auto& slave : slaves_)
+  for (const auto& slave : followers_)
   {
     if (slave)
       totalBandwidthBps += static_cast<int64_t>(slave->getBitrate());
@@ -1054,7 +1072,7 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32
   if (cnameToLinks_.size() == 1) // immediate switch
   {
     Logger::getLogger()->printNormal(this, "Switching to P2P connection immediately for single connection",
-                                     "P2P SSRC", QString::number(linkInfo->p2pSSRC));
+                                     "P2P SSRC", QString::number(linkInfo->p2pRemoteSSRC));
 
     linkInfo->p2pActive = true;
     setConnection(linkInfo->p2pOutIndex, true, linkInfo->p2pRTPSender);
@@ -1074,14 +1092,14 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32
 
     Logger::getLogger()->printNormal(this, "Scheduling delayed switch to P2P connection",
                                     {"SFU SSRC","P2P SSRC", "Current TS", "Future TS", "SyncFrames"},
-                                    {QString::number(linkInfo->sfuSSRC), QString::number(linkInfo->p2pSSRC),
+                                    {QString::number(linkInfo->sfuRemoteSSRC), QString::number(linkInfo->p2pRemoteSSRC),
                                      QString::number(currentTimestamp), QString::number(futureTimestamp),
                                      QString::number(syncPeriodFrames)});
 
     // sync with sfu server
     if (sfuRTPSender_)
     {
-      sfuRTPSender_->stopForwarding(linkInfo->sfuSSRC, futureTimestamp);
+      sfuRTPSender_->stopForwarding(linkInfo->sfuRemoteSSRC, futureTimestamp);
     }
     // Keep track of links with scheduled switch timestamps.
     if (std::find(linksToSwitch_.begin(), linksToSwitch_.end(), linkInfo) == linksToSwitch_.end())
@@ -1102,7 +1120,7 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
   if (!allowNewSwitchRequest(linkInfo, "SFU"))
     return;
 
-  if (!sfuRTPSender_ || linkInfo->sfuSSRC == 0)
+  if (!sfuRTPSender_ || linkInfo->sfuRemoteSSRC == 0)
   {
     Logger::getLogger()->printWarning(this, "Cannot switch to SFU: SFU RTP sender not available");
     return;
@@ -1113,7 +1131,7 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
   if (cnameToLinks_.size() == 1) // immediate switch
   {
     Logger::getLogger()->printNormal(this, "Switching to SFU connection immediately for single connection",
-                                     "SFU SSRC", QString::number(linkInfo->sfuSSRC));
+                                     "SFU SSRC", QString::number(linkInfo->sfuRemoteSSRC));
 
     applySfuState(true);
     linkInfo->p2pActive = false;
@@ -1133,7 +1151,7 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
 
     Logger::getLogger()->printNormal(this, "Scheduling delayed switch to SFU connection",
                                     {"P2P SSRC","SFU SSRC", "Current TS", "Future TS", "SFU Active", "SyncFrames"},
-                                    {QString::number(linkInfo->p2pSSRC), QString::number(linkInfo->sfuSSRC),
+                                    {QString::number(linkInfo->p2pRemoteSSRC), QString::number(linkInfo->sfuRemoteSSRC),
                                      QString::number(currentTimestamp), QString::number(futureTimestamp),
                                      sfuActive_ ? "true" : "false",
                                      QString::number(syncPeriodFrames)});
@@ -1142,7 +1160,7 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
     pendingSfuActive_ = true;
 
     // sync with sfu server
-    sfuRTPSender_->startForwarding(linkInfo->sfuSSRC, futureTimestamp);
+    sfuRTPSender_->startForwarding(linkInfo->sfuRemoteSSRC, futureTimestamp);
 
     // Keep track of links with scheduled switch timestamps.
     if (std::find(linksToSwitch_.begin(), linksToSwitch_.end(), linkInfo) == linksToSwitch_.end())
@@ -1228,7 +1246,7 @@ void HybridFilter::fullBandwidthEvaluation(uint32_t currentTimestamp)
       continue;
 
     bool hasP2P = static_cast<bool>(entry->p2pRTPSender);
-    bool hasSFU = (entry->sfuSSRC != 0);
+    bool hasSFU = (entry->sfuRemoteSSRC != 0);
 
     if (hasP2P && !hasSFU) // only P2P link
     {
@@ -1267,7 +1285,7 @@ void HybridFilter::fullBandwidthEvaluation(uint32_t currentTimestamp)
         Logger::getLogger()->printNormal(this, "Switch link to P2P",
                                         {"CNAME", "Expected latency reduction", "SSRC"},
                                         {pair.first, QString::number(entry->latestsSFURtt - entry->latestsP2PRtt) + " ms",
-                                         QString::number(entry->p2pSSRC)});
+                                         QString::number(entry->p2pRemoteSSRC)});
         delayedSwitchToP2P(entry, currentTimestamp);
       }
       else if (entry->p2pActive && entry->latestsSFURtt + RTT_SWITCH_THRESHOLD_MS < entry->latestsP2PRtt)
@@ -1275,7 +1293,7 @@ void HybridFilter::fullBandwidthEvaluation(uint32_t currentTimestamp)
         Logger::getLogger()->printNormal(this, "Switch link to SFU",
                                          {"CNAME", "Expected latency increase", "SSRC"},
                                          {pair.first, QString::number(entry->latestsP2PRtt - entry->latestsSFURtt) + " ms",
-                                          QString::number(entry->sfuSSRC)});
+                                          QString::number(entry->sfuRemoteSSRC)});
         delayedSwitchToSFU(entry, currentTimestamp);
 
         needSFU = true;
@@ -1322,7 +1340,7 @@ void HybridFilter::rankedBandwidthEvaluation(const int maxP2PConnections, int co
     if (!entry)
       continue;
 
-    if (entry->p2pRTPSender && entry->sfuSSRC != 0)
+    if (entry->p2pRTPSender && entry->sfuRemoteSSRC != 0)
     {
       const double rttBenefit = entry->latestsSFURtt - entry->latestsP2PRtt;
       rankedConnections.push_back(std::make_pair(rttBenefit, entry));

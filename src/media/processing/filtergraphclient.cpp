@@ -6,7 +6,7 @@
 #include "media/processing/kvazaarfilter.h"
 #include "media/processing/roimanualfilter.h"
 #include "media/processing/hybridfilter.h"
-#include "media/processing/hybridslavefilter.h"
+#include "media/processing/hybridfollowerfilter.h"
 
 #include "media/processing/openhevcfilter.h"
 
@@ -520,12 +520,12 @@ void FilterGraphClient::initializeAudioInput(bool opus)
   {
     addToGraph(std::shared_ptr<Filter>(new OpusEncoderFilter("", format_, stats_, hwResources_)),
                audioInputGraph_, (unsigned int)audioInputGraph_.size() - 1);
-    addHybridSlave(std::shared_ptr<HybridSlaveFilter>(new HybridSlaveFilter("", stats_, hwResources_, DT_OPUSAUDIO)),
+    addHybridSlave(std::shared_ptr<HybridFollowerFilter>(new HybridFollowerFilter("", stats_, hwResources_, DT_OPUSAUDIO)),
                    audioOutputGraph_);
   }
   else
   {
-    addHybridSlave(std::shared_ptr<HybridSlaveFilter>(new HybridSlaveFilter("", stats_, hwResources_, DT_RAWAUDIO)),
+    addHybridSlave(std::shared_ptr<HybridFollowerFilter>(new HybridFollowerFilter("", stats_, hwResources_, DT_RAWAUDIO)),
                    audioOutputGraph_);
   }
 
@@ -1000,19 +1000,19 @@ void FilterGraphClient::addHybridFilter(std::shared_ptr<HybridFilter> hybrid, Gr
 
   for (auto& slave : slaves_)
   {
-    hybrid_->addSlave(slave);
+    hybrid_->addFollower(slave);
   }
 }
 
 
-void FilterGraphClient::addHybridSlave(std::shared_ptr<HybridSlaveFilter> slave, GraphSegment& segment)
+void FilterGraphClient::addHybridSlave(std::shared_ptr<HybridFollowerFilter> slave, GraphSegment& segment)
 {
   addToGraph(slave, segment, segment.size() - 1);
 
   slaves_.push_back(slave);
   if (hybrid_)
   {
-    hybrid_->addSlave(slave);
+    hybrid_->addFollower(slave);
   }
 }
 
