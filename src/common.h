@@ -100,16 +100,47 @@ double calculateVideoOverheadPercentage(uint32_t streamBitrateKbps,
                                         uint16_t mtu_bytes = 1500);
 
 // RTP timestamp helpers
+// We define a comparison horizon of half the 32-bit timestamp space (2^31).
+// When comparing timestamps, values further away than this horizon are considered
+// ambiguous due to wraparound and are handled explicitly.
+static constexpr uint32_t RTP_TS_HALF = 0x80000000u;
+
 // Return true if `t1` is equal to or later than `t2` in RTP timestamp space.
+// Uses unsigned arithmetic with an explicit half-range check to correctly
+// handle wraparound while making the comparison intent clear.
 inline bool rtpTsAtOrAfter(uint32_t t1, uint32_t t2)
 {
-    return static_cast<int32_t>(t1 - t2) >= 0;
+    if (t1 == t2)
+        return true;
+    const uint32_t diff = t1 - t2; // unsigned wrap-around arithmetic
+    // If difference is less than half the space, t1 is after t2.
+    return diff < RTP_TS_HALF;
 }
 
 // Return true if `a` occurs sooner than `b`, measured from `now` in RTP timestamp space.
-// Assumes both timestamps are within < 2^31 ticks from `now` (true for our scheduling horizon).
+// If one timestamp is within the half-range horizon and the other is not, the
+// in-horizon timestamp is considered sooner. If both are outside the horizon,
+// behaviour is ambiguous and the function falls back to comparing the unsigned
+// distances (which will be large); callers should avoid passing timestamps
+// farther than RTP_TS_HALF from `now` when exact ordering is required.
 inline bool rtpTsSoonerFrom(uint32_t now, uint32_t a, uint32_t b)
 {
-    return static_cast<int32_t>(a - now) < static_cast<int32_t>(b - now);
+    if (a == b)
+        return false;
+
+    const uint32_t da = a - now;
+    const uint32_t db = b - now;
+
+    const bool aInRange = da < RTP_TS_HALF;
+    const bool bInRange = db < RTP_TS_HALF;
+
+    if (aInRange != bInRange)
+    {
+        // The timestamp that is within the horizon is considered sooner.
+        return aInRange;
+    }
+
+    // Both in-range or both out-of-range: compare distances directly.
+    return da < db;
 }
 
