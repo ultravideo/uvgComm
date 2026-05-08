@@ -211,7 +211,8 @@ void HybridFilter::addSFULink(std::shared_ptr<LinkInfo>& entry,
                                       {"CNAME", "Remote SFU SSRC"},
                                       {cname, QString::number(remoteSSRC)});
     pendingSfuActive_ = true;
-    applySfuState(true);
+    // Enable SFU immediately, using 0 for timestamp as it does not matter without p2p links.
+    applySfuState(true, 0);
   }
 
   // Always ensure RTT signal is connected for the SFU sender instance.
@@ -670,7 +671,7 @@ void HybridFilter::executeSwitches(uint32_t currentTimestamp)
   // still pending.
   if (linksToSwitch_.empty())
   {
-    applySfuState(pendingSfuActive_);
+    applySfuState(pendingSfuActive_, currentTimestamp);
   }
 }
 
@@ -796,7 +797,7 @@ void HybridFilter::setConnection(int index, bool status, const std::shared_ptr<U
 }
 
 
-void HybridFilter::applySfuState(bool needSFU)
+void HybridFilter::applySfuState(bool needSFU, uint32_t currentRtpTimestamp)
 {
   if (!sfuRTPSender_)
     return;
@@ -842,6 +843,56 @@ void HybridFilter::applySfuState(bool needSFU)
                                    QString::number(p2pActiveCount),
                                    QString::number(p2pActiveWithSfuCount),
                                    QString::number(totalLinks)});
+
+  // If SFU toggled state, ensure SFU forwarding state for individual
+  // participants is updated to match our local connection state. This
+  // avoids stale forwarding state on the SFU which can cause double
+  // sharing when SFU is re-enabled. Use the provided RTP timestamp
+  // (must not be zero) when sending APP control packets.
+  if (sfuRTPSender_ && previousSfuActive != sfuActive_)
+  {
+    if (!sfuActive_)
+    {
+      // We're disabling SFU: tell it to stop forwarding all known SSRCs.
+      for (const auto& kv : cnameToLinks_)
+      {
+        const std::shared_ptr<LinkInfo>& e = kv.second;
+        if (e && e->sfuRemoteSSRC != 0)
+        {
+          // stop all forwarding immediate in case we re-enable the sfu
+          sfuRTPSender_->stopForwarding(e->sfuRemoteSSRC, currentRtpTimestamp);
+        }
+      }
+    }
+    else
+    {
+      // We're enabling SFU: request forwarding for links that are currently
+      // expected to be served via SFU (P2P not active).
+      for (const auto& kv : cnameToLinks_)
+      {
+        const std::shared_ptr<LinkInfo>& e = kv.second;
+        if (e && e->sfuRemoteSSRC != 0)
+        {
+          // Ensure SFU forwarding matches our local P2P state:
+          // - If the link is currently served via P2P, tell the SFU to stop forwarding
+          //   to avoid double-send when SFU is enabled.
+          // - Otherwise request SFU forwarding for the participant.
+          if (e->p2pActive)
+          {
+            if (e->switchPhase == LinkInfo::SwitchPhase::None)
+            {
+              sfuRTPSender_->stopForwarding(e->sfuRemoteSSRC, currentRtpTimestamp);
+            }
+          }
+          else
+          {
+            // this is not needed since its handled by the sync logic elsewhere
+            sfuRTPSender_->startForwarding(e->sfuRemoteSSRC, currentRtpTimestamp);
+          }
+        }
+      }
+    }
+  }
 
   // If there are any P2P links that remain active while SFU is enabled,
   // log a small sample (up to 3) to help diagnose why they were not
@@ -1061,7 +1112,7 @@ void HybridFilter::delayedSwitchToP2P(std::shared_ptr<LinkInfo> linkInfo, uint32
 
     linkInfo->p2pActive = true;
     setConnection(linkInfo->p2pOutIndex, true, linkInfo->p2pRTPSender);
-    applySfuState(false);
+    applySfuState(false, currentTimestamp);
   }
   else if (!linkInfo->p2pActive) // delayed switch
   {
@@ -1118,7 +1169,7 @@ void HybridFilter::delayedSwitchToSFU(std::shared_ptr<LinkInfo> linkInfo, uint32
     Logger::getLogger()->printNormal(this, "Switching to SFU connection immediately for single connection",
                                      "SFU SSRC", QString::number(linkInfo->sfuRemoteSSRC));
 
-    applySfuState(true);
+    applySfuState(true, currentTimestamp);
     linkInfo->p2pActive = false;
     setConnection(linkInfo->p2pOutIndex, false, linkInfo->p2pRTPSender);
   }

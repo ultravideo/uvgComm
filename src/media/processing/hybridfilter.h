@@ -147,9 +147,10 @@ private:
   // is applied later when switches are executed to avoid gaps.
   bool pendingSfuActive_ = false;
 
-  // Apply the SFU state. If `immediate` is true the change is applied
-  // right away; otherwise it is recorded as pending.
-  void applySfuState(bool needSFU);
+  // Apply the SFU state. `currentRtpTimestamp` is used when sending
+  // SFU control APP packets to request start/stop forwarding. Callers
+  // must provide a valid RTP timestamp (not 0) when available.
+  void applySfuState(bool needSFU, uint32_t currentRtpTimestamp);
 
   uint64_t count_;
 
