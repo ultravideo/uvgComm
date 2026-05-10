@@ -138,7 +138,9 @@ void SDPICE::addLocalCandidatesToMedia(MediaInfo& media, int mediaIndex)
   int neededComponents = 1;
   if (media.proto == "RTP/AVP")
   {
-    neededComponents = 2; // RTP and RTCP
+    // TODO: Detect rtcp-mux in SDP
+    // RTCP_MUX means we only need one component
+    //neededComponents = 2; // RTP and RTCP
   }
 
   if (existingLocalCandidates_.size() <= mediaIndex)
