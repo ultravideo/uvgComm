@@ -47,6 +47,14 @@ int CallSettings::getVideoBitrate(int totalBitrate) const
   uint32_t totalKbps = static_cast<uint32_t>(totalBitrate / 1000);
   if (totalKbps < 1)
     totalKbps = 1;
+
+  if (frNum == 0 || frDen == 0)
+  {
+    Logger::getLogger()->printWarning(this, "Invalid framerate settings for overhead calculation. Defaulting to 30 fps.");
+    frNum = 30;
+    frDen = 1;
+  }
+
   double overhead = calculateVideoOverheadPercentage(totalKbps, frNum, frDen, false, DEFAULT_MTU_BYTES);
 
   int usableBitrate = static_cast<int>(totalBitrate * (1.0 - overhead));
