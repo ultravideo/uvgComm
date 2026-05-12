@@ -684,7 +684,6 @@ bool HybridFilter::allowNewSwitchRequest(const std::shared_ptr<LinkInfo>& linkIn
   if (linkInfo->switchPhase != LinkInfo::SwitchPhase::None)
   {
     const uint64_t nowMs = clockNowMs();
-
     // are switches allowed again?
     if (linkInfo->switchProhabitionMs > 0 && nowMs >= linkInfo->switchProhabitionMs)
     {
@@ -843,6 +842,8 @@ void HybridFilter::applySfuState(bool needSFU, uint32_t currentRtpTimestamp)
                                    QString::number(p2pActiveCount),
                                    QString::number(p2pActiveWithSfuCount),
                                    QString::number(totalLinks)});
+                                   
+  const int syncFrames = calculateSyncPeriodInFrames();
 
   // If SFU toggled state, ensure SFU forwarding state for individual
   // participants is updated to match our local connection state. This
@@ -851,6 +852,8 @@ void HybridFilter::applySfuState(bool needSFU, uint32_t currentRtpTimestamp)
   // (must not be zero) when sending APP control packets.
   if (sfuRTPSender_ && previousSfuActive != sfuActive_)
   {
+    const uint64_t nowMs = clockNowMs();
+
     if (!sfuActive_)
     {
       // We're disabling SFU: tell it to stop forwarding all known SSRCs.
@@ -861,6 +864,15 @@ void HybridFilter::applySfuState(bool needSFU, uint32_t currentRtpTimestamp)
         {
           // stop all forwarding immediate in case we re-enable the sfu
           sfuRTPSender_->stopForwarding(e->sfuRemoteSSRC, currentRtpTimestamp);
+
+          // Prevent immediate new switches right after issuing APPs by
+          // entering a short AwaitingCompletion guard window. Do not
+          // overwrite an existing Scheduled switch.
+          if (e->switchPhase == LinkInfo::SwitchPhase::None)
+          {
+            e->switchPhase = LinkInfo::SwitchPhase::AwaitingCompletion;
+            e->switchProhabitionMs = nowMs + calculateSwitchGuardWindowMs(e, syncFrames);
+          }
         }
       }
     }
@@ -882,12 +894,23 @@ void HybridFilter::applySfuState(bool needSFU, uint32_t currentRtpTimestamp)
             if (e->switchPhase == LinkInfo::SwitchPhase::None)
             {
               sfuRTPSender_->stopForwarding(e->sfuRemoteSSRC, currentRtpTimestamp);
+
+              // Guard new switch requests briefly after issuing the STOP
+              e->switchPhase = LinkInfo::SwitchPhase::AwaitingCompletion;
+              e->switchProhabitionMs = nowMs + calculateSwitchGuardWindowMs(e, syncFrames);
             }
           }
           else
           {
-            // this is not needed since its handled by the sync logic elsewhere
+            // Request SFU forwarding now; ensure we prevent races where a
+            // subsequent local switch would immediately conflict.
             sfuRTPSender_->startForwarding(e->sfuRemoteSSRC, currentRtpTimestamp);
+
+            if (e->switchPhase == LinkInfo::SwitchPhase::None)
+            {
+              e->switchPhase = LinkInfo::SwitchPhase::AwaitingCompletion;
+              e->switchProhabitionMs = nowMs + calculateSwitchGuardWindowMs(e, syncFrames);
+            }
           }
         }
       }
