@@ -599,6 +599,9 @@ uint64_t HybridFilter::calculateSwitchGuardWindowMs(const std::shared_ptr<LinkIn
 
 void HybridFilter::executeSwitches(uint32_t currentTimestamp)
 {
+  // Compute sync frames once for use in guard window calculation below.
+  const int syncFrames = calculateSyncPeriodInFrames();
+
   // Delayed switch of links, needs to be synchronized with sfu server.
   // Execute only those whose scheduled RTP timestamp has been reached.
   std::vector<std::shared_ptr<LinkInfo>> remaining;
@@ -606,6 +609,8 @@ void HybridFilter::executeSwitches(uint32_t currentTimestamp)
 
   uint32_t nextPendingTs = 0;
   bool hasNextPendingTs = false;
+
+  bool anyP2PtoSFUSwitchExecuted = false;
 
   for (const auto& link : linksToSwitch_)
   {
@@ -634,14 +639,25 @@ void HybridFilter::executeSwitches(uint32_t currentTimestamp)
           {
             setConnection(link->p2pOutIndex, false, link->p2pRTPSender);
           }
+
+          // Mark that a P2P->SFU switch was executed so we apply SFU state immediately
+          // This prevents frame loss when multiple switches are pending (only first one
+          // would disable P2P; SFU needs to be enabled immediately before next frame)
+          anyP2PtoSFUSwitchExecuted = true;
         }
 
-        // Keep switchPhase in AwaitingCompletion after execute until post-switch stabilization window expires.
+        // Keep switchPhase in AwaitingCompletion after execute until
+        // post-switch stabilization window expires. Use the full guard
+        // window calculated from current sync parameters so that we do
+        // not prematurely clear the ongoing switch state and allow a
+        // conflicting new switch to be scheduled while stabilization
+        // is still expected.
         link->switchPhase = LinkInfo::SwitchPhase::AwaitingCompletion;
         link->switchTimestamp = 0;
 
-        // wait a little bit more in case something is ongoing at receiver
-        link->switchProhabitionMs = clockNowMs() + std::max(link->latestsP2PRtt, link->latestsSFURtt);
+        // Use a conservative prohibition window to cover the sync period
+        // and measured RTTs to avoid races.
+        link->switchProhabitionMs = clockNowMs() + calculateSwitchGuardWindowMs(link, syncFrames);
       }
       else
       {
@@ -666,10 +682,11 @@ void HybridFilter::executeSwitches(uint32_t currentTimestamp)
     nextSwitchTimestamp_ = 0;
   }
 
-  // Apply SFU state decision from evaluation when all scheduled switches
-  // have been executed. This avoids disabling SFU while a switch to SFU is
-  // still pending.
-  if (linksToSwitch_.empty())
+  // Apply SFU state immediately if a P2P->SFU switch just executed (even if other
+  // Scheduled switches remain pending). This prevents frame loss when P2P is disabled
+  // for the first link while waiting for other links to reach their switch times.
+  // Also apply if all scheduled switches are done (no more pending).
+  if (anyP2PtoSFUSwitchExecuted || linksToSwitch_.empty())
   {
     applySfuState(pendingSfuActive_, currentTimestamp);
   }
@@ -961,6 +978,9 @@ bool HybridFilter::hasAnyLinkNeedingSfu() const
 
     // If we have an SFU identity for the link but no active P2P path, SFU must stay on.
     if (hasSfu && !hasActiveP2P)
+      return true;
+
+    if (entry->switchPhase != LinkInfo::SwitchPhase::None && !entry->switchTargetP2P)
       return true;
   }
 
