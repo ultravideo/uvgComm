@@ -5,7 +5,7 @@ The features list for uvgComm is constantly expanding and here is the detailed d
 
 
 
-## uvgComm Protocols
+## Protocols
 
 ### Session Initiation Protocol (SIP)
 
@@ -49,8 +49,31 @@ After the best path for media has been found, uvgComm sets up the delivery using
 **Specifications**
 See [uvgRTP](https://github.com/ultravideo/uvgRTP) for more details.
 
+## Architectures
+### P2P Mesh
 
+uvgComm supports a peer-to-peer (P2P) mesh mode where participants send media directly to each other.
+This delivers the lowest possible latency for small groups and is ideal when each participant has
+sufficient uplink bandwidth. P2P mesh offers direct media paths with minimal intermediaries, at the cost
+of higher uplink usage as group size grows.
 
+### SFU
+
+uvgComm also supports a Selective Forwarding Unit (SFU) mode. In SFU mode participants upload their
+media streams to a central server which selectively forwards appropriate streams to receivers. SFU mode
+greatly reduces per-user uplink requirements and scales to larger groups, while introducing only small
+additional forwarding latency and moderate relay latency.
+
+### Hybrid architecture
+
+This hybrid mode combines the low-latency P2P mesh and the scalable SFU architectures, dynamically selecting the best delivery method between each participant. This is achieved uvgComm's flexible filter-graph architecture with an adaptive delivery manager (Hybrid Filter) that automatically optimizes how media is sent to each participant. Key user-facing properties:
+
+- Automatic path selection: the system measures the latency of both P2P and SFU links, optimizing selection for lowest latency paths
+- Seamless transitions: switches between direct and SFU delivery are synchronized with media timing to avoid duplicate or dropped frames.
+- Continuous adaptation: the system monitors network link latencies and adjusts per-participant routing to balance latency and available uplink capacity.
+- Coordinated delivery: media and related streams (such as audio) are managed together so the user experiences smooth, high-quality real-time communication with minimal configuration.
+
+Result: latency optimized real-time video and audio delivery that respects bandwidth limits of the network and does not compromise on quality.
 
 ## Media 
 
@@ -91,9 +114,6 @@ Coming soon ...
 ### Screen sharing
 
 uvgComm uses Qt to provide ability for screen capture by taking screen shots at constant rate.
-
-
-
 
 ## Analytics and Settings
 

@@ -16,6 +16,6 @@ uvgComm offer plenty of user control for various aspects of audio and video proc
 
 uvgComm also features a lightweight statistics collection for various aspects of the software. You can open the statistics view from `menu` -> `Statistics`. This view holds the SIP log, Call Parameters, Delivery statistics, Filter Graph Statistics and Performance Statistics separated in their own tabs.
 
-### On Connectivity
+### Architectures
 
-uvgComm is a developing software and at the time of this writing there are still some missing features when it comes to connectivity. While uvgComm does have limited support for calling from behind NAT with STUN, many common NATs are not yet supported. If you are calling from a symmetric NAT, you may experience difficulties forming a connection for the media. These types of networks often include GSM and other large scale NATs. This issue is being worked on and will be resolved in the future.
+In Call Settings, you can select the uvgComm instance to be either client or a server. You can also select which multi-party architecture uvgComm uses (if any). Only server/host architecture matters, clients will always follow the architecture set by host. In P2P Mesh its possible that the host also participants in the call as a client. Currently there is a bug that if you change the archtitecture, you may need to restart uvgComm for the change to take full effect. 
